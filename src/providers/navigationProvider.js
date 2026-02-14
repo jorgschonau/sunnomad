@@ -23,9 +23,10 @@ export const openInMaps = async (place, providerPreference = NavigationProvider.
   }
 
   // Determine which provider to use
+  // Default: Google Maps (user can override in settings later)
   let provider = providerPreference;
   if (provider === NavigationProvider.AUTO) {
-    provider = Platform.OS === 'ios' ? NavigationProvider.APPLE_MAPS : NavigationProvider.GOOGLE_MAPS;
+    provider = NavigationProvider.GOOGLE_MAPS;
   }
 
   try {

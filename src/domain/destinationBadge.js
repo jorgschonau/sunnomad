@@ -31,7 +31,7 @@ export const BadgeMetadata = {
     priority: 1, // Same as Budget (mutually exclusive)
   },
   [DestinationBadge.WARM_AND_DRY]: {
-    icon: '☀️',
+    icon: require('../../assets/warmanddry_new.jpg'),
     color: '#FF6B35', // Orange-red
     priority: 2,
     excludeFromTrophy: true, // Show on map, but don't count for trophy filter
@@ -45,6 +45,7 @@ export const BadgeMetadata = {
     icon: require('../../assets/heatwave_chatgpt5.jpg'),
     color: '#FF5722', // Red/Orange
     priority: 4,
+    excludeFromTrophy: true, // Warning badge, but still combinable with WTD/Budget
   },
   [DestinationBadge.WEATHER_MIRACLE]: {
     icon: '🌈',
