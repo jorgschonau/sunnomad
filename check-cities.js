@@ -16,7 +16,7 @@ async function checkCities() {
   console.log('🇨🇦 Vancouver:');
   if (vancouver && vancouver.length > 0) {
     vancouver.forEach(p => {
-      console.log(`   ✅ ${p.name}: ${p.temperature}°C, Pop: ${p.population?.toLocaleString() || 'N/A'}, Score: ${p.attractiveness_score}`);
+      console.log(`   ✅ ${p.name}: ${p.temperature} °C, Pop: ${p.population?.toLocaleString() || 'N/A'}, Score: ${p.attractiveness_score}`);
     });
   } else {
     console.log('   ❌ Not found!');
@@ -34,7 +34,7 @@ async function checkCities() {
   console.log('🇺🇸 Seattle:');
   if (seattle && seattle.length > 0) {
     seattle.forEach(p => {
-      console.log(`   ✅ ${p.name}: ${p.temperature}°C, Pop: ${p.population?.toLocaleString() || 'N/A'}, Score: ${p.attractiveness_score}`);
+      console.log(`   ✅ ${p.name}: ${p.temperature} °C, Pop: ${p.population?.toLocaleString() || 'N/A'}, Score: ${p.attractiveness_score}`);
     });
   } else {
     console.log('   ❌ Not found!');

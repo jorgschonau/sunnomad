@@ -230,7 +230,7 @@ async function saveCurrentWeather(placeId, placeName, current) {
       throw error;
     }
 
-    console.log(`  ✅ ${placeName}: ${current.temperature_2m}°C (${getWeatherDescription(current.weather_code)})`);
+    console.log(`  ✅ ${placeName}: ${current.temperature_2m} °C (${getWeatherDescription(current.weather_code)})`);
     return true;
   } catch (error) {
     console.error(`  ❌ Failed to save current weather for ${placeName}:`, error.message);

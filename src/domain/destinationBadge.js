@@ -9,7 +9,7 @@ export const DestinationBadge = {
   BEACH_PARADISE: 'BEACH_PARADISE', // Coastal location with perfect beach weather
   SUNNY_STREAK: 'SUNNY_STREAK', // 3+ days of sunshine in a row (stable good weather)
   WEATHER_MIRACLE: 'WEATHER_MIRACLE', // Place transforms from bad to great weather (today bad → tomorrow sunny!)
-  HEATWAVE: 'HEATWAVE', // 3+ days >32°C with no rain
+  HEATWAVE: 'HEATWAVE', // 3+ days >32 °C with no rain
   SNOW_KING: 'SNOW_KING', // Reliable snow conditions - perfect for skiing
   RAINY_DAYS: 'RAINY_DAYS', // 3+ rainy days with at least 1 heavy rain
   WEATHER_CURSE: 'WEATHER_CURSE', // Good weather now but will turn bad soon
@@ -34,6 +34,7 @@ export const BadgeMetadata = {
     icon: '☀️',
     color: '#FF6B35', // Orange-red
     priority: 2,
+    excludeFromTrophy: true, // Show on map, but don't count for trophy filter
   },
   [DestinationBadge.BEACH_PARADISE]: {
     icon: '🌊',
@@ -49,30 +50,31 @@ export const BadgeMetadata = {
     icon: '🌈',
     color: '#E91E63', // Pink (dramatic!)
     priority: 5,
-    detailOnly: true, // Only show on detail card, not on map marker
+    excludeFromTrophy: true, // Show on map, but don't count for trophy filter
   },
   [DestinationBadge.SUNNY_STREAK]: {
     icon: '☀️',
     color: '#FFA726', // Orange (sunny!)
     priority: 6,
+    excludeFromTrophy: true, // Show on map, but don't count for trophy filter
   },
   [DestinationBadge.SNOW_KING]: {
     icon: '⛄',
     color: '#2196F3', // Blue (winter cold)
     priority: 7,
-    detailOnly: true, // Show on detail card, don't force on map
+    excludeFromTrophy: true, // Show on map, but don't count for trophy filter
   },
   [DestinationBadge.RAINY_DAYS]: {
     icon: '🌧️',
     color: '#607D8B', // Gray-blue
     priority: 8,
-    detailOnly: true, // Only show on detail card, not on map marker
+    excludeFromTrophy: true, // Show on map, but don't count for trophy filter
   },
   [DestinationBadge.WEATHER_CURSE]: {
     icon: '⛈️',
     color: '#37474F', // Dark gray (storm cloud)
     priority: 9,
-    detailOnly: true, // Only show on detail card, not on map marker
+    excludeFromTrophy: true, // Show on map, but don't count for trophy filter
   },
   [DestinationBadge.SPRING_AWAKENING]: {
     icon: '🐇', // Bunny for spring
@@ -91,9 +93,9 @@ export const BadgeMetadata = {
 export function calculateWeatherScore(destination) {
   if (!destination) return 0;
 
-  // Temperature comfort: optimal around 20-25°C
+  // Temperature comfort: optimal around 20-25 °C
   const temp = destination.temperature ?? 15;
-  const tempScore = Math.max(0, 100 - Math.abs(temp - 22) * 3); // Peaks at 22°C
+  const tempScore = Math.max(0, 100 - Math.abs(temp - 22) * 3); // Peaks at 22 °C
 
   // Condition quality
   const conditionScores = {
@@ -154,7 +156,7 @@ export function getWeatherScoreAtETA(destination, eta) {
  * Returns true if average temp drops by more than threshold
  * 
  * @param {Object} destination - Destination with forecast data
- * @param {number} threshold - Max allowed temp drop (default 4°C)
+ * @param {number} threshold - Max allowed temp drop (default 4 °C)
  * @returns {Object} - { isDeteriorating, avgTempDrop }
  */
 export function checkWeatherDeterioration(destination, threshold = 4) {
@@ -191,8 +193,8 @@ export function checkWeatherDeterioration(destination, threshold = 4) {
   const isDeteriorating = avgTempDrop > threshold;
   
   console.log(`🌡️ ${destination.name}: Deterioration check - ` +
-    `Today: ${currentTemp}°C, Future avg: ${avgFutureTemp.toFixed(1)}°C (min: ${minFutureTemp}°C), ` +
-    `Drop: ${avgTempDrop.toFixed(1)}°C (max: ${maxTempDrop.toFixed(1)}°C) → ${isDeteriorating ? '❌ DETERIORATING' : '✓ OK'}`
+    `Today: ${currentTemp} °C, Future avg: ${avgFutureTemp.toFixed(1)} °C (min: ${minFutureTemp} °C), ` +
+    `Drop: ${avgTempDrop.toFixed(1)} °C (max: ${maxTempDrop.toFixed(1)} °C) → ${isDeteriorating ? '❌ DETERIORATING' : '✓ OK'}`
   );
   
   return {
@@ -233,8 +235,8 @@ export function calculateWorthTheDrive(destination, origin, distanceKm) {
   // Gating criteria
   const MIN_WEATHER_SCORE = 60; // Destination must be decent weather
   const MIN_DELTA = 3; // Weather score must be at least slightly better than origin
-  const MIN_TEMP_ABSOLUTE = 4; // Destination must be at least 4°C (not freezing!)
-  const MIN_TEMP_DELTA = 4; // Destination must be warmer (+4°C minimum)
+  const MIN_TEMP_ABSOLUTE = 4; // Destination must be at least 4 °C (not freezing!)
+  const MIN_TEMP_DELTA = 4; // Destination must be warmer (+4 °C minimum)
   const MIN_VALUE = 1.5; // Must have reasonable value per hour
   const MIN_DISTANCE_KM = 30; // Must be at least 30km away (otherwise not "worth the drive")
   
@@ -288,8 +290,8 @@ export function calculateWorthTheDriveBudget(destination, origin, distanceKm) {
   const delta = weatherDest - weatherOrigin;
   
   // Minimum criteria to be considered
-  const MIN_TEMP_DELTA = 3; // At least 3°C warmer
-  const MIN_TEMP_ABSOLUTE = 10; // At least 10°C (not freezing)
+  const MIN_TEMP_DELTA = 3; // At least 3 °C warmer
+  const MIN_TEMP_ABSOLUTE = 10; // At least 10 °C (not freezing)
   const MIN_DISTANCE = 1; // Avoid division by zero
   const MIN_DISTANCE_KM = 30; // Must be at least 30km away
   
@@ -333,7 +335,7 @@ export function calculateWarmAndDry(destination, allDestinations) {
   
   // Criteria - seasonal temperature threshold
   const month = new Date().getMonth() + 1;
-  const MIN_TEMP = month >= 6 && month <= 8 ? 28 : 22; // 28°C in summer (Jun-Aug), 22°C otherwise
+  const MIN_TEMP = month >= 6 && month <= 8 ? 28 : 22; // 28 °C in summer (Jun-Aug), 22 °C otherwise
   const MAX_WIND = 30; // Max wind speed in km/h
   const MAX_PRECIPITATION = 2; // Max 2mm precipitation
   const BAD_CONDITIONS = ['rainy', 'snowy']; // Conditions that disqualify
@@ -463,7 +465,7 @@ export function calculateSunnyStreak(destination) {
   
   // sunshine_duration > 28800 = more than 8 hours of sun
   const MIN_SUNSHINE_SECONDS = 28800; // 8 hours
-  const MIN_TEMP = 10; // At least 10°C
+  const MIN_TEMP = 10; // At least 10 °C
   
   const isSunny = currentCondition === 'sunny';
   const hasLongSunshine = sunshineDuration >= MIN_SUNSHINE_SECONDS;
@@ -511,7 +513,7 @@ export function calculateWeatherMiracle(destination) {
   const tempGain = futureTempMax - todayTemp;
   
   // Badge criteria: bad today AND sunny future AND warmer
-  const MIN_TEMP_GAIN = 5; // Must get warmer by at least 5°C
+  const MIN_TEMP_GAIN = 5; // Must get warmer by at least 5 °C
   const shouldAward = (
     isBadToday &&
     (tomorrowSunny || day3Sunny) &&
@@ -530,7 +532,7 @@ export function calculateWeatherMiracle(destination) {
 
 /**
  * Calculate "Heatwave" eligibility
- * 3+ days above 34°C with no rain
+ * 3+ days above 34 °C with no rain
  * 
  * @param {Object} destination - Destination with forecast data
  * @returns {Object} - { shouldAward, hotDays, maxTemp }
@@ -571,7 +573,7 @@ export function calculateHeatwave(destination) {
   if (forecast?.day3?.high != null) temps.push(forecast.day3.high);
   const avgTemp = temps.length > 0 ? Math.round(temps.reduce((a, b) => a + b, 0) / temps.length) : 0;
 
-  // Badge criteria: 3+ days >= 34°C AND no rain
+  // Badge criteria: 3+ days >= 34 °C AND no rain
   const MIN_HOT_DAYS = 3;
   const shouldAward = hotDays >= MIN_HOT_DAYS && !hasRain;
   
@@ -707,27 +709,27 @@ export function calculateSnowKing(destination) {
   
   // === WINTER PATHS (Nov-Mar) ===
   
-  // Path 1 (Heavy Snow): ≥20mm snow/24h, avg ≤2°C
+  // Path 1 (Heavy Snow): ≥20mm snow/24h, avg ≤2 °C
   const path1 = snowfall24h >= 20 && avgTemp <= 2;
   
-  // Path 2 (Consistent Snow): ≥3 snow days, ≥10mm total, avg ≤0°C
+  // Path 2 (Consistent Snow): ≥3 snow days, ≥10mm total, avg ≤0 °C
   const path2 = snowDays >= 3 && totalSnowfall >= 10 && avgTemp <= 0;
   
-  // Path 3 (Cold + Snow): ≥1 snow day, avg ≤-5°C, max ≤-1°C
+  // Path 3 (Cold + Snow): ≥1 snow day, avg ≤-5 °C, max ≤-1 °C
   const path3 = snowDays >= 1 && avgTemp <= -5 && maxTemp <= -1;
   
   const shouldAward = path1 || path2 || path3;
   
   // Calculate score for sorting: Snow (60%) + Cold (40%)
-  // Normalize: snowfall max ~50mm = 100 points, temp min ~-20°C = 100 points
+  // Normalize: snowfall max ~50mm = 100 points, temp min ~-20 °C = 100 points
   const snowScore = Math.min(100, (totalSnowfall / 50) * 100) * 0.6;
   const coldScore = Math.min(100, Math.max(0, (10 - avgTemp) / 30) * 100) * 0.4;
   const score = Math.round((snowScore + coldScore) * 10) / 10;
   
   let reason = '';
-  if (path1) reason = `Heavy: ${snowfall24h.toFixed(0)}mm/24h, Ø${avgTemp.toFixed(1)}°C`;
-  else if (path2) reason = `Consistent: ${snowDays} Tage, ${totalSnowfall.toFixed(0)}mm, Ø${avgTemp.toFixed(1)}°C`;
-  else if (path3) reason = `Freezing: Ø${avgTemp.toFixed(1)}°C, Max ${maxTemp.toFixed(0)}°C`;
+  if (path1) reason = `Heavy: ${snowfall24h.toFixed(0)}mm/24h, Ø${avgTemp.toFixed(1)} °C`;
+  else if (path2) reason = `Consistent: ${snowDays} Tage, ${totalSnowfall.toFixed(0)}mm, Ø${avgTemp.toFixed(1)} °C`;
+  else if (path3) reason = `Freezing: Ø${avgTemp.toFixed(1)} °C, Max ${maxTemp.toFixed(0)} °C`;
   
   if (isHighAlps && !isWinter) {
     reason += ' (Hochalpen)';
@@ -807,9 +809,9 @@ export function calculateRainyDays(destination) {
  * Good & warm weather now but will turn bad soon (opposite of Weather Miracle)
  * 
  * Criteria:
- * - Today: > 10°C AND good weather (sunny/cloudy/overcast)
+ * - Today: > 10 °C AND good weather (sunny/cloudy/overcast)
  * - Tomorrow/Day3: bad weather (rainy/snowy/windy)
- * - Temp loss >= 5°C
+ * - Temp loss >= 5 °C
  * 
  * @param {Object} destination - Destination with forecast data
  * @returns {Object} - { shouldAward, todayCondition, futureCondition, tempLoss }
@@ -823,7 +825,7 @@ export function calculateWeatherCurse(destination) {
     return { shouldAward: false };
   }
   
-  // Prerequisite: Today must be warm (> 10°C) AND good weather
+  // Prerequisite: Today must be warm (> 10 °C) AND good weather
   const MIN_TODAY_TEMP = 10;
   const GOOD_CONDITIONS = ['sunny', 'cloudy', 'overcast'];
   const isWarmToday = todayTemp > MIN_TODAY_TEMP;
@@ -839,7 +841,7 @@ export function calculateWeatherCurse(destination) {
   const futureTempMin = Math.min(tomorrowTemp, day3Temp);
   const tempLoss = todayTemp - futureTempMin;
   
-  // Badge criteria: warm + good today AND bad future AND ≥5°C colder
+  // Badge criteria: warm + good today AND bad future AND ≥5 °C colder
   const MIN_TEMP_LOSS = 5;
   const shouldAward = (
     isWarmToday &&
@@ -850,13 +852,13 @@ export function calculateWeatherCurse(destination) {
   
   // Debug logging for Weather Curse candidates
   if (isGoodToday && (tomorrowBad || day3Bad)) {
-    const reason = !isWarmToday ? `TOO COLD (${todayTemp}°C ≤ ${MIN_TODAY_TEMP}°C)` :
-                   tempLoss < MIN_TEMP_LOSS ? `NOT ENOUGH TEMP LOSS (${tempLoss}°C < ${MIN_TEMP_LOSS}°C)` : 'OK';
+    const reason = !isWarmToday ? `TOO COLD (${todayTemp} °C ≤ ${MIN_TODAY_TEMP} °C)` :
+                   tempLoss < MIN_TEMP_LOSS ? `NOT ENOUGH TEMP LOSS (${tempLoss} °C < ${MIN_TEMP_LOSS} °C)` : 'OK';
     console.log(`🔮 ${destination.name}: Weather Curse candidate! ` +
-      `Today: ${todayCondition} ${todayTemp}°C, ` +
-      `Tomorrow: ${forecast.tomorrow?.condition || 'N/A'} ${tomorrowTemp}°C, ` +
-      `Day3: ${forecast.day3?.condition || 'N/A'} ${day3Temp}°C, ` +
-      `TempLoss: ${tempLoss}°C → ${shouldAward ? '✅ AWARD' : `❌ ${reason}`}`
+      `Today: ${todayCondition} ${todayTemp} °C, ` +
+      `Tomorrow: ${forecast.tomorrow?.condition || 'N/A'} ${tomorrowTemp} °C, ` +
+      `Day3: ${forecast.day3?.condition || 'N/A'} ${day3Temp} °C, ` +
+      `TempLoss: ${tempLoss} °C → ${shouldAward ? '✅ AWARD' : `❌ ${reason}`}`
     );
   }
   
@@ -872,7 +874,7 @@ export function calculateWeatherCurse(destination) {
 
 /**
  * Calculate "Spring Awakening" eligibility
- * Perfect spring weather: 15-25°C, sunny/partly cloudy, light wind
+ * Perfect spring weather: 15-25 °C, sunny/partly cloudy, light wind
  * Only from March 1 - May 15
  * 
  * @param {Object} destination - Destination with weather data
@@ -913,7 +915,7 @@ export function calculateSpringAwakening(destination, origin, distanceKm) {
   const condition = destination.condition ?? 'unknown';
   const windSpeed = destination.windSpeed ?? 0;
   
-  // Temperature: 15-25°C (pleasant to warm, not hot)
+  // Temperature: 15-25 °C (pleasant to warm, not hot)
   const MIN_TEMP = 15;
   const MAX_TEMP = 25;
   const isGoodTemp = tempDest >= MIN_TEMP && tempDest <= MAX_TEMP;
@@ -962,7 +964,7 @@ export function calculateBadges(destination, userLocation, distanceKm, allDestin
   destination._weatherCurseData = weatherCurseResult;
   const hasWeatherCurse = weatherCurseResult.shouldAward;
   
-  // Check weather deterioration (>4°C drop in next 2 days average)
+  // Check weather deterioration (>4 °C drop in next 2 days average)
   const deteriorationResult = checkWeatherDeterioration(destination, 4);
   destination._weatherDeteriorationData = deteriorationResult;
   const isDeterioritating = deteriorationResult.isDeteriorating;
@@ -973,7 +975,7 @@ export function calculateBadges(destination, userLocation, distanceKm, allDestin
   if (skipWorthTheDrive) {
     console.log(`⚠️ ${destination.name}: Skipping Worth the Drive - ` +
       `${hasWeatherCurse ? 'Weather Curse' : ''} ` +
-      `${isDeterioritating ? `Deteriorating (${deteriorationResult.avgTempDrop}°C drop)` : ''}`
+      `${isDeterioritating ? `Deteriorating (${deteriorationResult.avgTempDrop} °C drop)` : ''}`
     );
   }
 
@@ -999,7 +1001,7 @@ export function calculateBadges(destination, userLocation, distanceKm, allDestin
     badges.push(DestinationBadge.WORTH_THE_DRIVE);
     console.log(
       `🚗 ${destination.name}: Worth it! ` +
-      `Temp: ${worthResult.tempOrigin}°C → ${worthResult.tempDest}°C (+${worthResult.tempDelta}°C), ` +
+      `Temp: ${worthResult.tempOrigin} °C → ${worthResult.tempDest} °C (+${worthResult.tempDelta} °C), ` +
       `Weather: ${worthResult.weatherOrigin} → ${worthResult.weatherDest} (+${worthResult.delta} pts), ` +
       `Value: ${worthResult.value} pts/h, ` +
       `ETA: ${worthResult.eta}h (${Math.round(distanceKm)}km)`
@@ -1016,7 +1018,7 @@ export function calculateBadges(destination, userLocation, distanceKm, allDestin
     badges.push(DestinationBadge.WARM_AND_DRY);
     console.log(
       `☀️ ${destination.name}: Warm & Dry! ` +
-      `Temp: ${warmDryResult.temp}°C (Rank: #${warmDryResult.tempRank}), ` +
+      `Temp: ${warmDryResult.temp} °C (Rank: #${warmDryResult.tempRank}), ` +
       `Condition: ${warmDryResult.condition}, ` +
       `Wind: ${warmDryResult.windSpeed} km/h`
     );
@@ -1030,7 +1032,7 @@ export function calculateBadges(destination, userLocation, distanceKm, allDestin
     badges.push(DestinationBadge.BEACH_PARADISE);
     console.log(
       `🌊 ${destination.name}: Beach Paradise! ` +
-      `Temp: ${beachResult.temp}°C, ` +
+      `Temp: ${beachResult.temp} °C, ` +
       `Condition: ${beachResult.condition}, ` +
       `Wind: ${beachResult.windSpeed} km/h`
     );
@@ -1056,8 +1058,8 @@ export function calculateBadges(destination, userLocation, distanceKm, allDestin
     badges.push(DestinationBadge.WEATHER_MIRACLE);
     console.log(
       `🌈 ${destination.name}: Weather Miracle! ` +
-      `TODAY: ${miracleResult.todayTemp}°C, ${miracleResult.todayCondition} → ` +
-      `FUTURE: ${miracleResult.futureTempMax}°C, sunny (+${miracleResult.tempGain}°C gain!)`
+      `TODAY: ${miracleResult.todayTemp} °C, ${miracleResult.todayCondition} → ` +
+      `FUTURE: ${miracleResult.futureTempMax} °C, sunny (+${miracleResult.tempGain} °C gain!)`
     );
   }
 
@@ -1069,7 +1071,7 @@ export function calculateBadges(destination, userLocation, distanceKm, allDestin
     badges.push(DestinationBadge.HEATWAVE);
     console.log(
       `🔥 ${destination.name}: Heatwave! ` +
-      `${heatwaveResult.hotDays} days >30°C, Max: ${heatwaveResult.maxTemp}°C`
+      `${heatwaveResult.hotDays} days >30 °C, Max: ${heatwaveResult.maxTemp} °C`
     );
   }
 
@@ -1105,8 +1107,8 @@ export function calculateBadges(destination, userLocation, distanceKm, allDestin
     badges.push(DestinationBadge.WEATHER_CURSE);
     console.log(
       `⚠️ ${destination.name}: Weather Curse! ` +
-      `TODAY: ${weatherCurseResult.todayTemp}°C, ${weatherCurseResult.todayCondition} → ` +
-      `FUTURE: ${weatherCurseResult.futureTempMin}°C, ${weatherCurseResult.futureCondition} (-${weatherCurseResult.tempLoss}°C loss!)`
+      `TODAY: ${weatherCurseResult.todayTemp} °C, ${weatherCurseResult.todayCondition} → ` +
+      `FUTURE: ${weatherCurseResult.futureTempMin} °C, ${weatherCurseResult.futureCondition} (-${weatherCurseResult.tempLoss} °C loss!)`
     );
   }
 
@@ -1118,7 +1120,7 @@ export function calculateBadges(destination, userLocation, distanceKm, allDestin
     badges.push(DestinationBadge.SPRING_AWAKENING);
     console.log(
       `🐇 ${destination.name}: Spring Awakening! ` +
-      `Temp: ${springAwakeningResult.tempOrigin}°C → ${springAwakeningResult.tempDest}°C (+${springAwakeningResult.tempDelta}°C), ` +
+      `Temp: ${springAwakeningResult.tempOrigin} °C → ${springAwakeningResult.tempDest} °C (+${springAwakeningResult.tempDelta} °C), ` +
       `ETA: ${springAwakeningResult.eta}h (${springAwakeningResult.distance}km) - ${springAwakeningResult.reason}`
     );
   }

@@ -435,7 +435,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     const scored = days.map(day => {
       const temp = day.data.high ?? day.data.temp ?? 0;
       const cond = conditionScore(day.data.condition);
-      // Range: -20°C = 0, +35°C = 100 (handles winter temps properly)
+      // Range: -20 °C = 0, +35 °C = 100 (handles winter temps properly)
       const tempNormalized = Math.max(0, Math.min(100, ((temp + 20) / 55) * 100));
       const score = cond * 0.6 + tempNormalized * 0.4;
       return { ...day, score, temp, condition: day.data.condition };
@@ -463,7 +463,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       return true;
     }
     
-    // Sunny but freezing (< 0°C) also uses light blue background → dark text
+    // Sunny but freezing (< 0 °C) also uses light blue background → dark text
     if (condition === 'sunny' && temp !== null && temp !== undefined && temp < 0) {
       return true;
     }
@@ -580,25 +580,25 @@ const DestinationDetailScreen = ({ route, navigation }) => {
               // Get summary text for collapsed state
               const getSummaryText = () => {
                 if (isWorthTheDrive && worthData) {
-                  return `+${worthData.tempDelta}°C | ${Math.round(destination.distance)}km`;
+                  return `+${worthData.tempDelta} °C | ${Math.round(destination.distance)}km`;
                 }
                 if (isWorthTheDriveBudget && worthBudgetData) {
-                  return `+${worthBudgetData.tempDelta}°C | ${Math.round(destination.distance)}km`;
+                  return `+${worthBudgetData.tempDelta} °C | ${Math.round(destination.distance)}km`;
                 }
                 if (isWarmAndDry && warmDryData) {
-                  return `${warmDryData.temp}°C | ${translateCondition(warmDryData.condition)}`;
+                  return `${warmDryData.temp} °C | ${translateCondition(warmDryData.condition)}`;
                 }
                 if (isBeachParadise && beachData) {
-                  return `${beachData.temp}°C | ${beachData.sunnyDays} Sonnentage`;
+                  return `${beachData.temp} °C | ${beachData.sunnyDays} Sonnentage`;
                 }
                 if (isSunnyStreak && sunnyStreakData) {
-                  return `${sunnyStreakData.streakLength} Tage ☀️ | Ø ${sunnyStreakData.avgTemp}°C`;
+                  return `${sunnyStreakData.streakLength} Tage ☀️ | Ø ${sunnyStreakData.avgTemp} °C`;
                 }
                 if (isWeatherMiracle && miracleData) {
-                  return `+${Math.round(miracleData.tempGain)}°C bald ☀️`;
+                  return `+${Math.round(miracleData.tempGain)} °C bald ☀️`;
                 }
                 if (isHeatwave && heatwaveData) {
-                  return `${heatwaveData.days} Tage Hitze | Ø ${heatwaveData.avgTemp}°C`;
+                  return `${heatwaveData.days} Tage Hitze | Ø ${heatwaveData.avgTemp} °C`;
                 }
                 if (isSnowKing && snowKingData) {
                   return `${snowKingData.snowDays} Tage ❄️ | ${snowKingData.totalSnowfall}cm`;
@@ -607,10 +607,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                   return `${rainyDaysData.rainyDays} Regentage`;
                 }
                 if (isWeatherCurse && weatherCurseData) {
-                  return `⚠️ ${weatherCurseData.tempLoss}°C Verlust bald!`;
+                  return `⚠️ ${weatherCurseData.tempLoss} °C Verlust bald!`;
                 }
                 if (isSpringAwakening && springAwakeningData) {
-                  return `+${springAwakeningData.tempDelta}°C | ${Math.round(springAwakeningData.distance)}km`;
+                  return `+${springAwakeningData.tempDelta} °C | ${Math.round(springAwakeningData.distance)}km`;
                 }
                 return 'Tap für Details';
               };
@@ -703,7 +703,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                             {isWorthTheDrive && worthData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ Temperatur: {worthData.tempOrigin}°C → {worthData.tempDest}°C (+{worthData.tempDelta}°C)
+                            🌡️ Temperatur: {worthData.tempOrigin} °C → {worthData.tempDest} °C (+{worthData.tempDelta} °C)
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
                             💨 ETA: {formatETA(worthData.eta)} ({Math.round(destination.distance)}km)
@@ -715,7 +715,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isWorthTheDriveBudget && worthBudgetData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ Temperatur: {worthBudgetData.tempOrigin}°C → {worthBudgetData.tempDest}°C (+{worthBudgetData.tempDelta}°C)
+                            🌡️ Temperatur: {worthBudgetData.tempOrigin} °C → {worthBudgetData.tempDest} °C (+{worthBudgetData.tempDelta} °C)
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
                             💨 ETA: {formatETA(worthBudgetData.eta)} ({Math.round(destination.distance)}km)
@@ -727,7 +727,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isWarmAndDry && warmDryData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ Temperatur: {warmDryData.temp}°C (Rang #{warmDryData.tempRank})
+                            🌡️ Temperatur: {warmDryData.temp} °C (Rang #{warmDryData.tempRank})
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
                             ☀️ Bedingungen: {translateCondition(warmDryData.condition)}
@@ -742,7 +742,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isBeachParadise && beachData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ Temperatur: {beachData.temp}°C
+                            🌡️ Temperatur: {beachData.temp} °C
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
                             ☀️ {beachData.sunnyDays} sonnige Tage
@@ -760,7 +760,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                             ☀️ {sunnyStreakData.streakLength} Tage Sonnenschein
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            🌡️ Ø {sunnyStreakData.avgTemp}°C
+                            🌡️ Ø {sunnyStreakData.avgTemp} °C
                           </Text>
                         </View>
                       )}
@@ -769,7 +769,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isWeatherMiracle && miracleData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ Heute: {Math.round(miracleData.todayTemp)}°C → Bald: {Math.round(miracleData.futureTempMax)}°C (+{Math.round(miracleData.tempGain)}°C)
+                            🌡️ Heute: {Math.round(miracleData.todayTemp)} °C → Bald: {Math.round(miracleData.futureTempMax)} °C (+{Math.round(miracleData.tempGain)} °C)
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
                             ☀️ {translateCondition(miracleData.todayCondition)} → {miracleData.futureCondition}
@@ -784,7 +784,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                             🔥 {heatwaveData.days} Tage Hitzewelle
                           </Text>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ Ø {heatwaveData.avgTemp}°C (Max {heatwaveData.maxTemp}°C)
+                            🌡️ Ø {heatwaveData.avgTemp} °C (Max {heatwaveData.maxTemp} °C)
                           </Text>
                         </View>
                       )}
@@ -799,7 +799,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                             📊 {snowKingData.totalSnowfall} cm Gesamtschneefall
                           </Text>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ Ø {snowKingData.avgTemp}°C
+                            🌡️ Ø {snowKingData.avgTemp} °C
                           </Text>
                         </View>
                       )}
@@ -820,10 +820,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isWeatherCurse && weatherCurseData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: '#4CAF50' }]}>
-                            ☀️ Heute: {weatherCurseData.todayTemp}°C, {translateCondition(weatherCurseData.todayCondition)}
+                            ☀️ Heute: {weatherCurseData.todayTemp} °C, {translateCondition(weatherCurseData.todayCondition)}
                           </Text>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            ⚠️ Bald: {weatherCurseData.futureTempMin}°C, {translateCondition(weatherCurseData.futureCondition)} (-{weatherCurseData.tempLoss}°C!)
+                            ⚠️ Bald: {weatherCurseData.futureTempMin} °C, {translateCondition(weatherCurseData.futureCondition)} (-{weatherCurseData.tempLoss} °C!)
                           </Text>
                         </View>
                       )}
@@ -832,7 +832,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isSpringAwakening && springAwakeningData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ Temperatur: {springAwakeningData.tempOrigin}°C → {springAwakeningData.tempDest}°C (+{springAwakeningData.tempDelta}°C)
+                            🌡️ Temperatur: {springAwakeningData.tempOrigin} °C → {springAwakeningData.tempDest} °C (+{springAwakeningData.tempDelta} °C)
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
                             💨 ETA: {springAwakeningData.eta}h ({Math.round(springAwakeningData.distance)}km)
@@ -879,7 +879,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
               <View style={styles.bestDayContent}>
                 <Text style={styles.bestDayLabel}>Bester Tag</Text>
                 <Text style={styles.bestDayValue}>
-                  {bestDay.label} ({Math.round(bestDay.temp)}°C, {translateCondition(bestDay.condition)})
+                  {bestDay.label} ({Math.round(bestDay.temp)} °C, {translateCondition(bestDay.condition)})
                 </Text>
               </View>
               <Text style={styles.bestDayWeatherIcon}>{getWeatherIcon(bestDay.condition)}</Text>

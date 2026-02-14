@@ -61,14 +61,14 @@ async function debug() {
   console.log(`   Vancouver entries: ${vanData?.length || 0}`);
   if (vanData && vanData.length > 0) {
     vanData.forEach(v => {
-      console.log(`     - ${v.name}: ${v.temperature}°C, Pop: ${v.population?.toLocaleString()}, Score: ${v.attractiveness_score}`);
+      console.log(`     - ${v.name}: ${v.temperature} °C, Pop: ${v.population?.toLocaleString()}, Score: ${v.attractiveness_score}`);
     });
   }
   
   console.log(`   Seattle entries: ${seaData?.length || 0}`);
   if (seaData && seaData.length > 0) {
     seaData.forEach(s => {
-      console.log(`     - ${s.name}: ${s.temperature}°C, Pop: ${s.population?.toLocaleString()}, Score: ${s.attractiveness_score}`);
+      console.log(`     - ${s.name}: ${s.temperature} °C, Pop: ${s.population?.toLocaleString()}, Score: ${s.attractiveness_score}`);
     });
   }
 }

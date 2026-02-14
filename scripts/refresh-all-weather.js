@@ -241,7 +241,7 @@ async function processBatch(places, batchNum, totalBatches) {
   // Log sample results
   const samples = results.filter(r => r.success).slice(0, 3);
   samples.forEach(s => {
-    console.log(`  ✅ ${s.name}: ${s.temp}°C`);
+    console.log(`  ✅ ${s.name}: ${s.temp} °C`);
   });
 
   if (failCount > 0) {

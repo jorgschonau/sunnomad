@@ -217,7 +217,7 @@ const MapScreen = ({ navigation }) => {
       // Open-Meteo sourced (currentLocation, centerPoint) — use forecastDays array
       if (dest.forecastDays && dest.forecastDays[selectedDateOffset]) {
         const dayData = dest.forecastDays[selectedDateOffset];
-        // Build forecast for badge calculation
+        // Build forecast for badge calculation (include all fields badges need)
         const shiftedForecast = {};
         const keys = ['today', 'tomorrow', 'day2', 'day3'];
         keys.forEach((key, i) => {
@@ -230,6 +230,7 @@ const MapScreen = ({ navigation }) => {
               low: Math.round(fd.temp_min || fd.temperature - 3),
               precipitation: fd.precipitation,
               windSpeed: fd.windSpeed,
+              sunshine_duration: fd.sunshine_duration || 0,
             };
           }
         });
@@ -241,6 +242,7 @@ const MapScreen = ({ navigation }) => {
           temp_min: dayData.temp_min,
           windSpeed: dayData.windSpeed,
           precipitation: dayData.precipitation,
+          sunshine_duration: dayData.sunshine_duration || 0,
           forecast: shiftedForecast,
         };
       }
@@ -255,6 +257,7 @@ const MapScreen = ({ navigation }) => {
           windSpeed: dayData.windSpeed ?? dest.windSpeed,
           precipitation: dayData.precipitation ?? dest.precipitation,
           sunshine_duration: dayData.sunshine_duration ?? dest.sunshine_duration,
+          humidity: dayData.humidity ?? dest.humidity,
           description: dayData.description ?? dest.description,               // RAINY_DAYS: heavy rain check
           weather_description: dayData.description ?? dest.weather_description, // alias
           forecast: buildShiftedForecast(dest.forecastArray, selectedDateOffset),
@@ -279,7 +282,7 @@ const MapScreen = ({ navigation }) => {
     // IMPORTANT: centerPoint first (matches loadDestinations: centerPointWeather || currentLocationWeather)
     const origin = shifted.find(d => d.isCenterPoint) || shifted.find(d => d.isCurrentLocation);
     if (origin) {
-      console.log(`🏆 Recalculating badges for date offset ${selectedDateOffset} (origin: ${origin.temperature}°C)`);
+      console.log(`🏆 Recalculating badges for date offset ${selectedDateOffset} (origin: ${origin.temperature} °C)`);
       applyBadgesToDestinations(shifted, origin, origin.lat, origin.lon);
     }
 
@@ -351,7 +354,7 @@ const MapScreen = ({ navigation }) => {
       const originLat = centerPoint ? centerPoint.latitude : location.latitude;
       const originLon = centerPoint ? centerPoint.longitude : location.longitude;
       
-      console.log(`🏆 Badge origin: ${centerPointWeather ? 'centerPoint' : 'currentLocation'} (${originWeather?.temperature}°C at ${originWeather?.name})`);
+      console.log(`🏆 Badge origin: ${centerPointWeather ? 'centerPoint' : 'currentLocation'} (${originWeather?.temperature} °C at ${originWeather?.name})`);
       
       // Badges are now calculated in weatherUsecases.js - no need to apply here!
       
@@ -360,7 +363,7 @@ const MapScreen = ({ navigation }) => {
       // DEBUG: Log all loaded places
       console.log(`📋 ALL ${allDestinations.length} loaded places:`);
       allDestinations.forEach((d, i) => {
-        console.log(`  ${i}: ${d.name} (${d.lat?.toFixed(2)}, ${d.lon?.toFixed(2)}) ${d.temperature}°C ${d.condition || ''} ${d.badges?.length ? '🏆' + d.badges.join(',') : ''}`);
+        console.log(`  ${i}: ${d.name} (${d.lat?.toFixed(2)}, ${d.lon?.toFixed(2)}) ${d.temperature} °C ${d.condition || ''} ${d.badges?.length ? '🏆' + d.badges.join(',') : ''}`);
       });
       const hasPittsburgh = allDestinations.some(d => d.name?.toLowerCase().includes('pittsburgh'));
       console.log(`🔍 Pittsburgh in allDestinations? ${hasPittsburgh ? '✅ JA' : '❌ NEIN'} (${allDestinations.length} total)`);
@@ -413,7 +416,7 @@ const MapScreen = ({ navigation }) => {
         console.warn('Reverse geocoding failed:', geoError);
       }
 
-      // Use Open-Meteo API for current location - fetch 9 days (offset 5 + 3 badge lookahead + 1)
+      // Use Open-Meteo API for current location - fetch 14 days for badge recalc at any date offset
       const params = new URLSearchParams({
         latitude: location.latitude,
         longitude: location.longitude,
@@ -423,13 +426,14 @@ const MapScreen = ({ navigation }) => {
           'weather_code',
           'precipitation_sum',
           'wind_speed_10m_max',
+          'sunshine_duration',
         ].join(','),
         current: [
           'relative_humidity_2m',
           'cloud_cover',
         ].join(','),
         timezone: 'auto',
-        forecast_days: 9,
+        forecast_days: 14,
       });
 
       const url = `https://customer-api.open-meteo.com/v1/forecast?${params}&apikey=8cJ4NUh7dYHZF1uv`;
@@ -449,6 +453,7 @@ const MapScreen = ({ navigation }) => {
         temp_min: daily.temperature_2m_min?.[i],
         windSpeed: Math.round(daily.wind_speed_10m_max?.[i] || 0),
         precipitation: daily.precipitation_sum?.[i] || 0,
+        sunshine_duration: daily.sunshine_duration?.[i] || 0,
       })) || [];
 
       // Default display: today's data (offset applied later via useMemo)
@@ -625,28 +630,26 @@ const MapScreen = ({ navigation }) => {
   };
 
   /**
-   * Get badges that should show on map markers (excludes detailOnly badges)
+   * Get all badges for map markers (all badges are shown on map now)
    */
   const getMapBadges = (badges) => {
     if (!badges || badges.length === 0) return [];
-    return badges.filter(badge => !BadgeMetadata[badge]?.detailOnly);
+    return badges;
   };
 
   /**
    * Calculate display score: Badges first, then TEMPERATURE (warmest wins!)
-   * Note: detailOnly badges (WEATHER_MIRACLE, RAINY_DAYS, WEATHER_CURSE) don't boost priority
    */
   const getDisplayScore = (place) => {
-    // Orte mit MAP-relevanten Badges = immer max Score (100)
-    // detailOnly badges zählen nicht für die Kartenpriorisierung!
+    // Orte mit Badges = immer max Score (100)
     const mapBadges = getMapBadges(place.badges);
     if (mapBadges.length > 0) {
       return 100;
     }
     
-    // TEMPERATUR als Hauptfaktor! (0-40°C → 0-80 Punkte)
+    // TEMPERATUR als Hauptfaktor! (0-40 °C → 0-80 Punkte)
     const temp = place.temperature ?? 15;
-    const tempScore = Math.min(80, Math.max(0, temp * 2)); // 20°C = 40pts, 30°C = 60pts
+    const tempScore = Math.min(80, Math.max(0, temp * 2)); // 20 °C = 40pts, 30 °C = 60pts
     
     // Sunny weather bonus
     const sunnyConditions = ['clear', 'sunny', 'Clear', 'Sunny'];
@@ -847,7 +850,7 @@ const MapScreen = ({ navigation }) => {
         const phase = inPhase1 ? 'Phase1' : 'Phase2';
         if (DEBUG_CITIES.some(c => place.name?.toLowerCase().includes(c))) {
           const score = place.attractivenessScore || place.attractiveness_score || '?';
-          console.log(`🔍 DEBUG: ${place.name} SHOWN ✅ ${phase} → ${gridKey} | temp:${place.temperature}°C score:${score} badges:${hasBadges}`);
+          console.log(`🔍 DEBUG: ${place.name} SHOWN ✅ ${phase} → ${gridKey} | temp:${place.temperature} °C score:${score} badges:${hasBadges}`);
         }
       } else {
         if (DEBUG_CITIES.some(c => place.name?.toLowerCase().includes(c))) {
@@ -865,7 +868,7 @@ const MapScreen = ({ navigation }) => {
       const sortedIdx = inSorted ? sorted.indexOf(inSorted) : -1;
       const score = inSorted ? (inSorted.attractivenessScore || inSorted.attractiveness_score || '?') : '?';
       const temp = inSorted ? inSorted.temperature : '?';
-      console.log(`🔍 PITTSBURGH TRACE: inDB:${!!inCandidates} inSorted:${!!inSorted}(#${sortedIdx}/${sorted.length}) inResult:${!!inResult} | temp:${temp}°C score:${score} maxMarkers:${maxMarkers}`);
+      console.log(`🔍 PITTSBURGH TRACE: inDB:${!!inCandidates} inSorted:${!!inSorted}(#${sortedIdx}/${sorted.length}) inResult:${!!inResult} | temp:${temp} °C score:${score} maxMarkers:${maxMarkers}`);
     }
     
     const finalBadgeCount = result.filter(p => getMapBadges(p.badges).length > 0).length;
@@ -949,7 +952,7 @@ const MapScreen = ({ navigation }) => {
         console.warn('Reverse geocoding failed:', geoError);
       }
 
-      // Use Open-Meteo API - fetch 9 days (offset 5 + 3 badge lookahead + 1)
+      // Use Open-Meteo API - fetch 14 days for badge recalc at any date offset
       const params = new URLSearchParams({
         latitude: lat,
         longitude: lon,
@@ -959,13 +962,14 @@ const MapScreen = ({ navigation }) => {
           'weather_code',
           'precipitation_sum',
           'wind_speed_10m_max',
+          'sunshine_duration',
         ].join(','),
         current: [
           'relative_humidity_2m',
           'cloud_cover',
         ].join(','),
         timezone: 'auto',
-        forecast_days: 9,
+        forecast_days: 14,
       });
 
       const url = `https://customer-api.open-meteo.com/v1/forecast?${params}&apikey=8cJ4NUh7dYHZF1uv`;
@@ -988,6 +992,7 @@ const MapScreen = ({ navigation }) => {
         temp_min: daily.temperature_2m_min?.[i],
         windSpeed: Math.round(daily.wind_speed_10m_max?.[i] || 0),
         precipitation: daily.precipitation_sum?.[i] || 0,
+        sunshine_duration: daily.sunshine_duration?.[i] || 0,
       })) || [];
 
       // Default display: today's data (offset applied later via useMemo)
@@ -1225,10 +1230,9 @@ const MapScreen = ({ navigation }) => {
         {visibleMarkers
           .filter(dest => {
             if (!showOnlyBadges) return true;
-            // When trophy filter active, hide WARM_AND_DRY and SUNNY_STREAK
-            const HIDDEN_IN_TROPHY_VIEW = ['WARM_AND_DRY', 'SUNNY_STREAK'];
-            const visibleBadges = getMapBadges(dest.badges).filter(b => !HIDDEN_IN_TROPHY_VIEW.includes(b));
-            return visibleBadges.length > 0;
+            // When trophy filter active, only show badges that count for trophy
+            const trophyBadges = getMapBadges(dest.badges).filter(b => !BadgeMetadata[b]?.excludeFromTrophy);
+            return trophyBadges.length > 0;
           })
           .map((dest, index) => (
           <Marker
@@ -1260,7 +1264,7 @@ const MapScreen = ({ navigation }) => {
               */}
               
               {/* Badge overlays (stacked vertically on right side) with animations */}
-              {/* Note: detailOnly badges (WEATHER_MIRACLE, RAINY_DAYS, WEATHER_CURSE) are hidden on map */}
+              {/* Badge overlays */}
               {getMapBadges(dest.badges).length > 0 && (
                 <View style={styles.badgeOverlayContainer}>
                   {getMapBadges(dest.badges)
@@ -1297,9 +1301,8 @@ const MapScreen = ({ navigation }) => {
 
       {/* Empty state when trophy filter is active but no places */}
       {showOnlyBadges && !loadingDestinations && visibleMarkers.filter(dest => {
-        const HIDDEN_IN_TROPHY_VIEW = ['WARM_AND_DRY', 'SUNNY_STREAK'];
-        const visibleBadges = getMapBadges(dest.badges).filter(b => !HIDDEN_IN_TROPHY_VIEW.includes(b));
-        return visibleBadges.length > 0;
+        const trophyBadges = getMapBadges(dest.badges).filter(b => !BadgeMetadata[b]?.excludeFromTrophy);
+        return trophyBadges.length > 0;
       }).length === 0 && (
         <View style={[styles.emptyStateOverlay, { backgroundColor: 'rgba(0, 0, 0, 0.5)' }]} pointerEvents="box-none">
           <View style={[styles.emptyStateBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>

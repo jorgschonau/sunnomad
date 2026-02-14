@@ -657,13 +657,13 @@ export const generateWeatherWarnings = (destinations, userLat, userLon) => {
     
     const warningsForLocation = [];
     
-    // EXTREME COLD: < 5°C (demo threshold - will be stricter in production)
+    // EXTREME COLD: < 5 °C (demo threshold - will be stricter in production)
     if (dest.temperature < 5) {
       warningsForLocation.push({
         id: `warning-cold-${dest.id}`,
         type: WarningType.EXTREME_COLD,
         severity: dest.temperature < -15 ? 'extreme' : 'severe',
-        title: `Extreme Kälte: ${Math.round(dest.temperature)}°C`,
+        title: `Extreme Kälte: ${Math.round(dest.temperature)} °C`,
         description: `Gefährlich niedrige Temperaturen in ${dest.name}`,
         location: {
           name: dest.name,
@@ -678,13 +678,13 @@ export const generateWeatherWarnings = (destinations, userLat, userLon) => {
       });
     }
     
-    // EXTREME HEAT: > 30°C
+    // EXTREME HEAT: > 30 °C
     if (dest.temperature > 30) {
       warningsForLocation.push({
         id: `warning-heat-${dest.id}`,
         type: WarningType.EXTREME_HEAT,
         severity: dest.temperature > 40 ? 'extreme' : 'severe',
-        title: `Extremhitze: ${Math.round(dest.temperature)}°C`,
+        title: `Extremhitze: ${Math.round(dest.temperature)} °C`,
         description: `Gefährlich hohe Temperaturen in ${dest.name}`,
         location: {
           name: dest.name,

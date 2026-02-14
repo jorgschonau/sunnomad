@@ -180,7 +180,7 @@ async function processBatch(places, batchNumber, totalBatches) {
     } else {
       const saved = await saveWeatherData(result.place.id, result.current);
       if (saved) {
-        console.log(`  ✅ ${result.place.name}: ${result.current.temperature_2m}°C`);
+        console.log(`  ✅ ${result.place.name}: ${result.current.temperature_2m} °C`);
         successCount++;
       } else {
         failCount++;

@@ -47,7 +47,7 @@ async function main() {
 
   console.log('\n🌤️ Sample WEATHER_FORECAST:');
   weather.forEach(w => {
-    console.log(`   place_id: "${w.place_id}" (type: ${typeof w.place_id}) - date: ${w.forecast_date}, temp: ${w.temp_max}°C`);
+    console.log(`   place_id: "${w.place_id}" (type: ${typeof w.place_id}) - date: ${w.forecast_date}, temp: ${w.temp_max} °C`);
   });
 
   // 4. Check weather for today
@@ -94,7 +94,7 @@ async function main() {
   } else {
     console.log(`   ✅ Found ${matchedWeather.length} matches!`);
     matchedWeather.forEach(w => {
-      console.log(`      place_id: ${w.place_id}, date: ${w.forecast_date}, temp: ${w.temp_max}°C`);
+      console.log(`      place_id: ${w.place_id}, date: ${w.forecast_date}, temp: ${w.temp_max} °C`);
     });
   }
 

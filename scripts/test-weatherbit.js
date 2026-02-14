@@ -59,7 +59,7 @@ async function testBulkCurrentWeather() {
     data.data.forEach((weather, i) => {
       const location = TEST_LOCATIONS[i];
       console.log(`📍 ${location.name}:`);
-      console.log(`   Temperature: ${weather.temp}°C (feels like ${weather.app_temp}°C)`);
+      console.log(`   Temperature: ${weather.temp} °C (feels like ${weather.app_temp} °C)`);
       console.log(`   Conditions: ${weather.weather?.description || 'N/A'}`);
       console.log(`   Wind: ${weather.wind_spd} m/s`);
       console.log(`   Humidity: ${weather.rh}%`);
@@ -115,9 +115,9 @@ async function testBulkForecast() {
         const today = forecast.data[0];
         const week = forecast.data[6];
         
-        console.log(`   Today: ${today.temp}°C, ${today.weather?.description}`);
+        console.log(`   Today: ${today.temp} °C, ${today.weather?.description}`);
         if (week) {
-          console.log(`   In 7 days: ${week.temp}°C, ${week.weather?.description}`);
+          console.log(`   In 7 days: ${week.temp} °C, ${week.weather?.description}`);
         }
       }
       console.log('');

@@ -29,7 +29,7 @@ const getDistanceKm = (lat1, lon1, lat2, lon2) => {
 export const applyBadgesToDestinations = (destinations, originLocation, originLat, originLon) => {
   if (!destinations || !originLocation) return;
   
-  console.log(`🏆 applyBadgesToDestinations: ${destinations.length} destinations, origin: ${originLocation.name} at ${originLocation.temperature}°C`);
+  console.log(`🏆 applyBadgesToDestinations: ${destinations.length} destinations, origin: ${originLocation.name} at ${originLocation.temperature} °C`);
   
   destinations.forEach(dest => {
     // Skip current location (it shouldn't get badges)
@@ -72,7 +72,7 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
   console.log(`💰 DEBUG Budget Candidates (top 10 of ${budgetCandidates.length}):`);
   budgetCandidates.slice(0, 10).forEach((c, i) => {
     const data = c._worthTheDriveBudgetData;
-    console.log(`  ${i+1}. ${c.name}: eff=${data.efficiency.toFixed(4)}, temp=${c.temperature}°C, delta=+${data.tempDelta}°C, dist=${data.distance}km`);
+    console.log(`  ${i+1}. ${c.name}: eff=${data.efficiency.toFixed(4)}, temp=${c.temperature} °C, delta=+${data.tempDelta} °C, dist=${data.distance}km`);
   });
   
   // Count how many Worth the Drive candidates exist (before Budget steals them)
@@ -114,7 +114,7 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
       console.log(
         `💰 ${candidate.name}: Budget #${selectedBudgetBadges.length}! ` +
         `Efficiency: ${candidate._worthTheDriveBudgetData.efficiency.toFixed(3)} °C/km, ` +
-        `Temp: +${candidate._worthTheDriveBudgetData.tempDelta}°C, ` +
+        `Temp: +${candidate._worthTheDriveBudgetData.tempDelta} °C, ` +
         `Distance: ${candidate._worthTheDriveBudgetData.distance}km`
       );
     }
@@ -130,7 +130,7 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
   console.log(`🚗 DEBUG Worth the Drive Candidates (${worthTheDriveCandidates.length} total):`);
   worthTheDriveCandidates.slice(0, 15).forEach((c, i) => {
     const data = c._worthTheDriveData;
-    console.log(`  ${i+1}. ${c.name}: temp=${data?.tempDest}°C, delta=+${data?.tempDelta}°C, value=${data?.value}, dist=${c.distance?.toFixed(0)}km`);
+    console.log(`  ${i+1}. ${c.name}: temp=${data?.tempDest} °C, delta=+${data?.tempDelta} °C, value=${data?.value}, dist=${c.distance?.toFixed(0)}km`);
   });
   
   // DEBUG: Check if Heerlen is in the candidates
@@ -144,7 +144,7 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
     if (heerlenInAll) {
       console.log(`🔍 HEERLEN found in destinations but NOT in Worth the Drive candidates!`);
       console.log(`   Badges: ${heerlenInAll.badges?.join(', ') || 'none'}`);
-      console.log(`   Data: temp=${heerlenInAll.temperature}°C, dist=${heerlenInAll.distance?.toFixed(0)}km`);
+      console.log(`   Data: temp=${heerlenInAll.temperature} °C, dist=${heerlenInAll.distance?.toFixed(0)}km`);
       const wtd = heerlenInAll._worthTheDriveData;
       if (wtd) {
         console.log(`   WTD criteria: tempDest=${wtd.tempDest}, tempDelta=${wtd.tempDelta}, value=${wtd.value}, delta=${wtd.delta}, shouldAward=${wtd.shouldAward}`);
@@ -423,7 +423,7 @@ export const getWeatherForRadius = async (userLat, userLon, radiusKm, desiredCon
     };
   }
   
-  console.log(`🎯 Badge origin: ${currentLocationWeather.name} at ${currentLocationWeather.temperature}°C`);
+  console.log(`🎯 Badge origin: ${currentLocationWeather.name} at ${currentLocationWeather.temperature} °C`);
 
   // Apply badges to all destinations
   applyBadgesToDestinations(filteredPlaces, currentLocationWeather, userLat, userLon);

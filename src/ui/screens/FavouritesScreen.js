@@ -82,7 +82,7 @@ const FavouritesScreen = ({ navigation }) => {
         <Text style={styles.weatherIcon}>{getWeatherIcon(item.condition)}</Text>
         <View style={styles.headerInfo}>
           <Text style={[styles.locationName, { color: theme.text }]}>{item.name}</Text>
-          <Text style={[styles.temperature, { color: theme.text }]}>{item.temperature}°C</Text>
+          <Text style={[styles.temperature, { color: theme.text }]}>{item.temperature} °C</Text>
         </View>
       </View>
 

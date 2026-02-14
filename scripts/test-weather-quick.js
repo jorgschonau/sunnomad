@@ -55,7 +55,7 @@ async function main() {
       const tempMin = data.daily.temperature_2m_min[0];
       const tempMax = data.daily.temperature_2m_max[0];
 
-      console.log(`  ✅ ${place.name}: ${tempMin}°/${tempMax}°C (${today})`);
+      console.log(`  ✅ ${place.name}: ${tempMin}°/${tempMax} °C (${today})`);
 
       // Try to save
       const { error: saveError } = await supabase

@@ -106,9 +106,9 @@ export const getPlacesWithWeather = async (filters = {}) => {
       return { places: [], error: null };
     }
     
-    // Query 2: Get weather for places (9 days: offset 5 + 3 days badge lookahead + 1 safety)
+    // Query 2: Get weather for places (14 days: offset 5 + 3 days badge lookahead + safety)
     const placeIds = places.map(p => p.id);
-    const fallbackDate = new Date(new Date(targetDate).getTime() + 8 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const fallbackDate = new Date(new Date(targetDate).getTime() + 13 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     console.log(`🌤️ Fetching weather for ${placeIds.length} places (${targetDate} to ${fallbackDate})...`);
     
     let allWeather = [];
@@ -120,10 +120,10 @@ export const getPlacesWithWeather = async (filters = {}) => {
       const chunk = placeIds.slice(i, i + CHUNK_SIZE);
       const { data: chunkWeather, error: chunkError } = await supabase
         .from('weather_forecast')
-        .select('place_id, forecast_date, temp_min, temp_max, weather_main, weather_description, weather_icon, wind_speed, sunshine_duration, fetched_at, humidity')
+        .select('place_id, forecast_date, temp_min, temp_max, weather_main, weather_description, weather_icon, wind_speed, sunshine_duration, fetched_at, humidity, precipitation_sum')
         .in('place_id', chunk)
         .gte('forecast_date', targetDate)
-        .lte('forecast_date', fallbackDate)  // 9 days for forecast + badge recalc
+        .lte('forecast_date', fallbackDate)  // 14 days for forecast + badge recalc at any offset
         .gte('fetched_at', sevenDaysAgo)
         .order('forecast_date', { ascending: true });
       
@@ -134,7 +134,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
     
     console.log(`🌤️ Got ${allWeather.length} weather records (${targetDate} - ${fallbackDate})`);
     
-    // Build weather map with forecast for multiple days (up to 9 days)
+    // Build weather map with forecast for multiple days (up to 14 days)
     const weatherMap = {};
     // Also build raw arrays per place (for date-offset badge recalculation)
     const forecastArrays = {};
@@ -180,49 +180,27 @@ export const getPlacesWithWeather = async (filters = {}) => {
       const day5 = wData.day5;
       
       // Build forecast structure for badges AND UI display (5 days)
+      // Include precipitation, windSpeed, sunshine_duration so badge calcs work at ALL date offsets
+      const buildForecastEntry = (dayRecord) => {
+        if (!dayRecord) return null;
+        return {
+          condition: getCondition(dayRecord.weather_main),
+          temp: dayRecord.temp_max,
+          high: Math.round(dayRecord.temp_max),
+          low: Math.round(dayRecord.temp_min),
+          description: dayRecord.weather_description,
+          precipitation: dayRecord.precipitation_sum || 0,
+          windSpeed: Math.round(dayRecord.wind_speed || 0),
+          sunshine_duration: dayRecord.sunshine_duration || 0,
+        };
+      };
       const forecast = {
-        today: today ? {
-          condition: getCondition(today.weather_main),
-          temp: today.temp_max,
-          high: Math.round(today.temp_max),
-          low: Math.round(today.temp_min),
-          description: today.weather_description,
-        } : null,
-        tomorrow: tomorrow ? {
-          condition: getCondition(tomorrow.weather_main),
-          temp: tomorrow.temp_max,
-          high: Math.round(tomorrow.temp_max),
-          low: Math.round(tomorrow.temp_min),
-          description: tomorrow.weather_description,
-        } : null,
-        day2: day2 ? {
-          condition: getCondition(day2.weather_main),
-          temp: day2.temp_max,
-          high: Math.round(day2.temp_max),
-          low: Math.round(day2.temp_min),
-          description: day2.weather_description,
-        } : null,
-        day3: day3 ? {
-          condition: getCondition(day3.weather_main),
-          temp: day3.temp_max,
-          high: Math.round(day3.temp_max),
-          low: Math.round(day3.temp_min),
-          description: day3.weather_description,
-        } : null,
-        day4: day4 ? {
-          condition: getCondition(day4.weather_main),
-          temp: day4.temp_max,
-          high: Math.round(day4.temp_max),
-          low: Math.round(day4.temp_min),
-          description: day4.weather_description,
-        } : null,
-        day5: day5 ? {
-          condition: getCondition(day5.weather_main),
-          temp: day5.temp_max,
-          high: Math.round(day5.temp_max),
-          low: Math.round(day5.temp_min),
-          description: day5.weather_description,
-        } : null,
+        today: buildForecastEntry(today),
+        tomorrow: buildForecastEntry(tomorrow),
+        day2: buildForecastEntry(day2),
+        day3: buildForecastEntry(day3),
+        day4: buildForecastEntry(day4),
+        day5: buildForecastEntry(day5),
       };
       
       // Build forecastArray from raw records (for date-offset badge recalculation)
@@ -236,6 +214,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
         precipitation: w.precipitation_sum || 0,
         windSpeed: Math.round(w.wind_speed || 0),
         sunshine_duration: w.sunshine_duration || 0,
+        humidity: w.humidity ?? null,
       }));
 
       return {

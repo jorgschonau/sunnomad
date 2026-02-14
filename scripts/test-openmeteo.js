@@ -219,11 +219,11 @@ async function verifyData(placeId, placeName) {
 
   console.log(`\n✅ ${placeName}:`);
   if (todayWeather) {
-    console.log(`   Today: ${todayWeather.temp_min}°C - ${todayWeather.temp_max}°C, ${todayWeather.weather_description}`);
+    console.log(`   Today: ${todayWeather.temp_min} °C - ${todayWeather.temp_max} °C, ${todayWeather.weather_description}`);
   }
   console.log(`   Forecast: ${forecast.length} days saved`);
   if (forecast.length > 1) {
-    console.log(`   Tomorrow: ${forecast[1].temp_min}°C - ${forecast[1].temp_max}°C, ${forecast[1].weather_description}`);
+    console.log(`   Tomorrow: ${forecast[1].temp_min} °C - ${forecast[1].temp_max} °C, ${forecast[1].weather_description}`);
   }
 
   return { weather: todayWeather, forecast };

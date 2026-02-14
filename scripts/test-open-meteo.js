@@ -58,7 +58,7 @@ async function testCurrentWeather() {
     const current = data.current;
     
     console.log(`✅ Success! Current weather for ${location.name}:\n`);
-    console.log(`   Temperature: ${current.temperature_2m}°C (feels like ${current.apparent_temperature}°C)`);
+    console.log(`   Temperature: ${current.temperature_2m} °C (feels like ${current.apparent_temperature} °C)`);
     console.log(`   Humidity: ${current.relative_humidity_2m}%`);
     console.log(`   Wind: ${current.wind_speed_10m} m/s (${current.wind_direction_10m}°)`);
     console.log(`   Clouds: ${current.cloud_cover}%`);
@@ -109,7 +109,7 @@ async function testForecast() {
     for (let i = 0; i < 3; i++) {
       const date = new Date(forecast.time[i]).toLocaleDateString('de-DE');
       console.log(`   ${date}:`);
-      console.log(`      Temp: ${forecast.temperature_2m_min[i]}°C - ${forecast.temperature_2m_max[i]}°C`);
+      console.log(`      Temp: ${forecast.temperature_2m_min[i]} °C - ${forecast.temperature_2m_max[i]} °C`);
       console.log(`      Precipitation: ${forecast.precipitation_sum[i]}mm`);
       console.log(`      Wind: ${forecast.wind_speed_10m_max[i]} m/s`);
       console.log('');
@@ -155,7 +155,7 @@ async function testBatchPerformance() {
     results.forEach((data, i) => {
       const location = TEST_LOCATIONS[i];
       const current = data.current;
-      console.log(`   ${location.name}: ${current.temperature_2m}°C`);
+      console.log(`   ${location.name}: ${current.temperature_2m} °C`);
     });
     
     console.log('');
