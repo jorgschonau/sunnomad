@@ -11,6 +11,9 @@
   "map": {
     "loadingLocation": "Chargement de votre position...",
     "locationNotAvailable": "Position non disponible. Veuillez autoriser l'accès à la localisation dans les paramètres.",
+    "locationTimeout": "Impossible d'obtenir votre position. Vérifie le GPS et la connexion Internet.",
+    "locationUnavailable": "Impossible de charger votre position. Veuillez réessayer.",
+    "retryLocation": "Réessayer",
     "error": "Erreur",
     "failedToLoadWeather": "Échec du chargement des données météo. Veuillez vérifier votre connexion Internet et réessayer."
   },

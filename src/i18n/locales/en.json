@@ -11,6 +11,9 @@
   "map": {
     "loadingLocation": "Loading your location...",
     "locationNotAvailable": "Location not available. Please allow location access in your settings.",
+    "locationTimeout": "Could not get your location. Please check GPS and internet connection.",
+    "locationUnavailable": "Could not load your location. Please try again.",
+    "retryLocation": "Retry",
     "error": "Error",
     "failedToLoadWeather": "Failed to load weather data. Please check your internet connection and try again."
   },

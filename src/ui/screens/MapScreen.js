@@ -63,6 +63,7 @@ const MapScreen = ({ navigation }) => {
   const [selectedCondition, setSelectedCondition] = useState(null);
   const [selectedDateOffset, setSelectedDateOffset] = useState(0); // 0=today, 1=tomorrow, 3=+3days, 5=+5days
   const [loading, setLoading] = useState(true);
+  const [locationError, setLocationError] = useState(null); // Error state for location fetch
   const [loadingDestinations, setLoadingDestinations] = useState(false);
   const [mapType, setMapType] = useState('standard'); // standard, satellite, hybrid, terrain, mutedStandard
   const [controlsExpanded, setControlsExpanded] = useState(true); // Controls einklappbar
@@ -77,61 +78,99 @@ const MapScreen = ({ navigation }) => {
   // const [showSearch, setShowSearch] = useState(false); // Toggle search bar - DISABLED (MapSearchBar component missing)
   const [cachedData, setCachedData] = useState(null); // Cache for destinations
 
-  useEffect(() => {
-    (async () => {
-      // Check if first time user
-      const hasSeenOnboarding = await AsyncStorage.getItem('hasSeenOnboarding');
-      if (!hasSeenOnboarding) {
-        setShowOnboarding(true);
-      }
+  /**
+   * Fetch location with timeout wrapper.
+   * Returns position or throws on timeout/error.
+   */
+  const fetchLocationWithTimeout = async (timeoutMs = 10000) => {
+    return new Promise(async (resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error('LOCATION_TIMEOUT'));
+      }, timeoutMs);
 
-      // Load cached center point
       try {
-        const savedCenter = await AsyncStorage.getItem('mapCenterPoint');
-        if (savedCenter) {
-          const center = JSON.parse(savedCenter);
-          setCenterPoint(center);
-        }
-      } catch (error) {
-        console.warn('Failed to load saved center point:', error);
+        const position = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+        });
+        clearTimeout(timer);
+        resolve(position);
+      } catch (err) {
+        clearTimeout(timer);
+        reject(err);
       }
+    });
+  };
 
-      // Load saved date offset
-      try {
-        const savedDateOffset = await AsyncStorage.getItem('selectedDateOffset');
-        if (savedDateOffset !== null) {
-          const offset = parseInt(savedDateOffset, 10);
-          if ([0, 1, 3, 5].includes(offset)) {
-            setSelectedDateOffset(offset);
-          }
-        }
-      } catch (error) {
-        console.warn('Failed to load saved date offset:', error);
+  /**
+   * Initialize location + cached data. Called on mount and on retry.
+   */
+  const initializeLocation = async () => {
+    setLoading(true);
+    setLocationError(null);
+
+    // Check if first time user
+    const hasSeenOnboarding = await AsyncStorage.getItem('hasSeenOnboarding');
+    if (!hasSeenOnboarding) {
+      setShowOnboarding(true);
+    }
+
+    // Load cached center point
+    try {
+      const savedCenter = await AsyncStorage.getItem('mapCenterPoint');
+      if (savedCenter) {
+        const center = JSON.parse(savedCenter);
+        setCenterPoint(center);
       }
+    } catch (error) {
+      console.warn('Failed to load saved center point:', error);
+    }
 
-      // Load cached destinations and use them immediately so map shows something before refresh
-      try {
-        const cached = await AsyncStorage.getItem('mapDestinationsCache');
-        if (cached) {
-          const cacheData = JSON.parse(cached);
-          // Check if cache is less than 1 hour old
-          if (Date.now() - cacheData.timestamp < 3600000 && Array.isArray(cacheData.data) && cacheData.data.length > 0) {
-            setCachedData(cacheData.data);
-            setDestinations(cacheData.data);
-          }
+    // Load saved date offset
+    try {
+      const savedDateOffset = await AsyncStorage.getItem('selectedDateOffset');
+      if (savedDateOffset !== null) {
+        const offset = parseInt(savedDateOffset, 10);
+        if ([0, 1, 3, 5].includes(offset)) {
+          setSelectedDateOffset(offset);
         }
-      } catch (error) {
-        console.warn('Failed to load cache:', error);
       }
+    } catch (error) {
+      console.warn('Failed to load saved date offset:', error);
+    }
 
-      let { status } = await Location.requestForegroundPermissionsAsync();
+    // Load cached destinations and use them immediately so map shows something before refresh
+    try {
+      const cached = await AsyncStorage.getItem('mapDestinationsCache');
+      if (cached) {
+        const cacheData = JSON.parse(cached);
+        // Check if cache is less than 1 hour old
+        if (Date.now() - cacheData.timestamp < 3600000 && Array.isArray(cacheData.data) && cacheData.data.length > 0) {
+          setCachedData(cacheData.data);
+          setDestinations(cacheData.data);
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load cache:', error);
+    }
+
+    // 1. Request permission
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        showToast(t('map.locationNotAvailable'), 'error');
+        setLocationError('permission');
         setLoading(false);
         return;
       }
+    } catch (error) {
+      console.error('Location permission error:', error);
+      setLocationError('permission');
+      setLoading(false);
+      return;
+    }
 
-      let currentLocation = await Location.getCurrentPositionAsync({});
+    // 2. Fetch position with 10s timeout
+    try {
+      const currentLocation = await fetchLocationWithTimeout(10000);
       const initialRegion = {
         latitude: currentLocation.coords.latitude,
         longitude: currentLocation.coords.longitude,
@@ -148,9 +187,21 @@ const MapScreen = ({ navigation }) => {
         west: initialRegion.longitude - initialRegion.longitudeDelta / 2,
       };
       setCurrentBounds(initialBounds);
-      
-      setLoading(false);
-    })();
+      setLocationError(null);
+    } catch (error) {
+      console.error('Location fetch failed:', error);
+      if (error.message === 'LOCATION_TIMEOUT') {
+        setLocationError('timeout');
+      } else {
+        setLocationError('unavailable');
+      }
+    }
+
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    initializeLocation();
   }, []);
 
   // Persist selected date offset to AsyncStorage
@@ -1104,6 +1155,28 @@ const MapScreen = ({ navigation }) => {
     );
   }
 
+  if (!location && locationError) {
+    const errorMessage = locationError === 'timeout'
+      ? t('map.locationTimeout')
+      : locationError === 'permission'
+        ? t('map.locationNotAvailable')
+        : t('map.locationUnavailable');
+
+    return (
+      <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+        <Text style={{ fontSize: 48, marginBottom: 16 }}>📍</Text>
+        <Text style={[styles.errorText, { color: theme.error }]}>{errorMessage}</Text>
+        <TouchableOpacity
+          style={[styles.retryButton, { backgroundColor: theme.primary }]}
+          onPress={initializeLocation}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.retryButtonText}>{t('map.retryLocation')}</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
   if (!location) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
@@ -1582,8 +1655,26 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   errorText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: '600',
+    textAlign: 'center',
+    paddingHorizontal: 32,
+    marginBottom: 24,
+  },
+  retryButton: {
+    paddingVertical: 14,
+    paddingHorizontal: 32,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  retryButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
   },
   controlsWrapper: {
     position: 'absolute',
