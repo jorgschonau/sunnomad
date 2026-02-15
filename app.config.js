@@ -8,6 +8,7 @@ export default {
     orientation: 'portrait',
     userInterfaceStyle: 'light',
     splash: {
+      image: './assets/splash.png',
       resizeMode: 'contain',
       backgroundColor: '#2E7D32',
     },
@@ -35,6 +36,9 @@ export default {
       'expo-localization',
     ],
     extra: {
+      eas: {
+        projectId: 'd7862fd7-d286-4492-b7e8-331a5810260a',
+      },
       openWeatherApiKey: process.env.OPENWEATHERMAP_API_KEY || '',
       weatherbitApiKey: process.env.WEATHERBIT_API_KEY || '',
       supabaseUrl: process.env.SUPABASE_URL || '',
