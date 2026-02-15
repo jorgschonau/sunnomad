@@ -10,10 +10,17 @@
   },
   "map": {
     "loadingLocation": "Lade deinen Standort...",
+    "loadingPhase0": "Suche GPS-Signal...",
+    "loadingPhase1": "Warte auf Standort...",
+    "loadingPhase2": "Standort wird genauer...",
     "locationNotAvailable": "Standort nicht verfügbar. Bitte erlaube den Standort-Zugriff in den Einstellungen.",
-    "locationTimeout": "Standort konnte nicht ermittelt werden. Bitte überprüfe GPS und Internetverbindung.",
+    "locationTimeout": "Standort konnte nicht gefunden werden. Bitte überprüfe GPS und Internetverbindung.",
     "locationUnavailable": "Standort konnte nicht geladen werden. Bitte versuche es erneut.",
+    "locationDisabled": "Ortungsdienste sind deaktiviert. Bitte aktiviere GPS in den Einstellungen.",
     "retryLocation": "Erneut versuchen",
+    "skipLocation": "Überspringen",
+    "openSettings": "Einstellungen öffnen",
+    "usingDefaultLocation": "Standardstandort wird verwendet (Frankfurt). Du kannst den Mittelpunkt per Long-Press ändern.",
     "error": "Fehler",
     "failedToLoadWeather": "Wetterdaten konnten nicht geladen werden. Bitte prüfe deine Internetverbindung und versuche es erneut."
   },

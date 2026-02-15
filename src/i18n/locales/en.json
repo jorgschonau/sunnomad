@@ -10,10 +10,17 @@
   },
   "map": {
     "loadingLocation": "Loading your location...",
+    "loadingPhase0": "Searching for GPS signal...",
+    "loadingPhase1": "Waiting for location...",
+    "loadingPhase2": "Refining location...",
     "locationNotAvailable": "Location not available. Please allow location access in your settings.",
-    "locationTimeout": "Could not get your location. Please check GPS and internet connection.",
+    "locationTimeout": "Could not find your location. Please check GPS and internet connection.",
     "locationUnavailable": "Could not load your location. Please try again.",
+    "locationDisabled": "Location Services are disabled. Please enable GPS in Settings.",
     "retryLocation": "Retry",
+    "skipLocation": "Skip",
+    "openSettings": "Open Settings",
+    "usingDefaultLocation": "Using default location (Frankfurt). You can change the center with a long press.",
     "error": "Error",
     "failedToLoadWeather": "Failed to load weather data. Please check your internet connection and try again."
   },

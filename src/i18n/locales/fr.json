@@ -10,10 +10,17 @@
   },
   "map": {
     "loadingLocation": "Chargement de votre position...",
+    "loadingPhase0": "Recherche du signal GPS...",
+    "loadingPhase1": "En attente de la position...",
+    "loadingPhase2": "Affinage de la position...",
     "locationNotAvailable": "Position non disponible. Veuillez autoriser l'accès à la localisation dans les paramètres.",
-    "locationTimeout": "Impossible d'obtenir votre position. Vérifie le GPS et la connexion Internet.",
+    "locationTimeout": "Impossible de trouver votre position. Vérifie le GPS et la connexion Internet.",
     "locationUnavailable": "Impossible de charger votre position. Veuillez réessayer.",
+    "locationDisabled": "Les services de localisation sont désactivés. Active le GPS dans les Réglages.",
     "retryLocation": "Réessayer",
+    "skipLocation": "Passer",
+    "openSettings": "Ouvrir les Réglages",
+    "usingDefaultLocation": "Position par défaut utilisée (Francfort). Appui long pour changer le centre.",
     "error": "Erreur",
     "failedToLoadWeather": "Échec du chargement des données météo. Veuillez vérifier votre connexion Internet et réessayer."
   },

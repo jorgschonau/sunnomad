@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import {
   View,
   StyleSheet,
@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Platform,
   Animated,
+  Linking,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -64,6 +65,8 @@ const MapScreen = ({ navigation }) => {
   const [selectedDateOffset, setSelectedDateOffset] = useState(0); // 0=today, 1=tomorrow, 3=+3days, 5=+5days
   const [loading, setLoading] = useState(true);
   const [locationError, setLocationError] = useState(null); // Error state for location fetch
+  const [loadingPhase, setLoadingPhase] = useState(0); // 0=searching, 1=waiting, 2=refining
+  const loadingPhaseTimer = useRef(null);
   const [loadingDestinations, setLoadingDestinations] = useState(false);
   const [mapType, setMapType] = useState('standard'); // standard, satellite, hybrid, terrain, mutedStandard
   const [controlsExpanded, setControlsExpanded] = useState(true); // Controls einklappbar
@@ -78,11 +81,19 @@ const MapScreen = ({ navigation }) => {
   // const [showSearch, setShowSearch] = useState(false); // Toggle search bar - DISABLED (MapSearchBar component missing)
   const [cachedData, setCachedData] = useState(null); // Cache for destinations
 
+  // Default fallback location (Frankfurt, center of Europe)
+  const DEFAULT_LOCATION = {
+    latitude: 50.1109,
+    longitude: 8.6821,
+    latitudeDelta: 2,
+    longitudeDelta: 2,
+  };
+
   /**
    * Fetch location with timeout wrapper.
    * Returns position or throws on timeout/error.
    */
-  const fetchLocationWithTimeout = async (timeoutMs = 10000) => {
+  const fetchLocationWithTimeout = async (timeoutMs = 15000) => {
     return new Promise(async (resolve, reject) => {
       const timer = setTimeout(() => {
         reject(new Error('LOCATION_TIMEOUT'));
@@ -102,11 +113,62 @@ const MapScreen = ({ navigation }) => {
   };
 
   /**
+   * Start loading phase progress text timer.
+   * Phase 0 (0-5s): "Suche GPS Signal..."
+   * Phase 1 (5-10s): "Warte auf Standort..."
+   * Phase 2 (10-15s): "Standort wird genauer..."
+   */
+  const startLoadingPhaseTimer = () => {
+    setLoadingPhase(0);
+    // Clear any existing timer
+    if (loadingPhaseTimer.current) clearTimeout(loadingPhaseTimer.current);
+
+    // Phase 1 after 5s
+    loadingPhaseTimer.current = setTimeout(() => {
+      setLoadingPhase(1);
+      // Phase 2 after 10s
+      loadingPhaseTimer.current = setTimeout(() => {
+        setLoadingPhase(2);
+      }, 5000);
+    }, 5000);
+  };
+
+  const stopLoadingPhaseTimer = () => {
+    if (loadingPhaseTimer.current) {
+      clearTimeout(loadingPhaseTimer.current);
+      loadingPhaseTimer.current = null;
+    }
+  };
+
+  /**
+   * Skip location → use default (Frankfurt).
+   */
+  const skipToDefaultLocation = useCallback(() => {
+    stopLoadingPhaseTimer();
+    setLocation(DEFAULT_LOCATION);
+    setLocationError(null);
+    setLoading(false);
+    showToast(t('map.usingDefaultLocation'), 'info');
+  }, [t]);
+
+  /**
+   * Open device settings (for enabling Location Services).
+   */
+  const openLocationSettings = () => {
+    if (Platform.OS === 'ios') {
+      Linking.openURL('app-settings:');
+    } else {
+      Linking.openSettings();
+    }
+  };
+
+  /**
    * Initialize location + cached data. Called on mount and on retry.
    */
   const initializeLocation = async () => {
     setLoading(true);
     setLocationError(null);
+    startLoadingPhaseTimer();
 
     // Check if first time user
     const hasSeenOnboarding = await AsyncStorage.getItem('hasSeenOnboarding');
@@ -153,24 +215,39 @@ const MapScreen = ({ navigation }) => {
       console.warn('Failed to load cache:', error);
     }
 
-    // 1. Request permission
+    // 1. Check if Location Services are enabled
+    try {
+      const enabled = await Location.hasServicesEnabledAsync();
+      if (!enabled) {
+        stopLoadingPhaseTimer();
+        setLocationError('disabled');
+        setLoading(false);
+        return;
+      }
+    } catch (error) {
+      console.warn('Could not check location services:', error);
+    }
+
+    // 2. Request permission
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
+        stopLoadingPhaseTimer();
         setLocationError('permission');
         setLoading(false);
         return;
       }
     } catch (error) {
       console.error('Location permission error:', error);
+      stopLoadingPhaseTimer();
       setLocationError('permission');
       setLoading(false);
       return;
     }
 
-    // 2. Fetch position with 10s timeout
+    // 3. Fetch position with 15s timeout
     try {
-      const currentLocation = await fetchLocationWithTimeout(10000);
+      const currentLocation = await fetchLocationWithTimeout(15000);
       const initialRegion = {
         latitude: currentLocation.coords.latitude,
         longitude: currentLocation.coords.longitude,
@@ -197,6 +274,7 @@ const MapScreen = ({ navigation }) => {
       }
     }
 
+    stopLoadingPhaseTimer();
     setLoading(false);
   };
 
@@ -1147,31 +1225,79 @@ const MapScreen = ({ navigation }) => {
   };
 
   if (loading && !location) {
+    const phaseTexts = [
+      t('map.loadingPhase0'),
+      t('map.loadingPhase1'),
+      t('map.loadingPhase2'),
+    ];
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
         <ActivityIndicator size="large" color={theme.primary} />
-        <Text style={[styles.loadingText, { color: theme.text }]}>{t('map.loadingLocation')}</Text>
+        <Text style={[styles.loadingText, { color: theme.text }]}>
+          {phaseTexts[loadingPhase] || phaseTexts[0]}
+        </Text>
+        {/* Skip button visible after 5 seconds */}
+        {loadingPhase >= 1 && (
+          <TouchableOpacity
+            style={[styles.skipButton, { borderColor: theme.textSecondary || '#888' }]}
+            onPress={skipToDefaultLocation}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.skipButtonText, { color: theme.textSecondary || '#888' }]}>
+              {t('map.skipLocation')}
+            </Text>
+          </TouchableOpacity>
+        )}
       </View>
     );
   }
 
   if (!location && locationError) {
+    const isPermission = locationError === 'permission';
+    const isDisabled = locationError === 'disabled';
+
     const errorMessage = locationError === 'timeout'
       ? t('map.locationTimeout')
-      : locationError === 'permission'
-        ? t('map.locationNotAvailable')
-        : t('map.locationUnavailable');
+      : isDisabled
+        ? t('map.locationDisabled')
+        : isPermission
+          ? t('map.locationNotAvailable')
+          : t('map.locationUnavailable');
 
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
         <Text style={{ fontSize: 48, marginBottom: 16 }}>📍</Text>
         <Text style={[styles.errorText, { color: theme.error }]}>{errorMessage}</Text>
+
+        {/* Settings button for permission/disabled */}
+        {(isPermission || isDisabled) && (
+          <TouchableOpacity
+            style={[styles.retryButton, { backgroundColor: '#FF8C42', marginBottom: 12 }]}
+            onPress={openLocationSettings}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.retryButtonText}>{t('map.openSettings')}</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Retry button */}
         <TouchableOpacity
           style={[styles.retryButton, { backgroundColor: theme.primary }]}
           onPress={initializeLocation}
           activeOpacity={0.8}
         >
           <Text style={styles.retryButtonText}>{t('map.retryLocation')}</Text>
+        </TouchableOpacity>
+
+        {/* Skip button (use default location) */}
+        <TouchableOpacity
+          style={[styles.skipButton, { borderColor: theme.textSecondary || '#888', marginTop: 16 }]}
+          onPress={skipToDefaultLocation}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.skipButtonText, { color: theme.textSecondary || '#888' }]}>
+            {t('map.skipLocation')}
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -1675,6 +1801,17 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  skipButton: {
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    marginTop: 12,
+  },
+  skipButtonText: {
+    fontSize: 15,
+    fontWeight: '600',
   },
   controlsWrapper: {
     position: 'absolute',
