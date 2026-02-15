@@ -250,6 +250,7 @@
     "confirmSignOut": "Möchtest du dich wirklich abmelden?",
     "invalidEmail": "Bitte gib eine gültige E-Mail-Adresse ein",
     "emailAlreadyExists": "Ein Account mit dieser E-Mail existiert bereits",
+    "emailRateLimitExceeded": "Zu viele E-Mail-Anfragen. Bitte warte ein paar Minuten und versuche es dann erneut.",
     "forgotPasswordTitle": "Passwort vergessen?",
     "forgotPasswordSubtitle": "Wir senden dir einen Reset-Link",
     "sendResetLink": "Link senden",

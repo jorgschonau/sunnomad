@@ -250,6 +250,7 @@
     "confirmSignOut": "Are you sure you want to sign out?",
     "invalidEmail": "Please enter a valid email address",
     "emailAlreadyExists": "An account with this email already exists",
+    "emailRateLimitExceeded": "Too many email requests. Please wait a few minutes and try again.",
     "forgotPasswordTitle": "Forgot password?",
     "forgotPasswordSubtitle": "We'll send you a reset link",
     "sendResetLink": "Send link",
