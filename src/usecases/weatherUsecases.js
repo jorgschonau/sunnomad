@@ -26,7 +26,7 @@ const getDistanceKm = (lat1, lon1, lat2, lon2) => {
  * Mutates destination objects by adding 'badges' array
  * Limits "Worth the Drive" badges to top 3 destinations only
  */
-export const applyBadgesToDestinations = (destinations, originLocation, originLat, originLon) => {
+export const applyBadgesToDestinations = (destinations, originLocation, originLat, originLon, reverseMode = 'warm') => {
   if (!destinations || !originLocation) return;
   
   console.log(`🏆 applyBadgesToDestinations: ${destinations.length} destinations, origin: ${originLocation.name} at ${originLocation.temperature} °C`);
@@ -44,7 +44,7 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
     }
     
     // Calculate and assign badges
-    dest.badges = calculateBadges(dest, originLocation, dest.distance, destinations);
+    dest.badges = calculateBadges(dest, originLocation, dest.distance, destinations, reverseMode);
   });
   
   // Limit certain badges to prevent overcrowding
@@ -124,7 +124,10 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
   // EXCLUDE destinations that already have Budget badge!
   const worthTheDriveCandidates = destinations
     .filter(d => !d.isCurrentLocation && d.badges.includes('WORTH_THE_DRIVE') && !d.badges.includes('WORTH_THE_DRIVE_BUDGET'))
-    .sort((a, b) => (b._worthTheDriveData?.tempDest || 0) - (a._worthTheDriveData?.tempDest || 0));
+    .sort((a, b) => reverseMode === 'cold'
+      ? (a._worthTheDriveData?.tempDest || 0) - (b._worthTheDriveData?.tempDest || 0) // Coldest first
+      : (b._worthTheDriveData?.tempDest || 0) - (a._worthTheDriveData?.tempDest || 0) // Warmest first
+    );
   
   // DEBUG: Show ALL Worth the Drive candidates (not just top 10)
   console.log(`🚗 DEBUG Worth the Drive Candidates (${worthTheDriveCandidates.length} total):`);
@@ -310,7 +313,7 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
  * @param originTemp - Optional: temperature at origin for badge calculation
  * @param locale - Locale for translations (e.g. 'de', 'en')
  */
-export const getWeatherForRadius = async (userLat, userLon, radiusKm, desiredCondition = null, originTemp = null, locale = 'en') => {
+export const getWeatherForRadius = async (userLat, userLon, radiusKm, desiredCondition = null, originTemp = null, locale = 'en', reverseMode = 'warm') => {
   // Fetch real places with weather data from Supabase (always from today, date offset applied client-side)
   const { places, error } = await getPlacesWithWeather({
     userLat,
@@ -381,10 +384,10 @@ export const getWeatherForRadius = async (userLat, userLon, radiusKm, desiredCon
       const bScore = b.attractivenessScore || b.attractiveness_score || 50;
       if (aScore !== bScore) return bScore - aScore;
       
-      // 2. Temperatur (wärmer = besser, für Weather-App relevant)
+      // 2. Temperatur (warm mode: wärmer = besser, cold mode: kälter = besser)
       const aTemp = a.temperature || 0;
       const bTemp = b.temperature || 0;
-      if (Math.abs(aTemp - bTemp) > 3) return bTemp - aTemp;
+      if (Math.abs(aTemp - bTemp) > 3) return reverseMode === 'cold' ? aTemp - bTemp : bTemp - aTemp;
       
       // 3. Distanz (näher = besser)
       const aDist = a.distance || Infinity;
@@ -426,7 +429,7 @@ export const getWeatherForRadius = async (userLat, userLon, radiusKm, desiredCon
   console.log(`🎯 Badge origin: ${currentLocationWeather.name} at ${currentLocationWeather.temperature} °C`);
 
   // Apply badges to all destinations
-  applyBadgesToDestinations(filteredPlaces, currentLocationWeather, userLat, userLon);
+  applyBadgesToDestinations(filteredPlaces, currentLocationWeather, userLat, userLon, reverseMode);
 
   return filteredPlaces;
 };

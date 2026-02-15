@@ -216,7 +216,8 @@ export function checkWeatherDeterioration(destination, threshold = 4) {
  * @param {number} distanceKm - Distance in km
  * @returns {Object} - { value, delta, eta, weatherDest, weatherOrigin, shouldAward }
  */
-export function calculateWorthTheDrive(destination, origin, distanceKm) {
+export function calculateWorthTheDrive(destination, origin, distanceKm, reverseMode = 'warm') {
+  const isColdMode = reverseMode === 'cold';
   const eta = calculateETA(distanceKm);
   
   // Get weather scores at the same absolute time window (ETA from now)
@@ -225,33 +226,50 @@ export function calculateWorthTheDrive(destination, origin, distanceKm) {
   
   const delta = weatherDest - weatherOrigin;
   
-  // Value = weather gain per hour of travel
-  const value = delta / (eta + 0.75); // +0.75 penalty factor
-  
-  // Temperature check: Destination MUST be warmer (core requirement!)
+  // Temperature check: In warm mode destination MUST be warmer, in cold mode COLDER
   const tempDest = destination.temperature ?? 0;
   const tempOrigin = origin.temperature ?? 0;
-  const tempDelta = tempDest - tempOrigin;
+  const tempDelta = tempDest - tempOrigin; // positive = warmer, negative = colder
+  
+  // Value = weather gain per hour of travel
+  // In cold mode, use absolute temp delta (colder = more value)
+  const effectiveDelta = isColdMode ? Math.abs(tempDelta) : delta;
+  const value = effectiveDelta / (eta + 0.75); // +0.75 penalty factor
   
   // Gating criteria
   const MIN_WEATHER_SCORE = 60; // Destination must be decent weather
   const MIN_DELTA = 3; // Weather score must be at least slightly better than origin
-  const MIN_TEMP_ABSOLUTE = 4; // Destination must be at least 4 °C (not freezing!)
-  const MIN_TEMP_DELTA = 4; // Destination must be warmer (+4 °C minimum)
   const MIN_VALUE = 1.5; // Must have reasonable value per hour
   const MIN_DISTANCE_KM = 30; // Must be at least 30km away (otherwise not "worth the drive")
   
-  const shouldAward = (
-    distanceKm >= MIN_DISTANCE_KM && // Far enough to be "worth the drive"
-    weatherDest >= MIN_WEATHER_SCORE &&
-    delta >= MIN_DELTA &&
-    value >= MIN_VALUE && // Must have meaningful value
-    tempDest >= MIN_TEMP_ABSOLUTE && // Not freezing cold
-    tempDelta >= MIN_TEMP_DELTA // Actually warmer
-  );
+  let shouldAward;
+  if (isColdMode) {
+    // Cold mode: reward places that are COLDER
+    const MIN_TEMP_DELTA_COLD = 4; // Destination must be colder (-4 °C minimum)
+    const MAX_TEMP_ABSOLUTE = 30; // Destination must NOT be too hot
+    shouldAward = (
+      distanceKm >= MIN_DISTANCE_KM &&
+      (-tempDelta) >= MIN_TEMP_DELTA_COLD && // Actually colder (tempDelta is negative)
+      tempDest <= MAX_TEMP_ABSOLUTE // Not scorching hot
+    );
+  } else {
+    // Warm mode (default): reward places that are WARMER
+    const MIN_TEMP_ABSOLUTE = 4; // Destination must be at least 4 °C (not freezing!)
+    const MIN_TEMP_DELTA = 4; // Destination must be warmer (+4 °C minimum)
+    shouldAward = (
+      distanceKm >= MIN_DISTANCE_KM &&
+      weatherDest >= MIN_WEATHER_SCORE &&
+      delta >= MIN_DELTA &&
+      value >= MIN_VALUE &&
+      tempDest >= MIN_TEMP_ABSOLUTE &&
+      tempDelta >= MIN_TEMP_DELTA
+    );
+  }
   
   // Final ranking score (for sorting multiple candidates)
-  const rankScore = value * 1.0 + weatherDest * 0.02; // Tie-breaker favors better weather
+  const rankScore = isColdMode 
+    ? Math.abs(tempDelta) * 1.0 + (100 - weatherDest) * 0.02 // Colder + worse weather = more extreme
+    : value * 1.0 + weatherDest * 0.02; // Tie-breaker favors better weather
   
   return {
     value: Math.round(value * 10) / 10, // Round to 1 decimal
@@ -277,10 +295,11 @@ export function calculateWorthTheDrive(destination, origin, distanceKm) {
  * @param {number} distanceKm - Distance in km
  * @returns {Object} - { efficiency, tempDelta, distance, tempDest, eta, delta, value }
  */
-export function calculateWorthTheDriveBudget(destination, origin, distanceKm) {
+export function calculateWorthTheDriveBudget(destination, origin, distanceKm, reverseMode = 'warm') {
+  const isColdMode = reverseMode === 'cold';
   const tempDest = destination.temperature ?? 0;
   const tempOrigin = origin.temperature ?? 0;
-  const tempDelta = tempDest - tempOrigin;
+  const tempDelta = tempDest - tempOrigin; // positive = warmer, negative = colder
   
   // Calculate ETA
   const eta = calculateETA(distanceKm);
@@ -290,20 +309,28 @@ export function calculateWorthTheDriveBudget(destination, origin, distanceKm) {
   const weatherOrigin = calculateWeatherScore(origin);
   const delta = weatherDest - weatherOrigin;
   
-  // Minimum criteria to be considered
-  const MIN_TEMP_DELTA = 3; // At least 3 °C warmer
-  const MIN_TEMP_ABSOLUTE = 10; // At least 10 °C (not freezing)
   const MIN_DISTANCE = 1; // Avoid division by zero
   const MIN_DISTANCE_KM = 30; // Must be at least 30km away
   
-  // Efficiency = temp gain per km (for ranking)
-  const efficiency = tempDelta / Math.max(distanceKm, MIN_DISTANCE);
+  let isEligible;
+  if (isColdMode) {
+    // Cold mode: reward places that are COLDER (tempDelta negative)
+    const MIN_TEMP_DELTA_COLD = 3; // At least 3 °C colder
+    const MAX_TEMP_ABSOLUTE = 30; // Not scorching
+    isEligible = distanceKm >= MIN_DISTANCE_KM && (-tempDelta) >= MIN_TEMP_DELTA_COLD && tempDest <= MAX_TEMP_ABSOLUTE;
+  } else {
+    // Warm mode (default): reward places that are WARMER
+    const MIN_TEMP_DELTA = 3; // At least 3 °C warmer
+    const MIN_TEMP_ABSOLUTE = 10; // At least 10 °C (not freezing)
+    isEligible = distanceKm >= MIN_DISTANCE_KM && tempDelta >= MIN_TEMP_DELTA && tempDest >= MIN_TEMP_ABSOLUTE;
+  }
   
-  // Value = for display (temp gain per 100km, like before)
-  const value = tempDelta / (distanceKm / 100);
+  // Efficiency = temp change per km (use absolute delta for cold mode)
+  const effectiveTempDelta = isColdMode ? Math.abs(tempDelta) : tempDelta;
+  const efficiency = effectiveTempDelta / Math.max(distanceKm, MIN_DISTANCE);
   
-  // Eligible if warmer, not freezing, and far enough
-  const isEligible = distanceKm >= MIN_DISTANCE_KM && tempDelta >= MIN_TEMP_DELTA && tempDest >= MIN_TEMP_ABSOLUTE;
+  // Value = for display (temp change per 100km)
+  const value = effectiveTempDelta / (distanceKm / 100);
   
   return {
     efficiency: Math.round(efficiency * 1000) / 1000, // 3 decimals
@@ -956,7 +983,7 @@ export function calculateSpringAwakening(destination, origin, distanceKm) {
  * @param {Array} allDestinations - All destinations for comparison
  * @returns {Array<string>} - Array of badge types this destination earned
  */
-export function calculateBadges(destination, userLocation, distanceKm, allDestinations = []) {
+export function calculateBadges(destination, userLocation, distanceKm, allDestinations = [], reverseMode = 'warm') {
   const badges = [];
 
   // === PRE-CHECK: Weather Curse & Deterioration ===
@@ -971,7 +998,8 @@ export function calculateBadges(destination, userLocation, distanceKm, allDestin
   const isDeterioritating = deteriorationResult.isDeteriorating;
   
   // Flag: Skip Worth the Drive badges if weather is getting worse
-  const skipWorthTheDrive = hasWeatherCurse || isDeterioritating;
+  // In cold mode, deterioration (getting colder) is actually GOOD, so don't skip
+  const skipWorthTheDrive = reverseMode === 'cold' ? false : (hasWeatherCurse || isDeterioritating);
   
   if (skipWorthTheDrive) {
     console.log(`⚠️ ${destination.name}: Skipping Worth the Drive - ` +
@@ -982,7 +1010,7 @@ export function calculateBadges(destination, userLocation, distanceKm, allDestin
 
   // 1. Worth the Drive Budget - RANKING SYSTEM (PRIORITY 1!)
   // Calculate efficiency for this destination
-  const budgetResult = calculateWorthTheDriveBudget(destination, userLocation, distanceKm);
+  const budgetResult = calculateWorthTheDriveBudget(destination, userLocation, distanceKm, reverseMode);
   destination._worthTheDriveBudgetData = budgetResult;
   
   // Mark as ineligible if weather is deteriorating
@@ -994,7 +1022,7 @@ export function calculateBadges(destination, userLocation, distanceKm, allDestin
   // Badge is awarded later after comparing all destinations (see below)
 
   // 2. Worth the Drive (PRIORITY 2!)
-  const worthResult = calculateWorthTheDrive(destination, userLocation, distanceKm);
+  const worthResult = calculateWorthTheDrive(destination, userLocation, distanceKm, reverseMode);
   destination._worthTheDriveData = worthResult;
   
   // Only award if not skipped due to weather issues

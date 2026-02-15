@@ -320,7 +320,7 @@ const MapScreen = ({ navigation }) => {
         clearTimeout(radiusDebounceTimer.current);
       }
     };
-  }, [location, radius, selectedCondition, centerPoint, centerPointWeather]);
+  }, [location, radius, selectedCondition, centerPoint, centerPointWeather, reverseMode]);
 
   /**
    * Derive display destinations from raw data + selected date offset.
@@ -328,7 +328,14 @@ const MapScreen = ({ navigation }) => {
    * NO network request needed when date changes!
    */
   const displayDestinations = useMemo(() => {
-    if (selectedDateOffset === 0) return destinations;
+    if (selectedDateOffset === 0) {
+      // Even at offset 0, recalculate badges when reverseMode changes
+      const origin = destinations.find(d => d.isCenterPoint) || destinations.find(d => d.isCurrentLocation);
+      if (origin && destinations.length > 0) {
+        applyBadgesToDestinations(destinations, origin, origin.lat, origin.lon, reverseMode);
+      }
+      return destinations;
+    }
 
     // Helper: build a shifted keyed forecast object from an array starting at offset
     const buildShiftedForecast = (arr, offset) => {
@@ -412,12 +419,12 @@ const MapScreen = ({ navigation }) => {
     // IMPORTANT: centerPoint first (matches loadDestinations: centerPointWeather || currentLocationWeather)
     const origin = shifted.find(d => d.isCenterPoint) || shifted.find(d => d.isCurrentLocation);
     if (origin) {
-      console.log(`🏆 Recalculating badges for date offset ${selectedDateOffset} (origin: ${origin.temperature} °C)`);
-      applyBadgesToDestinations(shifted, origin, origin.lat, origin.lon);
+      console.log(`🏆 Recalculating badges for date offset ${selectedDateOffset} (origin: ${origin.temperature} °C, mode: ${reverseMode})`);
+      applyBadgesToDestinations(shifted, origin, origin.lat, origin.lon, reverseMode);
     }
 
     return shifted;
-  }, [destinations, selectedDateOffset]);
+  }, [destinations, selectedDateOffset, reverseMode]);
 
   // Derive shifted center point weather from displayDestinations (respects date offset)
   const displayCenterPointWeather = useMemo(() => {
@@ -457,7 +464,8 @@ const MapScreen = ({ navigation }) => {
         radius,
         selectedCondition,
         originTemp, // Pass center point temp for accurate badge calculation!
-        i18n.language // Pass locale for country name translation
+        i18n.language, // Pass locale for country name translation
+        reverseMode // Pass reverse mode for badge calculation (warm/cold)
       );
       
       // ALWAYS add current location as first marker
@@ -709,7 +717,6 @@ const MapScreen = ({ navigation }) => {
   const toggleReverseMode = async () => {
     setReverseMode(prev => prev === 'warm' ? 'cold' : 'warm');
     await playTickSound();
-    // TODO: Implement badge calculation reversal (cold places get rewards)
   };
 
   const toggleRadiusShape = async () => {
@@ -1720,38 +1727,18 @@ const MapScreen = ({ navigation }) => {
         {/* Reverse Mode Button (Warm/Cold) */}
         <TouchableOpacity
           style={[styles.reverseButton, {
-            backgroundColor: reverseMode === 'warm' ? '#FF6B35' : '#2196F3',
-            borderColor: '#fff',
+            backgroundColor: reverseMode === 'warm' ? '#FF8C42' : '#4A90E2',
             shadowColor: theme.shadow
           }]}
           onPress={toggleReverseMode}
-          accessibilityLabel={`Reverse mode: ${reverseMode}`}
+          accessibilityLabel={reverseMode === 'warm' ? 'Wärmer Modus aktiv' : 'Kühler Modus aktiv'}
           accessibilityRole="button"
           accessibilityHint="Toggle between rewarding warm or cold places"
         >
-          <Text style={styles.reverseIcon}>🌡️</Text>
+          <Text style={styles.reverseIcon}>{reverseMode === 'warm' ? '☀️' : '❄️'}</Text>
+          <Text style={styles.reverseLabel}>{reverseMode === 'warm' ? 'Wärmer' : 'Kühler'}</Text>
         </TouchableOpacity>
 
-        {/* Radius Shape Button */}
-        <TouchableOpacity
-          style={[styles.radiusShapeButton, {
-            backgroundColor: theme.surface,
-            borderColor: theme.border,
-            shadowColor: theme.shadow
-          }]}
-          onPress={toggleRadiusShape}
-          onLongPress={() => {
-            playTickSound();
-            // TODO: Implement rotation on long press
-          }}
-          accessibilityLabel={`Radius shape: ${radiusShape}`}
-          accessibilityRole="button"
-          accessibilityHint="Tap to change shape, long press to rotate"
-        >
-          <Text style={[styles.radiusShapeIcon, { color: theme.text }]}>
-            {radiusShape === 'circle' ? '⭕' : radiusShape === 'half' ? '◐' : '◔'}
-          </Text>
-        </TouchableOpacity>
       </View>
 
       {loading && (
@@ -2127,11 +2114,12 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   reverseButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 22,
+    gap: 6,
     borderWidth: 2,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.3,
@@ -2139,7 +2127,13 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   reverseIcon: {
-    fontSize: 26,
+    fontSize: 18,
+  },
+  reverseLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#fff',
+    letterSpacing: 0.3,
   },
   radiusShapeButton: {
     width: 56,

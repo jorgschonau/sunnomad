@@ -580,10 +580,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
               // Get summary text for collapsed state
               const getSummaryText = () => {
                 if (isWorthTheDrive && worthData) {
-                  return `+${worthData.tempDelta} °C | ${Math.round(destination.distance)}km`;
+                  return `${worthData.tempDelta > 0 ? '+' : ''}${worthData.tempDelta} °C | ${Math.round(destination.distance)}km`;
                 }
                 if (isWorthTheDriveBudget && worthBudgetData) {
-                  return `+${worthBudgetData.tempDelta} °C | ${Math.round(destination.distance)}km`;
+                  return `${worthBudgetData.tempDelta > 0 ? '+' : ''}${worthBudgetData.tempDelta} °C | ${Math.round(destination.distance)}km`;
                 }
                 if (isWarmAndDry && warmDryData) {
                   return `${warmDryData.temp} °C | ${translateCondition(warmDryData.condition)}`;
@@ -703,7 +703,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                             {isWorthTheDrive && worthData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ Temperatur: {worthData.tempOrigin} °C → {worthData.tempDest} °C (+{worthData.tempDelta} °C)
+                            🌡️ Temperatur: {worthData.tempOrigin} °C → {worthData.tempDest} °C ({worthData.tempDelta > 0 ? '+' : ''}{worthData.tempDelta} °C)
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
                             💨 ETA: {formatETA(worthData.eta)} ({Math.round(destination.distance)}km)
@@ -715,7 +715,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isWorthTheDriveBudget && worthBudgetData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ Temperatur: {worthBudgetData.tempOrigin} °C → {worthBudgetData.tempDest} °C (+{worthBudgetData.tempDelta} °C)
+                            🌡️ Temperatur: {worthBudgetData.tempOrigin} °C → {worthBudgetData.tempDest} °C ({worthBudgetData.tempDelta > 0 ? '+' : ''}{worthBudgetData.tempDelta} °C)
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
                             💨 ETA: {formatETA(worthBudgetData.eta)} ({Math.round(destination.distance)}km)
