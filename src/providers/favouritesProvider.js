@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const STORAGE_KEY = '@weatherfinder:favourites';
+const STORAGE_KEY = '@sunnomad:favourites';
 
 /**
  * Favourites Storage Provider

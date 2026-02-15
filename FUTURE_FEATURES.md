@@ -1,7 +1,7 @@
 # Future Features - Social Component
 
 ## Overview
-This document outlines the planned social features and how they would integrate with the current WeatherFinder app architecture.
+This document outlines the planned social features and how they would integrate with the current SunNomad app architecture.
 
 ## Architecture Considerations
 

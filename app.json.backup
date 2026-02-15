@@ -1,7 +1,7 @@
 {
   "expo": {
-    "name": "WeatherFinder",
-    "slug": "weather-finder",
+    "name": "SunNomad",
+    "slug": "sunnomad",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
@@ -14,13 +14,13 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.weatherfinder.app"
+      "bundleIdentifier": "com.sunnomad.app"
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#2E7D32"
       },
-      "package": "com.weatherfinder.app",
+      "package": "com.sunnomad.app",
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
@@ -32,7 +32,7 @@
       [
         "expo-location",
         {
-          "locationAlwaysAndWhenInUsePermission": "Allow Weather Finder to use your location to find nearby destinations."
+          "locationAlwaysAndWhenInUsePermission": "Allow Sun Nomad to use your location to find nearby destinations."
         }
       ]
     ]
