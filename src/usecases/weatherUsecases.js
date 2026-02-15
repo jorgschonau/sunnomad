@@ -428,14 +428,6 @@ export const getWeatherForRadius = async (userLat, userLon, radiusKm, desiredCon
   // Apply badges to all destinations
   applyBadgesToDestinations(filteredPlaces, currentLocationWeather, userLat, userLon);
 
-  // DEBUG: Is Pittsburgh in final result?
-  const debugPitt = filteredPlaces.find(p => p.name?.toLowerCase().includes('pittsburgh'));
-  if (debugPitt) {
-    console.log(`🔍 PITTSBURGH in weatherUsecases result ✅ temp=${debugPitt.temperature} badges=${debugPitt.badges?.length || 0}`);
-  } else {
-    console.log(`🔍 PITTSBURGH NOT in weatherUsecases result ❌ (${filteredPlaces.length} places returned)`);
-  }
-
   return filteredPlaces;
 };
 

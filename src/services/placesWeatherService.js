@@ -94,14 +94,6 @@ export const getPlacesWithWeather = async (filters = {}) => {
     
     console.log(`📍 Got ${places?.length || 0} places`);
     
-    // DEBUG: Trace Pittsburgh
-    const debugPitt = places?.find(p => p.name?.toLowerCase().includes('pittsburgh'));
-    if (debugPitt) {
-      console.log(`🔍 PITTSBURGH found in places query: id=${debugPitt.id} score=${debugPitt.attractiveness_score} lat=${debugPitt.latitude} lon=${debugPitt.longitude}`);
-    } else {
-      console.log(`🔍 PITTSBURGH NOT in places query! (${places?.length} places loaded, bbox: lat ${latMin?.toFixed(1)}-${latMax?.toFixed(1)}, lon ${lonMin?.toFixed(1)}-${lonMax?.toFixed(1)})`);
-    }
-    
     if (!places || places.length === 0) {
       return { places: [], error: null };
     }
@@ -236,13 +228,6 @@ export const getPlacesWithWeather = async (filters = {}) => {
     const withWeather = placesData.filter(p => p.temp_min != null).length;
     console.log(`🔗 ${withWeather}/${placesData.length} places have weather`);
     
-    // DEBUG: Trace Pittsburgh through weather join
-    const debugPittWeather = placesData.find(p => p.name?.toLowerCase().includes('pittsburgh'));
-    if (debugPittWeather) {
-      const hasWeather = debugPittWeather.temp_min != null && debugPittWeather.temp_max != null;
-      console.log(`🔍 PITTSBURGH weather: hasWeather=${hasWeather} temp_min=${debugPittWeather.temp_min} temp_max=${debugPittWeather.temp_max} weatherMap entry:${!!weatherMap[debugPittWeather.id]}`);
-    }
-    
     // Transform places - ONLY include those with valid temperature!
     let finalPlaces = placesData
       .filter(place => place.temp_min != null && place.temp_max != null) // Skip places without temp!
@@ -311,14 +296,6 @@ export const getPlacesWithWeather = async (filters = {}) => {
     
     console.log(`📊 ${finalPlaces.length} places with weather`);
     
-    // DEBUG: Pittsburgh after temp filter
-    const debugPittFinal = finalPlaces.find(p => p.name?.toLowerCase().includes('pittsburgh'));
-    if (debugPittFinal) {
-      console.log(`🔍 PITTSBURGH passed temp filter ✅ temp=${debugPittFinal.temperature}`);
-    } else if (debugPitt) {
-      console.log(`🔍 PITTSBURGH LOST at temp filter ❌ (was in places, not in finalPlaces)`);
-    }
-    
     if (filters.userLat && filters.userLon) {
       finalPlaces = finalPlaces
         .map(place => {
@@ -351,14 +328,6 @@ export const getPlacesWithWeather = async (filters = {}) => {
         .filter(place => !filters.radiusKm || place.distance <= filters.radiusKm);
       
       console.log(`🗺️ Backend: ${finalPlaces.length} places in radius`);
-      
-      // DEBUG: Pittsburgh after radius filter
-      const debugPittRadius = finalPlaces.find(p => p.name?.toLowerCase().includes('pittsburgh'));
-      if (debugPittRadius) {
-        console.log(`🔍 PITTSBURGH passed radius filter ✅ dist=${debugPittRadius.distance?.toFixed(0)}km`);
-      } else if (debugPitt) {
-        console.log(`🔍 PITTSBURGH LOST at radius filter ❌`);
-      }
     }
     
     // Sort by temp (warmest first)

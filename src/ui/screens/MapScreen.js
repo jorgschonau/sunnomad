@@ -109,14 +109,15 @@ const MapScreen = ({ navigation }) => {
         console.warn('Failed to load saved date offset:', error);
       }
 
-      // Load cached destinations
+      // Load cached destinations and use them immediately so map shows something before refresh
       try {
         const cached = await AsyncStorage.getItem('mapDestinationsCache');
         if (cached) {
           const cacheData = JSON.parse(cached);
           // Check if cache is less than 1 hour old
-          if (Date.now() - cacheData.timestamp < 3600000) {
+          if (Date.now() - cacheData.timestamp < 3600000 && Array.isArray(cacheData.data) && cacheData.data.length > 0) {
             setCachedData(cacheData.data);
+            setDestinations(cacheData.data);
           }
         }
       } catch (error) {
@@ -316,7 +317,7 @@ const MapScreen = ({ navigation }) => {
       // Use centerPoint if set, otherwise use user location
       const effectiveCenter = centerPoint || location;
       
-      console.log(`🔄 Loading destinations for center: ${effectiveCenter.latitude.toFixed(2)}, ${effectiveCenter.longitude.toFixed(2)}, radius: ${radius}km (Pittsburgh should be at 40.44, -79.99)`);
+      console.log(`🔄 Loading destinations for center: ${effectiveCenter.latitude.toFixed(2)}, ${effectiveCenter.longitude.toFixed(2)}, radius: ${radius}km`);
       
       // Get origin temperature for badge calculation
       const originTemp = centerPointWeather?.temperature || null;
@@ -365,9 +366,6 @@ const MapScreen = ({ navigation }) => {
       allDestinations.forEach((d, i) => {
         console.log(`  ${i}: ${d.name} (${d.lat?.toFixed(2)}, ${d.lon?.toFixed(2)}) ${d.temperature} °C ${d.condition || ''} ${d.badges?.length ? '🏆' + d.badges.join(',') : ''}`);
       });
-      const hasPittsburgh = allDestinations.some(d => d.name?.toLowerCase().includes('pittsburgh'));
-      console.log(`🔍 Pittsburgh in allDestinations? ${hasPittsburgh ? '✅ JA' : '❌ NEIN'} (${allDestinations.length} total)`);
-      
       // Cache destinations
       try {
         await AsyncStorage.setItem('mapDestinationsCache', JSON.stringify({
@@ -805,14 +803,8 @@ const MapScreen = ({ navigation }) => {
     let skipped = 0;
     let gridLimited = 0;
     
-    // DEBUG: Track specific cities through the filter
-    const DEBUG_CITIES = ['pittsburgh'];
-    
     for (const place of sorted) {
       if (result.length >= maxMarkers) {
-        if (DEBUG_CITIES.some(c => place.name?.toLowerCase().includes(c))) {
-          console.log(`🔍 DEBUG: ${place.name} NOT shown - maxMarkers (${maxMarkers}) reached at position ${sorted.indexOf(place)}/${sorted.length}`);
-        }
         break;
       }
       
@@ -827,9 +819,6 @@ const MapScreen = ({ navigation }) => {
       
       // PHASE 2: Last 60% - enforce grid limit (max 3 per grid)
       if (!inPhase1 && !hasBadges && gridCount >= GRID_LIMIT) {
-        if (DEBUG_CITIES.some(c => place.name?.toLowerCase().includes(c))) {
-          console.log(`🔍 DEBUG: ${place.name} NOT shown - grid full in Phase 2 (${gridKey}: ${gridCount}/${GRID_LIMIT})`);
-        }
         gridLimited++;
         continue;
       }
@@ -847,28 +836,9 @@ const MapScreen = ({ navigation }) => {
       if (!tooClose) {
         result.push(place);
         gridsUsed.set(gridKey, gridCount + 1);
-        const phase = inPhase1 ? 'Phase1' : 'Phase2';
-        if (DEBUG_CITIES.some(c => place.name?.toLowerCase().includes(c))) {
-          const score = place.attractivenessScore || place.attractiveness_score || '?';
-          console.log(`🔍 DEBUG: ${place.name} SHOWN ✅ ${phase} → ${gridKey} | temp:${place.temperature} °C score:${score} badges:${hasBadges}`);
-        }
       } else {
-        if (DEBUG_CITIES.some(c => place.name?.toLowerCase().includes(c))) {
-          console.log(`🔍 DEBUG: ${place.name} NOT shown - too close to existing marker (minDist: ${minDistance}km)`);
-        }
         skipped++;
       }
-    }
-    
-    // DEBUG: Check Pittsburgh AFTER the loop
-    for (const debugCity of DEBUG_CITIES) {
-      const inCandidates = candidates.find(p => p.name?.toLowerCase().includes(debugCity));
-      const inSorted = sorted.find(p => p.name?.toLowerCase().includes(debugCity));
-      const inResult = result.find(p => p.name?.toLowerCase().includes(debugCity));
-      const sortedIdx = inSorted ? sorted.indexOf(inSorted) : -1;
-      const score = inSorted ? (inSorted.attractivenessScore || inSorted.attractiveness_score || '?') : '?';
-      const temp = inSorted ? inSorted.temperature : '?';
-      console.log(`🔍 PITTSBURGH TRACE: inDB:${!!inCandidates} inSorted:${!!inSorted}(#${sortedIdx}/${sorted.length}) inResult:${!!inResult} | temp:${temp} °C score:${score} maxMarkers:${maxMarkers}`);
     }
     
     const finalBadgeCount = result.filter(p => getMapBadges(p.badges).length > 0).length;
