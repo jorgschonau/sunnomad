@@ -65,6 +65,7 @@ const MapScreen = ({ navigation }) => {
   const [selectedDateOffset, setSelectedDateOffset] = useState(0); // 0=today, 1=tomorrow, 3=+3days, 5=+5days
   const [loading, setLoading] = useState(true);
   const [locationError, setLocationError] = useState(null); // Error state for location fetch
+  const [locationPermissionGranted, setLocationPermissionGranted] = useState(false); // Track if GPS permission was granted
   const [loadingPhase, setLoadingPhase] = useState(0); // 0=searching, 1=waiting, 2=refining
   const loadingPhaseTimer = useRef(null);
   const [loadingDestinations, setLoadingDestinations] = useState(false);
@@ -93,7 +94,7 @@ const MapScreen = ({ navigation }) => {
    * Fetch location with timeout wrapper.
    * Returns position or throws on timeout/error.
    */
-  const fetchLocationWithTimeout = async (timeoutMs = 15000) => {
+  const fetchLocationWithTimeout = async (timeoutMs = 30000) => {
     return new Promise(async (resolve, reject) => {
       const timer = setTimeout(() => {
         reject(new Error('LOCATION_TIMEOUT'));
@@ -102,6 +103,7 @@ const MapScreen = ({ navigation }) => {
       try {
         const position = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
+          maximumAge: 10000,
         });
         clearTimeout(timer);
         resolve(position);
@@ -113,10 +115,39 @@ const MapScreen = ({ navigation }) => {
   };
 
   /**
+   * Fallback: try last known position, then default location.
+   * Never leaves the user stuck without a location.
+   */
+  const getLocationWithFallback = async () => {
+    // 1. Try current position with 30s timeout
+    try {
+      return await fetchLocationWithTimeout(30000);
+    } catch (err) {
+      console.warn('getCurrentPositionAsync failed, trying last known position:', err.message);
+    }
+
+    // 2. Try last known position (cached by the OS)
+    try {
+      const lastKnown = await Location.getLastKnownPositionAsync({
+        maxAge: 60000,
+      });
+      if (lastKnown) {
+        console.log('Using last known position');
+        return lastKnown;
+      }
+    } catch (err) {
+      console.warn('getLastKnownPositionAsync failed:', err.message);
+    }
+
+    // 3. All attempts failed — return null so caller can use default
+    return null;
+  };
+
+  /**
    * Start loading phase progress text timer.
    * Phase 0 (0-5s): "Suche GPS Signal..."
-   * Phase 1 (5-10s): "Warte auf Standort..."
-   * Phase 2 (10-15s): "Standort wird genauer..."
+   * Phase 1 (5-15s): "Warte auf Standort..."
+   * Phase 2 (15-30s): "Standort wird genauer..."
    */
   const startLoadingPhaseTimer = () => {
     setLoadingPhase(0);
@@ -126,10 +157,10 @@ const MapScreen = ({ navigation }) => {
     // Phase 1 after 5s
     loadingPhaseTimer.current = setTimeout(() => {
       setLoadingPhase(1);
-      // Phase 2 after 10s
+      // Phase 2 after 15s
       loadingPhaseTimer.current = setTimeout(() => {
         setLoadingPhase(2);
-      }, 5000);
+      }, 10000);
     }, 5000);
   };
 
@@ -142,13 +173,31 @@ const MapScreen = ({ navigation }) => {
 
   /**
    * Skip location → use default (Frankfurt).
+   * Sets all required state so the map fully initializes without crashing.
    */
   const skipToDefaultLocation = useCallback(() => {
-    stopLoadingPhaseTimer();
-    setLocation(DEFAULT_LOCATION);
-    setLocationError(null);
-    setLoading(false);
-    showToast(t('map.usingDefaultLocation'), 'info');
+    try {
+      stopLoadingPhaseTimer();
+      setLocation(DEFAULT_LOCATION);
+      setLocationError(null);
+      setLoading(false);
+
+      // Set initial bounds so marker filtering works immediately
+      setCurrentBounds({
+        north: DEFAULT_LOCATION.latitude + DEFAULT_LOCATION.latitudeDelta / 2,
+        south: DEFAULT_LOCATION.latitude - DEFAULT_LOCATION.latitudeDelta / 2,
+        east: DEFAULT_LOCATION.longitude + DEFAULT_LOCATION.longitudeDelta / 2,
+        west: DEFAULT_LOCATION.longitude - DEFAULT_LOCATION.longitudeDelta / 2,
+      });
+
+      showToast(t('map.usingDefaultLocation'), 'info');
+    } catch (error) {
+      console.error('skipToDefaultLocation failed:', error);
+      // Last resort: force map to render with defaults
+      setLocation(DEFAULT_LOCATION);
+      setLocationError(null);
+      setLoading(false);
+    }
   }, [t]);
 
   /**
@@ -233,21 +282,25 @@ const MapScreen = ({ navigation }) => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         stopLoadingPhaseTimer();
+        setLocationPermissionGranted(false);
         setLocationError('permission');
         setLoading(false);
         return;
       }
+      setLocationPermissionGranted(true);
     } catch (error) {
       console.error('Location permission error:', error);
       stopLoadingPhaseTimer();
+      setLocationPermissionGranted(false);
       setLocationError('permission');
       setLoading(false);
       return;
     }
 
-    // 3. Fetch position with 15s timeout
-    try {
-      const currentLocation = await fetchLocationWithTimeout(15000);
+    // 3. Fetch position with 30s timeout + fallback chain
+    const currentLocation = await getLocationWithFallback();
+
+    if (currentLocation) {
       const initialRegion = {
         latitude: currentLocation.coords.latitude,
         longitude: currentLocation.coords.longitude,
@@ -265,13 +318,18 @@ const MapScreen = ({ navigation }) => {
       };
       setCurrentBounds(initialBounds);
       setLocationError(null);
-    } catch (error) {
-      console.error('Location fetch failed:', error);
-      if (error.message === 'LOCATION_TIMEOUT') {
-        setLocationError('timeout');
-      } else {
-        setLocationError('unavailable');
-      }
+    } else {
+      // All location methods failed — use default location so user is never stuck
+      console.warn('All location methods failed, falling back to default location');
+      setLocation(DEFAULT_LOCATION);
+      setCurrentBounds({
+        north: DEFAULT_LOCATION.latitude + DEFAULT_LOCATION.latitudeDelta / 2,
+        south: DEFAULT_LOCATION.latitude - DEFAULT_LOCATION.latitudeDelta / 2,
+        east: DEFAULT_LOCATION.longitude + DEFAULT_LOCATION.longitudeDelta / 2,
+        west: DEFAULT_LOCATION.longitude - DEFAULT_LOCATION.longitudeDelta / 2,
+      });
+      setLocationError(null);
+      showToast(t('map.usingDefaultLocation'), 'info');
     }
 
     stopLoadingPhaseTimer();
@@ -1313,7 +1371,17 @@ const MapScreen = ({ navigation }) => {
   if (!location) {
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
+        <Text style={{ fontSize: 48, marginBottom: 16 }}>📍</Text>
         <Text style={[styles.errorText, { color: theme.error }]}>{t('map.locationNotAvailable')}</Text>
+        <TouchableOpacity
+          style={[styles.skipButton, { borderColor: theme.textSecondary || '#888', marginTop: 16 }]}
+          onPress={skipToDefaultLocation}
+          activeOpacity={0.7}
+        >
+          <Text style={[styles.skipButtonText, { color: theme.textSecondary || '#888' }]}>
+            {t('map.skipLocation')}
+          </Text>
+        </TouchableOpacity>
       </View>
     );
   }
@@ -1349,8 +1417,8 @@ const MapScreen = ({ navigation }) => {
         maxZoomLevel={getZoomLimits().maxZoom}  // Always 15 (prevent street level)
         pitchEnabled={false}  // Disable tilt/3D view
         rotateEnabled={false}  // Disable rotation
-        showsUserLocation
-        showsMyLocationButton
+        showsUserLocation={locationPermissionGranted}
+        showsMyLocationButton={locationPermissionGranted}
         onLongPress={handleMapLongPress}
         onRegionChangeComplete={handleRegionChangeComplete}
       >
