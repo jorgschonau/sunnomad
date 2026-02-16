@@ -73,24 +73,29 @@ const openAppleMaps = async (lat, lon, name) => {
 };
 
 /**
- * Open Google Maps (native app)
+ * Open Google Maps
+ * On iOS: use universal link (opens app if installed, otherwise browser)
+ * On Android: try native intent first, then geo: scheme
  */
 const openGoogleMaps = async (lat, lon, name) => {
   const label = encodeURIComponent(name || 'Destination');
 
-  // Try native Google Maps app first
-  const nativeUrl = Platform.select({
-    ios: `comgooglemaps://?q=${lat},${lon}&center=${lat},${lon}&zoom=14`,
-    android: `google.navigation:q=${lat},${lon}`,
-  });
+  if (Platform.OS === 'ios') {
+    // Universal link: opens Google Maps app if installed, Safari otherwise
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
+    await Linking.openURL(url);
+    return;
+  }
 
+  // Android: try native navigation intent
+  const nativeUrl = `google.navigation:q=${lat},${lon}`;
   const canOpenNative = await Linking.canOpenURL(nativeUrl);
   if (canOpenNative) {
     await Linking.openURL(nativeUrl);
     return;
   }
 
-  // If Google Maps app not installed, try geo: scheme (works on both platforms)
+  // Android fallback: geo scheme
   const geoUrl = `geo:${lat},${lon}?q=${lat},${lon}(${label})`;
   const canOpenGeo = await Linking.canOpenURL(geoUrl);
   if (canOpenGeo) {
@@ -105,7 +110,7 @@ const openGoogleMaps = async (lat, lon, name) => {
  * Open Google Maps web (ultimate fallback)
  */
 const openWebMaps = async (lat, lon, name) => {
-  const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+  const url = `https://www.google.com/maps/dir/?api=1&destination=${lat},${lon}`;
   await Linking.openURL(url);
 };
 
