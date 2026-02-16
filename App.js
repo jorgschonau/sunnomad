@@ -1,6 +1,7 @@
 import 'react-native-gesture-handler';
 import React, { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import * as SplashScreen from 'expo-splash-screen';
@@ -174,6 +175,7 @@ export default function App() {
     <ThemeProvider>
       <UnitProvider>
         <AuthProvider>
+          <StatusBar style="dark" backgroundColor="#F5E6D3" />
           <RootNavigator />
         </AuthProvider>
       </UnitProvider>

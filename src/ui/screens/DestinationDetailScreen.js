@@ -34,9 +34,29 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const { theme } = useTheme();
   const { destination, selectedDateOffset = 0 } = route.params;
   
-  const [isLoading, setIsLoading] = useState(true);
+  // Show map data immediately, then upgrade with Supabase data in background
+  const initialForecast = destination ? {
+    ...destination,
+    description: destination.description || destination.weatherDescription || `${destination.condition} conditions`,
+    countryCode: destination.countryCode || destination.country_code,
+    country_code: destination.country_code || destination.countryCode,
+    country: destination.country,
+    forecast: destination.forecast ? {
+      today: destination.forecast.today || { condition: destination.condition, temp: destination.temperature, high: destination.temperature, low: destination.temperature ? destination.temperature - 3 : null },
+      tomorrow: destination.forecast.tomorrow || null,
+      day3: destination.forecast.day3 || destination.forecast.day2 || null,
+      day4: destination.forecast.day4 || null,
+      day5: destination.forecast.day5 || null,
+    } : {
+      today: { condition: destination.condition, temp: destination.temperature, high: destination.temperature, low: destination.temperature ? destination.temperature - 3 : null },
+      tomorrow: null, day3: null, day4: null, day5: null,
+    },
+  } : null;
+
+  const [isLoading, setIsLoading] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
-  const [forecast, setForecast] = useState(null);
+  const [forecast, setForecast] = useState(initialForecast);
   const [isFavourite, setIsFavourite] = useState(false);
   const [favouriteLoading, setFavouriteLoading] = useState(false);
   const [expandedBadges, setExpandedBadges] = useState({});
@@ -84,7 +104,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
 
   const loadForecast = async () => {
     try {
-      setIsLoading(true);
+      setIsRefreshing(true);
       setError(null);
       
       // PRIORITY 1: Fetch from Supabase if destination has a valid UUID (gets full 10-day forecast!)
@@ -193,9 +213,13 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       });
     } catch (err) {
       console.error('Error fetching forecast:', err);
-      setError(err.message || t('destination.errorMessage'));
+      // Only show error if we don't have any data at all
+      if (!forecast) {
+        setError(err.message || t('destination.errorMessage'));
+      }
     } finally {
       setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
 
@@ -247,8 +271,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     }
   };
 
-  // Loading state
-  if (isLoading) {
+  // Loading state — only show fullscreen spinner if we have NO data at all
+  if (isLoading && !forecast) {
     return (
       <View style={[styles.centerContainer, { backgroundColor: theme.background }]}>
         <ActivityIndicator size="large" color={theme.primary} />

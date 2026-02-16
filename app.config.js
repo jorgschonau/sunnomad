@@ -7,8 +7,8 @@ export default {
     userInterfaceStyle: 'light',
     splash: {
       image: './assets/splash.png',
-      resizeMode: 'contain',
-      backgroundColor: '#F5E6D3',  // Cream statt grün
+      resizeMode: 'cover',
+      backgroundColor: '#F5E6D3',
     },
     assetBundlePatterns: ['**/*'],
     ios: {
@@ -16,8 +16,10 @@ export default {
       bundleIdentifier: 'com.sunnomad.app',
     },
     android: {
+      userInterfaceStyle: 'light',
       adaptiveIcon: {
-        backgroundColor: '#FF8C42',  // Orange wie Logo
+        foregroundImage: './assets/adaptive-icon.png',
+        backgroundColor: '#FF8C42',
       },
       package: 'com.sunnomad.app',
       permissions: ['ACCESS_FINE_LOCATION', 'ACCESS_COARSE_LOCATION'],

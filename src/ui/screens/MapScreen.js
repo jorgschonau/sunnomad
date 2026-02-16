@@ -29,14 +29,19 @@ import { SkeletonMapMarker } from '../components/SkeletonLoader';
 
 // Custom map style to hide POI Business and Transit
 const customMapStyle = [
-  {
-    featureType: 'poi.business',
-    stylers: [{ visibility: 'off' }],
-  },
-  {
-    featureType: 'transit',
-    stylers: [{ visibility: 'off' }],
-  },
+  { featureType: 'poi.business', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi.government', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi.medical', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi.school', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi.sports_complex', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi.place_of_worship', stylers: [{ visibility: 'off' }] },
+  { featureType: 'poi.attraction', stylers: [{ visibility: 'simplified' }] },
+  { featureType: 'poi.park', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
+  { featureType: 'road.local', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+  { featureType: 'road.arterial', elementType: 'labels', stylers: [{ visibility: 'simplified' }] },
+  { featureType: 'administrative.land_parcel', stylers: [{ visibility: 'off' }] },
+  { featureType: 'administrative.neighborhood', stylers: [{ visibility: 'off' }] },
 ];
 
 // Map boundaries - restrict visible area
@@ -103,7 +108,6 @@ const MapScreen = ({ navigation }) => {
       try {
         const position = await Location.getCurrentPositionAsync({
           accuracy: Location.Accuracy.Balanced,
-          maximumAge: 10000,
         });
         clearTimeout(timer);
         resolve(position);
@@ -126,10 +130,10 @@ const MapScreen = ({ navigation }) => {
       console.warn('getCurrentPositionAsync failed, trying last known position:', err.message);
     }
 
-    // 2. Try last known position (cached by the OS)
+    // 2. Try last known position (cached by the OS, accept up to 5 min old)
     try {
       const lastKnown = await Location.getLastKnownPositionAsync({
-        maxAge: 60000,
+        maxAge: 300000,
       });
       if (lastKnown) {
         console.log('Using last known position');
@@ -864,19 +868,21 @@ const MapScreen = ({ navigation }) => {
   // Shows mix of badge places AND normal good places
   
   /**
-   * Dynamic max markers based on zoom and radius
-   * Standard zoom: 3-4, reinzoomen: 5-6
+   * Dynamic max markers based on zoom and radius.
+   * Android gets fewer markers (slower map rendering pipeline).
    */
   const getMaxMarkers = (zoom, radiusKm) => {
     let base = Math.floor(radiusKm / 20);
     
     let zoomFactor;
-    if (zoom <= 3) zoomFactor = 0.6;      // Standard rausgezoomt
-    else if (zoom <= 4) zoomFactor = 1.0;  // Standard normal
-    else if (zoom <= 5) zoomFactor = 1.5;  // Etwas reingezoomt
-    else zoomFactor = 2.0;                 // 6+
+    if (zoom <= 3) zoomFactor = 0.6;
+    else if (zoom <= 4) zoomFactor = 1.0;
+    else if (zoom <= 5) zoomFactor = 1.5;
+    else zoomFactor = 2.0;
     
-    const total = Math.min(Math.max(base * zoomFactor, 25), 150);
+    const maxCap = Platform.OS === 'android' ? 80 : 150;
+    const minFloor = Platform.OS === 'android' ? 15 : 25;
+    const total = Math.min(Math.max(base * zoomFactor, minFloor), maxCap);
     return Math.round(total);
   };
   
@@ -1482,48 +1488,38 @@ const MapScreen = ({ navigation }) => {
           <Marker
             key={`${dest.lat}-${dest.lon}-${index}`}
             coordinate={{ latitude: dest.lat, longitude: dest.lon }}
+            anchor={{ x: 0.5, y: 0.5 }}
             onPress={() => handleMarkerPress(dest)}
           >
-            <View style={[
-              styles.markerContainer, 
-              { backgroundColor: getWeatherColor(dest.condition, dest.temperature) },
-              dest.isCurrentLocation && styles.currentLocationMarker,
-              dest.isCenterPoint && styles.centerPointMarker
-            ]}>
-              <Text style={styles.markerWeatherIcon}>{getWeatherIcon(dest.condition)}</Text>
-              <Text style={styles.markerTemp}>
-                {dest.temperature !== null && dest.temperature !== undefined 
-                  ? Math.round(dest.temperature) 
-                  : '?'}°
-              </Text>
-              
-              {/* Stability arrows DISABLED - too complicated for users
+            <View style={Platform.OS === 'android' ? styles.markerFrameAndroid : undefined}>
               <View style={[
-                styles.stabilityBadge, 
-                dest.isCurrentLocation && styles.currentLocationBadge,
-                dest.isCenterPoint && styles.centerPointBadge
+                styles.markerContainer, 
+                { backgroundColor: getWeatherColor(dest.condition, dest.temperature) },
+                dest.isCurrentLocation && styles.currentLocationMarker,
+                dest.isCenterPoint && styles.centerPointMarker
               ]}>
-                <Text style={styles.stabilityText}>{getStabilitySymbol(dest)}</Text>
+                <Text style={styles.markerWeatherIcon}>{getWeatherIcon(dest.condition)}</Text>
+                <Text style={styles.markerTemp}>
+                  {dest.temperature !== null && dest.temperature !== undefined 
+                    ? Math.round(dest.temperature) 
+                    : '?'}°
+                </Text>
+                {getMapBadges(dest.badges).length > 0 && (
+                  <View style={styles.badgeOverlayContainer}>
+                    {getMapBadges(dest.badges)
+                      .sort((a, b) => (BadgeMetadata[a]?.priority || 99) - (BadgeMetadata[b]?.priority || 99))
+                      .slice(0, 6)
+                      .map((badge, badgeIndex) => (
+                        <AnimatedBadge
+                          key={badgeIndex}
+                          icon={BadgeMetadata[badge].icon}
+                          color={BadgeMetadata[badge].color}
+                          delay={badgeIndex * 100}
+                        />
+                      ))}
+                  </View>
+                )}
               </View>
-              */}
-              
-              {/* Badge overlays (stacked vertically on right side) with animations */}
-              {/* Badge overlays */}
-              {getMapBadges(dest.badges).length > 0 && (
-                <View style={styles.badgeOverlayContainer}>
-                  {getMapBadges(dest.badges)
-                    .sort((a, b) => (BadgeMetadata[a]?.priority || 99) - (BadgeMetadata[b]?.priority || 99)) // Sort by priority
-                    .slice(0, 6) // Max 6 badges per marker
-                    .map((badge, badgeIndex) => (
-                      <AnimatedBadge
-                        key={badgeIndex}
-                        icon={BadgeMetadata[badge].icon}
-                        color={BadgeMetadata[badge].color}
-                        delay={badgeIndex * 100} // Stagger animation for multiple badges
-                      />
-                    ))}
-                </View>
-              )}
             </View>
           </Marker>
         ))}
@@ -1903,6 +1899,13 @@ const styles = StyleSheet.create({
     height: 1,
     backgroundColor: '#E0E0E0',
     marginVertical: 12,
+  },
+  /** Nur Android: größerer transparenter Rahmen, damit die Library den Marker nicht abschneidet (Bug 1.20.x) */
+  markerFrameAndroid: {
+    width: 128,
+    height: 128,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   markerContainer: {
     width: 80,
