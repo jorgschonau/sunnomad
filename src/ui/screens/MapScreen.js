@@ -1489,9 +1489,10 @@ const MapScreen = ({ navigation }) => {
             key={`${dest.lat}-${dest.lon}-${index}`}
             coordinate={{ latitude: dest.lat, longitude: dest.lon }}
             anchor={{ x: 0.5, y: 0.5 }}
+            style={{ overflow: 'visible', zIndex: 999 }}
             onPress={() => handleMarkerPress(dest)}
           >
-            <View style={Platform.OS === 'android' ? styles.markerFrameAndroid : undefined}>
+            <View style={styles.markerFrameAndroid}>
               <View style={[
                 styles.markerContainer, 
                 { backgroundColor: getWeatherColor(dest.condition, dest.temperature) },
@@ -1900,12 +1901,12 @@ const styles = StyleSheet.create({
     backgroundColor: '#E0E0E0',
     marginVertical: 12,
   },
-  /** Nur Android: größerer transparenter Rahmen, damit die Library den Marker nicht abschneidet (Bug 1.20.x) */
   markerFrameAndroid: {
     width: 128,
     height: 128,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'visible',
   },
   markerContainer: {
     width: 80,
@@ -1915,6 +1916,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderWidth: 3,
     borderColor: '#fff',
+    overflow: 'visible',
+    zIndex: 999,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
