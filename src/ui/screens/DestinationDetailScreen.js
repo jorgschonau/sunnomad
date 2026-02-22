@@ -437,7 +437,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
 
   /**
    * Find the best day from the visible forecast rows
-   * Scoring: sunny condition + highest temperature
+   * Scoring: temperature and condition; temp has higher weight so that
+   * a clearly warmer day (e.g. 16°C windy) can beat a cooler one (e.g. 12°C cloudy).
    */
   const findBestDay = () => {
     if (!forecast?.forecast) return null;
@@ -448,7 +449,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       if (c === 'sunny' || c.includes('clear')) return 100;
       if (c === 'cloudy' || c.includes('partly')) return 60;
       if (c.includes('overcast')) return 40;
-      if (c.includes('wind')) return 30;
+      if (c.includes('wind')) return 50;  // wind not as bad as rain; warm + windy can still be best day
       if (c.includes('rain') || c.includes('snow')) return 10;
       return 50;
     };
@@ -461,7 +462,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       const cond = conditionScore(day.data.condition);
       // Range: -20 °C = 0, +35 °C = 100 (handles winter temps properly)
       const tempNormalized = Math.max(0, Math.min(100, ((temp + 20) / 55) * 100));
-      const score = cond * 0.6 + tempNormalized * 0.4;
+      // Temperature 60%, condition 40% so warmer days can win over cooler but slightly nicer conditions
+      const score = tempNormalized * 0.6 + cond * 0.4;
       return { ...day, score, temp, condition: day.data.condition };
     });
     
