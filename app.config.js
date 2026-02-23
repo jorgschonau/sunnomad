@@ -10,6 +10,7 @@ export default {
       resizeMode: 'cover',
       backgroundColor: '#F5E6D3',
     },
+    icon: './assets/icon.png',
     assetBundlePatterns: ['**/*'],
     ios: {
       supportsTablet: true,
