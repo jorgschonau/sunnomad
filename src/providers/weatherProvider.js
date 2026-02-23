@@ -502,7 +502,7 @@ export const fetchWeatherDestinationsForRadius = async (
       const finalDestinations = [...allDestinations, ...mockDestinations];
       
       // Calculate badges before returning
-      applyBadgesToDestinations(finalDestinations, currentLocationWeather, userLat, userLon);
+      applyBadgesToDestinations(finalDestinations, currentLocationWeather, userLat, userLon, 'warm', radiusKm);
       
       return finalDestinations;
     }
@@ -517,7 +517,7 @@ export const fetchWeatherDestinationsForRadius = async (
     }
     
     // Calculate badges before returning
-    applyBadgesToDestinations(allDestinations, currentLocationWeather, userLat, userLon);
+    applyBadgesToDestinations(allDestinations, currentLocationWeather, userLat, userLon, 'warm', radiusKm);
     
     return allDestinations;
   } catch (error) {
@@ -525,7 +525,7 @@ export const fetchWeatherDestinationsForRadius = async (
     const mockDests = generateMockDestinations(userLat, userLon, radiusKm);
     // Even for mock data, try to calculate badges if we have current location weather
     if (currentLocationWeather) {
-      applyBadgesToDestinations(mockDests, currentLocationWeather, userLat, userLon);
+      applyBadgesToDestinations(mockDests, currentLocationWeather, userLat, userLon, 'warm', radiusKm);
     }
     return mockDests;
   }

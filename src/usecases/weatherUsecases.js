@@ -22,14 +22,25 @@ const getDistanceKm = (lat1, lon1, lat2, lon2) => {
 };
 
 /**
+ * Minimum distance from origin for budget badges, scaled by search radius.
+ * At 2000 km radius, 40 km is too close to highlight.
+ */
+const getMinDistanceForBudget = (radius) => {
+  if (radius <= 500) return 40;
+  if (radius <= 1000) return 80;
+  if (radius <= 2000) return 150;
+  return 200;
+};
+
+/**
  * Apply badge calculations to all destinations
  * Mutates destination objects by adding 'badges' array
  * Limits "Worth the Drive" badges to top 3 destinations only
  */
-export const applyBadgesToDestinations = (destinations, originLocation, originLat, originLon, reverseMode = 'warm') => {
+export const applyBadgesToDestinations = (destinations, originLocation, originLat, originLon, reverseMode = 'warm', radiusKm = 500) => {
   if (!destinations || !originLocation) return;
   
-  console.log(`🏆 applyBadgesToDestinations: ${destinations.length} destinations, origin: ${originLocation.name} at ${originLocation.temperature} °C`);
+  console.log(`🏆 applyBadgesToDestinations: ${destinations.length} destinations, origin: ${originLocation.name} at ${originLocation.temperature} °C, radius: ${radiusKm}km`);
   
   destinations.forEach(dest => {
     // Skip current location (it shouldn't get badges)
@@ -51,9 +62,15 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
   const MAX_WORTH_THE_DRIVE_BADGES = 5;
   const MAX_BUDGET_BADGES = 2;
   const MIN_BADGE_DISTANCE_KM = 20;
+  const MIN_BUDGET_BADGE_DISTANCE_KM = 100; // Second budget badge must be ≥100km from first (geographic diversity)
+  
+  // Budget badge min distance from origin scales with radius (first: closer, second: farther)
+  const baseMinBudget = getMinDistanceForBudget(radiusKm);
+  const minDistanceFromOrigin1 = baseMinBudget * 0.7; // First badge: e.g. 28 km at 500 radius
+  const minDistanceFromOrigin2 = baseMinBudget * 1.3; // Second badge: e.g. 52 km at 500 radius
   
   // "Worth the Drive Budget" - RANKING SYSTEM: Top 2 get the badge!
-  // Award this FIRST before Worth the Drive
+  // Award this FIRST before Worth the Drive. Second badge must be ≥100km from first and ≥ minDistanceFromOrigin2 from origin.
   const budgetCandidates = destinations
     .filter(d => !d.isCurrentLocation && d._worthTheDriveBudgetData?.isEligible)
     .sort((a, b) => {
@@ -80,12 +97,17 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
     .filter(d => !d.isCurrentLocation && d.badges.includes('WORTH_THE_DRIVE'));
   let remainingWTD = allWorthTheDriveCandidates.length;
 
-  // Award badge to top N budget candidates (with distance check)
-  // But don't steal ALL Worth the Drive candidates!
+  // Award badge to top 2 budget candidates: first = best with dist >= minDistanceFromOrigin1; second with dist >= minDistanceFromOrigin2 and ≥100km from first
   const selectedBudgetBadges = [];
   for (const candidate of budgetCandidates) {
     if (selectedBudgetBadges.length >= MAX_BUDGET_BADGES) break;
     
+    const slotIndex = selectedBudgetBadges.length;
+    const minDistFromOrigin = slotIndex === 0 ? minDistanceFromOrigin1 : minDistanceFromOrigin2;
+    const distanceFromOrigin = candidate.distance ?? getDistanceKm(originLat, originLon, candidate.lat || candidate.latitude, candidate.lon || candidate.longitude);
+    if (distanceFromOrigin < minDistFromOrigin) continue;
+    
+    const minDistanceFromOtherBadges = slotIndex === 0 ? 0 : MIN_BUDGET_BADGE_DISTANCE_KM;
     const tooClose = selectedBudgetBadges.some(selected => {
       const dist = getDistanceKm(
         candidate.lat || candidate.latitude,
@@ -93,7 +115,7 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
         selected.lat || selected.latitude,
         selected.lon || selected.longitude
       );
-      return dist < MIN_BADGE_DISTANCE_KM;
+      return dist < minDistanceFromOtherBadges;
     });
     
     if (!tooClose) {
@@ -429,7 +451,7 @@ export const getWeatherForRadius = async (userLat, userLon, radiusKm, desiredCon
   console.log(`🎯 Badge origin: ${currentLocationWeather.name} at ${currentLocationWeather.temperature} °C`);
 
   // Apply badges to all destinations
-  applyBadgesToDestinations(filteredPlaces, currentLocationWeather, userLat, userLon, reverseMode);
+  applyBadgesToDestinations(filteredPlaces, currentLocationWeather, userLat, userLon, reverseMode, radiusKm);
 
   return filteredPlaces;
 };

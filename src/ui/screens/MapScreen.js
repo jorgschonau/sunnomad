@@ -394,7 +394,7 @@ const MapScreen = ({ navigation }) => {
       // Even at offset 0, recalculate badges when reverseMode changes
       const origin = destinations.find(d => d.isCenterPoint) || destinations.find(d => d.isCurrentLocation);
       if (origin && destinations.length > 0) {
-        applyBadgesToDestinations(destinations, origin, origin.lat, origin.lon, reverseMode);
+        applyBadgesToDestinations(destinations, origin, origin.lat, origin.lon, reverseMode, radius);
       }
       return destinations;
     }
@@ -482,11 +482,11 @@ const MapScreen = ({ navigation }) => {
     const origin = shifted.find(d => d.isCenterPoint) || shifted.find(d => d.isCurrentLocation);
     if (origin) {
       console.log(`🏆 Recalculating badges for date offset ${selectedDateOffset} (origin: ${origin.temperature} °C, mode: ${reverseMode})`);
-      applyBadgesToDestinations(shifted, origin, origin.lat, origin.lon, reverseMode);
+      applyBadgesToDestinations(shifted, origin, origin.lat, origin.lon, reverseMode, radius);
     }
 
     return shifted;
-  }, [destinations, selectedDateOffset, reverseMode]);
+  }, [destinations, selectedDateOffset, reverseMode, radius]);
 
   // Derive shifted center point weather from displayDestinations (respects date offset)
   const displayCenterPointWeather = useMemo(() => {
