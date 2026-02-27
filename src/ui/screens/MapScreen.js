@@ -71,8 +71,19 @@ const MapScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [locationError, setLocationError] = useState(null); // Error state for location fetch
   const [locationPermissionGranted, setLocationPermissionGranted] = useState(false); // Track if GPS permission was granted
-  const [loadingPhase, setLoadingPhase] = useState(0); // 0=searching, 1=waiting, 2=refining
-  const loadingPhaseTimer = useRef(null);
+  const loadingStates = [
+    { text: 'Suche GPS Signal... 🛰️', duration: 2000 },
+    { text: 'Bestimme Position... 📍', duration: 2000 },
+    { text: 'Gleich geschafft... ⏱️', duration: 3000 },
+  ];
+  const loadingTips = [
+    'Tipp: WiFi hilft bei Indoor-Ortung',
+    'Tipp: GPS funktioniert draußen am besten',
+    'Tipp: Standort wird im Hintergrund aktualisiert',
+  ];
+  const [loadingState, setLoadingState] = useState(loadingStates[0].text);
+  const [loadingTipIndex, setLoadingTipIndex] = useState(0);
+  const [showSkipLocation, setShowSkipLocation] = useState(false);
   const [loadingDestinations, setLoadingDestinations] = useState(false);
   const [mapType, setMapType] = useState('standard'); // standard, satellite, hybrid, terrain, mutedStandard
   const [controlsExpanded, setControlsExpanded] = useState(true); // Controls einklappbar
@@ -95,85 +106,23 @@ const MapScreen = ({ navigation }) => {
     longitudeDelta: 2,
   };
 
-  /**
-   * Fetch location with timeout wrapper.
-   * Returns position or throws on timeout/error.
-   */
-  const fetchLocationWithTimeout = async (timeoutMs = 30000) => {
-    return new Promise(async (resolve, reject) => {
-      const timer = setTimeout(() => {
-        reject(new Error('LOCATION_TIMEOUT'));
-      }, timeoutMs);
-
-      try {
-        const position = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-        });
-        clearTimeout(timer);
-        resolve(position);
-      } catch (err) {
-        clearTimeout(timer);
-        reject(err);
-      }
+  const applyLocationFromPosition = useCallback((position) => {
+    if (!position?.coords) return;
+    const initialRegion = {
+      latitude: position.coords.latitude,
+      longitude: position.coords.longitude,
+      latitudeDelta: 2,
+      longitudeDelta: 2,
+    };
+    setLocation(initialRegion);
+    setCurrentBounds({
+      north: initialRegion.latitude + initialRegion.latitudeDelta / 2,
+      south: initialRegion.latitude - initialRegion.latitudeDelta / 2,
+      east: initialRegion.longitude + initialRegion.longitudeDelta / 2,
+      west: initialRegion.longitude - initialRegion.longitudeDelta / 2,
     });
-  };
-
-  /**
-   * Fallback: try last known position, then default location.
-   * Never leaves the user stuck without a location.
-   */
-  const getLocationWithFallback = async () => {
-    // 1. Try current position with 30s timeout
-    try {
-      return await fetchLocationWithTimeout(30000);
-    } catch (err) {
-      console.warn('getCurrentPositionAsync failed, trying last known position:', err.message);
-    }
-
-    // 2. Try last known position (cached by the OS, accept up to 5 min old)
-    try {
-      const lastKnown = await Location.getLastKnownPositionAsync({
-        maxAge: 300000,
-      });
-      if (lastKnown) {
-        console.log('Using last known position');
-        return lastKnown;
-      }
-    } catch (err) {
-      console.warn('getLastKnownPositionAsync failed:', err.message);
-    }
-
-    // 3. All attempts failed — return null so caller can use default
-    return null;
-  };
-
-  /**
-   * Start loading phase progress text timer.
-   * Phase 0 (0-5s): "Suche GPS Signal..."
-   * Phase 1 (5-15s): "Warte auf Standort..."
-   * Phase 2 (15-30s): "Standort wird genauer..."
-   */
-  const startLoadingPhaseTimer = () => {
-    setLoadingPhase(0);
-    // Clear any existing timer
-    if (loadingPhaseTimer.current) clearTimeout(loadingPhaseTimer.current);
-
-    // Phase 1 after 5s
-    loadingPhaseTimer.current = setTimeout(() => {
-      setLoadingPhase(1);
-      // Phase 2 after 15s
-      loadingPhaseTimer.current = setTimeout(() => {
-        setLoadingPhase(2);
-      }, 10000);
-    }, 5000);
-  };
-
-  const stopLoadingPhaseTimer = () => {
-    if (loadingPhaseTimer.current) {
-      clearTimeout(loadingPhaseTimer.current);
-      loadingPhaseTimer.current = null;
-    }
-  };
+    setLocationError(null);
+  }, []);
 
   /**
    * Skip location → use default (Frankfurt).
@@ -181,7 +130,6 @@ const MapScreen = ({ navigation }) => {
    */
   const skipToDefaultLocation = useCallback(() => {
     try {
-      stopLoadingPhaseTimer();
       setLocation(DEFAULT_LOCATION);
       setLocationError(null);
       setLoading(false);
@@ -220,8 +168,10 @@ const MapScreen = ({ navigation }) => {
    */
   const initializeLocation = async () => {
     setLoading(true);
+    setShowSkipLocation(false);
+    setLoadingState(loadingStates[0].text);
+    setLoadingTipIndex(0);
     setLocationError(null);
-    startLoadingPhaseTimer();
 
     // Check if first time user
     const hasSeenOnboarding = await AsyncStorage.getItem('hasSeenOnboarding');
@@ -272,7 +222,6 @@ const MapScreen = ({ navigation }) => {
     try {
       const enabled = await Location.hasServicesEnabledAsync();
       if (!enabled) {
-        stopLoadingPhaseTimer();
         setLocationError('disabled');
         setLoading(false);
         return;
@@ -285,7 +234,6 @@ const MapScreen = ({ navigation }) => {
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
-        stopLoadingPhaseTimer();
         setLocationPermissionGranted(false);
         setLocationError('permission');
         setLoading(false);
@@ -294,37 +242,46 @@ const MapScreen = ({ navigation }) => {
       setLocationPermissionGranted(true);
     } catch (error) {
       console.error('Location permission error:', error);
-      stopLoadingPhaseTimer();
       setLocationPermissionGranted(false);
       setLocationError('permission');
       setLoading(false);
       return;
     }
 
-    // 3. Fetch position with 30s timeout + fallback chain
-    const currentLocation = await getLocationWithFallback();
+    // 3. Try cached location first for an instant map start
+    let hasInstantLocation = false;
+    try {
+      const lastKnown = await Location.getLastKnownPositionAsync({
+        maxAge: 60000,
+      });
+      if (lastKnown?.coords) {
+        applyLocationFromPosition(lastKnown);
+        setLoading(false);
+        hasInstantLocation = true;
+      }
+    } catch (error) {
+      console.warn('getLastKnownPositionAsync (fast start) failed:', error.message);
+    }
 
-    if (currentLocation) {
-      const initialRegion = {
-        latitude: currentLocation.coords.latitude,
-        longitude: currentLocation.coords.longitude,
-        latitudeDelta: 2,
-        longitudeDelta: 2,
-      };
-      setLocation(initialRegion);
-      
-      // Set initial bounds
-      const initialBounds = {
-        north: initialRegion.latitude + initialRegion.latitudeDelta / 2,
-        south: initialRegion.latitude - initialRegion.latitudeDelta / 2,
-        east: initialRegion.longitude + initialRegion.longitudeDelta / 2,
-        west: initialRegion.longitude - initialRegion.longitudeDelta / 2,
-      };
-      setCurrentBounds(initialBounds);
-      setLocationError(null);
-    } else {
-      // All location methods failed — use default location so user is never stuck
-      console.warn('All location methods failed, falling back to default location');
+    // 4. Fetch fresh position in background and update once ready
+    try {
+      const fresh = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+        timeout: 15000,
+        maximumAge: 10000,
+      });
+      if (fresh?.coords) {
+        applyLocationFromPosition(fresh);
+        setLoading(false);
+        return;
+      }
+    } catch (error) {
+      console.warn('getCurrentPositionAsync failed:', error.message);
+    }
+
+    // 5. If no instant location was available and fresh GPS failed, use default
+    if (!hasInstantLocation) {
+      console.warn('No cached or fresh location available, using default location');
       setLocation(DEFAULT_LOCATION);
       setCurrentBounds({
         north: DEFAULT_LOCATION.latitude + DEFAULT_LOCATION.latitudeDelta / 2,
@@ -334,15 +291,36 @@ const MapScreen = ({ navigation }) => {
       });
       setLocationError(null);
       showToast(t('map.usingDefaultLocation'), 'info');
+      setLoading(false);
     }
-
-    stopLoadingPhaseTimer();
-    setLoading(false);
   };
 
   useEffect(() => {
     initializeLocation();
   }, []);
+
+  useEffect(() => {
+    if (!(loading && !location)) return undefined;
+    let currentIndex = 0;
+    const interval = setInterval(() => {
+      currentIndex = (currentIndex + 1) % loadingStates.length;
+      setLoadingState(loadingStates[currentIndex].text);
+      setLoadingTipIndex(prev => (prev + 1) % loadingTips.length);
+    }, 2000);
+
+    return () => clearInterval(interval);
+  }, [loading, location]);
+
+  useEffect(() => {
+    if (!(loading && !location)) {
+      setShowSkipLocation(false);
+      return undefined;
+    }
+    const timeout = setTimeout(() => {
+      setShowSkipLocation(true);
+    }, 5000);
+    return () => clearTimeout(timeout);
+  }, [loading, location]);
 
   // Persist selected date offset to AsyncStorage
   useEffect(() => {
@@ -1342,19 +1320,17 @@ const MapScreen = ({ navigation }) => {
   };
 
   if (loading && !location) {
-    const phaseTexts = [
-      t('map.loadingPhase0'),
-      t('map.loadingPhase1'),
-      t('map.loadingPhase2'),
-    ];
     return (
       <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
         <ActivityIndicator size="large" color={theme.primary} />
         <Text style={[styles.loadingText, { color: theme.text }]}>
-          {phaseTexts[loadingPhase] || phaseTexts[0]}
+          {loadingState}
+        </Text>
+        <Text style={[styles.hintText, { color: theme.textSecondary || '#888' }]}>
+          {loadingTips[loadingTipIndex]}
         </Text>
         {/* Skip button visible after 5 seconds */}
-        {loadingPhase >= 1 && (
+        {showSkipLocation && (
           <TouchableOpacity
             style={[styles.skipButton, { borderColor: theme.textSecondary || '#888' }]}
             onPress={skipToDefaultLocation}
@@ -1877,6 +1853,12 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 20,
     fontWeight: '500',
+  },
+  hintText: {
+    marginTop: 8,
+    fontSize: 14,
+    textAlign: 'center',
+    paddingHorizontal: 28,
   },
   errorText: {
     fontSize: 18,
