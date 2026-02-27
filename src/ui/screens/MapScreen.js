@@ -399,6 +399,26 @@ const MapScreen = ({ navigation }) => {
       return destinations;
     }
 
+    // Normalize forecast entries so all badge rules see consistent fields
+    const normalizeForecastEntry = (entry) => {
+      if (!entry) return null;
+      const temp = entry.temp ?? entry.temperature ?? entry.high ?? null;
+      const high = entry.high ?? entry.temp_max ?? entry.temperature ?? null;
+      const low = entry.low ?? entry.temp_min ?? (high != null ? high - 3 : null);
+      return {
+        ...entry,
+        condition: entry.condition,
+        temp,
+        high,
+        low,
+        precipitation: entry.precipitation ?? 0,
+        windSpeed: entry.windSpeed ?? 0,
+        humidity: entry.humidity ?? null,
+        description: entry.description ?? entry.weather_description ?? '',
+        sunshine_duration: entry.sunshine_duration ?? 0,
+      };
+    };
+
     // Helper: build a shifted keyed forecast object from an array starting at offset
     const buildShiftedForecast = (arr, offset) => {
       const keys = ['today', 'tomorrow', 'day2', 'day3'];
@@ -406,7 +426,21 @@ const MapScreen = ({ navigation }) => {
       keys.forEach((key, i) => {
         const entry = arr[offset + i];
         if (entry) {
-          result[key] = { ...entry };
+          result[key] = normalizeForecastEntry(entry);
+        }
+      });
+      return result;
+    };
+
+    // Helper: shift keyed forecast objects ({today,tomorrow,day2,...}) for badge recalculation
+    const buildShiftedKeyedForecast = (forecastObj, offset) => {
+      const inputKeys = ['today', 'tomorrow', 'day2', 'day3', 'day4', 'day5'];
+      const outputKeys = ['today', 'tomorrow', 'day2', 'day3'];
+      const result = {};
+      outputKeys.forEach((outKey, i) => {
+        const sourceKey = inputKeys[offset + i];
+        if (sourceKey && forecastObj?.[sourceKey]) {
+          result[outKey] = normalizeForecastEntry(forecastObj[sourceKey]);
         }
       });
       return result;
@@ -422,15 +456,17 @@ const MapScreen = ({ navigation }) => {
         keys.forEach((key, i) => {
           const fd = dest.forecastDays[selectedDateOffset + i];
           if (fd) {
-            shiftedForecast[key] = {
+            shiftedForecast[key] = normalizeForecastEntry({
               condition: fd.condition,
               temp: fd.temperature,
               high: Math.round(fd.temp_max || fd.temperature),
               low: Math.round(fd.temp_min || fd.temperature - 3),
               precipitation: fd.precipitation,
               windSpeed: fd.windSpeed,
+              humidity: fd.humidity,
+              description: fd.description ?? fd.weather_description ?? '',
               sunshine_duration: fd.sunshine_duration || 0,
-            };
+            });
           }
         });
         return {
@@ -441,6 +477,9 @@ const MapScreen = ({ navigation }) => {
           temp_min: dayData.temp_min,
           windSpeed: dayData.windSpeed,
           precipitation: dayData.precipitation,
+          humidity: dayData.humidity ?? dest.humidity,
+          description: dayData.description ?? dest.description,
+          weather_description: dayData.description ?? dest.weather_description,
           sunshine_duration: dayData.sunshine_duration || 0,
           forecast: shiftedForecast,
         };
@@ -468,10 +507,17 @@ const MapScreen = ({ navigation }) => {
       const forecastKey = FORECAST_KEY_MAP[selectedDateOffset];
       if (dest.forecast && forecastKey && dest.forecast[forecastKey]) {
         const dayData = dest.forecast[forecastKey];
+        const shiftedForecast = buildShiftedKeyedForecast(dest.forecast, selectedDateOffset);
         return {
           ...dest,
           temperature: dayData.high ?? dayData.temp ?? dest.temperature,
           condition: dayData.condition ?? dest.condition,
+          windSpeed: dayData.windSpeed ?? dest.windSpeed,
+          precipitation: dayData.precipitation ?? dest.precipitation,
+          humidity: dayData.humidity ?? dest.humidity,
+          description: dayData.description ?? dest.description,
+          weather_description: dayData.description ?? dest.weather_description,
+          forecast: shiftedForecast,
         };
       }
       return dest;
