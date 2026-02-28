@@ -71,6 +71,8 @@ const MapScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [locationError, setLocationError] = useState(null); // Error state for location fetch
   const [locationPermissionGranted, setLocationPermissionGranted] = useState(false); // Track if GPS permission was granted
+  const [isRecentering, setIsRecentering] = useState(false); // Prevent duplicate on-demand location requests
+  const recenterCooldownUntilRef = useRef(0); // Throttle on-demand GPS requests
   const loadingStates = [
     { text: 'Suche GPS Signal... 🛰️', duration: 2000 },
     { text: 'Bestimme Position... 📍', duration: 2000 },
@@ -1235,6 +1237,88 @@ const MapScreen = ({ navigation }) => {
   };
 
   /**
+   * On-demand recenter: request one fresh location update and move map.
+   * Avoids keeping the native user-location layer active all the time.
+   */
+  const recenterToCurrentLocation = async () => {
+    if (isRecentering) return;
+    const now = Date.now();
+    if (now < recenterCooldownUntilRef.current) {
+      const secondsLeft = Math.ceil((recenterCooldownUntilRef.current - now) / 1000);
+      showToast(`Bitte warte noch ${secondsLeft}s`, 'info');
+      return;
+    }
+    setIsRecentering(true);
+    recenterCooldownUntilRef.current = now + 10000;
+
+    try {
+      const servicesEnabled = await Location.hasServicesEnabledAsync();
+      if (!servicesEnabled) {
+        setLocationError('disabled');
+        showToast(t('map.locationDisabled'), 'error');
+        return;
+      }
+
+      let hasPermission = locationPermissionGranted;
+      if (!hasPermission) {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        hasPermission = status === 'granted';
+        setLocationPermissionGranted(hasPermission);
+      }
+
+      if (!hasPermission) {
+        setLocationError('permission');
+        showToast(t('map.locationNotAvailable'), 'error');
+        return;
+      }
+
+      let position = null;
+      try {
+        position = await Location.getCurrentPositionAsync({
+          accuracy: Location.Accuracy.Balanced,
+          timeout: 10000,
+          maximumAge: 15000,
+        });
+      } catch (error) {
+        console.warn('recenter getCurrentPositionAsync failed:', error?.message || error);
+      }
+
+      if (!position?.coords) {
+        position = await Location.getLastKnownPositionAsync({ maxAge: 120000 });
+      }
+
+      if (!position?.coords) {
+        showToast(t('map.locationUnavailable'), 'error');
+        return;
+      }
+
+      applyLocationFromPosition(position);
+      setCenterPoint(null);
+      setCenterPointWeather(null);
+      setLocationError(null);
+      AsyncStorage.removeItem('mapCenterPoint').catch(err =>
+        console.warn('Failed to remove center point while recentering:', err)
+      );
+
+      const latitudeDelta = currentRegion?.latitudeDelta ?? (radius * 2) / 111;
+      const longitudeDelta = currentRegion?.longitudeDelta
+        ?? (radius * 2) / (111 * Math.cos(position.coords.latitude * Math.PI / 180));
+
+      mapRef.current?.animateToRegion({
+        latitude: position.coords.latitude,
+        longitude: position.coords.longitude,
+        latitudeDelta,
+        longitudeDelta,
+      }, 500);
+
+      playTickSound();
+      showToast('📍 Auf deinen Standort zentriert', 'success');
+    } finally {
+      setIsRecentering(false);
+    }
+  };
+
+  /**
    * Handle search result selection
    */
   const handleSearchSelect = (place) => {
@@ -1445,8 +1529,8 @@ const MapScreen = ({ navigation }) => {
         maxZoomLevel={getZoomLimits().maxZoom}  // Always 15 (prevent street level)
         pitchEnabled={false}  // Disable tilt/3D view
         rotateEnabled={false}  // Disable rotation
-        showsUserLocation={locationPermissionGranted}
-        showsMyLocationButton={locationPermissionGranted}
+        showsUserLocation={false}
+        showsMyLocationButton={false}
         onLongPress={handleMapLongPress}
         onRegionChangeComplete={handleRegionChangeComplete}
       >
@@ -1652,6 +1736,23 @@ const MapScreen = ({ navigation }) => {
         accessibilityHint="Open app settings"
       >
         <Text style={styles.settingsIcon}>⚙️</Text>
+      </TouchableOpacity>
+
+      {/* Recenter Button (on-demand location, battery-friendly) */}
+      <TouchableOpacity
+        style={[styles.myLocationButton, {
+          backgroundColor: theme.surface,
+          borderColor: theme.border,
+          shadowColor: theme.shadow,
+          opacity: isRecentering ? 0.6 : 1,
+        }]}
+        onPress={recenterToCurrentLocation}
+        disabled={isRecentering}
+        accessibilityLabel="Center map on my location"
+        accessibilityRole="button"
+        accessibilityHint="Fetch current location once and center the map"
+      >
+        <Text style={styles.myLocationIcon}>{isRecentering ? '…' : '📍'}</Text>
       </TouchableOpacity>
 
       {/* Search Button - DISABLED (MapSearchBar component missing) */}
@@ -2402,6 +2503,28 @@ const styles = StyleSheet.create({
     fontSize: 36,
     textAlign: 'center',
     lineHeight: 36,
+    includeFontPadding: false,
+    marginTop: 4,
+  },
+  myLocationButton: {
+    position: 'absolute',
+    top: 232,
+    right: 10,
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  myLocationIcon: {
+    fontSize: 30,
+    textAlign: 'center',
+    lineHeight: 32,
     includeFontPadding: false,
     marginTop: 4,
   },
