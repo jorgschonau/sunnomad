@@ -11,8 +11,9 @@ import {
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import MapView, { Marker, Circle } from 'react-native-maps';
+import MapView, { Marker, Circle, Polygon } from 'react-native-maps';
 import * as Location from 'expo-location';
+import Constants from 'expo-constants';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeProvider';
 import { getWeatherForRadius, getWeatherIcon, getWeatherColor, applyBadgesToDestinations } from '../../usecases/weatherUsecases';
@@ -52,9 +53,26 @@ const MAP_BOUNDS = {
   east: 50     // Östlich Ural + Puffer
 };
 
+const WORLD_OVERLAY_COORDINATES = [
+  { latitude: 85, longitude: -180 },
+  { latitude: 85, longitude: 180 },
+  { latitude: -85, longitude: 180 },
+  { latitude: -85, longitude: -180 },
+];
+
+const SUPPORTED_REGION_HOLE_COORDINATES = [
+  { latitude: 72, longitude: -170 },
+  { latitude: 72, longitude: 45 },
+  { latitude: 30, longitude: 45 },
+  { latitude: 30, longitude: -20 },
+  { latitude: 15, longitude: -120 },
+  { latitude: 15, longitude: -170 },
+];
+
 const MapScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
   const { theme } = useTheme();
+  const isExpoGo = Constants?.appOwnership === 'expo';
   const mapRef = useRef(null);
   const [location, setLocation] = useState(null);
   const [centerPoint, setCenterPoint] = useState(null); // Custom center point (if set)
@@ -1500,6 +1518,11 @@ const MapScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
+      {isExpoGo && (
+        <Text style={{ fontSize: 40, color: 'red', zIndex: 999, position: 'absolute', top: 16, alignSelf: 'center' }}>
+          LOKALE VERSION
+        </Text>
+      )}
       <OnboardingOverlay 
         visible={showOnboarding} 
         onClose={handleCloseOnboarding}
@@ -1534,6 +1557,16 @@ const MapScreen = ({ navigation }) => {
         onLongPress={handleMapLongPress}
         onRegionChangeComplete={handleRegionChangeComplete}
       >
+        {/* Gray overlay for unsupported world regions */}
+        <Polygon
+          coordinates={WORLD_OVERLAY_COORDINATES}
+          holes={[SUPPORTED_REGION_HOLE_COORDINATES]}
+          fillColor="rgba(100, 100, 100, 0.35)"
+          strokeWidth={0}
+          tappable={false}
+          zIndex={-1}
+        />
+
         {/* Radius Circle - centered on centerPoint or location */}
         {(centerPoint || location) && (
           <Circle
