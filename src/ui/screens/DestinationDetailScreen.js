@@ -15,18 +15,18 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { getWeatherIcon, getWeatherColor } from '../../usecases/weatherUsecases';
 import { openInMaps, NavigationProvider } from '../../usecases/navigationUsecases';
 import { getPlaceDetail } from '../../services/placesWeatherService';
+import { supabase } from '../../config/supabase';
 import { toggleFavourite, isDestinationFavourite } from '../../usecases/favouritesUsecases';
 import { BadgeMetadata } from '../../domain/destinationBadge';
 import { getCountryName } from '../../utils/countryNames';
 
-// Convert wind speed (km/h) to descriptive text
-const getWindDescription = (windSpeed) => {
+const getWindDescriptionKey = (windSpeed) => {
   const speed = windSpeed || 0;
-  if (speed <= 10) return 'Windstill';
-  if (speed <= 20) return 'Leichte Brise';
-  if (speed <= 35) return 'Mäßiger Wind';
-  if (speed <= 50) return 'Starker Wind';
-  return 'Sturm';
+  if (speed <= 10) return 'destination.windCalm';
+  if (speed <= 20) return 'destination.windLight';
+  if (speed <= 35) return 'destination.windModerate';
+  if (speed <= 50) return 'destination.windStrong';
+  return 'destination.windStorm';
 };
 
 const DestinationDetailScreen = ({ route, navigation }) => {
@@ -37,7 +37,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   // Show map data immediately, then upgrade with Supabase data in background
   const initialForecast = destination ? {
     ...destination,
-    description: destination.description || destination.weatherDescription || `${destination.condition} conditions`,
+    description: destination.description || destination.weatherDescription || destination.condition || '',
     countryCode: destination.countryCode || destination.country_code,
     country_code: destination.country_code || destination.countryCode,
     country: destination.country,
@@ -107,12 +107,51 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       setIsRefreshing(true);
       setError(null);
       
-      // PRIORITY 1: Fetch from Supabase if destination has a valid UUID (gets full 10-day forecast!)
-      // Skip non-UUID IDs (e.g. legacy favourites with "lat_lon_timestamp" format)
-      const isValidUUID = destination.id && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(destination.id);
-      if (isValidUUID) {
+      // PRIORITY 0: No UUID? Try to resolve from DB by coordinates or name
+      let resolvedId = destination.id;
+      const isValidUUID = resolvedId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resolvedId);
+      if (!isValidUUID) {
         try {
-          const { place, forecast: forecastData, error: fetchError } = await getPlaceDetail(destination.id, i18n.language);
+          const lat = destination.lat ?? destination.latitude;
+          const lon = destination.lon ?? destination.longitude;
+          console.log('[resolvePlace] no UUID, trying lookup. lat:', lat, 'lon:', lon, 'name:', destination.name);
+          // Try by coordinates (±0.05° ≈ 5.5km)
+          if (lat != null && lon != null) {
+            const { data, error } = await supabase
+              .from('places')
+              .select('id, name')
+              .gte('latitude', lat - 0.05)
+              .lte('latitude', lat + 0.05)
+              .gte('longitude', lon - 0.05)
+              .lte('longitude', lon + 0.05)
+              .limit(1);
+            console.log('[resolvePlace] coord result:', data, 'error:', error);
+            if (data?.[0]?.id) resolvedId = data[0].id;
+          }
+          // Fallback: try by name (partial, case-insensitive)
+          if (!(/^[0-9a-f]{8}-/i.test(resolvedId))) {
+            const cleanName = (destination.name || '').replace(/^[📍⊕★]\s?/g, '').trim();
+            console.log('[resolvePlace] coord miss, trying name:', cleanName);
+            if (cleanName) {
+              const { data, error } = await supabase
+                .from('places')
+                .select('id, name')
+                .ilike('name', `%${cleanName}%`)
+                .limit(1);
+              console.log('[resolvePlace] name result:', data, 'error:', error);
+              if (data?.[0]?.id) resolvedId = data[0].id;
+            }
+          }
+          console.log('[resolvePlace] final resolvedId:', resolvedId);
+        } catch (e) {
+          console.warn('[resolvePlace] lookup failed:', e);
+        }
+      }
+
+      const hasValidUUID = resolvedId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resolvedId);
+      if (hasValidUUID) {
+        try {
+          const { place, forecast: forecastData, error: fetchError } = await getPlaceDetail(resolvedId, i18n.language);
           
           if (fetchError || !place) {
             throw new Error(fetchError || 'Failed to fetch place detail');
@@ -124,10 +163,14 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           const convertedForecast = {
             ...place,
             name: destination.name, // Keep original name
-            description: place.weatherDescription || `${place.condition} conditions`,
+            description: place.weatherDescription || place.condition || '',
             forecast: forecastSlots,
           };
           
+          // Preserve attractiveness score from original destination or Supabase detail
+          convertedForecast.attractivenessScore =
+            convertedForecast.attractivenessScore ?? destination.attractivenessScore ?? destination.attractiveness_score ?? null;
+
           // IMPORTANT: Keep badges from original destination (calculated on map)
           if (destination.badges) {
             convertedForecast.badges = destination.badges;
@@ -187,7 +230,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         
         setForecast({
           ...destination,
-          description: destination.description || destination.weatherDescription || `${destination.condition} conditions`,
+          description: destination.description || destination.weatherDescription || destination.condition || '',
           countryCode: destination.countryCode || destination.country_code,
           country_code: destination.country_code || destination.countryCode,
           country: destination.country,
@@ -200,7 +243,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       // PRIORITY 3: Fallback - generate forecast from current data (5 days)
       setForecast({
         ...destination,
-        description: destination.description || destination.weatherDescription || `${destination.condition} conditions`,
+        description: destination.description || destination.weatherDescription || destination.condition || '',
         countryCode: destination.countryCode || destination.country_code,
         country_code: destination.country_code || destination.countryCode,
         forecast: {
@@ -384,6 +427,14 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     if (desc === 'rainy') return t('weather.rainy');
     if (desc === 'snowy') return t('weather.snowy');
     if (desc === 'windy') return t('weather.windy');
+
+    // Catch legacy "X conditions" pattern from old cached data
+    const condMatch = desc.match(/^(\w+)\s+conditions$/);
+    if (condMatch) {
+      const cond = condMatch[1];
+      const condKey = t(`weather.${cond}`, { defaultValue: '' });
+      if (condKey) return condKey;
+    }
     
     // Fallback to fixed description if no translation match
     return fixedDesc;
@@ -539,10 +590,11 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         
         {/* Untere Zeile: Description */}
         <Text style={[styles.headerSubtitle, { color: subtitleColor }]}>{translateCondition(heroDescription)}</Text>
-        {/* TEMP DEBUG: Show attractiveness score */}
-        <Text style={[styles.headerSubtitle, { color: subtitleColor, marginTop: 4, fontSize: 12, opacity: 0.7 }]}>
-          Score: {forecast.attractivenessScore || forecast.attractiveness_score || destination.attractivenessScore || destination.attractiveness_score || '?'}
-        </Text>
+        {(forecast?.attractivenessScore ?? destination.attractivenessScore) != null && (
+          <Text style={[styles.headerSubtitle, { color: subtitleColor, marginTop: 4, fontSize: 12, opacity: 0.7 }]}>
+            Score: {forecast?.attractivenessScore ?? destination.attractivenessScore}
+          </Text>
+        )}
       </View>
 
       <View style={styles.content}>
@@ -561,7 +613,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
             </View>
             <View style={styles.statItem}>
               <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('destination.wind')}</Text>
-              <Text style={[styles.statValue, { color: theme.text }]}>{getWindDescription(forecast.windSpeed)}</Text>
+              <Text style={[styles.statValue, { color: theme.text }]}>{t(getWindDescriptionKey(forecast.windSpeed))}</Text>
             </View>
           </View>
         </View>
@@ -759,7 +811,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                             ☀️ Bedingungen: {translateCondition(warmDryData.condition)}
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            💨 {getWindDescription(warmDryData.windSpeed)}
+                            💨 {t(getWindDescriptionKey(warmDryData.windSpeed))}
                           </Text>
                         </View>
                       )}
@@ -774,7 +826,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                             ☀️ {beachData.sunnyDays} sonnige Tage
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            💨 {getWindDescription(beachData.windSpeed)}
+                            💨 {t(getWindDescriptionKey(beachData.windSpeed))}
                           </Text>
                         </View>
                       )}
@@ -798,7 +850,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                             🌡️ Heute: {Math.round(miracleData.todayTemp)} °C → Bald: {Math.round(miracleData.futureTempMax)} °C (+{Math.round(miracleData.tempGain)} °C)
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            ☀️ {translateCondition(miracleData.todayCondition)} → {miracleData.futureCondition}
+                            ☀️ {translateCondition(miracleData.todayCondition)} → {translateCondition(miracleData.futureCondition)}
                           </Text>
                         </View>
                       )}

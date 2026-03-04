@@ -1,6 +1,6 @@
 import 'react-native-gesture-handler';
-import React, { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, View, Image, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -144,21 +144,22 @@ function MainNavigator() {
 function RootNavigator() {
   const { isAuthenticated, loading } = useAuth();
   const { theme } = useTheme();
+  const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
-    const prepare = async () => {
-      // Keep splash screen visible for 2.5 seconds (0.5 sec longer fade-out)
-      await new Promise(resolve => setTimeout(resolve, 2500));
-      await SplashScreen.hideAsync();
-    };
-    prepare();
+    SplashScreen.hideAsync();
+    const timer = setTimeout(() => setShowSplash(false), 2500);
+    return () => clearTimeout(timer);
   }, []);
 
-  // Show loading spinner while checking auth state
-  if (loading) {
+  if (showSplash || loading) {
     return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background }}>
-        <ActivityIndicator size="large" color={theme.primary} />
+      <View style={splashStyles.container}>
+        <Image
+          source={require('./assets/sunnomad-logo.png')}
+          style={splashStyles.logo}
+          resizeMode="contain"
+        />
       </View>
     );
   }
@@ -170,12 +171,25 @@ function RootNavigator() {
   );
 }
 
+const splashStyles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#F5F0EB',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  logo: {
+    width: '85%',
+    height: 140,
+  },
+});
+
 export default function App() {
   return (
     <ThemeProvider>
       <UnitProvider>
         <AuthProvider>
-          <StatusBar style="dark" backgroundColor="#F5E6D3" />
+          <StatusBar style="dark" backgroundColor="#F5F0EB" />
           <RootNavigator />
         </AuthProvider>
       </UnitProvider>

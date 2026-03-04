@@ -263,7 +263,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
           temp_max: place.temp_max,
           condition: condition,
           weather_main: place.weather_main || 'Clouds',
-          weather_description: place.weather_description || 'No data',
+          weather_description: place.weather_description || '',
           weather_icon: place.weather_icon || '03d',
           wind_speed: place.wind_speed,
           sunshine_duration: place.sunshine_duration,
@@ -568,7 +568,7 @@ function adaptPlaceToDestination(place, locale = 'en') {
     weatherTrend: place.weather_trend,
     
     // Attractiveness score
-    attractivenessScore: place.attractiveness_score || 50,
+    attractivenessScore: place.attractiveness_score ?? 50,
     population: place.population || 0,
     clusteringRadiusM: place.clustering_radius_m || 50000, // Default 50km if missing
     

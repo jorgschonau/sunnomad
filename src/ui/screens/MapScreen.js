@@ -4,11 +4,14 @@ import {
   StyleSheet,
   TouchableOpacity,
   Text,
+  TextInput,
+  FlatList,
   ActivityIndicator,
   Platform,
   Animated,
   Linking,
   InteractionManager,
+  Keyboard,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,14 +22,12 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { getWeatherForRadius, getWeatherIcon, getWeatherColor, applyBadgesToDestinations } from '../../usecases/weatherUsecases';
 import { BadgeMetadata } from '../../domain/destinationBadge';
 import { playTickSound, playDingSound } from '../../utils/soundUtils';
-// Badges are now calculated in weatherUsecases.js, not here!
+import { getFavourites } from '../../usecases/favouritesUsecases';
 import WeatherFilter from '../components/WeatherFilter';
 import DateFilter from '../components/DateFilter';
 import OnboardingOverlay from '../components/OnboardingOverlay';
 import AnimatedBadge from '../components/AnimatedBadge';
-// import AnimatedMarker from '../components/AnimatedMarker'; // Temporarily disabled
 import { SkeletonMapMarker } from '../components/SkeletonLoader';
-// import MapSearchBar from '../components/MapSearchBar'; // TODO: Component doesn't exist yet
 
 // Custom map style to hide POI Business and Transit
 const customMapStyle = [
@@ -99,10 +100,12 @@ const MapScreen = ({ navigation }) => {
   const [reverseMode, setReverseMode] = useState('warm'); // 'warm' or 'cold' - which places to reward
   const [radiusShape, setRadiusShape] = useState('circle'); // 'circle', 'half', 'semi' - radius shape
   const [currentRegion, setCurrentRegion] = useState(null); // Track current map region
-  // const [warnings, setWarnings] = useState([]); // Weather warnings - DISABLED
-  // const [showWarnings, setShowWarnings] = useState(true); // Toggle for warnings display - DISABLED
-  // const [showSearch, setShowSearch] = useState(false); // Toggle search bar - DISABLED (MapSearchBar component missing)
+  const [favouriteDestinations, setFavouriteDestinations] = useState([]);
   const [cachedData, setCachedData] = useState(null); // Cache for destinations
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchFocused, setSearchFocused] = useState(false);
+  const searchDebounceRef = useRef(null);
 
   // Default fallback location (Frankfurt, center of Europe)
   const DEFAULT_LOCATION = {
@@ -199,7 +202,7 @@ const MapScreen = ({ navigation }) => {
 
     if (savedDateOffset !== null) {
       const offset = parseInt(savedDateOffset, 10);
-      if ([0, 1, 3, 5].includes(offset)) {
+      if ([0, 1, 3, 5, 7, 10].includes(offset)) {
         setSelectedDateOffset(offset);
       }
     }
@@ -294,6 +297,22 @@ const MapScreen = ({ navigation }) => {
   useEffect(() => {
     initializeLocation();
   }, []);
+
+  // Load favourites on mount and whenever the screen gains focus
+  useEffect(() => {
+    const loadFavs = async () => {
+      try {
+        const favs = await getFavourites();
+        setFavouriteDestinations(favs);
+      } catch (e) {
+        console.warn('Failed to load favourites for map:', e);
+      }
+    };
+    loadFavs();
+
+    const unsubscribe = navigation.addListener('focus', loadFavs);
+    return unsubscribe;
+  }, [navigation]);
 
   useEffect(() => {
     if (!(loading && !location)) return undefined;
@@ -407,7 +426,7 @@ const MapScreen = ({ navigation }) => {
         return result;
       };
       const buildShiftedKeyedForecast = (forecastObj, off) => {
-        const inputKeys = ['today', 'tomorrow', 'day2', 'day3', 'day4', 'day5'];
+        const inputKeys = ['today', 'tomorrow', 'day2', 'day3', 'day4', 'day5', 'day6', 'day7', 'day8', 'day9', 'day10', 'day11', 'day12', 'day13'];
         const outputKeys = ['today', 'tomorrow', 'day2', 'day3'];
         const result = {};
         outputKeys.forEach((outKey, i) => {
@@ -466,7 +485,7 @@ const MapScreen = ({ navigation }) => {
             forecast: buildShiftedForecast(dest.forecastArray, offset),
           };
         }
-        const FORECAST_KEY_MAP = { 1: 'tomorrow', 2: 'day2', 3: 'day3', 4: 'day4', 5: 'day5' };
+        const FORECAST_KEY_MAP = { 1: 'tomorrow', 2: 'day2', 3: 'day3', 4: 'day4', 5: 'day5', 6: 'day6', 7: 'day7', 8: 'day8', 9: 'day9', 10: 'day10' };
         const forecastKey = FORECAST_KEY_MAP[offset];
         if (dest.forecast && forecastKey && dest.forecast[forecastKey]) {
           const dayData = dest.forecast[forecastKey];
@@ -493,6 +512,17 @@ const MapScreen = ({ navigation }) => {
       if (handle?.cancel) handle.cancel();
     };
   }, [destinations, selectedDateOffset, reverseMode, radius]);
+
+  // Favourites to render as independent markers (exclude those already in visibleMarkers)
+  const favouriteMarkersToShow = useMemo(() => {
+    if (favouriteDestinations.length === 0) return [];
+    const visibleCoords = new Set(
+      visibleMarkers.map(m => `${m.lat}_${m.lon}`)
+    );
+    return favouriteDestinations.filter(
+      fav => fav.lat && fav.lon && !visibleCoords.has(`${fav.lat}_${fav.lon}`)
+    );
+  }, [favouriteDestinations, visibleMarkers]);
 
   // Derive shifted center point weather from displayDestinations (respects date offset)
   const displayCenterPointWeather = useMemo(() => {
@@ -1249,28 +1279,67 @@ const MapScreen = ({ navigation }) => {
     }
   };
 
-  /**
-   * Handle search result selection
-   */
-  const handleSearchSelect = (place) => {
-    if (!mapRef.current) return;
+  const GOOGLE_MAPS_API_KEY = 'AIzaSyAcADrrPdRzJK7d_TC3GBajsKviqp0iVBI';
 
-    // Fly to selected place
-    mapRef.current.animateToRegion({
-      latitude: place.lat,
-      longitude: place.lon,
-      latitudeDelta: 1,
-      longitudeDelta: 1,
-    }, 1000);
+  const searchPlaces = useCallback(async (text) => {
+    if (!text || text.length < 2) {
+      setSearchResults([]);
+      return;
+    }
+    try {
+      const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(text)}&types=(cities)&language=${i18n.language || 'de'}&key=${GOOGLE_MAPS_API_KEY}`;
+      const res = await fetch(url);
+      const json = await res.json();
+      if (json.status === 'OK' && json.predictions) {
+        setSearchResults(json.predictions.slice(0, 5));
+      } else {
+        if (__DEV__) console.warn('Places API status:', json.status, json.error_message);
+        setSearchResults([]);
+      }
+    } catch (e) {
+      if (__DEV__) console.warn('Places search failed:', e);
+      setSearchResults([]);
+    }
+  }, [i18n.language]);
 
-    // Show place details after a short delay
-    setTimeout(() => {
-      handleMarkerPress(place);
-    }, 1200);
+  const handleSearchTextChange = useCallback((text) => {
+    setSearchQuery(text);
+    if (searchDebounceRef.current) clearTimeout(searchDebounceRef.current);
+    searchDebounceRef.current = setTimeout(() => searchPlaces(text), 300);
+  }, [searchPlaces]);
 
-    setShowSearch(false);
+  const handleSearchResultSelect = useCallback(async (item) => {
+    try {
+      const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${item.place_id}&fields=geometry&key=${GOOGLE_MAPS_API_KEY}`;
+      const res = await fetch(url);
+      const json = await res.json();
+      if (json.status === 'OK' && json.result?.geometry?.location) {
+        const { lat, lng } = json.result.geometry.location;
+        const newRegion = {
+          latitude: lat,
+          longitude: lng,
+          latitudeDelta: 0.5,
+          longitudeDelta: 0.5,
+        };
+        setLocation(newRegion);
+        mapRef.current?.animateToRegion(newRegion, 800);
+      }
+    } catch (e) {
+      if (__DEV__) console.warn('Place details fetch failed:', e);
+    }
+    setSearchQuery('');
+    setSearchResults([]);
+    setSearchFocused(false);
+    Keyboard.dismiss();
     playTickSound();
-  };
+  }, []);
+
+  const clearSearch = useCallback(() => {
+    setSearchQuery('');
+    setSearchResults([]);
+    setSearchFocused(false);
+    Keyboard.dismiss();
+  }, []);
 
   /**
    * Track map region changes (debounced) to enforce boundaries + zoom + bounds without blocking UI
@@ -1427,14 +1496,43 @@ const MapScreen = ({ navigation }) => {
         onClose={handleCloseOnboarding}
       />
       
-      {/* Search Bar - DISABLED (MapSearchBar component missing) */}
-      {/* {showSearch && (
-        <MapSearchBar 
-          onSelectPlace={handleSearchSelect}
-          onClose={() => setShowSearch(false)}
-        />
-      )} */}
-      
+      {/* Google Places Search Bar */}
+      <View style={styles.searchBarContainer}>
+        <View style={styles.searchInputRow}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Ort suchen..."
+            placeholderTextColor="#999"
+            value={searchQuery}
+            onChangeText={handleSearchTextChange}
+            onFocus={() => setSearchFocused(true)}
+            returnKeyType="search"
+            autoCorrect={false}
+          />
+          {searchQuery.length > 0 && (
+            <TouchableOpacity style={styles.searchClearButton} onPress={clearSearch}>
+              <Text style={styles.searchClearText}>✕</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+        {searchResults.length > 0 && (
+          <View style={styles.searchResultsList}>
+            {searchResults.map((item) => (
+              <TouchableOpacity
+                key={item.place_id}
+                style={styles.searchRow}
+                onPress={() => handleSearchResultSelect(item)}
+                activeOpacity={0.6}
+              >
+                <Text style={styles.searchDescription} numberOfLines={1}>
+                  {item.description}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        )}
+      </View>
+
       <MapView
         ref={mapRef}
         style={styles.map}
@@ -1555,7 +1653,25 @@ const MapScreen = ({ navigation }) => {
           </Marker>
         ))}
 
-        {/* Weather Warnings - DISABLED */}
+        {/* Favourite markers - always visible, independent of weather filters */}
+        {favouriteMarkersToShow.map((fav, index) => (
+          <Marker
+            key={`fav-${fav.lat}-${fav.lon}-${index}`}
+            coordinate={{ latitude: fav.lat, longitude: fav.lon }}
+            anchor={{ x: 0.5, y: 0.5 }}
+            style={{ overflow: 'visible', zIndex: 1000 }}
+            onPress={() => handleMarkerPress(fav)}
+          >
+            <View style={styles.markerFrameAndroid}>
+              <View style={styles.favouriteMarkerContainer}>
+                <Text style={styles.favouriteMarkerStar}>★</Text>
+                <Text style={styles.favouriteMarkerName} numberOfLines={1}>
+                  {fav.name?.replace(/^📍\s?/, '').replace(/^⊕\s?/, '') || ''}
+                </Text>
+              </View>
+            </View>
+          </Marker>
+        ))}
       </MapView>
 
       {/* Loading Overlay for destinations */}
@@ -1678,26 +1794,6 @@ const MapScreen = ({ navigation }) => {
       >
         <Text style={styles.myLocationIcon}>{isRecentering ? '…' : '📍'}</Text>
       </TouchableOpacity>
-
-      {/* Search Button - DISABLED (MapSearchBar component missing) */}
-      {/* {!showSearch && (
-        <TouchableOpacity
-          style={[styles.searchButton, { 
-            backgroundColor: theme.surface,
-            borderColor: theme.border,
-            shadowColor: theme.shadow
-          }]}
-          onPress={() => {
-            setShowSearch(true);
-            playTickSound();
-          }}
-          accessibilityLabel="Search destinations"
-          accessibilityRole="button"
-          accessibilityHint="Open search to find destinations by name"
-        >
-          <Text style={styles.searchIcon}>🔍</Text>
-        </TouchableOpacity>
-      )} */}
 
       {/* Reset Center Button (only show if centerPoint is set) */}
       {centerPoint && (
@@ -1918,9 +2014,76 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
-  controlsWrapper: {
+  searchBarContainer: {
     position: 'absolute',
     top: 10,
+    left: 10,
+    right: 80,
+    zIndex: 50,
+    elevation: 50,
+  },
+  searchInputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  searchInput: {
+    flex: 1,
+    height: 48,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 3,
+    borderColor: '#E0E0E0',
+    paddingHorizontal: 16,
+    paddingRight: 40,
+    fontSize: 16,
+    color: '#333',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
+  },
+  searchClearButton: {
+    position: 'absolute',
+    right: 12,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: '#E0E0E0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  searchClearText: {
+    fontSize: 14,
+    color: '#666',
+    fontWeight: '700',
+  },
+  searchResultsList: {
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    marginTop: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 50,
+    borderWidth: 1,
+    borderColor: '#E0E0E0',
+    overflow: 'hidden',
+  },
+  searchRow: {
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  searchDescription: {
+    fontSize: 14,
+    color: '#333',
+  },
+  controlsWrapper: {
+    position: 'absolute',
+    top: 66,
     left: 10,
     right: 80,
   },
@@ -2520,6 +2683,34 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: 'bold',
     textAlign: 'center',
+  },
+  favouriteMarkerContainer: {
+    backgroundColor: '#FFD700',
+    borderRadius: 20,
+    borderWidth: 3,
+    borderColor: '#DAA520',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    gap: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 5,
+    maxWidth: 120,
+  },
+  favouriteMarkerStar: {
+    fontSize: 18,
+    color: '#8B6914',
+  },
+  favouriteMarkerName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#5C4400',
+    flexShrink: 1,
   },
   emptyStateOverlay: {
     position: 'absolute',

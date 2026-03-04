@@ -1,11 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { View, Text, TouchableOpacity, ScrollView, Animated, StyleSheet } from 'react-native';
 
 const DATE_PRESETS = [
   { value: 0, line1: 'Heute', line2: null },
   { value: 1, line1: 'Morgen', line2: null },
   { value: 3, line1: '+3', line2: 'Tage' },
   { value: 5, line1: '+5', line2: 'Tage' },
+  { value: 7, line1: '+7', line2: 'Tage' },
+  { value: 10, line1: '+10', line2: 'Tage' },
 ];
 
 /**
@@ -29,10 +31,14 @@ export const getTargetDate = (offset) => {
   return date.toISOString().split('T')[0];
 };
 
+const SCROLL_THRESHOLD = 4;
+
 const DateFilter = ({ selectedDateOffset, onDateOffsetChange }) => {
-  // Local state for instant visual feedback; synced from prop when parent catches up
   const [localOffset, setLocalOffset] = useState(selectedDateOffset);
   const callbackRef = useRef(null);
+  const fadeLeft = useRef(new Animated.Value(0)).current;
+  const fadeRight = useRef(new Animated.Value(0)).current;
+  const scrollMetrics = useRef({ offset: 0, contentWidth: 0, containerWidth: 0 });
 
   useEffect(() => {
     setLocalOffset(selectedDateOffset);
@@ -44,9 +50,37 @@ const DateFilter = ({ selectedDateOffset, onDateOffsetChange }) => {
     };
   }, []);
 
+  const updateFades = useCallback(() => {
+    const { offset, contentWidth, containerWidth } = scrollMetrics.current;
+    const maxScroll = contentWidth - containerWidth;
+    if (maxScroll <= 0) {
+      Animated.timing(fadeLeft, { toValue: 0, duration: 150, useNativeDriver: true }).start();
+      Animated.timing(fadeRight, { toValue: 0, duration: 150, useNativeDriver: true }).start();
+      return;
+    }
+    const showLeft = offset > SCROLL_THRESHOLD ? 1 : 0;
+    const showRight = offset < maxScroll - SCROLL_THRESHOLD ? 1 : 0;
+    Animated.timing(fadeLeft, { toValue: showLeft, duration: 150, useNativeDriver: true }).start();
+    Animated.timing(fadeRight, { toValue: showRight, duration: 150, useNativeDriver: true }).start();
+  }, [fadeLeft, fadeRight]);
+
+  const handleScroll = useCallback((e) => {
+    scrollMetrics.current.offset = e.nativeEvent.contentOffset.x;
+    updateFades();
+  }, [updateFades]);
+
+  const handleContentSizeChange = useCallback((w) => {
+    scrollMetrics.current.contentWidth = w;
+    updateFades();
+  }, [updateFades]);
+
+  const handleLayout = useCallback((e) => {
+    scrollMetrics.current.containerWidth = e.nativeEvent.layout.width;
+    updateFades();
+  }, [updateFades]);
+
   const handlePress = (value) => {
     setLocalOffset(value);
-    // Defer the heavy parent state update so this component re-renders first
     if (callbackRef.current) cancelAnimationFrame(callbackRef.current);
     callbackRef.current = requestAnimationFrame(() => {
       onDateOffsetChange(value);
@@ -57,30 +91,53 @@ const DateFilter = ({ selectedDateOffset, onDateOffsetChange }) => {
     <View style={styles.container}>
       <Text style={styles.label}>
         Wetter für {formatDateLabel(localOffset)}
-        {localOffset > 1 && (
-          <Text style={styles.dateSubLabel}> ({getTargetDate(localOffset)})</Text>
-        )}
       </Text>
       <View style={styles.optionsWrapper}>
-        {DATE_PRESETS.map((preset) => {
-          const isSelected = localOffset === preset.value;
-          return (
-            <TouchableOpacity
-              key={preset.value}
-              style={[styles.option, isSelected && styles.optionSelected]}
-              onPress={() => handlePress(preset.value)}
-            >
-              <Text style={[styles.optionText, isSelected && styles.optionTextSelected]}>
-                {preset.line1}
-              </Text>
-              {preset.line2 && (
-                <Text style={[styles.optionTextSmall, isSelected && styles.optionTextSelected]}>
-                  {preset.line2}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal: 4, gap: 8 }}
+          onScroll={handleScroll}
+          onContentSizeChange={handleContentSizeChange}
+          onLayout={handleLayout}
+          scrollEventThrottle={16}
+        >
+          {DATE_PRESETS.map((preset) => {
+            const isSelected = localOffset === preset.value;
+            return (
+              <TouchableOpacity
+                key={preset.value}
+                style={[styles.option, isSelected && styles.optionSelected]}
+                onPress={() => handlePress(preset.value)}
+              >
+                <Text style={[styles.optionText, isSelected && styles.optionTextSelected]}>
+                  {preset.line1}
                 </Text>
-              )}
-            </TouchableOpacity>
-          );
-        })}
+                {preset.line2 && (
+                  <Text style={[styles.optionTextSmall, isSelected && styles.optionTextSelected]}>
+                    {preset.line2}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+
+        {/* Left fade indicator */}
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.fadeEdge, styles.fadeLeft, { opacity: fadeLeft }]}
+        >
+          <Text style={styles.fadeArrow}>‹</Text>
+        </Animated.View>
+
+        {/* Right fade indicator */}
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.fadeEdge, styles.fadeRight, { opacity: fadeRight }]}
+        >
+          <Text style={styles.fadeArrow}>›</Text>
+        </Animated.View>
       </View>
     </View>
   );
@@ -102,22 +159,21 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   optionsWrapper: {
-    flexDirection: 'row',
     borderRadius: 12,
     borderWidth: 2,
     borderColor: '#FF8C42',
     backgroundColor: 'white',
     padding: 4,
-    gap: 6,
   },
   option: {
-    flex: 1,
     paddingVertical: 8,
+    paddingHorizontal: 14,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'white',
     minHeight: 44,
+    minWidth: 56,
   },
   optionSelected: {
     backgroundColor: '#FF8C42',
@@ -135,6 +191,28 @@ const styles = StyleSheet.create({
   },
   optionTextSelected: {
     color: 'white',
+  },
+  fadeEdge: {
+    position: 'absolute',
+    top: 4,
+    bottom: 4,
+    width: 26,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 8,
+  },
+  fadeLeft: {
+    left: 4,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+  },
+  fadeRight: {
+    right: 4,
+    backgroundColor: 'rgba(255,255,255,0.85)',
+  },
+  fadeArrow: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#FF8C42',
   },
 });
 

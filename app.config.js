@@ -8,7 +8,7 @@ export default {
     splash: {
       image: './assets/sunnomad-logo.png',
       resizeMode: 'contain',
-      backgroundColor: '#1a2744',
+      backgroundColor: '#F5F0EB',
     },
     icon: './assets/icon.png',
     assetBundlePatterns: ['**/*'],

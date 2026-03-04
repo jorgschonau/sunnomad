@@ -79,7 +79,7 @@ const adaptDestination = (city) => {
   return {
     lat: normalizeCoordinate(coord.Lat ?? coord.lat),
     lon: normalizeCoordinate(coord.Lon ?? coord.lon),
-    name: city.name || 'Unknown destination',
+    name: city.name || '',
     condition: mappedCondition,
     temperature: Math.round(main.temp ?? 0),
     humidity: main.humidity ?? 0,
@@ -184,7 +184,7 @@ const buildForecastFromResponse = (data, lat, lon, name) => {
       tomorrow: buildDayForecast(dailyKeys[1]),
       day3: buildDayForecast(dailyKeys[2]),
     },
-    description: capitalize(currentWeather?.description || 'Weather data available'),
+    description: capitalize(currentWeather?.description || ''),
     fetchedAt: new Date().toISOString(),
   };
 };
@@ -242,7 +242,7 @@ const generateMockWeatherData = (lat, lon, index, desiredCondition = null) => {
         low: Math.round(temp - 6),
       },
     },
-    description: `${condition.charAt(0).toUpperCase() + condition.slice(1)} conditions`,
+    description: condition,
     fetchedAt: new Date().toISOString(),
   };
 };
@@ -576,7 +576,7 @@ const buildMockForecast = (lat, lon, name) => {
         low: Math.round(temp - 6),
       },
     },
-    description: `${condition.charAt(0).toUpperCase() + condition.slice(1)} conditions`,
+    description: condition,
     fetchedAt: new Date().toISOString(),
   };
 };
