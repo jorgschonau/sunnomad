@@ -625,7 +625,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
             shadowColor: theme.shadow,
             borderColor: theme.border
           }]}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>🏆 Auszeichnungen</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>🏆 {t('badges.awards')}</Text>
             {destination.badges
               .sort((a, b) => (BadgeMetadata[a]?.priority || 99) - (BadgeMetadata[b]?.priority || 99)) // Sort by priority
               .map((badge, index) => {
@@ -658,39 +658,39 @@ const DestinationDetailScreen = ({ route, navigation }) => {
               // Get summary text for collapsed state
               const getSummaryText = () => {
                 if (isWorthTheDrive && worthData) {
-                  return `${worthData.tempDelta > 0 ? '+' : ''}${worthData.tempDelta} °C | ${Math.round(destination.distance)}km`;
+                  return t('badges.worththedriveSummary', { tempDelta: `${worthData.tempDelta > 0 ? '+' : ''}${worthData.tempDelta}`, distance: Math.round(destination.distance) });
                 }
                 if (isWorthTheDriveBudget && worthBudgetData) {
-                  return `${worthBudgetData.tempDelta > 0 ? '+' : ''}${worthBudgetData.tempDelta} °C | ${Math.round(destination.distance)}km`;
+                  return t('badges.worththedrivebudgetSummary', { tempDelta: `${worthBudgetData.tempDelta > 0 ? '+' : ''}${worthBudgetData.tempDelta}`, distance: Math.round(destination.distance) });
                 }
                 if (isWarmAndDry && warmDryData) {
-                  return `${warmDryData.temp} °C | ${translateCondition(warmDryData.condition)}`;
+                  return t('badges.warmanddrySummary', { temp: warmDryData.temp, condition: translateCondition(warmDryData.condition) });
                 }
                 if (isBeachParadise && beachData) {
-                  return `${beachData.temp} °C | ${beachData.sunnyDays} Sonnentage`;
+                  return t('badges.beachparadiseSummary', { temp: beachData.temp, sunnyDays: beachData.sunnyDays });
                 }
                 if (isSunnyStreak && sunnyStreakData) {
-                  return `${sunnyStreakData.streakLength} Tage ☀️ | Ø ${sunnyStreakData.avgTemp} °C`;
+                  return t('badges.sunnystreakSummary', { days: sunnyStreakData.streakLength, avgTemp: sunnyStreakData.avgTemp });
                 }
                 if (isWeatherMiracle && miracleData) {
-                  return `+${Math.round(miracleData.tempGain)} °C bald ☀️`;
+                  return t('badges.weathermiracleSummary', { tempGain: Math.round(miracleData.tempGain) });
                 }
                 if (isHeatwave && heatwaveData) {
-                  return `${heatwaveData.days} Tage Hitze | Ø ${heatwaveData.avgTemp} °C`;
+                  return t('badges.heatwaveSummary', { days: heatwaveData.days, avgTemp: heatwaveData.avgTemp });
                 }
                 if (isSnowKing && snowKingData) {
-                  return `${snowKingData.snowDays} Tage ❄️ | ${snowKingData.totalSnowfall}cm`;
+                  return t('badges.snowkingSummary', { snowDays: snowKingData.snowDays, snowfall: snowKingData.totalSnowfall });
                 }
                 if (isRainyDays && rainyDaysData) {
-                  return `${rainyDaysData.rainyDays} Regentage`;
+                  return t('badges.rainydaysSummary', { rainyDays: rainyDaysData.rainyDays });
                 }
                 if (isWeatherCurse && weatherCurseData) {
-                  return `⚠️ ${weatherCurseData.tempLoss} °C Verlust bald!`;
+                  return t('badges.weathercurseSummary', { tempLoss: weatherCurseData.tempLoss });
                 }
                 if (isSpringAwakening && springAwakeningData) {
-                  return `+${springAwakeningData.tempDelta} °C | ${Math.round(springAwakeningData.distance)}km`;
+                  return t('badges.springawakeningSummary', { tempDelta: `+${springAwakeningData.tempDelta}`, distance: Math.round(springAwakeningData.distance) });
                 }
-                return 'Tap für Details';
+                return t('badges.tapForDetails');
               };
               
               // Animated Badge Card
@@ -781,7 +781,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                             {isWorthTheDrive && worthData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ Temperatur: {worthData.tempOrigin} °C → {worthData.tempDest} °C ({worthData.tempDelta > 0 ? '+' : ''}{worthData.tempDelta} °C)
+                            🌡️ {t('badges.temperature')}: {worthData.tempOrigin} °C → {worthData.tempDest} °C ({worthData.tempDelta > 0 ? '+' : ''}{worthData.tempDelta} °C)
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
                             💨 ETA: {formatETA(worthData.eta)} ({Math.round(destination.distance)}km)
@@ -793,7 +793,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isWorthTheDriveBudget && worthBudgetData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ Temperatur: {worthBudgetData.tempOrigin} °C → {worthBudgetData.tempDest} °C ({worthBudgetData.tempDelta > 0 ? '+' : ''}{worthBudgetData.tempDelta} °C)
+                            🌡️ {t('badges.temperature')}: {worthBudgetData.tempOrigin} °C → {worthBudgetData.tempDest} °C ({worthBudgetData.tempDelta > 0 ? '+' : ''}{worthBudgetData.tempDelta} °C)
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
                             💨 ETA: {formatETA(worthBudgetData.eta)} ({Math.round(destination.distance)}km)
@@ -805,10 +805,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isWarmAndDry && warmDryData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ Temperatur: {warmDryData.temp} °C (Rang #{warmDryData.tempRank})
+                            🌡️ {t('badges.temperature')}: {warmDryData.temp} °C ({t('badges.rank')} #{warmDryData.tempRank})
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            ☀️ Bedingungen: {translateCondition(warmDryData.condition)}
+                            ☀️ {t('badges.conditions')}: {translateCondition(warmDryData.condition)}
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
                             💨 {t(getWindDescriptionKey(warmDryData.windSpeed))}
@@ -820,10 +820,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isBeachParadise && beachData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ Temperatur: {beachData.temp} °C
+                            🌡️ {t('badges.temperature')}: {beachData.temp} °C
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            ☀️ {beachData.sunnyDays} sonnige Tage
+                            ☀️ {t('badges.sunnyDaysCount', { count: beachData.sunnyDays })}
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
                             💨 {t(getWindDescriptionKey(beachData.windSpeed))}
@@ -835,7 +835,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isSunnyStreak && sunnyStreakData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: metadata.color }]}>
-                            ☀️ {sunnyStreakData.streakLength} Tage Sonnenschein
+                            ☀️ {t('badges.sunshineStreak', { count: sunnyStreakData.streakLength })}
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
                             🌡️ Ø {sunnyStreakData.avgTemp} °C
@@ -847,7 +847,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isWeatherMiracle && miracleData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ Heute: {Math.round(miracleData.todayTemp)} °C → Bald: {Math.round(miracleData.futureTempMax)} °C (+{Math.round(miracleData.tempGain)} °C)
+                            {t('badges.miracleDetail', { todayTemp: Math.round(miracleData.todayTemp), futureTemp: Math.round(miracleData.futureTempMax), gain: Math.round(miracleData.tempGain) })}
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
                             ☀️ {translateCondition(miracleData.todayCondition)} → {translateCondition(miracleData.futureCondition)}
@@ -859,7 +859,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isHeatwave && heatwaveData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: metadata.color }]}>
-                            🔥 {heatwaveData.days} Tage Hitzewelle
+                            🔥 {t('badges.heatwaveDays', { count: heatwaveData.days })}
                           </Text>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
                             🌡️ Ø {heatwaveData.avgTemp} °C (Max {heatwaveData.maxTemp} °C)
@@ -871,10 +871,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isSnowKing && snowKingData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: metadata.color }]}>
-                            ❄️ {snowKingData.snowDays} Tage Schnee
+                            ❄️ {t('badges.snowDaysCount', { count: snowKingData.snowDays })}
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            📊 {snowKingData.totalSnowfall} cm Gesamtschneefall
+                            📊 {t('badges.totalSnowfall', { amount: snowKingData.totalSnowfall })}
                           </Text>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
                             🌡️ Ø {snowKingData.avgTemp} °C
@@ -886,10 +886,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isRainyDays && rainyDaysData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            🌧️ {rainyDaysData.rainyDays} Regentage
+                            🌧️ {t('badges.rainyDaysCount', { count: rainyDaysData.rainyDays })}
                           </Text>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            💧 Starkregen: {rainyDaysData.hasHeavyRain ? 'Ja' : 'Nein'}
+                            💧 {t('badges.heavyRain')}: {rainyDaysData.hasHeavyRain ? t('badges.heavyRainYes') : t('badges.heavyRainNo')}
                           </Text>
                         </View>
                       )}
@@ -898,10 +898,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isWeatherCurse && weatherCurseData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: '#4CAF50' }]}>
-                            ☀️ Heute: {weatherCurseData.todayTemp} °C, {translateCondition(weatherCurseData.todayCondition)}
+                            {t('badges.curseToday', { temp: weatherCurseData.todayTemp, condition: translateCondition(weatherCurseData.todayCondition) })}
                           </Text>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            ⚠️ Bald: {weatherCurseData.futureTempMin} °C, {translateCondition(weatherCurseData.futureCondition)} (-{weatherCurseData.tempLoss} °C!)
+                            {t('badges.curseSoon', { temp: weatherCurseData.futureTempMin, condition: translateCondition(weatherCurseData.futureCondition), loss: weatherCurseData.tempLoss })}
                           </Text>
                         </View>
                       )}
@@ -910,7 +910,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isSpringAwakening && springAwakeningData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ Temperatur: {springAwakeningData.tempOrigin} °C → {springAwakeningData.tempDest} °C (+{springAwakeningData.tempDelta} °C)
+                            🌡️ {t('badges.temperature')}: {springAwakeningData.tempOrigin} °C → {springAwakeningData.tempDest} °C (+{springAwakeningData.tempDelta} °C)
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
                             💨 ETA: {springAwakeningData.eta}h ({Math.round(springAwakeningData.distance)}km)
@@ -955,7 +955,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
             <View style={[styles.bestDayContainer, { backgroundColor: '#FFF8E1', borderColor: '#FFD54F' }]}>
               <Text style={styles.bestDayIcon}>⭐</Text>
               <View style={styles.bestDayContent}>
-                <Text style={styles.bestDayLabel}>Bester Tag</Text>
+                <Text style={styles.bestDayLabel}>{t('badges.bestDay')}</Text>
                 <Text style={styles.bestDayValue}>
                   {bestDay.label} ({Math.round(bestDay.temp)} °C, {translateCondition(bestDay.condition)})
                 </Text>

@@ -36,6 +36,15 @@ export default {
     web: {},
     plugins: [
       [
+        'expo-splash-screen',
+        {
+          image: './assets/sunnomad-logo.png',
+          imageWidth: 200,
+          resizeMode: 'contain',
+          backgroundColor: '#F5F0EB',
+        },
+      ],
+      [
         'expo-location',
         {
           locationAlwaysAndWhenInUsePermission:
