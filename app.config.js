@@ -6,9 +6,9 @@ export default {
     orientation: 'portrait',
     userInterfaceStyle: 'light',
     splash: {
-      image: './assets/splash.png',
-      resizeMode: 'cover',
-      backgroundColor: '#F5E6D3',
+      image: './assets/sunnomad-logo.png',
+      resizeMode: 'contain',
+      backgroundColor: '#1a2744',
     },
     icon: './assets/icon.png',
     assetBundlePatterns: ['**/*'],
