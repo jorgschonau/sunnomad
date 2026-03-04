@@ -32,6 +32,7 @@ export default {
     },
     web: {},
     plugins: [
+      'expo-font',
       [
         'expo-location',
         {

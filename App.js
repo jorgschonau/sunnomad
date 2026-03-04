@@ -1,10 +1,11 @@
 import 'react-native-gesture-handler';
 import React, { useEffect, useState, useCallback } from 'react';
-import { ActivityIndicator, View, Image, StyleSheet } from 'react-native';
+import { ActivityIndicator, View, Image, Text, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import * as SplashScreen from 'expo-splash-screen';
+import { useFonts, Yellowtail_400Regular } from '@expo-google-fonts/yellowtail';
 import MapScreen from './src/ui/screens/MapScreen';
 import SettingsScreen from './src/ui/screens/SettingsScreen';
 import CommunityScreen from './src/ui/screens/CommunityScreen';
@@ -142,20 +143,35 @@ function MainNavigator() {
 function RootNavigator() {
   const { isAuthenticated, loading } = useAuth();
   const { theme } = useTheme();
-  const [showSplash, setShowSplash] = useState(true);
+  const [splashPhase, setSplashPhase] = useState('intro');
+  const [fontsLoaded] = useFonts({ Yellowtail_400Regular });
 
   useEffect(() => {
-    const timer = setTimeout(() => setShowSplash(false), 2500);
-    return () => clearTimeout(timer);
+    const introTimer = setTimeout(() => setSplashPhase('main'), 3500);
+    const mainTimer = setTimeout(() => setSplashPhase('done'), 8000);
+    return () => { clearTimeout(introTimer); clearTimeout(mainTimer); };
   }, []);
 
   const onSplashLayout = useCallback(() => {
     SplashScreen.hideAsync();
   }, []);
 
-  if (showSplash || loading) {
+  if (splashPhase === 'intro') {
     return (
       <View style={splashStyles.container} onLayout={onSplashLayout}>
+        <Image
+          source={require('./assets/goldieapps.png')}
+          style={splashStyles.introLogo}
+          resizeMode="contain"
+        />
+        <Text style={[splashStyles.presentsText, fontsLoaded && { fontFamily: 'Yellowtail_400Regular' }]}>Goldie presents</Text>
+      </View>
+    );
+  }
+
+  if (splashPhase === 'main' || loading) {
+    return (
+      <View style={[splashStyles.container, { paddingBottom: 60 }]}>
         <Image
           source={require('./assets/sunnomad-logo.png')}
           style={splashStyles.logo}
@@ -178,6 +194,16 @@ const splashStyles = StyleSheet.create({
     backgroundColor: '#F5F0EB',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  introLogo: {
+    width: 160,
+    height: 160,
+  },
+  presentsText: {
+    marginTop: 14,
+    fontSize: 30,
+    color: '#8B6914',
+    letterSpacing: 1,
   },
   logo: {
     width: '85%',
