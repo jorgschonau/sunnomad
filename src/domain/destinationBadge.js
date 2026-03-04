@@ -1,3 +1,6 @@
+/** Only log in dev to avoid blocking UI when calculating many badges */
+const devLog = (...args) => { if (typeof __DEV__ !== 'undefined' && __DEV__) console.log(...args); };
+
 /**
  * Badge types that can be awarded to destinations
  * based on various criteria
@@ -354,7 +357,7 @@ export function calculateWorthTheDriveBudget(destination, origin, distanceKm, re
  * @param {Array} allDestinations - All destinations for comparison
  * @returns {Object} - { isWarm, isDry, isCalm, shouldAward, tempRank }
  */
-export function calculateWarmAndDry(destination, allDestinations) {
+export function calculateWarmAndDry(destination, tempRankMap) {
   const temp = destination.temperature ?? 0;
   const condition = destination.condition ?? 'unknown';
   const windSpeed = destination.windSpeed ?? 0;
@@ -402,26 +405,11 @@ export function calculateWarmAndDry(destination, allDestinations) {
   const isForecastDry = forecastRainyDays <= 1;
   const isDry = isTodayDry && isForecastDry;
   
-  // Rank by temperature among all destinations (for display purposes)
-  const sortedByTemp = [...allDestinations]
-    .filter(d => !d.isCurrentLocation)
-    .sort((a, b) => (b.temperature ?? 0) - (a.temperature ?? 0));
-  const tempRank = sortedByTemp.findIndex(d => 
-    d.lat === destination.lat && d.lon === destination.lon
-  ) + 1;
+  // O(1) rank lookup from pre-computed map (built once in applyBadgesToDestinations)
+  const tempRank = tempRankMap?.get(`${destination.lat},${destination.lon}`) ?? 999;
   
   // Award to destinations that meet the criteria (limited to top 10 warmest in usecases)
   const shouldAward = isWarm && isDry && isCalm && isPrecipitationLow;
-  
-  // Debug logging for places that almost qualify
-  if (isWarm && isCalm && !isDry) {
-    console.log(`❌ ${destination.name}: Warm & Calm but NOT dry! ` +
-      `Today: ${condition}, Forecast rainy days: ${forecastRainyDays}/3`);
-  }
-  if (isWarm && isCalm && isDry && !isPrecipitationLow) {
-    console.log(`❌ ${destination.name}: Warm & Calm & Dry but too much precipitation! ` +
-      `Precipitation: ${precipitation}mm (max: ${MAX_PRECIPITATION}mm)`);
-  }
   
   return {
     isWarm,
@@ -436,7 +424,7 @@ export function calculateWarmAndDry(destination, allDestinations) {
     precipitation,
     windSpeed,
     condition,
-    threshold: MIN_TEMP, // Include threshold for display purposes
+    threshold: MIN_TEMP,
   };
 }
 
@@ -900,12 +888,15 @@ export function calculateWeatherCurse(destination) {
   };
 }
 
+// Frühlingserwachen: only destinations north of ~48°N (DE, NL, DK, SE, NO, PL, etc.)
+const SPRING_AWAKENING_MIN_LAT = 48;
+
 /**
  * Calculate "Spring Awakening" eligibility
- * Perfect spring weather: 15-25 °C, sunny/partly cloudy, light wind
- * Only from March 1 - May 15
- * 
- * @param {Object} destination - Destination with weather data
+ * Strict: 18-23 °C, sunny only, wind ≤ 20 km/h, only north of ~48°N.
+ * Only from March 1 - May 15.
+ *
+ * @param {Object} destination - Destination with weather data (and .lat)
  * @param {Object} origin - Origin location with weather (for temp delta)
  * @param {number} distanceKm - Distance from origin
  * @returns {Object} - { shouldAward, tempDelta, tempDest, tempOrigin, distance, eta }
@@ -914,22 +905,23 @@ export function calculateSpringAwakening(destination, origin, distanceKm) {
   const tempDest = destination.temperature ?? 0;
   const tempOrigin = origin?.temperature ?? 0;
   const tempDelta = tempDest - tempOrigin;
-  
+  const lat = destination.lat ?? destination.latitude ?? 0;
+
   // Normal mode: Check date: March 1 - May 15
   const now = new Date();
   const month = now.getMonth(); // 0 = January, 2 = March, 4 = May
   const day = now.getDate();
-  
+
   // Spring period: March 1 (month 2, day 1) to May 15 (month 4, day 15)
   const isSpringPeriod = (
     (month === 2) || // March (entire month)
     (month === 3) || // April (entire month)
     (month === 4 && day <= 15) // May 1-15
   );
-  
+
   if (!isSpringPeriod) {
-    return { 
-      shouldAward: false, 
+    return {
+      shouldAward: false,
       reason: 'Not spring period (March 1 - May 15)',
       tempDelta: Math.round(tempDelta),
       tempDest: Math.round(tempDest),
@@ -939,27 +931,41 @@ export function calculateSpringAwakening(destination, origin, distanceKm) {
       isSpringPeriod: false
     };
   }
-  
+
+  // Only countries north of ~48°N (DE, NL, DK, SE, NO, PL, ...)
+  const isNorthEnough = lat >= SPRING_AWAKENING_MIN_LAT;
+  if (!isNorthEnough) {
+    return {
+      shouldAward: false,
+      reason: `South of ${SPRING_AWAKENING_MIN_LAT}°N (${Math.round(lat * 10) / 10}°N)`,
+      tempDelta: Math.round(tempDelta),
+      tempDest: Math.round(tempDest),
+      tempOrigin: Math.round(tempOrigin),
+      distance: Math.round(distanceKm),
+      eta: Math.round(calculateETA(distanceKm) * 10) / 10,
+      isSpringPeriod: true
+    };
+  }
+
   const condition = destination.condition ?? 'unknown';
   const windSpeed = destination.windSpeed ?? 0;
-  
-  // Temperature: 15-25 °C (pleasant to warm, not hot)
-  const MIN_TEMP = 15;
-  const MAX_TEMP = 25;
+
+  // Temperature: 18-23 °C (strict spring window)
+  const MIN_TEMP = 18;
+  const MAX_TEMP = 23;
   const isGoodTemp = tempDest >= MIN_TEMP && tempDest <= MAX_TEMP;
-  
-  // Condition: Sunny or Partly Cloudy
-  const SPRING_CONDITIONS = ['sunny', 'cloudy'];
-  const isGoodCondition = SPRING_CONDITIONS.includes(condition);
-  
-  // Wind: ≤25 km/h (light breeze)
-  const MAX_WIND = 25;
+
+  // Condition: Sunny only
+  const isGoodCondition = condition === 'sunny';
+
+  // Wind: ≤20 km/h
+  const MAX_WIND = 20;
   const isLightWind = windSpeed <= MAX_WIND;
-  
+
   // All criteria must be met
   const shouldAward = isGoodTemp && isGoodCondition && isLightWind;
   const eta = calculateETA(distanceKm);
-  
+
   return {
     shouldAward,
     tempDelta: Math.round(tempDelta),
@@ -968,8 +974,8 @@ export function calculateSpringAwakening(destination, origin, distanceKm) {
     distance: Math.round(distanceKm),
     eta: Math.round(eta * 10) / 10,
     isSpringPeriod: true,
-    reason: shouldAward 
-      ? 'Perfect spring weather!' 
+    reason: shouldAward
+      ? 'Perfect spring weather!'
       : `Temp: ${isGoodTemp ? '✓' : '✗'}, Condition: ${isGoodCondition ? '✓' : '✗'}, Wind: ${isLightWind ? '✓' : '✗'}`
   };
 }
@@ -983,7 +989,7 @@ export function calculateSpringAwakening(destination, origin, distanceKm) {
  * @param {Array} allDestinations - All destinations for comparison
  * @returns {Array<string>} - Array of badge types this destination earned
  */
-export function calculateBadges(destination, userLocation, distanceKm, allDestinations = [], reverseMode = 'warm') {
+export function calculateBadges(destination, userLocation, distanceKm, tempRankMap = new Map(), reverseMode = 'warm') {
   const badges = [];
 
   // === PRE-CHECK: Weather Curse & Deterioration ===
@@ -1002,7 +1008,7 @@ export function calculateBadges(destination, userLocation, distanceKm, allDestin
   const skipWorthTheDrive = reverseMode === 'cold' ? false : (hasWeatherCurse || isDeterioritating);
   
   if (skipWorthTheDrive) {
-    console.log(`⚠️ ${destination.name}: Skipping Worth the Drive - ` +
+    devLog(`⚠️ ${destination.name}: Skipping Worth the Drive - ` +
       `${hasWeatherCurse ? 'Weather Curse' : ''} ` +
       `${isDeterioritating ? `Deteriorating (${deteriorationResult.avgTempDrop} °C drop)` : ''}`
     );
@@ -1028,7 +1034,7 @@ export function calculateBadges(destination, userLocation, distanceKm, allDestin
   // Only award if not skipped due to weather issues
   if (worthResult.shouldAward && !skipWorthTheDrive) {
     badges.push(DestinationBadge.WORTH_THE_DRIVE);
-    console.log(
+    devLog(
       `🚗 ${destination.name}: Worth it! ` +
       `Temp: ${worthResult.tempOrigin} °C → ${worthResult.tempDest} °C (+${worthResult.tempDelta} °C), ` +
       `Weather: ${worthResult.weatherOrigin} → ${worthResult.weatherDest} (+${worthResult.delta} pts), ` +
@@ -1036,16 +1042,16 @@ export function calculateBadges(destination, userLocation, distanceKm, allDestin
       `ETA: ${worthResult.eta}h (${Math.round(distanceKm)}km)`
     );
   } else if (worthResult.shouldAward && skipWorthTheDrive) {
-    console.log(`🚗❌ ${destination.name}: Would qualify for Worth the Drive but skipped due to weather issues`);
+    devLog(`🚗❌ ${destination.name}: Would qualify for Worth the Drive but skipped due to weather issues`);
   }
 
   // 3. Warm & Dry
-  const warmDryResult = calculateWarmAndDry(destination, allDestinations);
+  const warmDryResult = calculateWarmAndDry(destination, tempRankMap);
   destination._warmAndDryData = warmDryResult;
   
   if (warmDryResult.shouldAward) {
     badges.push(DestinationBadge.WARM_AND_DRY);
-    console.log(
+    devLog(
       `☀️ ${destination.name}: Warm & Dry! ` +
       `Temp: ${warmDryResult.temp} °C (Rank: #${warmDryResult.tempRank}), ` +
       `Condition: ${warmDryResult.condition}, ` +
@@ -1059,7 +1065,7 @@ export function calculateBadges(destination, userLocation, distanceKm, allDestin
   
   if (beachResult.shouldAward) {
     badges.push(DestinationBadge.BEACH_PARADISE);
-    console.log(
+    devLog(
       `🌊 ${destination.name}: Beach Paradise! ` +
       `Temp: ${beachResult.temp} °C, ` +
       `Condition: ${beachResult.condition}, ` +
@@ -1073,7 +1079,7 @@ export function calculateBadges(destination, userLocation, distanceKm, allDestin
   
   if (sunnyStreakResult.shouldAward) {
     badges.push(DestinationBadge.SUNNY_STREAK);
-    console.log(
+    devLog(
       `☀️ ${destination.name}: Sunny Streak! ` +
       `${sunnyStreakResult.sunnyDays} days of sunshine`
     );
@@ -1085,7 +1091,7 @@ export function calculateBadges(destination, userLocation, distanceKm, allDestin
   
   if (miracleResult.shouldAward) {
     badges.push(DestinationBadge.WEATHER_MIRACLE);
-    console.log(
+    devLog(
       `🌈 ${destination.name}: Weather Miracle! ` +
       `TODAY: ${miracleResult.todayTemp} °C, ${miracleResult.todayCondition} → ` +
       `FUTURE: ${miracleResult.futureTempMax} °C, sunny (+${miracleResult.tempGain} °C gain!)`
@@ -1098,7 +1104,7 @@ export function calculateBadges(destination, userLocation, distanceKm, allDestin
   
   if (heatwaveResult.shouldAward) {
     badges.push(DestinationBadge.HEATWAVE);
-    console.log(
+    devLog(
       `🔥 ${destination.name}: Heatwave! ` +
       `${heatwaveResult.hotDays} days >30 °C, Max: ${heatwaveResult.maxTemp} °C`
     );
@@ -1110,7 +1116,7 @@ export function calculateBadges(destination, userLocation, distanceKm, allDestin
   
   if (snowKingResult.shouldAward) {
     badges.push(DestinationBadge.SNOW_KING);
-    console.log(
+    devLog(
       `⛄ ${destination.name}: Snow King! ` +
       `${snowKingResult.reason} ` +
       `(${snowKingResult.snowDays} snowy days, ${snowKingResult.snowfallAmount.toFixed(1)}mm/24h)`
@@ -1123,7 +1129,7 @@ export function calculateBadges(destination, userLocation, distanceKm, allDestin
   
   if (rainyDaysResult.shouldAward) {
     badges.push(DestinationBadge.RAINY_DAYS);
-    console.log(
+    devLog(
       `🌧️ ${destination.name}: Rainy Days! ` +
       `${rainyDaysResult.rainyDays} rainy days, ` +
       `Heavy rain: ${rainyDaysResult.hasHeavyRain ? 'Yes' : 'No'}`
@@ -1134,7 +1140,7 @@ export function calculateBadges(destination, userLocation, distanceKm, allDestin
   // Just award the badge if it qualifies
   if (weatherCurseResult.shouldAward) {
     badges.push(DestinationBadge.WEATHER_CURSE);
-    console.log(
+    devLog(
       `⚠️ ${destination.name}: Weather Curse! ` +
       `TODAY: ${weatherCurseResult.todayTemp} °C, ${weatherCurseResult.todayCondition} → ` +
       `FUTURE: ${weatherCurseResult.futureTempMin} °C, ${weatherCurseResult.futureCondition} (-${weatherCurseResult.tempLoss} °C loss!)`
@@ -1147,7 +1153,7 @@ export function calculateBadges(destination, userLocation, distanceKm, allDestin
   
   if (springAwakeningResult.shouldAward) {
     badges.push(DestinationBadge.SPRING_AWAKENING);
-    console.log(
+    devLog(
       `🐇 ${destination.name}: Spring Awakening! ` +
       `Temp: ${springAwakeningResult.tempOrigin} °C → ${springAwakeningResult.tempDest} °C (+${springAwakeningResult.tempDelta} °C), ` +
       `ETA: ${springAwakeningResult.eta}h (${springAwakeningResult.distance}km) - ${springAwakeningResult.reason}`

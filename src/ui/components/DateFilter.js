@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 
 const DATE_PRESETS = [
@@ -30,22 +30,45 @@ export const getTargetDate = (offset) => {
 };
 
 const DateFilter = ({ selectedDateOffset, onDateOffsetChange }) => {
+  // Local state for instant visual feedback; synced from prop when parent catches up
+  const [localOffset, setLocalOffset] = useState(selectedDateOffset);
+  const callbackRef = useRef(null);
+
+  useEffect(() => {
+    setLocalOffset(selectedDateOffset);
+  }, [selectedDateOffset]);
+
+  useEffect(() => {
+    return () => {
+      if (callbackRef.current) cancelAnimationFrame(callbackRef.current);
+    };
+  }, []);
+
+  const handlePress = (value) => {
+    setLocalOffset(value);
+    // Defer the heavy parent state update so this component re-renders first
+    if (callbackRef.current) cancelAnimationFrame(callbackRef.current);
+    callbackRef.current = requestAnimationFrame(() => {
+      onDateOffsetChange(value);
+    });
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.label}>
-        Wetter für {formatDateLabel(selectedDateOffset)}
-        {selectedDateOffset > 1 && (
-          <Text style={styles.dateSubLabel}> ({getTargetDate(selectedDateOffset)})</Text>
+        Wetter für {formatDateLabel(localOffset)}
+        {localOffset > 1 && (
+          <Text style={styles.dateSubLabel}> ({getTargetDate(localOffset)})</Text>
         )}
       </Text>
       <View style={styles.optionsWrapper}>
         {DATE_PRESETS.map((preset) => {
-          const isSelected = selectedDateOffset === preset.value;
+          const isSelected = localOffset === preset.value;
           return (
             <TouchableOpacity
               key={preset.value}
               style={[styles.option, isSelected && styles.optionSelected]}
-              onPress={() => onDateOffsetChange(preset.value)}
+              onPress={() => handlePress(preset.value)}
             >
               <Text style={[styles.optionText, isSelected && styles.optionTextSelected]}>
                 {preset.line1}

@@ -40,22 +40,26 @@ const getMinDistanceForBudget = (radius) => {
 export const applyBadgesToDestinations = (destinations, originLocation, originLat, originLon, reverseMode = 'warm', radiusKm = 500) => {
   if (!destinations || !originLocation) return;
   
-  console.log(`🏆 applyBadgesToDestinations: ${destinations.length} destinations, origin: ${originLocation.name} at ${originLocation.temperature} °C, radius: ${radiusKm}km`);
-  
+  if (typeof __DEV__ !== 'undefined' && __DEV__) {
+    console.log(`🏆 applyBadgesToDestinations: ${destinations.length} destinations, origin: ${originLocation.name}, radius: ${radiusKm}km`);
+  }
+  // Pre-compute temperature rank map once (O(n log n)) instead of per-destination (O(n²))
+  const sortedByTemp = destinations
+    .filter(d => !d.isCurrentLocation)
+    .sort((a, b) => (b.temperature ?? 0) - (a.temperature ?? 0));
+  const tempRankMap = new Map(
+    sortedByTemp.map((d, i) => [`${d.lat},${d.lon}`, i + 1])
+  );
+
   destinations.forEach(dest => {
-    // Skip current location (it shouldn't get badges)
     if (dest.isCurrentLocation) {
       dest.badges = [];
       return;
     }
-    
-    // Calculate distance if not already present
     if (!dest.distance) {
       dest.distance = getDistanceKm(originLat, originLon, dest.lat, dest.lon);
     }
-    
-    // Calculate and assign badges
-    dest.badges = calculateBadges(dest, originLocation, dest.distance, destinations, reverseMode);
+    dest.badges = calculateBadges(dest, originLocation, dest.distance, tempRankMap, reverseMode);
   });
   
   // Limit certain badges to prevent overcrowding

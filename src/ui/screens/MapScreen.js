@@ -8,12 +8,12 @@ import {
   Platform,
   Animated,
   Linking,
+  InteractionManager,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import MapView, { Marker, Circle, Polygon } from 'react-native-maps';
+import MapView, { Marker, Circle } from 'react-native-maps';
 import * as Location from 'expo-location';
-import Constants from 'expo-constants';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeProvider';
 import { getWeatherForRadius, getWeatherIcon, getWeatherColor, applyBadgesToDestinations } from '../../usecases/weatherUsecases';
@@ -53,36 +53,22 @@ const MAP_BOUNDS = {
   east: 50     // Östlich Ural + Puffer
 };
 
-const WORLD_OVERLAY_COORDINATES = [
-  { latitude: 85, longitude: -180 },
-  { latitude: 85, longitude: 180 },
-  { latitude: -85, longitude: 180 },
-  { latitude: -85, longitude: -180 },
-];
-
-const SUPPORTED_REGION_HOLE_COORDINATES = [
-  { latitude: 72, longitude: -170 },
-  { latitude: 72, longitude: 45 },
-  { latitude: 30, longitude: 45 },
-  { latitude: 30, longitude: -20 },
-  { latitude: 15, longitude: -120 },
-  { latitude: 15, longitude: -170 },
-];
-
 const MapScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
   const { theme } = useTheme();
-  const isExpoGo = Constants?.appOwnership === 'expo';
   const mapRef = useRef(null);
   const [location, setLocation] = useState(null);
   const [centerPoint, setCenterPoint] = useState(null); // Custom center point (if set)
   const [centerPointWeather, setCenterPointWeather] = useState(null); // Weather for custom center
   const [destinations, setDestinations] = useState([]);
+  const [displayDestinations, setDisplayDestinations] = useState([]); // Derived from destinations + date offset (async when offset !== 0)
   const [visibleMarkers, setVisibleMarkers] = useState([]); // Filtered markers based on zoom
   const [currentZoom, setCurrentZoom] = useState(5); // Track zoom level
   const [currentBounds, setCurrentBounds] = useState(null); // Track viewport bounds
-  const radiusDebounceTimer = useRef(null); // Debounce timer for radius changes
-  const boundsDebounceTimer = useRef(null); // Debounce timer for bounds changes
+  const radiusDebounceTimer = useRef(null);
+  const boundsDebounceTimer = useRef(null);
+  const regionChangeDebounceTimer = useRef(null);
+  const hasLoadedForLocationRef = useRef(false);
   const [radius, setRadius] = useState(500); // Default 500km
   const [selectedCondition, setSelectedCondition] = useState(null);
   const [selectedDateOffset, setSelectedDateOffset] = useState(0); // 0=today, 1=tomorrow, 3=+3days, 5=+5days
@@ -193,49 +179,39 @@ const MapScreen = ({ navigation }) => {
     setLoadingTipIndex(0);
     setLocationError(null);
 
-    // Check if first time user
-    const hasSeenOnboarding = await AsyncStorage.getItem('hasSeenOnboarding');
+    // Read all cached values in parallel instead of sequentially
+    const [hasSeenOnboarding, savedCenter, savedDateOffset, cachedDestinations] = await Promise.all([
+      AsyncStorage.getItem('hasSeenOnboarding').catch(() => null),
+      AsyncStorage.getItem('mapCenterPoint').catch(() => null),
+      AsyncStorage.getItem('selectedDateOffset').catch(() => null),
+      AsyncStorage.getItem('mapDestinationsCache').catch(() => null),
+    ]);
+
     if (!hasSeenOnboarding) {
       setShowOnboarding(true);
     }
 
-    // Load cached center point
-    try {
-      const savedCenter = await AsyncStorage.getItem('mapCenterPoint');
-      if (savedCenter) {
-        const center = JSON.parse(savedCenter);
-        setCenterPoint(center);
-      }
-    } catch (error) {
-      console.warn('Failed to load saved center point:', error);
+    if (savedCenter) {
+      try {
+        setCenterPoint(JSON.parse(savedCenter));
+      } catch (e) { /* corrupted JSON */ }
     }
 
-    // Load saved date offset
-    try {
-      const savedDateOffset = await AsyncStorage.getItem('selectedDateOffset');
-      if (savedDateOffset !== null) {
-        const offset = parseInt(savedDateOffset, 10);
-        if ([0, 1, 3, 5].includes(offset)) {
-          setSelectedDateOffset(offset);
-        }
+    if (savedDateOffset !== null) {
+      const offset = parseInt(savedDateOffset, 10);
+      if ([0, 1, 3, 5].includes(offset)) {
+        setSelectedDateOffset(offset);
       }
-    } catch (error) {
-      console.warn('Failed to load saved date offset:', error);
     }
 
-    // Load cached destinations and use them immediately so map shows something before refresh
-    try {
-      const cached = await AsyncStorage.getItem('mapDestinationsCache');
-      if (cached) {
-        const cacheData = JSON.parse(cached);
-        // Check if cache is less than 1 hour old
+    if (cachedDestinations) {
+      try {
+        const cacheData = JSON.parse(cachedDestinations);
         if (Date.now() - cacheData.timestamp < 3600000 && Array.isArray(cacheData.data) && cacheData.data.length > 0) {
           setCachedData(cacheData.data);
           setDestinations(cacheData.data);
         }
-      }
-    } catch (error) {
-      console.warn('Failed to load cache:', error);
+      } catch (e) { /* corrupted JSON */ }
     }
 
     // 1. Check if Location Services are enabled
@@ -350,186 +326,172 @@ const MapScreen = ({ navigation }) => {
   }, [selectedDateOffset]);
 
   useEffect(() => {
-    if (location) {
-      console.log('🔄 Trigger: location/radius/condition/centerPoint/centerPointWeather changed, reloading destinations...');
-      
-      // Debounce radius changes to prevent rapid re-fetching
-      if (radiusDebounceTimer.current) {
-        clearTimeout(radiusDebounceTimer.current);
-      }
-      
-      radiusDebounceTimer.current = setTimeout(() => {
-        loadDestinations();
-      }, 500); // Wait 500ms after last radius change
-      
-      // Adjust map region immediately (no debounce for visual feedback)
-      const effectiveCenter = centerPoint || location;
-      if (mapRef.current && effectiveCenter) {
-        mapRef.current.animateToRegion({
-          latitude: effectiveCenter.latitude,
-          longitude: effectiveCenter.longitude,
-          latitudeDelta: (radius * 2) / 111,
-          longitudeDelta: (radius * 2) / (111* Math.cos(effectiveCenter.latitude * Math.PI / 180)),
-        }, 600); // Langsamere Animation (600ms statt 500ms)
-      }
+    if (!location) return;
+    if (__DEV__) {
+      console.log('🔄 Trigger: location/radius/centerPoint changed, reloading destinations...');
     }
-    
-    // Cleanup timer on unmount
+    // First time we get location: load immediately (no debounce). Later: debounce radius/center changes.
+    if (!hasLoadedForLocationRef.current) {
+      hasLoadedForLocationRef.current = true;
+      loadDestinations();
+    } else {
+      if (radiusDebounceTimer.current) clearTimeout(radiusDebounceTimer.current);
+      radiusDebounceTimer.current = setTimeout(() => loadDestinations(), 500);
+    }
+    const effectiveCenter = centerPoint || location;
+    if (mapRef.current && effectiveCenter) {
+      mapRef.current.animateToRegion({
+        latitude: effectiveCenter.latitude,
+        longitude: effectiveCenter.longitude,
+        latitudeDelta: (radius * 2) / 111,
+        longitudeDelta: (radius * 2) / (111 * Math.cos(effectiveCenter.latitude * Math.PI / 180)),
+      }, 600);
+    }
     return () => {
-      if (radiusDebounceTimer.current) {
-        clearTimeout(radiusDebounceTimer.current);
+      if (radiusDebounceTimer.current) clearTimeout(radiusDebounceTimer.current);
+    };
+    // Intentionally omit centerPointWeather: reload only when center *position* changes to avoid double load after long-press
+  }, [location, radius, selectedCondition, centerPoint, reverseMode]);
+
+  useEffect(() => {
+    return () => {
+      if (regionChangeDebounceTimer.current) {
+        clearTimeout(regionChangeDebounceTimer.current);
       }
     };
-  }, [location, radius, selectedCondition, centerPoint, centerPointWeather, reverseMode]);
+  }, []);
 
   /**
-   * Derive display destinations from raw data + selected date offset.
-   * Shifts temperature/condition/forecast AND recalculates badges.
-   * NO network request needed when date changes!
+   * Sync displayDestinations from destinations + date offset.
+   * Offset 0: set immediately (no heavy work). Offset !== 0: run shift+badges after interactions so tap stays instant.
    */
-  const displayDestinations = useMemo(() => {
+  useEffect(() => {
+    if (!destinations.length) {
+      setDisplayDestinations([]);
+      return;
+    }
     if (selectedDateOffset === 0) {
-      // Even at offset 0, recalculate badges when reverseMode changes
-      const origin = destinations.find(d => d.isCenterPoint) || destinations.find(d => d.isCurrentLocation);
-      if (origin && destinations.length > 0) {
-        applyBadgesToDestinations(destinations, origin, origin.lat, origin.lon, reverseMode, radius);
-      }
-      return destinations;
+      setDisplayDestinations(destinations);
+      return;
     }
-
-    // Normalize forecast entries so all badge rules see consistent fields
-    const normalizeForecastEntry = (entry) => {
-      if (!entry) return null;
-      const temp = entry.temp ?? entry.temperature ?? entry.high ?? null;
-      const high = entry.high ?? entry.temp_max ?? entry.temperature ?? null;
-      const low = entry.low ?? entry.temp_min ?? (high != null ? high - 3 : null);
-      return {
-        ...entry,
-        condition: entry.condition,
-        temp,
-        high,
-        low,
-        precipitation: entry.precipitation ?? 0,
-        windSpeed: entry.windSpeed ?? 0,
-        humidity: entry.humidity ?? null,
-        description: entry.description ?? entry.weather_description ?? '',
-        sunshine_duration: entry.sunshine_duration ?? 0,
+    // Don't set state here – keeps button update instant. Map content updates when async work finishes.
+    const cancelled = { current: false };
+    const handle = InteractionManager.runAfterInteractions(() => {
+      if (cancelled.current) return;
+      const offset = selectedDateOffset;
+      const normalizeForecastEntry = (entry) => {
+        if (!entry) return null;
+        const temp = entry.temp ?? entry.temperature ?? entry.high ?? null;
+        const high = entry.high ?? entry.temp_max ?? entry.temperature ?? null;
+        const low = entry.low ?? entry.temp_min ?? (high != null ? high - 3 : null);
+        return {
+          ...entry,
+          condition: entry.condition,
+          temp,
+          high,
+          low,
+          precipitation: entry.precipitation ?? 0,
+          windSpeed: entry.windSpeed ?? 0,
+          humidity: entry.humidity ?? null,
+          description: entry.description ?? entry.weather_description ?? '',
+          sunshine_duration: entry.sunshine_duration ?? 0,
+        };
       };
-    };
-
-    // Helper: build a shifted keyed forecast object from an array starting at offset
-    const buildShiftedForecast = (arr, offset) => {
-      const keys = ['today', 'tomorrow', 'day2', 'day3'];
-      const result = {};
-      keys.forEach((key, i) => {
-        const entry = arr[offset + i];
-        if (entry) {
-          result[key] = normalizeForecastEntry(entry);
-        }
-      });
-      return result;
-    };
-
-    // Helper: shift keyed forecast objects ({today,tomorrow,day2,...}) for badge recalculation
-    const buildShiftedKeyedForecast = (forecastObj, offset) => {
-      const inputKeys = ['today', 'tomorrow', 'day2', 'day3', 'day4', 'day5'];
-      const outputKeys = ['today', 'tomorrow', 'day2', 'day3'];
-      const result = {};
-      outputKeys.forEach((outKey, i) => {
-        const sourceKey = inputKeys[offset + i];
-        if (sourceKey && forecastObj?.[sourceKey]) {
-          result[outKey] = normalizeForecastEntry(forecastObj[sourceKey]);
-        }
-      });
-      return result;
-    };
-    
-    const shifted = destinations.map(dest => {
-      // Open-Meteo sourced (currentLocation, centerPoint) — use forecastDays array
-      if (dest.forecastDays && dest.forecastDays[selectedDateOffset]) {
-        const dayData = dest.forecastDays[selectedDateOffset];
-        // Build forecast for badge calculation (include all fields badges need)
-        const shiftedForecast = {};
+      const buildShiftedForecast = (arr, off) => {
         const keys = ['today', 'tomorrow', 'day2', 'day3'];
+        const result = {};
         keys.forEach((key, i) => {
-          const fd = dest.forecastDays[selectedDateOffset + i];
-          if (fd) {
-            shiftedForecast[key] = normalizeForecastEntry({
-              condition: fd.condition,
-              temp: fd.temperature,
-              high: Math.round(fd.temp_max || fd.temperature),
-              low: Math.round(fd.temp_min || fd.temperature - 3),
-              precipitation: fd.precipitation,
-              windSpeed: fd.windSpeed,
-              humidity: fd.humidity,
-              description: fd.description ?? fd.weather_description ?? '',
-              sunshine_duration: fd.sunshine_duration || 0,
-            });
-          }
+          const entry = arr[off + i];
+          if (entry) result[key] = normalizeForecastEntry(entry);
         });
-        return {
-          ...dest,
-          temperature: dayData.temperature,
-          condition: dayData.condition,
-          temp_max: dayData.temp_max,
-          temp_min: dayData.temp_min,
-          windSpeed: dayData.windSpeed,
-          precipitation: dayData.precipitation,
-          humidity: dayData.humidity ?? dest.humidity,
-          description: dayData.description ?? dest.description,
-          weather_description: dayData.description ?? dest.weather_description,
-          sunshine_duration: dayData.sunshine_duration || 0,
-          forecast: shiftedForecast,
-        };
-      }
-
-      // Supabase sourced (regular destinations) — use forecastArray
-      if (dest.forecastArray && dest.forecastArray.length > selectedDateOffset) {
-        const dayData = dest.forecastArray[selectedDateOffset];
-        return {
-          ...dest,
-          temperature: dayData.high ?? dayData.temp ?? dest.temperature,
-          condition: dayData.condition ?? dest.condition,
-          windSpeed: dayData.windSpeed ?? dest.windSpeed,
-          precipitation: dayData.precipitation ?? dest.precipitation,
-          sunshine_duration: dayData.sunshine_duration ?? dest.sunshine_duration,
-          humidity: dayData.humidity ?? dest.humidity,
-          description: dayData.description ?? dest.description,               // RAINY_DAYS: heavy rain check
-          weather_description: dayData.description ?? dest.weather_description, // alias
-          forecast: buildShiftedForecast(dest.forecastArray, selectedDateOffset),
-        };
-      }
-
-      // Fallback: use keyed forecast
-      const FORECAST_KEY_MAP = { 1: 'tomorrow', 2: 'day2', 3: 'day3', 4: 'day4', 5: 'day5' };
-      const forecastKey = FORECAST_KEY_MAP[selectedDateOffset];
-      if (dest.forecast && forecastKey && dest.forecast[forecastKey]) {
-        const dayData = dest.forecast[forecastKey];
-        const shiftedForecast = buildShiftedKeyedForecast(dest.forecast, selectedDateOffset);
-        return {
-          ...dest,
-          temperature: dayData.high ?? dayData.temp ?? dest.temperature,
-          condition: dayData.condition ?? dest.condition,
-          windSpeed: dayData.windSpeed ?? dest.windSpeed,
-          precipitation: dayData.precipitation ?? dest.precipitation,
-          humidity: dayData.humidity ?? dest.humidity,
-          description: dayData.description ?? dest.description,
-          weather_description: dayData.description ?? dest.weather_description,
-          forecast: shiftedForecast,
-        };
-      }
-      return dest;
+        return result;
+      };
+      const buildShiftedKeyedForecast = (forecastObj, off) => {
+        const inputKeys = ['today', 'tomorrow', 'day2', 'day3', 'day4', 'day5'];
+        const outputKeys = ['today', 'tomorrow', 'day2', 'day3'];
+        const result = {};
+        outputKeys.forEach((outKey, i) => {
+          const sourceKey = inputKeys[off + i];
+          if (sourceKey && forecastObj?.[sourceKey]) result[outKey] = normalizeForecastEntry(forecastObj[sourceKey]);
+        });
+        return result;
+      };
+      const shifted = destinations.map(dest => {
+        if (dest.forecastDays && dest.forecastDays[offset]) {
+          const dayData = dest.forecastDays[offset];
+          const shiftedForecast = {};
+          ['today', 'tomorrow', 'day2', 'day3'].forEach((key, i) => {
+            const fd = dest.forecastDays[offset + i];
+            if (fd) {
+              shiftedForecast[key] = normalizeForecastEntry({
+                condition: fd.condition,
+                temp: fd.temperature,
+                high: Math.round(fd.temp_max || fd.temperature),
+                low: Math.round(fd.temp_min || fd.temperature - 3),
+                precipitation: fd.precipitation,
+                windSpeed: fd.windSpeed,
+                humidity: fd.humidity,
+                description: fd.description ?? fd.weather_description ?? '',
+                sunshine_duration: fd.sunshine_duration || 0,
+              });
+            }
+          });
+          return {
+            ...dest,
+            temperature: dayData.temperature,
+            condition: dayData.condition,
+            temp_max: dayData.temp_max,
+            temp_min: dayData.temp_min,
+            windSpeed: dayData.windSpeed,
+            precipitation: dayData.precipitation,
+            humidity: dayData.humidity ?? dest.humidity,
+            description: dayData.description ?? dest.description,
+            weather_description: dayData.description ?? dest.weather_description,
+            sunshine_duration: dayData.sunshine_duration || 0,
+            forecast: shiftedForecast,
+          };
+        }
+        if (dest.forecastArray && dest.forecastArray.length > offset) {
+          const dayData = dest.forecastArray[offset];
+          return {
+            ...dest,
+            temperature: dayData.high ?? dayData.temp ?? dest.temperature,
+            condition: dayData.condition ?? dest.condition,
+            windSpeed: dayData.windSpeed ?? dest.windSpeed,
+            precipitation: dayData.precipitation ?? dest.precipitation,
+            sunshine_duration: dayData.sunshine_duration ?? dest.sunshine_duration,
+            humidity: dayData.humidity ?? dest.humidity,
+            description: dayData.description ?? dest.description,
+            weather_description: dayData.description ?? dest.weather_description,
+            forecast: buildShiftedForecast(dest.forecastArray, offset),
+          };
+        }
+        const FORECAST_KEY_MAP = { 1: 'tomorrow', 2: 'day2', 3: 'day3', 4: 'day4', 5: 'day5' };
+        const forecastKey = FORECAST_KEY_MAP[offset];
+        if (dest.forecast && forecastKey && dest.forecast[forecastKey]) {
+          const dayData = dest.forecast[forecastKey];
+          return {
+            ...dest,
+            temperature: dayData.high ?? dayData.temp ?? dest.temperature,
+            condition: dayData.condition ?? dest.condition,
+            windSpeed: dayData.windSpeed ?? dest.windSpeed,
+            precipitation: dayData.precipitation ?? dest.precipitation,
+            humidity: dayData.humidity ?? dest.humidity,
+            description: dayData.description ?? dest.description,
+            weather_description: dayData.description ?? dest.weather_description,
+            forecast: buildShiftedKeyedForecast(dest.forecast, offset),
+          };
+        }
+        return dest;
+      });
+      const origin = shifted.find(d => d.isCenterPoint) || shifted.find(d => d.isCurrentLocation);
+      if (origin) applyBadgesToDestinations(shifted, origin, origin.lat, origin.lon, reverseMode, radius);
+      if (!cancelled.current) setDisplayDestinations(shifted);
     });
-
-    // Recalculate badges with the shifted weather data
-    // IMPORTANT: centerPoint first (matches loadDestinations: centerPointWeather || currentLocationWeather)
-    const origin = shifted.find(d => d.isCenterPoint) || shifted.find(d => d.isCurrentLocation);
-    if (origin) {
-      console.log(`🏆 Recalculating badges for date offset ${selectedDateOffset} (origin: ${origin.temperature} °C, mode: ${reverseMode})`);
-      applyBadgesToDestinations(shifted, origin, origin.lat, origin.lon, reverseMode, radius);
-    }
-
-    return shifted;
+    return () => {
+      cancelled.current = true;
+      if (handle?.cancel) handle.cancel();
+    };
   }, [destinations, selectedDateOffset, reverseMode, radius]);
 
   // Derive shifted center point weather from displayDestinations (respects date offset)
@@ -544,80 +506,48 @@ const MapScreen = ({ navigation }) => {
       const visible = getVisibleMarkers(displayDestinations, currentZoom, currentBounds);
       setVisibleMarkers(visible);
       
-      const specialCount = visible.filter(v => v.isCurrentLocation || v.isCenterPoint).length;
-      const badgeCount = visible.filter(v => getMapBadges(v.badges).length > 0 && !v.isCurrentLocation && !v.isCenterPoint).length;
-      const regularCount = visible.length - specialCount - badgeCount;
-      console.log(`🔍 Zoom ${currentZoom}: ${visible.length} markers (${specialCount} special + ${badgeCount} map badges + ${regularCount} regular) of ${displayDestinations.length}`);
+      if (__DEV__) {
+        const specialCount = visible.filter(v => v.isCurrentLocation || v.isCenterPoint).length;
+        console.log(`🔍 Zoom ${currentZoom}: ${visible.length} markers (${specialCount} special) of ${displayDestinations.length}`);
+      }
     }
   }, [displayDestinations, currentZoom]);
 
   const loadDestinations = async () => {
     if (!location) return;
-    
     setLoadingDestinations(true);
     try {
-      // Use centerPoint if set, otherwise use user location
       const effectiveCenter = centerPoint || location;
-      
-      console.log(`🔄 Loading destinations for center: ${effectiveCenter.latitude.toFixed(2)}, ${effectiveCenter.longitude.toFixed(2)}, radius: ${radius}km`);
-      
-      // Get origin temperature for badge calculation
       const originTemp = centerPointWeather?.temperature || null;
-      
-      const weatherData = await getWeatherForRadius(
-        effectiveCenter.latitude,
-        effectiveCenter.longitude,
-        radius,
-        selectedCondition,
-        originTemp, // Pass center point temp for accurate badge calculation!
-        i18n.language, // Pass locale for country name translation
-        reverseMode // Pass reverse mode for badge calculation (warm/cold)
-      );
-      
-      // ALWAYS add current location as first marker
-      const currentLocationWeather = await getCurrentLocationWeather();
-      
-      // Build destinations array: current location + center point (if set) + other destinations
+      if (__DEV__) {
+        console.log(`🔄 Loading destinations for center: ${effectiveCenter.latitude.toFixed(2)}, ${effectiveCenter.longitude.toFixed(2)}, radius: ${radius}km`);
+      }
+      // Run radius fetch and current-location weather in parallel (was sequential = double wait)
+      const [weatherData, currentLocationWeather] = await Promise.all([
+        getWeatherForRadius(
+          effectiveCenter.latitude,
+          effectiveCenter.longitude,
+          radius,
+          selectedCondition,
+          originTemp,
+          i18n.language,
+          reverseMode
+        ),
+        getCurrentLocationWeather(),
+      ]);
       let allDestinations = [];
-      
-      if (currentLocationWeather) {
-        allDestinations.push(currentLocationWeather);
-      }
-      
-      // Add center point weather if it exists
-      if (centerPointWeather) {
-        allDestinations.push(centerPointWeather);
-      }
-      
-      // Add all other destinations
+      if (currentLocationWeather) allDestinations.push(currentLocationWeather);
+      if (centerPointWeather) allDestinations.push(centerPointWeather);
       allDestinations = [...allDestinations, ...weatherData];
-      
-      // Calculate badges (AFTER current location is added!)
-      // Use centerPointWeather if available, otherwise use currentLocationWeather
-      const originWeather = centerPointWeather || currentLocationWeather;
-      const originLat = centerPoint ? centerPoint.latitude : location.latitude;
-      const originLon = centerPoint ? centerPoint.longitude : location.longitude;
-      
-      console.log(`🏆 Badge origin: ${centerPointWeather ? 'centerPoint' : 'currentLocation'} (${originWeather?.temperature} °C at ${originWeather?.name})`);
-      
-      // Badges are now calculated in weatherUsecases.js - no need to apply here!
-      
-      setDestinations(allDestinations);
-      
-      // DEBUG: Log all loaded places
-      console.log(`📋 ALL ${allDestinations.length} loaded places:`);
-      allDestinations.forEach((d, i) => {
-        console.log(`  ${i}: ${d.name} (${d.lat?.toFixed(2)}, ${d.lon?.toFixed(2)}) ${d.temperature} °C ${d.condition || ''} ${d.badges?.length ? '🏆' + d.badges.join(',') : ''}`);
-      });
-      // Cache destinations
-      try {
-        await AsyncStorage.setItem('mapDestinationsCache', JSON.stringify({
-          timestamp: Date.now(),
-          data: allDestinations,
-        }));
-      } catch (cacheError) {
-        console.warn('Failed to cache destinations:', cacheError);
+      if (__DEV__) {
+        console.log(`🏆 Badge origin: ${centerPointWeather ? 'centerPoint' : 'currentLocation'}, ${allDestinations.length} places`);
       }
+      setDestinations(allDestinations);
+      // Cache in background so we don't block UI
+      AsyncStorage.setItem('mapDestinationsCache', JSON.stringify({
+        timestamp: Date.now(),
+        data: allDestinations,
+      })).catch((cacheError) => console.warn('Failed to cache destinations:', cacheError));
       
       // Generate warnings from destinations (independent of filter) - DISABLED
       // const generatedWarnings = generateWeatherWarnings(
@@ -639,25 +569,7 @@ const MapScreen = ({ navigation }) => {
    */
   const getCurrentLocationWeather = async () => {
     if (!location) return null;
-    
     try {
-      // Get city name from reverse geocoding
-      let cityName = 'Dein Standort';
-      try {
-        const geocode = await Location.reverseGeocodeAsync({
-          latitude: location.latitude,
-          longitude: location.longitude,
-        });
-        
-        if (geocode && geocode[0]) {
-          // Prefer city, fall back to district, then region
-          cityName = geocode[0].city || geocode[0].district || geocode[0].region || 'Dein Standort';
-        }
-      } catch (geoError) {
-        console.warn('Reverse geocoding failed:', geoError);
-      }
-
-      // Use Open-Meteo API for current location - fetch 14 days for badge recalc at any date offset
       const params = new URLSearchParams({
         latitude: location.latitude,
         longitude: location.longitude,
@@ -669,20 +581,22 @@ const MapScreen = ({ navigation }) => {
           'wind_speed_10m_max',
           'sunshine_duration',
         ].join(','),
-        current: [
-          'relative_humidity_2m',
-          'cloud_cover',
-        ].join(','),
+        current: ['relative_humidity_2m', 'cloud_cover'].join(','),
         timezone: 'auto',
         forecast_days: 14,
       });
-
       const url = `https://customer-api.open-meteo.com/v1/forecast?${params}&apikey=8cJ4NUh7dYHZF1uv`;
-      const response = await fetch(url);
-
+      // Run geocode and Open-Meteo in parallel so we don't wait for city name before weather
+      const [geocodeResult, response] = await Promise.all([
+        Location.reverseGeocodeAsync({ latitude: location.latitude, longitude: location.longitude }).catch(() => null),
+        fetch(url),
+      ]);
       if (!response.ok) return null;
-
       const data = await response.json();
+      let cityName = 'Dein Standort';
+      if (geocodeResult && geocodeResult[0]) {
+        cityName = geocodeResult[0].city || geocodeResult[0].district || geocodeResult[0].region || 'Dein Standort';
+      }
       const daily = data.daily;
       const current = data.current || {};
 
@@ -991,7 +905,9 @@ const MapScreen = ({ navigation }) => {
     const GRID_SIZE_KM = 250;
     const gridSize = GRID_SIZE_KM / 111;
     
-    console.log('🎯 Filter Config:', { maxMarkers, minDistance: minDistance + 'km', zoom, radius: radius + 'km', candidates: candidates.length });
+    if (__DEV__) {
+      console.log('🎯 Filter Config:', { maxMarkers, zoom, candidates: candidates.length });
+    }
     
     // Separate special markers (always shown)
     const specialMarkers = candidates.filter(p => p.isCurrentLocation || p.isCenterPoint);
@@ -1041,9 +957,6 @@ const MapScreen = ({ navigation }) => {
     };
     
     const result = [...specialMarkers, ...budgetPlaces];
-    if (budgetPlaces.length > 0) {
-      console.log(`💰 ${budgetPlaces.length} Budget badge places always shown: ${budgetPlaces.map(p => p.name).join(', ')}`);
-    }
     let skipped = 0;
     let gridLimited = 0;
     
@@ -1360,66 +1273,57 @@ const MapScreen = ({ navigation }) => {
   };
 
   /**
-   * Track map region changes to enforce boundaries + calculate zoom + bounds
+   * Track map region changes (debounced) to enforce boundaries + zoom + bounds without blocking UI
    */
-  const handleRegionChangeComplete = (region) => {
-    // Calculate zoom from latitudeDelta
-    // Zoom ~= log2(360 / latitudeDelta)
-    const zoom = Math.round(Math.log2(360 / region.latitudeDelta));
-    const newZoom = Math.max(1, Math.min(20, zoom));
-    
-    if (newZoom !== currentZoom) {
-      const oldMax = getMaxMarkers(currentZoom, radius);
-      const newMax = getMaxMarkers(newZoom, radius);
-      const oldDist = getMinDistanceForZoom(currentZoom);
-      const newDist = getMinDistanceForZoom(newZoom);
-      console.log(`📏 ZOOM CHANGED: ${currentZoom} → ${newZoom} | Max: ${oldMax} → ${newMax} | MinDist: ${oldDist}km → ${newDist}km`);
-      setCurrentZoom(newZoom);
+  const handleRegionChangeComplete = useCallback((region) => {
+    if (regionChangeDebounceTimer.current) {
+      clearTimeout(regionChangeDebounceTimer.current);
     }
-    
-    // Calculate viewport bounds
-    const { latitude, longitude, latitudeDelta, longitudeDelta } = region;
-    const bounds = {
-      north: latitude + latitudeDelta / 2,
-      south: latitude - latitudeDelta / 2,
-      east: longitude + longitudeDelta / 2,
-      west: longitude - longitudeDelta / 2,
-    };
-    setCurrentBounds(bounds);
-    
-    // Enforce map boundaries
-    let needsAdjustment = false;
-    let newLatitude = latitude;
-    let newLongitude = longitude;
-    
-    if (latitude > MAP_BOUNDS.north) {
-      newLatitude = MAP_BOUNDS.north;
-      needsAdjustment = true;
-    } else if (latitude < MAP_BOUNDS.south) {
-      newLatitude = MAP_BOUNDS.south;
-      needsAdjustment = true;
-    }
-    
-    if (longitude > MAP_BOUNDS.east) {
-      newLongitude = MAP_BOUNDS.east;
-      needsAdjustment = true;
-    } else if (longitude < MAP_BOUNDS.west) {
-      newLongitude = MAP_BOUNDS.west;
-      needsAdjustment = true;
-    }
-    
-    // If out of bounds, animate back to valid region
-    if (needsAdjustment && mapRef.current) {
-      mapRef.current.animateToRegion({
-        latitude: newLatitude,
-        longitude: newLongitude,
-        latitudeDelta: region.latitudeDelta,
-        longitudeDelta: region.longitudeDelta,
-      }, 300);
-    }
-    
-    setCurrentRegion(region);
-  };
+    regionChangeDebounceTimer.current = setTimeout(() => {
+      regionChangeDebounceTimer.current = null;
+      const zoom = Math.round(Math.log2(360 / region.latitudeDelta));
+      const newZoom = Math.max(1, Math.min(20, zoom));
+      if (newZoom !== currentZoom) {
+        if (__DEV__) {
+          console.log(`📏 ZOOM: ${currentZoom} → ${newZoom}`);
+        }
+        setCurrentZoom(newZoom);
+      }
+      const { latitude, longitude, latitudeDelta, longitudeDelta } = region;
+      setCurrentBounds({
+        north: latitude + latitudeDelta / 2,
+        south: latitude - latitudeDelta / 2,
+        east: longitude + longitudeDelta / 2,
+        west: longitude - longitudeDelta / 2,
+      });
+      let newLatitude = latitude;
+      let newLongitude = longitude;
+      let needsAdjustment = false;
+      if (latitude > MAP_BOUNDS.north) {
+        newLatitude = MAP_BOUNDS.north;
+        needsAdjustment = true;
+      } else if (latitude < MAP_BOUNDS.south) {
+        newLatitude = MAP_BOUNDS.south;
+        needsAdjustment = true;
+      }
+      if (longitude > MAP_BOUNDS.east) {
+        newLongitude = MAP_BOUNDS.east;
+        needsAdjustment = true;
+      } else if (longitude < MAP_BOUNDS.west) {
+        newLongitude = MAP_BOUNDS.west;
+        needsAdjustment = true;
+      }
+      if (needsAdjustment && mapRef.current) {
+        mapRef.current.animateToRegion({
+          latitude: newLatitude,
+          longitude: newLongitude,
+          latitudeDelta: region.latitudeDelta,
+          longitudeDelta: region.longitudeDelta,
+        }, 300);
+      }
+      setCurrentRegion(region);
+    }, 200);
+  }, [currentZoom]);
 
   if (loading && !location) {
     return (
@@ -1518,11 +1422,6 @@ const MapScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-      {isExpoGo && (
-        <Text style={{ fontSize: 40, color: 'red', zIndex: 999, position: 'absolute', top: 16, alignSelf: 'center' }}>
-          LOKALE VERSION
-        </Text>
-      )}
       <OnboardingOverlay 
         visible={showOnboarding} 
         onClose={handleCloseOnboarding}
@@ -1557,16 +1456,6 @@ const MapScreen = ({ navigation }) => {
         onLongPress={handleMapLongPress}
         onRegionChangeComplete={handleRegionChangeComplete}
       >
-        {/* Gray overlay for unsupported world regions */}
-        <Polygon
-          coordinates={WORLD_OVERLAY_COORDINATES}
-          holes={[SUPPORTED_REGION_HOLE_COORDINATES]}
-          fillColor="rgba(100, 100, 100, 0.35)"
-          strokeWidth={0}
-          tappable={false}
-          zIndex={-1}
-        />
-
         {/* Radius Circle - centered on centerPoint or location */}
         {(centerPoint || location) && (
           <Circle
@@ -1618,6 +1507,8 @@ const MapScreen = ({ navigation }) => {
         {/* Greedy-filtered markers based on zoom + score */}
         {visibleMarkers
           .filter(dest => {
+            // Always show current location and center point
+            if (dest.isCurrentLocation || dest.isCenterPoint) return true;
             if (!showOnlyBadges) return true;
             // When trophy filter active, only show badges that count for trophy
             const trophyBadges = getMapBadges(dest.badges).filter(b => !BadgeMetadata[b]?.excludeFromTrophy);
