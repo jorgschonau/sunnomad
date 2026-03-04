@@ -6,8 +6,6 @@ export default {
     orientation: 'portrait',
     userInterfaceStyle: 'light',
     splash: {
-      image: './assets/sunnomad-logo.png',
-      resizeMode: 'contain',
       backgroundColor: '#F5F0EB',
     },
     icon: './assets/icon.png',
@@ -38,9 +36,6 @@ export default {
       [
         'expo-splash-screen',
         {
-          image: './assets/sunnomad-logo.png',
-          imageWidth: 200,
-          resizeMode: 'contain',
           backgroundColor: '#F5F0EB',
         },
       ],
