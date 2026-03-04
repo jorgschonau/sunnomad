@@ -134,7 +134,7 @@ export default function RegisterScreen({ navigation }) {
         {/* Logo (same as LoginScreen) */}
         <View style={styles.header}>
           <Image
-            source={require('../../../assets/logo-banner.png')}
+            source={require('../../../assets/sunnomad-logo.png')}
             style={styles.logoBanner}
             resizeMode="contain"
           />

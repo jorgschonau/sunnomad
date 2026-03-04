@@ -1,11 +1,10 @@
 import 'react-native-gesture-handler';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { ActivityIndicator, View, Image, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import * as SplashScreen from 'expo-splash-screen';
-
 import MapScreen from './src/ui/screens/MapScreen';
 import SettingsScreen from './src/ui/screens/SettingsScreen';
 import CommunityScreen from './src/ui/screens/CommunityScreen';
@@ -25,7 +24,6 @@ import { useTranslation } from 'react-i18next';
 const AuthStack = createStackNavigator();
 const AppStack = createStackNavigator();
 
-// Keep the splash screen visible while we fetch resources
 SplashScreen.preventAutoHideAsync();
 
 function AuthNavigator() {
@@ -147,14 +145,17 @@ function RootNavigator() {
   const [showSplash, setShowSplash] = useState(true);
 
   useEffect(() => {
-    SplashScreen.hideAsync();
     const timer = setTimeout(() => setShowSplash(false), 2500);
     return () => clearTimeout(timer);
   }, []);
 
+  const onSplashLayout = useCallback(() => {
+    SplashScreen.hideAsync();
+  }, []);
+
   if (showSplash || loading) {
     return (
-      <View style={splashStyles.container}>
+      <View style={splashStyles.container} onLayout={onSplashLayout}>
         <Image
           source={require('./assets/sunnomad-logo.png')}
           style={splashStyles.logo}

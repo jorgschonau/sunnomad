@@ -131,7 +131,7 @@ export default function ForgotPasswordScreen({ navigation }) {
         {/* Logo */}
         <View style={styles.header}>
           <Image
-            source={require('../../../assets/logo-banner.png')}
+            source={require('../../../assets/sunnomad-logo.png')}
             style={styles.logoBanner}
             resizeMode="contain"
           />

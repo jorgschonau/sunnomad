@@ -8,7 +8,6 @@ export default {
     splash: {
       backgroundColor: '#F5F0EB',
     },
-    icon: './assets/icon.png',
     assetBundlePatterns: ['**/*'],
     ios: {
       supportsTablet: true,
@@ -20,7 +19,7 @@ export default {
     android: {
       userInterfaceStyle: 'light',
       adaptiveIcon: {
-        foregroundImage: './assets/adaptive-icon.png',
+        foregroundImage: './assets/sunnomad-logo.png',
         backgroundColor: '#FF8C42',
       },
       package: 'com.sunnomad.app',
@@ -33,12 +32,6 @@ export default {
     },
     web: {},
     plugins: [
-      [
-        'expo-splash-screen',
-        {
-          backgroundColor: '#F5F0EB',
-        },
-      ],
       [
         'expo-location',
         {
