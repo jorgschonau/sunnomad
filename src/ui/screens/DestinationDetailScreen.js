@@ -153,8 +153,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         try {
           const { place, forecast: forecastData, error: fetchError } = await getPlaceDetail(resolvedId, i18n.language);
           
-          if (fetchError || !place) {
-            throw new Error(fetchError || 'Failed to fetch place detail');
+          if (fetchError || !place || !forecastData || forecastData.length < 2) {
+            throw new Error(fetchError || 'Insufficient forecast data from Supabase');
           }
           
           // Build 5 forecast slots starting from selectedDateOffset
@@ -689,7 +689,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                   return t('badges.weathercurseSummary', { tempLoss: weatherCurseData.tempLoss });
                 }
                 if (isSpringAwakening && springAwakeningData) {
-                  return t('badges.springawakeningSummary', { tempDelta: `+${springAwakeningData.tempDelta}`, distance: Math.round(springAwakeningData.distance) });
+                  return t('badges.springawakeningSummary', { tempDelta: springAwakeningData.tempDelta > 0 ? `+${springAwakeningData.tempDelta}` : `${springAwakeningData.tempDelta}`, distance: Math.round(springAwakeningData.distance) });
                 }
                 return t('badges.tapForDetails');
               };
@@ -785,7 +785,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                             🌡️ {t('badges.temperature')}: {worthData.tempOrigin} °C → {worthData.tempDest} °C ({worthData.tempDelta > 0 ? '+' : ''}{worthData.tempDelta} °C)
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            💨 ETA: {formatETA(worthData.eta)} ({Math.round(destination.distance)}km)
+                            💨 ETA: {formatETA(worthData.eta)} ({Math.round(destination.distance)} km)
                           </Text>
                         </View>
                       )}
@@ -797,7 +797,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                             🌡️ {t('badges.temperature')}: {worthBudgetData.tempOrigin} °C → {worthBudgetData.tempDest} °C ({worthBudgetData.tempDelta > 0 ? '+' : ''}{worthBudgetData.tempDelta} °C)
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            💨 ETA: {formatETA(worthBudgetData.eta)} ({Math.round(destination.distance)}km)
+                            💨 ETA: {formatETA(worthBudgetData.eta)} ({Math.round(destination.distance)} km)
                           </Text>
                         </View>
                       )}
@@ -911,10 +911,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isSpringAwakening && springAwakeningData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ {t('badges.temperature')}: {springAwakeningData.tempOrigin} °C → {springAwakeningData.tempDest} °C (+{springAwakeningData.tempDelta} °C)
+                            🌡️ {t('badges.temperature')}: {springAwakeningData.tempOrigin} °C → {springAwakeningData.tempDest} °C ({springAwakeningData.tempDelta > 0 ? '+' : ''}{springAwakeningData.tempDelta} °C)
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            💨 ETA: {springAwakeningData.eta}h ({Math.round(springAwakeningData.distance)}km)
+                            💨 ETA: {springAwakeningData.eta}h ({Math.round(springAwakeningData.distance)} km)
                           </Text>
                         </View>
                       )}

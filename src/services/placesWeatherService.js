@@ -364,17 +364,19 @@ export const getPlaceDetail = async (placeId, locale = 'en') => {
       return { place: null, forecast: [], error: 'Place not found' };
     }
     
-    // Get today's weather (separate query)
+    // Get weather + forecast in a single query (up to 10 days from today)
     const today = new Date().toISOString().split('T')[0];
-    const { data: weatherData } = await supabase
+    const { data: allWeather, error: weatherError } = await supabase
       .from('weather_forecast')
-      .select('forecast_date, temp_min, temp_max, weather_main, weather_description, weather_icon, wind_speed, precipitation_sum, precipitation_probability, sunrise, sunset, rain_volume, snow_volume, humidity')
+      .select('forecast_date, temp_min, temp_max, weather_main, weather_description, weather_icon, wind_speed, precipitation_sum, rain_volume, rain_probability, snow_volume, humidity')
       .eq('place_id', placeId)
       .gte('forecast_date', today)
       .order('forecast_date', { ascending: true })
-      .limit(1);
-    
-    const weather = weatherData?.[0] || {};
+      .limit(10);
+
+    if (weatherError) console.warn('Weather fetch failed:', weatherError);
+
+    const weather = allWeather?.[0] || {};
     const flatPlace = {
       id: place.id,
       name: place.name,
@@ -385,33 +387,19 @@ export const getPlaceDetail = async (placeId, locale = 'en') => {
       place_category: place.place_type,
       population: place.population,
       attractiveness_score: place.attractiveness_score,
-      temperature: weather.temp_max != null ? Math.round(weather.temp_max) : null, // Always use MAX temp!
+      temperature: weather.temp_max != null ? Math.round(weather.temp_max) : null,
       temp_min: weather.temp_min,
       temp_max: weather.temp_max,
       weather_main: weather.weather_main,
       weather_description: weather.weather_description,
       weather_icon: weather.weather_icon,
       wind_speed: weather.wind_speed,
-      humidity: weather.humidity, // Luftfeuchtigkeit!
+      humidity: weather.humidity,
       rain_1h: weather.rain_volume,
       snow_1h: weather.snow_volume,
     };
 
-    // Max offset 5 + 5 display days = 10
-    const { data: forecast, error: forecastError } = await supabase
-      .from('weather_forecast')
-      .select(`
-        forecast_date, temp_min, temp_max,
-        precipitation_sum, rain_volume, precipitation_probability, rain_probability,
-        wind_speed,
-        weather_main, weather_icon, weather_description
-      `)
-      .eq('place_id', placeId)
-      .gte('forecast_date', today)
-      .order('forecast_date', { ascending: true })
-      .limit(10);
-
-    if (forecastError) console.warn('Forecast fetch failed:', forecastError);
+    const forecast = allWeather || [];
 
     return {
       place: adaptPlaceToDestination(flatPlace, locale),

@@ -1515,7 +1515,7 @@ const MapScreen = ({ navigation }) => {
         <View style={styles.searchInputRow}>
           <TextInput
             style={styles.searchInput}
-            placeholder="Ort suchen..."
+            placeholder={t('map.searchPlaceholder')}
             placeholderTextColor="#999"
             value={searchQuery}
             onChangeText={handleSearchTextChange}

@@ -22,7 +22,8 @@
     "openSettings": "Einstellungen öffnen",
     "usingDefaultLocation": "Standardstandort wird verwendet (Frankfurt). Du kannst den Mittelpunkt per Long-Press ändern.",
     "error": "Fehler",
-    "failedToLoadWeather": "Wetterdaten konnten nicht geladen werden. Bitte prüfe deine Internetverbindung und versuche es erneut."
+    "failedToLoadWeather": "Wetterdaten konnten nicht geladen werden. Bitte prüfe deine Internetverbindung und versuche es erneut.",
+    "searchPlaceholder": "Ort suchen..."
   },
   "radius": {
     "title": "Radius",
@@ -208,8 +209,8 @@
     "weathercurseDescription": "Heute gut, aber wird bald schlecht & kälter (-5 °C)",
     "springawakening": "Frühlingserwachen",
     "springawakeningDescription": "Frühling pur: mild, sonnig & perfekt zum Entdecken",
-    "worththedriveSummary": "{{tempDelta}} °C | {{distance}}km",
-    "worththedrivebudgetSummary": "{{tempDelta}} °C | {{distance}}km",
+    "worththedriveSummary": "{{tempDelta}} °C | {{distance}} km",
+    "worththedrivebudgetSummary": "{{tempDelta}} °C | {{distance}} km",
     "warmanddrySummary": "{{temp}} °C | {{condition}}",
     "beachparadiseSummary": "{{temp}} °C | {{sunnyDays}} Sonnentage",
     "sunnystreakSummary": "{{days}} Tage ☀️ | Ø {{avgTemp}} °C",
@@ -218,7 +219,7 @@
     "snowkingSummary": "{{snowDays}} Tage ❄️ | {{snowfall}}cm",
     "rainydaysSummary": "{{rainyDays}} Regentage",
     "weathercurseSummary": "⚠️ {{tempLoss}} °C Verlust bald!",
-    "springawakeningSummary": "+{{tempDelta}} °C | {{distance}}km",
+    "springawakeningSummary": "{{tempDelta}} °C | {{distance}} km",
     "tapForDetails": "Tap für Details",
     "awards": "Auszeichnungen",
     "temperature": "Temperatur",

@@ -22,7 +22,8 @@
     "openSettings": "Ouvrir les Réglages",
     "usingDefaultLocation": "Position par défaut utilisée (Francfort). Appui long pour changer le centre.",
     "error": "Erreur",
-    "failedToLoadWeather": "Échec du chargement des données météo. Veuillez vérifier votre connexion Internet et réessayer."
+    "failedToLoadWeather": "Échec du chargement des données météo. Veuillez vérifier votre connexion Internet et réessayer.",
+    "searchPlaceholder": "Rechercher un lieu..."
   },
   "radius": {
     "title": "Rayon",
@@ -208,8 +209,8 @@
     "weathercurseDescription": "Bon maintenant mais va devenir mauvais & plus froid (-5 °C)",
     "springawakening": "Réveil du Printemps",
     "springawakeningDescription": "Printemps pur: doux, ensoleillé & parfait pour découvrir",
-    "worththedriveSummary": "{{tempDelta}} °C | {{distance}}km",
-    "worththedrivebudgetSummary": "{{tempDelta}} °C | {{distance}}km",
+    "worththedriveSummary": "{{tempDelta}} °C | {{distance}} km",
+    "worththedrivebudgetSummary": "{{tempDelta}} °C | {{distance}} km",
     "warmanddrySummary": "{{temp}} °C | {{condition}}",
     "beachparadiseSummary": "{{temp}} °C | {{sunnyDays}} jours ensoleillés",
     "sunnystreakSummary": "{{days}} jours ☀️ | Ø {{avgTemp}} °C",
@@ -218,7 +219,7 @@
     "snowkingSummary": "{{snowDays}} jours ❄️ | {{snowfall}}cm",
     "rainydaysSummary": "{{rainyDays}} jours de pluie",
     "weathercurseSummary": "⚠️ {{tempLoss}} °C de perte bientôt!",
-    "springawakeningSummary": "+{{tempDelta}} °C | {{distance}}km",
+    "springawakeningSummary": "{{tempDelta}} °C | {{distance}} km",
     "tapForDetails": "Appuyez pour détails",
     "awards": "Distinctions",
     "temperature": "Température",

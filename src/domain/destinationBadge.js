@@ -84,6 +84,7 @@ export const BadgeMetadata = {
     icon: '🐇', // Bunny for spring
     color: '#7ED957', // Fresh spring green
     priority: 10,
+    excludeFromTrophy: true,
   },
 };
 
@@ -1039,7 +1040,7 @@ export function calculateBadges(destination, userLocation, distanceKm, tempRankM
       `Temp: ${worthResult.tempOrigin} °C → ${worthResult.tempDest} °C (+${worthResult.tempDelta} °C), ` +
       `Weather: ${worthResult.weatherOrigin} → ${worthResult.weatherDest} (+${worthResult.delta} pts), ` +
       `Value: ${worthResult.value} pts/h, ` +
-      `ETA: ${worthResult.eta}h (${Math.round(distanceKm)}km)`
+      `ETA: ${worthResult.eta}h (${Math.round(distanceKm)} km)`
     );
   } else if (worthResult.shouldAward && skipWorthTheDrive) {
     devLog(`🚗❌ ${destination.name}: Would qualify for Worth the Drive but skipped due to weather issues`);
@@ -1155,8 +1156,8 @@ export function calculateBadges(destination, userLocation, distanceKm, tempRankM
     badges.push(DestinationBadge.SPRING_AWAKENING);
     devLog(
       `🐇 ${destination.name}: Spring Awakening! ` +
-      `Temp: ${springAwakeningResult.tempOrigin} °C → ${springAwakeningResult.tempDest} °C (+${springAwakeningResult.tempDelta} °C), ` +
-      `ETA: ${springAwakeningResult.eta}h (${springAwakeningResult.distance}km) - ${springAwakeningResult.reason}`
+      `Temp: ${springAwakeningResult.tempOrigin} °C → ${springAwakeningResult.tempDest} °C (${springAwakeningResult.tempDelta > 0 ? '+' : ''}${springAwakeningResult.tempDelta} °C), ` +
+      `ETA: ${springAwakeningResult.eta}h (${springAwakeningResult.distance} km) - ${springAwakeningResult.reason}`
     );
   }
 
