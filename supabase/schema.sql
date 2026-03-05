@@ -467,13 +467,25 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Function: Update access tracking
-CREATE OR REPLACE FUNCTION update_place_access()
+-- Function: Increment detail_view_count for a single place
+CREATE OR REPLACE FUNCTION increment_detail_view_count(p_place_id UUID)
 RETURNS void AS $$
 BEGIN
-  -- This function is called from app when place is accessed
-  -- Updates access_count and last_accessed
-  NULL;
+  UPDATE places
+  SET detail_view_count = COALESCE(detail_view_count, 0) + 1,
+      last_viewed_at = NOW()
+  WHERE id = p_place_id;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Function: Batch-increment map_view_count for visible markers
+CREATE OR REPLACE FUNCTION increment_map_view_counts(p_place_ids UUID[])
+RETURNS void AS $$
+BEGIN
+  UPDATE places
+  SET map_view_count = COALESCE(map_view_count, 0) + 1,
+      last_viewed_at = NOW()
+  WHERE id = ANY(p_place_ids);
 END;
 $$ LANGUAGE plpgsql;
 

@@ -22,6 +22,7 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { getWeatherForRadius, getWeatherIcon, getWeatherColor, applyBadgesToDestinations } from '../../usecases/weatherUsecases';
 import { BadgeMetadata } from '../../domain/destinationBadge';
 import { playTickSound, playDingSound } from '../../utils/soundUtils';
+import { trackMapViews, trackDetailView } from '../../services/placesService';
 import { getFavourites } from '../../usecases/favouritesUsecases';
 import WeatherFilter from '../components/WeatherFilter';
 import DateFilter from '../components/DateFilter';
@@ -78,6 +79,8 @@ const MapScreen = ({ navigation }) => {
   const [locationPermissionGranted, setLocationPermissionGranted] = useState(false); // Track if GPS permission was granted
   const [isRecentering, setIsRecentering] = useState(false); // Prevent duplicate on-demand location requests
   const recenterCooldownUntilRef = useRef(0); // Throttle on-demand GPS requests
+  const mapViewTrackedIds = useRef(new Set()); // Deduplicate map_view_count per session
+  const mapViewTrackTimer = useRef(null);
   const loadingStates = [
     { text: 'Suche GPS Signal... 🛰️', duration: 2000 },
     { text: 'Bestimme Position... 📍', duration: 2000 },
@@ -540,6 +543,16 @@ const MapScreen = ({ navigation }) => {
         const specialCount = visible.filter(v => v.isCurrentLocation || v.isCenterPoint).length;
         console.log(`🔍 Zoom ${currentZoom}: ${visible.length} markers (${specialCount} special) of ${displayDestinations.length}`);
       }
+
+      // Track map_view_count: collect new IDs, debounce 2s, then batch-fire
+      const newIds = visible
+        .filter(d => d.id && !d.isCurrentLocation && !d.isCenterPoint && !mapViewTrackedIds.current.has(d.id))
+        .map(d => d.id);
+      if (newIds.length > 0) {
+        newIds.forEach(id => mapViewTrackedIds.current.add(id));
+        clearTimeout(mapViewTrackTimer.current);
+        mapViewTrackTimer.current = setTimeout(() => trackMapViews(newIds), 2000);
+      }
     }
   }, [displayDestinations, currentZoom]);
 
@@ -694,6 +707,7 @@ const MapScreen = ({ navigation }) => {
   };
 
   const handleMarkerPress = (destination) => {
+    if (destination.id) trackDetailView(destination.id);
     navigation.navigate('DestinationDetail', { destination, selectedDateOffset });
   };
 

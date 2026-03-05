@@ -1,18 +1,16 @@
 import {
-  loadFavourites as loadFavouritesFromStorage,
-  addFavourite as addFavouriteToStorage,
-  removeFavourite as removeFavouriteFromStorage,
+  getFavourites as fetchFavourites,
+  addFavourite as addFavouriteToSupabase,
+  removeFavourite as removeFavouriteFromSupabase,
   isFavourite as checkIsFavourite,
   clearFavourites as clearAllFavourites,
-} from '../providers/favouritesProvider';
+} from '../services/favouritesService';
 
 /**
  * Favourites Use-Cases
- * Business logic for managing favourite destinations
- * 
- * Currently uses AsyncStorage for local persistence.
- * Supabase-based favourites (src/services/favouritesService.js) are available
- * for future cloud sync once a migration path from local to Supabase is built.
+ * Business logic for managing favourite destinations via Supabase.
+ * The DB trigger on the favourites table automatically updates
+ * favourite_count on the places table.
  */
 
 /**
@@ -20,81 +18,85 @@ import {
  * @returns {Promise<Array>} Array of favourite destinations
  */
 export const getFavourites = async () => {
-  const favourites = await loadFavouritesFromStorage();
-  // Sort by savedAt, newest first
+  const { favourites, error } = await fetchFavourites();
+  if (error) {
+    console.error('getFavourites error:', error);
+    return [];
+  }
   return favourites.sort((a, b) => new Date(b.savedAt) - new Date(a.savedAt));
 };
 
 /**
  * Add a destination to favourites
- * @param {Object} destination - Destination with lat, lon, name, condition, temperature, etc.
+ * @param {Object} destination - Destination with id (place UUID), lat, lon, name, etc.
  * @returns {Promise<{success: boolean, message: string}>}
  */
 export const addToFavourites = async (destination) => {
-  if (!destination || !destination.lat || !destination.lon) {
-    return { success: false, message: 'Invalid destination' };
+  if (!destination?.id) {
+    return { success: false, message: 'No place ID' };
   }
-  
-  const success = await addFavouriteToStorage(destination);
-  
-  return {
-    success,
-    message: success ? 'Added to favourites' : 'Already in favourites',
-  };
+
+  const { favourite, error } = await addFavouriteToSupabase(destination.id);
+  if (error) {
+    const isDuplicate = error?.code === '23505';
+    return {
+      success: false,
+      message: isDuplicate ? 'Already in favourites' : error.message,
+    };
+  }
+  return { success: true, message: 'Added to favourites' };
 };
 
 /**
- * Remove a destination from favourites
- * @param {number} lat - Latitude
- * @param {number} lon - Longitude
+ * Remove a destination from favourites by place ID
+ * @param {string} placeId - Place UUID
  * @returns {Promise<{success: boolean, message: string}>}
  */
-export const removeFromFavourites = async (lat, lon) => {
-  const success = await removeFavouriteFromStorage(lat, lon);
-  
+export const removeFromFavourites = async (placeId) => {
+  const { error } = await removeFavouriteFromSupabase(placeId);
   return {
-    success,
-    message: success ? 'Removed from favourites' : 'Failed to remove',
+    success: !error,
+    message: error ? 'Failed to remove' : 'Removed from favourites',
   };
 };
 
 /**
  * Toggle favourite status of a destination
- * @param {Object} destination - Destination object
+ * @param {Object} destination - Destination object with id (place UUID)
  * @returns {Promise<{isFavourite: boolean, message: string}>}
  */
 export const toggleFavourite = async (destination) => {
-  const isCurrentlyFavourite = await checkIsFavourite(destination.lat, destination.lon);
-  
-  if (isCurrentlyFavourite) {
-    const result = await removeFromFavourites(destination.lat, destination.lon);
-    return {
-      isFavourite: false,
-      message: result.message,
-    };
+  if (!destination?.id) {
+    return { isFavourite: false, message: 'No place ID' };
+  }
+
+  const { isFavourite: currentlyFav } = await checkIsFavourite(destination.id);
+
+  if (currentlyFav) {
+    const result = await removeFromFavourites(destination.id);
+    return { isFavourite: false, message: result.message };
   } else {
     const result = await addToFavourites(destination);
-    return {
-      isFavourite: result.success,
-      message: result.message,
-    };
+    return { isFavourite: result.success, message: result.message };
   }
 };
 
 /**
  * Check if a destination is favourited
- * @param {number} lat - Latitude
- * @param {number} lon - Longitude
+ * @param {string} placeId - Place UUID
  * @returns {Promise<boolean>}
  */
-export const isDestinationFavourite = async (lat, lon) => {
-  return await checkIsFavourite(lat, lon);
+export const isDestinationFavourite = async (placeId) => {
+  if (!placeId) return false;
+  const { isFavourite } = await checkIsFavourite(placeId);
+  return isFavourite;
 };
 
 /**
- * Clear all favourites (for settings/debugging)
+ * Clear all favourites
  * @returns {Promise<boolean>}
  */
 export const clearAllFavouritesUseCase = async () => {
-  return await clearAllFavourites();
+  const { error } = await clearAllFavourites();
+  return !error;
 };

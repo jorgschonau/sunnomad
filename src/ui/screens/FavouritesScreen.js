@@ -40,7 +40,7 @@ const FavouritesScreen = ({ navigation }) => {
     }, [])
   );
 
-  const handleRemoveFavourite = async (lat, lon, name) => {
+  const handleRemoveFavourite = async (placeId, name) => {
     Alert.alert(
       t('favourites.removeFromFavourites'),
       name,
@@ -50,7 +50,7 @@ const FavouritesScreen = ({ navigation }) => {
           text: t('favourites.removeFromFavourites'),
           style: 'destructive',
           onPress: async () => {
-            const result = await removeFromFavourites(lat, lon);
+            const result = await removeFromFavourites(placeId);
             if (result.success) {
               await loadFavourites();
             }
@@ -114,7 +114,7 @@ const FavouritesScreen = ({ navigation }) => {
           </Text>
           <TouchableOpacity
             style={[styles.removeButton, { backgroundColor: theme.error + '20', borderColor: theme.error }]}
-            onPress={() => handleRemoveFavourite(item.lat, item.lon, item.name)}
+            onPress={() => handleRemoveFavourite(item.placeId, item.name)}
           >
             <Text style={[styles.removeButtonText, { color: theme.error }]}>❌</Text>
           </TouchableOpacity>

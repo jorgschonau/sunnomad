@@ -272,7 +272,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   }, [destination.lat, destination.lon]);
 
   const checkFavouriteStatus = async () => {
-    const status = await isDestinationFavourite(destination.lat, destination.lon);
+    const placeId = forecast?.id || destination.id;
+    const status = await isDestinationFavourite(placeId);
     setIsFavourite(status);
   };
 
