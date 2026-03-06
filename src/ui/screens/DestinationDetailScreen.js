@@ -196,6 +196,16 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         }
       }
       
+      // Preserve resolved UUID for fallback paths (favourites need it)
+      const fallbackBase = {
+        ...destination,
+        id: resolvedId || destination.id,
+        description: destination.description || destination.weatherDescription || destination.condition || '',
+        countryCode: destination.countryCode || destination.country_code,
+        country_code: destination.country_code || destination.countryCode,
+        country: destination.country,
+      };
+
       // PRIORITY 2: Use inline forecast data from map
       // Map data forecast is already relative to the selected date (targetDate)
       // So today=selected day, tomorrow=selected+1, etc.
@@ -228,24 +238,14 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           } : null,
         };
         
-        setForecast({
-          ...destination,
-          description: destination.description || destination.weatherDescription || destination.condition || '',
-          countryCode: destination.countryCode || destination.country_code,
-          country_code: destination.country_code || destination.countryCode,
-          country: destination.country,
-          forecast: normalizedForecast,
-        });
+        setForecast({ ...fallbackBase, forecast: normalizedForecast });
         setIsLoading(false);
         return;
       }
       
       // PRIORITY 3: Fallback - generate forecast from current data (5 days)
       setForecast({
-        ...destination,
-        description: destination.description || destination.weatherDescription || destination.condition || '',
-        countryCode: destination.countryCode || destination.country_code,
-        country_code: destination.country_code || destination.countryCode,
+        ...fallbackBase,
         forecast: {
           today: { condition: destination.condition, temp: destination.temperature, high: destination.temperature, low: destination.temperature - 3 },
           tomorrow: { condition: destination.condition, temp: destination.temperature + 1, high: destination.temperature + 1, low: destination.temperature - 2 },
@@ -283,14 +283,17 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     setFavouriteLoading(true);
     try {
       const result = await toggleFavourite(forecast || destination);
-      setIsFavourite(result.isFavourite);
-      
-      // Show success message
-      Alert.alert(
-        result.isFavourite ? t('favourites.addedToFavourites') : t('favourites.removedFromFavourites'),
-        '',
-        [{ text: 'OK' }]
-      );
+      if (result.success) {
+        setIsFavourite(result.isFavourite);
+        Alert.alert(
+          result.isFavourite ? t('favourites.addedToFavourites') : t('favourites.removedFromFavourites'),
+          '',
+          [{ text: 'OK' }]
+        );
+      } else {
+        if (__DEV__) console.warn('Toggle favourite failed:', result.message);
+        Alert.alert(t('map.error'), result.message || 'Failed to update favourites');
+      }
     } catch (error) {
       console.error('Failed to toggle favourite:', error);
       Alert.alert(t('map.error'), 'Failed to update favourites');

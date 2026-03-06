@@ -67,17 +67,17 @@ export const removeFromFavourites = async (placeId) => {
  */
 export const toggleFavourite = async (destination) => {
   if (!destination?.id) {
-    return { isFavourite: false, message: 'No place ID' };
+    return { success: false, isFavourite: false, message: 'No place ID' };
   }
 
   const { isFavourite: currentlyFav } = await checkIsFavourite(destination.id);
 
   if (currentlyFav) {
     const result = await removeFromFavourites(destination.id);
-    return { isFavourite: false, message: result.message };
+    return { success: result.success, isFavourite: !result.success, message: result.message };
   } else {
     const result = await addToFavourites(destination);
-    return { isFavourite: result.success, message: result.message };
+    return { success: result.success, isFavourite: result.success, message: result.message };
   }
 };
 
