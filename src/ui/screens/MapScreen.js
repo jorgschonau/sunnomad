@@ -21,8 +21,8 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeProvider';
 import { getWeatherForRadius, getWeatherIcon, getWeatherColor, applyBadgesToDestinations } from '../../usecases/weatherUsecases';
 import { BadgeMetadata } from '../../domain/destinationBadge';
-import { playTickSound, playDingSound } from '../../utils/soundUtils';
-import { trackMapViews, trackDetailView } from '../../services/placesService';
+import { playTickSound } from '../../utils/soundUtils';
+import { trackMapViews, trackDetailView, searchPlaces as searchPlacesDB } from '../../services/placesService';
 import { getFavourites } from '../../usecases/favouritesUsecases';
 import WeatherFilter from '../components/WeatherFilter';
 import DateFilter from '../components/DateFilter';
@@ -46,6 +46,14 @@ const customMapStyle = [
   { featureType: 'administrative.land_parcel', stylers: [{ visibility: 'off' }] },
   { featureType: 'administrative.neighborhood', stylers: [{ visibility: 'off' }] },
 ];
+
+const haversineKm = (lat1, lon1, lat2, lon2) => {
+  const toRad = d => d * Math.PI / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
 
 // Map boundaries - restrict visible area (also used for search restriction)
 const MAP_BOUNDS = {
@@ -71,6 +79,7 @@ const MapScreen = ({ navigation }) => {
   const boundsDebounceTimer = useRef(null);
   const regionChangeDebounceTimer = useRef(null);
   const hasLoadedForLocationRef = useRef(false);
+  const skipNextLocationAnimRef = useRef(false);
   const [radius, setRadius] = useState(500); // Default 500km
   const [selectedCondition, setSelectedCondition] = useState(null);
   const [selectedDateOffset, setSelectedDateOffset] = useState(0); // 0=today, 1=tomorrow, 3=+3days, 5=+5days
@@ -361,7 +370,9 @@ const MapScreen = ({ navigation }) => {
       radiusDebounceTimer.current = setTimeout(() => loadDestinations(), 500);
     }
     const effectiveCenter = centerPoint || location;
-    if (mapRef.current && effectiveCenter) {
+    if (skipNextLocationAnimRef.current) {
+      skipNextLocationAnimRef.current = false;
+    } else if (mapRef.current && effectiveCenter) {
       mapRef.current.animateToRegion({
         latitude: effectiveCenter.latitude,
         longitude: effectiveCenter.longitude,
@@ -714,21 +725,21 @@ const MapScreen = ({ navigation }) => {
   const handleRadiusIncrease = async () => {
     const newRadius = Math.min(radius + 50, 5000); // Max 5000 km
     setRadius(newRadius);
-    await playDingSound(); // Play ding sound on interaction
+    playTickSound();
     // Note: loadDestinations is debounced in useEffect (500ms delay)
   };
 
   const handleRadiusDecrease = async () => {
     const newRadius = Math.max(radius - 50, 50); // Min 50 km
     setRadius(newRadius);
-    await playDingSound(); // Play ding sound on interaction
+    playTickSound();
     // Note: loadDestinations is debounced in useEffect (500ms delay)
   };
 
   const handleRadiusSelect = async (newRadius) => {
     setRadius(newRadius);
     setShowRadiusMenu(false);
-    await playDingSound(); // Play ding sound on interaction
+    playTickSound();
     // Note: loadDestinations is debounced in useEffect (500ms delay)
   };
 
@@ -1293,48 +1304,34 @@ const MapScreen = ({ navigation }) => {
     }
   };
 
-  const GOOGLE_MAPS_API_KEY = 'AIzaSyAcADrrPdRzJK7d_TC3GBajsKviqp0iVBI';
-
   const searchPlaces = useCallback(async (text) => {
     if (!text || text.length < 2) {
       setSearchResults([]);
       return;
     }
     try {
-      // New Autocomplete API — strict geo-restriction via MAP_BOUNDS rectangle
-      const res = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY },
-        body: JSON.stringify({
-          input: text,
-          includedPrimaryTypes: ['locality', 'administrative_area_level_3'],
-          languageCode: i18n.language || 'de',
-          locationRestriction: {
-            rectangle: {
-              low:  { latitude: MAP_BOUNDS.south, longitude: MAP_BOUNDS.west },
-              high: { latitude: MAP_BOUNDS.north, longitude: MAP_BOUNDS.east },
-            },
-          },
-        }),
+      const { places } = await searchPlacesDB(text, 20);
+      const center = currentRegion || location;
+      const mapped = (places || []).map(p => {
+        const lat = parseFloat(p.latitude);
+        const lng = parseFloat(p.longitude);
+        const dist = center ? haversineKm(center.latitude, center.longitude, lat, lng) : 0;
+        return {
+          id: p.id,
+          description: p.country_name ? `${p.name}, ${p.country_name}` : p.name,
+          distLabel: dist > 0 ? (dist < 100 ? `${Math.round(dist)} km` : `${Math.round(dist)} km`) : '',
+          latitude: lat,
+          longitude: lng,
+          _dist: dist,
+        };
       });
-      const json = await res.json();
-      if (json.suggestions?.length) {
-        const mapped = json.suggestions
-          .filter(s => s.placePrediction)
-          .slice(0, 5)
-          .map(s => ({
-            place_id: s.placePrediction.placeId,
-            description: s.placePrediction.text?.text || '',
-          }));
-        setSearchResults(mapped);
-      } else {
-        setSearchResults([]);
-      }
+      mapped.sort((a, b) => a._dist - b._dist);
+      setSearchResults(mapped.slice(0, 5));
     } catch (e) {
       if (__DEV__) console.warn('Places search failed:', e);
       setSearchResults([]);
     }
-  }, [i18n.language]);
+  }, [currentRegion, location]);
 
   const handleSearchTextChange = useCallback((text) => {
     setSearchQuery(text);
@@ -1342,30 +1339,31 @@ const MapScreen = ({ navigation }) => {
     searchDebounceRef.current = setTimeout(() => searchPlaces(text), 300);
   }, [searchPlaces]);
 
-  const handleSearchResultSelect = useCallback(async (item) => {
-    try {
-      const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${item.place_id}&fields=geometry&key=${GOOGLE_MAPS_API_KEY}`;
-      const res = await fetch(url);
-      const json = await res.json();
-      if (json.status === 'OK' && json.result?.geometry?.location) {
-        const { lat, lng } = json.result.geometry.location;
-        const newRegion = {
-          latitude: lat,
-          longitude: lng,
-          latitudeDelta: 0.5,
-          longitudeDelta: 0.5,
-        };
-        setLocation(newRegion);
-        mapRef.current?.animateToRegion(newRegion, 800);
-      }
-    } catch (e) {
-      if (__DEV__) console.warn('Place details fetch failed:', e);
-    }
+  const handleSearchResultSelect = useCallback((item) => {
+    if (__DEV__) console.log('🔍 Search select:', JSON.stringify(item));
     setSearchQuery('');
     setSearchResults([]);
     setSearchFocused(false);
     Keyboard.dismiss();
     playTickSound();
+
+    const lat = Number(item.latitude);
+    const lng = Number(item.longitude);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      const newRegion = {
+        latitude: lat,
+        longitude: lng,
+        latitudeDelta: 0.5,
+        longitudeDelta: 0.5,
+      };
+      skipNextLocationAnimRef.current = true;
+      setLocation(newRegion);
+      InteractionManager.runAfterInteractions(() => {
+        mapRef.current?.animateToRegion(newRegion, 800);
+      });
+    } else if (__DEV__) {
+      console.warn('⚠️ Invalid coordinates for place:', item.description, 'lat:', item.latitude, 'lng:', item.longitude);
+    }
   }, []);
 
   const clearSearch = useCallback(() => {
@@ -1553,14 +1551,19 @@ const MapScreen = ({ navigation }) => {
           <View style={styles.searchResultsList}>
             {searchResults.map((item) => (
               <TouchableOpacity
-                key={item.place_id}
+                key={item.id}
                 style={styles.searchRow}
                 onPress={() => handleSearchResultSelect(item)}
                 activeOpacity={0.6}
               >
-                <Text style={styles.searchDescription} numberOfLines={1}>
-                  {item.description}
-                </Text>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={[styles.searchDescription, { flex: 1 }]} numberOfLines={1}>
+                    {item.description}
+                  </Text>
+                  {item.distLabel ? (
+                    <Text style={{ color: '#999', fontSize: 12, marginLeft: 8 }}>{item.distLabel}</Text>
+                  ) : null}
+                </View>
               </TouchableOpacity>
             ))}
           </View>
