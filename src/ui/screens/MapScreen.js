@@ -47,7 +47,7 @@ const customMapStyle = [
   { featureType: 'administrative.neighborhood', stylers: [{ visibility: 'off' }] },
 ];
 
-// Map boundaries - restrict visible area
+// Map boundaries - restrict visible area (also used for search restriction)
 const MAP_BOUNDS = {
   north: 75,   // Spitzbergen + Puffer
   south: 15,   // Südlich von Mexico City + Puffer
@@ -1301,13 +1301,33 @@ const MapScreen = ({ navigation }) => {
       return;
     }
     try {
-      const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(text)}&types=(cities)&language=${i18n.language || 'de'}&key=${GOOGLE_MAPS_API_KEY}`;
-      const res = await fetch(url);
+      // New Autocomplete API — strict geo-restriction via MAP_BOUNDS rectangle
+      const res = await fetch('https://places.googleapis.com/v1/places:autocomplete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Goog-Api-Key': GOOGLE_MAPS_API_KEY },
+        body: JSON.stringify({
+          input: text,
+          includedPrimaryTypes: ['locality', 'administrative_area_level_3'],
+          languageCode: i18n.language || 'de',
+          locationRestriction: {
+            rectangle: {
+              low:  { latitude: MAP_BOUNDS.south, longitude: MAP_BOUNDS.west },
+              high: { latitude: MAP_BOUNDS.north, longitude: MAP_BOUNDS.east },
+            },
+          },
+        }),
+      });
       const json = await res.json();
-      if (json.status === 'OK' && json.predictions) {
-        setSearchResults(json.predictions.slice(0, 5));
+      if (json.suggestions?.length) {
+        const mapped = json.suggestions
+          .filter(s => s.placePrediction)
+          .slice(0, 5)
+          .map(s => ({
+            place_id: s.placePrediction.placeId,
+            description: s.placePrediction.text?.text || '',
+          }));
+        setSearchResults(mapped);
       } else {
-        if (__DEV__) console.warn('Places API status:', json.status, json.error_message);
         setSearchResults([]);
       }
     } catch (e) {
