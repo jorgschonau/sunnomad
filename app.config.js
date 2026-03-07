@@ -46,6 +46,7 @@ export default {
       eas: {
         projectId: '5df2c512-288e-4749-93ef-e5cb018de180',
       },
+      googleMapsApiKey: 'AIzaSyAcADrrPdRzJK7d_TC3GBajsKviqp0iVBI',
       supabaseUrl: 'https://skkkoxdobvimqpfqzbdx.supabase.co',
       supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNra2tveGRvYnZpbXFwZnF6YmR4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczMDE0MzAsImV4cCI6MjA4Mjg3NzQzMH0.b6aT0cpaET-M685gL1fj-uwcTWO0e6WNDvqTWhQpH6A',
     },

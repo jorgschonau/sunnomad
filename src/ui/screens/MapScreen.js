@@ -22,7 +22,8 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { getWeatherForRadius, getWeatherIcon, getWeatherColor, applyBadgesToDestinations } from '../../usecases/weatherUsecases';
 import { BadgeMetadata } from '../../domain/destinationBadge';
 import { playTickSound } from '../../utils/soundUtils';
-import { trackMapViews, trackDetailView, searchPlaces as searchPlacesDB } from '../../services/placesService';
+import { trackMapViews, trackDetailView } from '../../services/placesService';
+import { hybridSearch, ensurePlaceInDB } from '../../services/hybridSearchService';
 import { getFavourites } from '../../usecases/favouritesUsecases';
 import WeatherFilter from '../components/WeatherFilter';
 import DateFilter from '../components/DateFilter';
@@ -47,15 +48,7 @@ const customMapStyle = [
   { featureType: 'administrative.neighborhood', stylers: [{ visibility: 'off' }] },
 ];
 
-const haversineKm = (lat1, lon1, lat2, lon2) => {
-  const toRad = d => d * Math.PI / 180;
-  const dLat = toRad(lat2 - lat1);
-  const dLon = toRad(lon2 - lon1);
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
-  return 6371 * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-};
-
-// Map boundaries - restrict visible area (also used for search restriction)
+// Map boundaries - restrict visible area
 const MAP_BOUNDS = {
   north: 75,   // Spitzbergen + Puffer
   south: 15,   // Südlich von Mexico City + Puffer
@@ -116,7 +109,9 @@ const MapScreen = ({ navigation }) => {
   const [cachedData, setCachedData] = useState(null); // Cache for destinations
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
+  const [googleResults, setGoogleResults] = useState([]);
   const [searchFocused, setSearchFocused] = useState(false);
+  const [searchLoading, setSearchLoading] = useState(false);
   const searchDebounceRef = useRef(null);
 
   // Default fallback location (Frankfurt, center of Europe)
@@ -1307,31 +1302,23 @@ const MapScreen = ({ navigation }) => {
   const searchPlaces = useCallback(async (text) => {
     if (!text || text.length < 2) {
       setSearchResults([]);
+      setGoogleResults([]);
       return;
     }
     try {
-      const { places } = await searchPlacesDB(text, 20);
+      setSearchLoading(true);
       const center = currentRegion || location;
-      const mapped = (places || []).map(p => {
-        const lat = parseFloat(p.latitude);
-        const lng = parseFloat(p.longitude);
-        const dist = center ? haversineKm(center.latitude, center.longitude, lat, lng) : 0;
-        return {
-          id: p.id,
-          description: p.country_name ? `${p.name}, ${p.country_name}` : p.name,
-          distLabel: dist > 0 ? (dist < 100 ? `${Math.round(dist)} km` : `${Math.round(dist)} km`) : '',
-          latitude: lat,
-          longitude: lng,
-          _dist: dist,
-        };
-      });
-      mapped.sort((a, b) => a._dist - b._dist);
-      setSearchResults(mapped.slice(0, 5));
+      const { dbPlaces, googlePlaces } = await hybridSearch(text, center, i18n.language || 'de');
+      setSearchResults(dbPlaces.slice(0, 5));
+      setGoogleResults(googlePlaces.slice(0, 5));
     } catch (e) {
       if (__DEV__) console.warn('Places search failed:', e);
       setSearchResults([]);
+      setGoogleResults([]);
+    } finally {
+      setSearchLoading(false);
     }
-  }, [currentRegion, location]);
+  }, [currentRegion, location, i18n.language]);
 
   const handleSearchTextChange = useCallback((text) => {
     setSearchQuery(text);
@@ -1339,13 +1326,20 @@ const MapScreen = ({ navigation }) => {
     searchDebounceRef.current = setTimeout(() => searchPlaces(text), 300);
   }, [searchPlaces]);
 
-  const handleSearchResultSelect = useCallback((item) => {
-    if (__DEV__) console.log('🔍 Search select:', JSON.stringify(item));
+  const handleSearchResultSelect = useCallback(async (item) => {
     setSearchQuery('');
     setSearchResults([]);
+    setGoogleResults([]);
     setSearchFocused(false);
     Keyboard.dismiss();
     playTickSound();
+
+    // If Google place, auto-add to DB first (fire-and-forget for the insert, but we need coords)
+    if (item.source === 'google') {
+      ensurePlaceInDB(item).then(dbPlace => {
+        if (__DEV__ && dbPlace) console.log('🆕 Google place saved:', dbPlace.name, dbPlace.id);
+      });
+    }
 
     const lat = Number(item.latitude);
     const lng = Number(item.longitude);
@@ -1361,14 +1355,13 @@ const MapScreen = ({ navigation }) => {
       InteractionManager.runAfterInteractions(() => {
         mapRef.current?.animateToRegion(newRegion, 800);
       });
-    } else if (__DEV__) {
-      console.warn('⚠️ Invalid coordinates for place:', item.description, 'lat:', item.latitude, 'lng:', item.longitude);
     }
   }, []);
 
   const clearSearch = useCallback(() => {
     setSearchQuery('');
     setSearchResults([]);
+    setGoogleResults([]);
     setSearchFocused(false);
     Keyboard.dismiss();
   }, []);
@@ -1547,7 +1540,7 @@ const MapScreen = ({ navigation }) => {
             </TouchableOpacity>
           )}
         </View>
-        {searchResults.length > 0 && (
+        {(searchResults.length > 0 || googleResults.length > 0) && (
           <View style={styles.searchResultsList}>
             {searchResults.map((item) => (
               <TouchableOpacity
@@ -1566,6 +1559,33 @@ const MapScreen = ({ navigation }) => {
                 </View>
               </TouchableOpacity>
             ))}
+            {googleResults.length > 0 && (
+              <>
+                <View style={styles.searchDivider}>
+                  <Text style={styles.searchDividerText}>{t('map.moreResults', 'Weitere Ergebnisse')}</Text>
+                </View>
+                {googleResults.map((item) => (
+                  <TouchableOpacity
+                    key={item.googlePlaceId}
+                    style={styles.searchRow}
+                    onPress={() => handleSearchResultSelect(item)}
+                    activeOpacity={0.6}
+                  >
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text style={[styles.searchDescription, { flex: 1 }]} numberOfLines={1}>
+                        {item.description}
+                      </Text>
+                      <Text style={{ color: '#999', fontSize: 11, marginLeft: 8 }}>via Google</Text>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </>
+            )}
+            {searchLoading && (
+              <View style={[styles.searchRow, { alignItems: 'center' }]}>
+                <ActivityIndicator size="small" color="#999" />
+              </View>
+            )}
           </View>
         )}
       </View>
@@ -2117,6 +2137,20 @@ const styles = StyleSheet.create({
   searchDescription: {
     fontSize: 14,
     color: '#333',
+  },
+  searchDivider: {
+    paddingVertical: 6,
+    paddingHorizontal: 14,
+    backgroundColor: '#F5F5F5',
+    borderBottomWidth: 1,
+    borderBottomColor: '#E8E8E8',
+  },
+  searchDividerText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#999',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   controlsWrapper: {
     position: 'absolute',
