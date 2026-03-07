@@ -32,6 +32,8 @@ const getMinDistanceForBudget = (radius) => {
   return 200;
 };
 
+const NORTH_AFRICA_CODES = new Set(['MA', 'DZ', 'TN', 'LY', 'EG']);
+
 /**
  * Slight ranking bias for sunny conditions and destinations with other
  * positive badges (Spring Awakening, Weather Miracle, Sunny Streak, Beach Paradise).
@@ -153,6 +155,17 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
         continue;
       }
 
+      // North Africa >1000km: never Budget, at most Worth the Drive
+      // Only when a) destination in North Africa AND b) origin outside North Africa
+      const destCc = (candidate.country_code || candidate.countryCode || '').toUpperCase();
+      const originCc = (originLocation?.country_code || originLocation?.countryCode || '').toUpperCase();
+      const destInNorthAfrica = NORTH_AFRICA_CODES.has(destCc);
+      const originInNorthAfrica = originCc && NORTH_AFRICA_CODES.has(originCc);
+      if (destInNorthAfrica && !originInNorthAfrica && distanceFromOrigin > 1000) {
+        console.log(`💰 Skipped ${candidate.name} for Budget (dest ${destCc} North Africa, origin outside, ${Math.round(distanceFromOrigin)}km > 1000km)`);
+        continue;
+      }
+
       candidate.badges.push('WORTH_THE_DRIVE_BUDGET');
       // REMOVE Worth the Drive if present (Budget is exclusive!)
       if (hasWTD) {
@@ -240,6 +253,23 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
       dest.badges = dest.badges.filter(b => b !== 'WORTH_THE_DRIVE');
     }
   });
+  
+  // Promote Budget → Worth the Drive when radius >500km, destination is far out
+  // (>80% of radius), and no other WTD badges exist. A lone distant Budget
+  // badge feels more like a road-trip recommendation than a budget tip.
+  if (radiusKm > 500 && selectedWorthBadges.length === 0) {
+    const threshold = radiusKm * 0.8;
+    for (const dest of selectedBudgetBadges) {
+      const dist = dest.distance ?? dest._worthTheDriveBudgetData?.distance ?? 0;
+      if (dist >= threshold) {
+        dest.badges = dest.badges.filter(b => b !== 'WORTH_THE_DRIVE_BUDGET');
+        dest.badges.push('WORTH_THE_DRIVE');
+        console.log(
+          `🚗💰 ${dest.name}: Budget → Worth the Drive (dist ${Math.round(dist)}km ≥ ${Math.round(threshold)}km threshold, no other WTD badges)`
+        );
+      }
+    }
+  }
   
   // Helper: Score by temp + attractiveness
   const getScore = (d, tempAsc = false) => {
