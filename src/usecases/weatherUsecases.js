@@ -33,6 +33,27 @@ const getMinDistanceForBudget = (radius) => {
 };
 
 /**
+ * Slight ranking bias for sunny conditions and destinations with other
+ * positive badges (Spring Awakening, Weather Miracle, Sunny Streak, Beach Paradise).
+ * Returns a multiplier >= 1.0 used to boost efficiency / temp in sorting.
+ */
+const POSITIVE_BADGE_DATA_KEYS = [
+  '_springAwakeningData',
+  '_weatherMiracleData',
+  '_sunnyStreakData',
+  '_beachParadiseData',
+];
+
+const getPositiveWeatherBias = (dest) => {
+  let bonus = 1.0;
+  if (dest.condition === 'sunny') bonus += 0.10;
+  for (const key of POSITIVE_BADGE_DATA_KEYS) {
+    if (dest[key]?.shouldAward) bonus += 0.06;
+  }
+  return bonus;
+};
+
+/**
  * Apply badge calculations to all destinations
  * Mutates destination objects by adding 'badges' array
  * Limits "Worth the Drive" badges to top 3 destinations only
@@ -78,9 +99,11 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
   const budgetCandidates = destinations
     .filter(d => !d.isCurrentLocation && d._worthTheDriveBudgetData?.isEligible)
     .sort((a, b) => {
-      // Primary: efficiency
-      const effDiff = (b._worthTheDriveBudgetData?.efficiency || 0) - (a._worthTheDriveBudgetData?.efficiency || 0);
-      if (Math.abs(effDiff) > 0.001) return effDiff;
+      // Primary: efficiency, boosted by sunny / positive-badge bias
+      const aEff = (a._worthTheDriveBudgetData?.efficiency || 0) * getPositiveWeatherBias(a);
+      const bEff = (b._worthTheDriveBudgetData?.efficiency || 0) * getPositiveWeatherBias(b);
+      const effDiff = bEff - aEff;
+      if (Math.abs(effDiff) > 0.0005) return effDiff;
       // Tiebreaker 1: attractiveness score
       const aScore = a.attractivenessScore || a.attractiveness_score || 50;
       const bScore = b.attractivenessScore || b.attractiveness_score || 50;
@@ -150,10 +173,14 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
   // EXCLUDE destinations that already have Budget badge!
   const worthTheDriveCandidates = destinations
     .filter(d => !d.isCurrentLocation && d.badges.includes('WORTH_THE_DRIVE') && !d.badges.includes('WORTH_THE_DRIVE_BUDGET'))
-    .sort((a, b) => reverseMode === 'cold'
-      ? (a._worthTheDriveData?.tempDest || 0) - (b._worthTheDriveData?.tempDest || 0) // Coldest first
-      : (b._worthTheDriveData?.tempDest || 0) - (a._worthTheDriveData?.tempDest || 0) // Warmest first
-    );
+    .sort((a, b) => {
+      // Sort by temp, with sunny / positive-badge bias as effective bonus
+      const aBias = getPositiveWeatherBias(a);
+      const bBias = getPositiveWeatherBias(b);
+      const aTemp = (a._worthTheDriveData?.tempDest || 0) * aBias;
+      const bTemp = (b._worthTheDriveData?.tempDest || 0) * bBias;
+      return reverseMode === 'cold' ? aTemp - bTemp : bTemp - aTemp;
+    });
   
   // DEBUG: Show ALL Worth the Drive candidates (not just top 10)
   console.log(`🚗 DEBUG Worth the Drive Candidates (${worthTheDriveCandidates.length} total):`);

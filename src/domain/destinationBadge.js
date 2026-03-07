@@ -258,13 +258,15 @@ export function calculateWorthTheDrive(destination, origin, distanceKm, reverseM
     );
   } else {
     // Warm mode (default): reward places that are WARMER
+    // Sunny destinations get slightly relaxed thresholds (leichte Bias)
+    const isSunny = destination.condition === 'sunny';
     const MIN_TEMP_ABSOLUTE = 4; // Destination must be at least 4 °C (not freezing!)
-    const MIN_TEMP_DELTA = 4; // Destination must be warmer (+4 °C minimum)
+    const MIN_TEMP_DELTA = isSunny ? 3 : 4;
     shouldAward = (
       distanceKm >= MIN_DISTANCE_KM &&
       weatherDest >= MIN_WEATHER_SCORE &&
-      delta >= MIN_DELTA &&
-      value >= MIN_VALUE &&
+      delta >= (isSunny ? 2 : MIN_DELTA) &&
+      value >= (isSunny ? 1.2 : MIN_VALUE) &&
       tempDest >= MIN_TEMP_ABSOLUTE &&
       tempDelta >= MIN_TEMP_DELTA
     );
@@ -324,7 +326,9 @@ export function calculateWorthTheDriveBudget(destination, origin, distanceKm, re
     isEligible = distanceKm >= MIN_DISTANCE_KM && (-tempDelta) >= MIN_TEMP_DELTA_COLD && tempDest <= MAX_TEMP_ABSOLUTE;
   } else {
     // Warm mode (default): reward places that are WARMER
-    const MIN_TEMP_DELTA = 3; // At least 3 °C warmer
+    // Sunny destinations get slightly relaxed threshold (leichte Bias)
+    const isSunny = destination.condition === 'sunny';
+    const MIN_TEMP_DELTA = isSunny ? 2 : 3;
     const MIN_TEMP_ABSOLUTE = 10; // At least 10 °C (not freezing)
     isEligible = distanceKm >= MIN_DISTANCE_KM && tempDelta >= MIN_TEMP_DELTA && tempDest >= MIN_TEMP_ABSOLUTE;
   }
