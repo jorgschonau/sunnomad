@@ -33,10 +33,12 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const { t, i18n } = useTranslation();
   const { theme } = useTheme();
   const { destination, selectedDateOffset = 0 } = route.params;
+  const effectivePlaceId = destination?.placeId || destination?.id;
   
   // Show map data immediately, then upgrade with Supabase data in background
   const initialForecast = destination ? {
     ...destination,
+    id: effectivePlaceId,
     description: destination.description || destination.weatherDescription || destination.condition || '',
     countryCode: destination.countryCode || destination.country_code,
     country_code: destination.country_code || destination.countryCode,
@@ -108,7 +110,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       setError(null);
       
       // PRIORITY 0: No UUID? Try to resolve from DB by coordinates or name
-      let resolvedId = destination.id;
+      let resolvedId = effectivePlaceId;
       const isValidUUID = resolvedId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resolvedId);
       if (!isValidUUID) {
         try {
@@ -162,16 +164,14 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           
           const convertedForecast = {
             ...place,
-            name: destination.name, // Keep original name
+            name: destination.name,
             description: place.weatherDescription || place.condition || '',
             forecast: forecastSlots,
           };
           
-          // Preserve attractiveness score from original destination or Supabase detail
           convertedForecast.attractivenessScore =
             convertedForecast.attractivenessScore ?? destination.attractivenessScore ?? destination.attractiveness_score ?? null;
 
-          // IMPORTANT: Keep badges from original destination (calculated on map)
           if (destination.badges) {
             convertedForecast.badges = destination.badges;
             convertedForecast._worthTheDriveData = destination._worthTheDriveData;
@@ -272,7 +272,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   }, [destination.lat, destination.lon]);
 
   const checkFavouriteStatus = async () => {
-    const placeId = forecast?.id || destination.id;
+    const placeId = forecast?.id || effectivePlaceId;
     const status = await isDestinationFavourite(placeId);
     setIsFavourite(status);
   };
@@ -282,7 +282,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     
     setFavouriteLoading(true);
     try {
-      const result = await toggleFavourite(forecast || destination);
+      const target = forecast || destination;
+      const result = await toggleFavourite({ ...target, id: target.id || effectivePlaceId });
       if (result.success) {
         setIsFavourite(result.isFavourite);
         Alert.alert(

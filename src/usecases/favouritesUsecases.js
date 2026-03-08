@@ -74,8 +74,9 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
  * Otherwise, try to find/create the place in DB by coordinates.
  */
 const resolveDBPlaceId = async (destination) => {
-  if (destination?.id && UUID_RE.test(destination.id)) {
-    return destination.id;
+  const candidateId = destination?.placeId || destination?.id;
+  if (candidateId && UUID_RE.test(candidateId)) {
+    return candidateId;
   }
   // Try to find/create by coordinates
   const lat = destination?.lat ?? destination?.latitude;

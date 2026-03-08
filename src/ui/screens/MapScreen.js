@@ -522,17 +522,6 @@ const MapScreen = ({ navigation }) => {
     };
   }, [destinations, selectedDateOffset, reverseMode, radius]);
 
-  // Favourites to render as independent markers (exclude those already in visibleMarkers)
-  const favouriteMarkersToShow = useMemo(() => {
-    if (favouriteDestinations.length === 0) return [];
-    const visibleCoords = new Set(
-      visibleMarkers.map(m => `${m.lat}_${m.lon}`)
-    );
-    return favouriteDestinations.filter(
-      fav => fav.lat && fav.lon && !visibleCoords.has(`${fav.lat}_${fav.lon}`)
-    );
-  }, [favouriteDestinations, visibleMarkers]);
-
   // Derive shifted center point weather from displayDestinations (respects date offset)
   const displayCenterPointWeather = useMemo(() => {
     if (!centerPointWeather) return null;
@@ -542,12 +531,24 @@ const MapScreen = ({ navigation }) => {
   // Update visible markers when display data or zoom changes (NOT on pan/bounds)
   useEffect(() => {
     if (displayDestinations.length > 0) {
-      const visible = getVisibleMarkers(displayDestinations, currentZoom, currentBounds);
+      const favs = favouriteDestinations.filter(f => f && f.lat != null && f.lon != null);
+      const regularMarkers = getVisibleMarkers(displayDestinations, currentZoom, currentBounds, favs);
+      
+      // Add favourites with weather to visibleMarkers (so they render in regular flow)
+      const favsWithWeather = favs.map(fav => {
+        const match = displayDestinations.find(d => 
+          Math.abs((d.lat ?? d.latitude) - fav.lat) < 0.01 &&
+          Math.abs((d.lon ?? d.longitude) - fav.lon) < 0.01
+        );
+        return match ? { ...fav, ...match, isFavourite: true } : { ...fav, isFavourite: true };
+      });
+      
+      const visible = [...favsWithWeather, ...regularMarkers];
       setVisibleMarkers(visible);
       
       if (__DEV__) {
         const specialCount = visible.filter(v => v.isCurrentLocation || v.isCenterPoint).length;
-        console.log(`🔍 Zoom ${currentZoom}: ${visible.length} markers (${specialCount} special) of ${displayDestinations.length}`);
+        console.log(`🔍 Zoom ${currentZoom}: ${visible.length} markers (${favsWithWeather.length} favs, ${specialCount} special) of ${displayDestinations.length}`);
       }
 
       // Track map_view_count: collect new IDs, debounce 2s, then batch-fire
@@ -560,7 +561,7 @@ const MapScreen = ({ navigation }) => {
         mapViewTrackTimer.current = setTimeout(() => trackMapViews(newIds), 2000);
       }
     }
-  }, [displayDestinations, currentZoom]);
+  }, [displayDestinations, currentZoom, favouriteDestinations]);
 
   const loadDestinations = async () => {
     if (!location) return;
@@ -940,7 +941,7 @@ const MapScreen = ({ navigation }) => {
     });
   };
   
-  const getVisibleMarkers = (allPlaces, zoom, bounds) => {
+  const getVisibleMarkers = (allPlaces, zoom, bounds, favPlaces = []) => {
     const candidates = allPlaces.filter(p => 
       p.temperature !== null && p.temperature !== undefined
     );
@@ -1009,6 +1010,7 @@ const MapScreen = ({ navigation }) => {
     const result = [...specialMarkers, ...budgetPlaces];
     let skipped = 0;
     let gridLimited = 0;
+    let favBlocked = 0;
     
     for (const place of sorted) {
       if (result.length >= maxMarkers) {
@@ -1017,6 +1019,21 @@ const MapScreen = ({ navigation }) => {
       
       const lat = place.lat || place.latitude;
       const lon = place.lon || place.longitude;
+      
+      // Check if too close to ANY favourite (favourites always win)
+      let blockedByFav = false;
+      for (const fav of favPlaces) {
+        const dist = getDistanceKm(lat, lon, Number(fav.lat), Number(fav.lon));
+        if (dist < minDistance) {
+          blockedByFav = true;
+          break;
+        }
+      }
+      if (blockedByFav) {
+        favBlocked++;
+        continue;
+      }
+      
       const gridKey = getGridKey(lat, lon);
       const gridCount = gridsUsed.get(gridKey) || 0;
       const hasBadges = getMapBadges(place.badges).length > 0;
@@ -1051,7 +1068,7 @@ const MapScreen = ({ navigation }) => {
     const finalBadgeCount = result.filter(p => getMapBadges(p.badges).length > 0).length;
     const normalCount = result.length - finalBadgeCount - specialMarkers.length;
     const phase = result.length <= phase1Limit ? 'Phase1 only' : 'Phase1+2';
-    console.log(`📊 Final: ${result.length} markers (${finalBadgeCount} badges + ${normalCount} normal), ${skipped} too close, ${gridLimited} grid limited, ${gridsUsed.size} grids [${phase}]`);
+    console.log(`📊 Final: ${result.length} markers (${finalBadgeCount} badges + ${normalCount} normal), ${favBlocked} blocked by favs, ${skipped} too close, ${gridLimited} grid limited, ${gridsUsed.size} grids [${phase}]`);
     return result;
   };
 
@@ -1662,6 +1679,8 @@ const MapScreen = ({ navigation }) => {
         {/* Greedy-filtered markers based on zoom + score */}
         {visibleMarkers
           .filter(dest => {
+            // Skip favourites - they're rendered separately below
+            if (dest.isFavourite) return false;
             // Always show current location and center point
             if (dest.isCurrentLocation || dest.isCenterPoint) return true;
             if (!showOnlyBadges) return true;
@@ -1669,7 +1688,9 @@ const MapScreen = ({ navigation }) => {
             const trophyBadges = getMapBadges(dest.badges).filter(b => !BadgeMetadata[b]?.excludeFromTrophy);
             return trophyBadges.length > 0;
           })
-          .map((dest, index) => (
+          .map((dest, index) => {
+          // Regular marker rendering (favourites skipped above)
+          return (
           <Marker
             key={`${dest.lat}-${dest.lon}-${index}`}
             coordinate={{ latitude: dest.lat, longitude: dest.lon }}
@@ -1708,27 +1729,55 @@ const MapScreen = ({ navigation }) => {
               </View>
             </View>
           </Marker>
-        ))}
+          );
+        })}
 
-        {/* Favourite markers - always visible, independent of weather filters */}
-        {favouriteMarkersToShow.map((fav, index) => (
+        {/* Favourites - ALWAYS VISIBLE, rendered separately */}
+        {favouriteDestinations
+          .filter(fav => fav && fav.lat != null && fav.lon != null)
+          .map((fav, index) => {
+            // Lookup weather from displayDestinations
+            const withWeather = displayDestinations.find(d => 
+              Math.abs((d.lat ?? d.latitude) - fav.lat) < 0.01 &&
+              Math.abs((d.lon ?? d.longitude) - fav.lon) < 0.01
+            );
+            
+            const temp = withWeather?.temperature ?? null;
+            const cond = withWeather?.condition ?? 'cloudy';
+            
+            return (
           <Marker
-            key={`fav-${fav.lat}-${fav.lon}-${index}`}
-            coordinate={{ latitude: fav.lat, longitude: fav.lon }}
+            key={`sep-fav-${fav.placeId || fav.id || `${fav.lat}-${fav.lon}`}-${selectedDateOffset}-${currentZoom}`}
+            coordinate={{ latitude: Number(fav.lat), longitude: Number(fav.lon) }}
             anchor={{ x: 0.5, y: 0.5 }}
-            style={{ overflow: 'visible', zIndex: 1000 }}
-            onPress={() => handleMarkerPress(fav)}
+            zIndex={10000}
+            tracksViewChanges={true}
+            onPress={() => handleMarkerPress(withWeather || fav)}
           >
             <View style={styles.markerFrameAndroid}>
-              <View style={styles.favouriteMarkerContainer}>
-                <Text style={styles.favouriteMarkerStar}>★</Text>
-                <Text style={styles.favouriteMarkerName} numberOfLines={1}>
-                  {fav.name?.replace(/^📍\s?/, '').replace(/^⊕\s?/, '') || ''}
-                </Text>
+              <View style={[
+                styles.markerContainer,
+                { backgroundColor: temp != null ? getWeatherColor(cond, temp) : '#FFD700' },
+                styles.favouriteMarkerBorder,
+              ]}>
+                {temp != null ? (
+                  <>
+                    <Text style={styles.markerWeatherIcon}>{getWeatherIcon(cond)}</Text>
+                    <Text style={styles.markerTemp}>{Math.round(temp)}°</Text>
+                  </>
+                ) : (
+                  <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff' }}>
+                    {(fav.name || '★').replace(/^📍\s?/, '').replace(/^⊕\s?/, '').substring(0, 6)}
+                  </Text>
+                )}
+                <View style={styles.favouriteBadgeWrap}>
+                  <AnimatedBadge icon="⭐" color="#FFD700" delay={0} />
+                </View>
               </View>
             </View>
           </Marker>
-        ))}
+            );
+          })}
       </MapView>
 
       {/* Loading Overlay for destinations */}
@@ -2780,8 +2829,25 @@ const styles = StyleSheet.create({
   favouriteMarkerName: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#5C4400',
+    color: '#fff',
     flexShrink: 1,
+  },
+  favouriteMarkerBorder: {
+    borderWidth: 3,
+    borderColor: '#FFD700',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    elevation: 6,
+  },
+  favouriteBadgeWrap: {
+    position: 'absolute',
+    top: -14,
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 10,
   },
   emptyStateOverlay: {
     position: 'absolute',

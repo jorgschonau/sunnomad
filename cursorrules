@@ -82,6 +82,32 @@ BAD: "There are several approaches we could consider..."
 
 GOOD: [One concrete solution that works]
 
+
+## Debugging Approach
+- When something doesn't work: ADD CONSOLE LOGS FIRST before refactoring
+- Don't "fix" working code to make it "better" 
+- Fix ONE thing at a time, not multiple issues in one go
+- When user says "it still doesn't work", ask for console output, don't guess
+
+## UI/UX Specific Rules
+- Favorites = ALWAYS visible on map (exempt from zoom/distance/limit filters)
+- Exception: Badge filter applies to favorites too
+- Render favorites separately from regular markers (separate .map())
+- Don't pass favorites through complex filtering functions
+
+## When User Is Frustrated
+- STOP trying to be clever
+- Revert to dumbest possible solution
+- Use direct array.filter() instead of useMemo chains
+- Inline code instead of helper functions
+- Prioritize "definitely works" over "efficient"
+
+## Anti-Patterns for THIS Project
+- No complex useMemo dependency chains
+- No "optimizing" render performance without proven slowness
+- No combining favorites with regular markers in same array
+- No abstract filter pipelines - just filter directly
+
 ## Current Priorities (Jan 2026)
 1. Fix data mismatches (drop all views, direct queries only)
 2. Implement auto-refresh (daily weather update)

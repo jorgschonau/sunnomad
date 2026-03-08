@@ -357,7 +357,7 @@ export const getPlaceDetail = async (placeId, locale = 'en') => {
       .from('places')
       .select('id, name, latitude, longitude, country_code, place_type, population, attractiveness_score')
       .eq('id', placeId)
-      .single();
+      .maybeSingle();
 
     if (placeError) throw placeError;
     if (!place) {

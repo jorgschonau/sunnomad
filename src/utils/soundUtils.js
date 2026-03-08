@@ -45,17 +45,7 @@ export const playMotorSound = async () => {
 };
 
 /**
- * Cleanup sound resources
+ * Cleanup sound resources (no-op since we switched to haptics only)
  */
-export const cleanupSound = async () => {
-  try {
-    if (tickSound) {
-      await tickSound.unloadAsync();
-      tickSound = null;
-      isInitialized = false;
-    }
-  } catch (error) {
-    console.debug('Could not cleanup sound:', error.message);
-  }
-};
+export const cleanupSound = async () => {};
 

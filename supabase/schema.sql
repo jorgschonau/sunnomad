@@ -71,6 +71,9 @@ CREATE TABLE places (
   region TEXT DEFAULT 'europe' CHECK (region IN ('europe', 'north_america')),
   place_type TEXT DEFAULT 'city' CHECK (place_type IN ('city', 'town', 'campground', 'beach', 'mountain', 'poi')),
   
+  -- Geography
+  elevation INTEGER, -- Höhe in Metern (von GeoNames)
+  
   -- External IDs (für Scraping/Integration)
   openweather_id INTEGER, -- OpenWeatherMap City ID
   
@@ -81,6 +84,9 @@ CREATE TABLE places (
   
   -- Tracking
   favourite_count INTEGER DEFAULT 0, -- Wie oft als Favorit gespeichert
+  detail_view_count INTEGER DEFAULT 0, -- Wie oft Detail-Ansicht geöffnet
+  map_view_count INTEGER DEFAULT 0, -- Wie oft auf der Karte sichtbar
+  last_viewed_at TIMESTAMP WITH TIME ZONE, -- Wann zuletzt angesehen
   last_weather_fetch TIMESTAMP WITH TIME ZONE, -- Wann zuletzt Wetter abgerufen
   
   -- Meta
@@ -437,30 +443,17 @@ CREATE TRIGGER update_places_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
--- Function: Update favourite_count and recalculate priority tier
+-- Function: Update favourite_count on insert/delete
 CREATE OR REPLACE FUNCTION update_place_favourite_count()
 RETURNS TRIGGER AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
     UPDATE places
-    SET 
-      favourite_count = favourite_count + 1,
-      -- Auto-update priority tier based on favourites
-      priority_tier = CASE 
-        WHEN favourite_count + 1 >= 50 THEN 1  -- Top 50+ favourites = Tier 1
-        WHEN favourite_count + 1 >= 10 THEN 2  -- 10-49 favourites = Tier 2
-        ELSE 3                                  -- < 10 favourites = Tier 3
-      END
+    SET favourite_count = favourite_count + 1
     WHERE id = NEW.place_id;
   ELSIF TG_OP = 'DELETE' THEN
     UPDATE places
-    SET 
-      favourite_count = GREATEST(favourite_count - 1, 0),
-      priority_tier = CASE 
-        WHEN favourite_count - 1 >= 50 THEN 1
-        WHEN favourite_count - 1 >= 10 THEN 2
-        ELSE 3
-      END
+    SET favourite_count = GREATEST(favourite_count - 1, 0)
     WHERE id = OLD.place_id;
   END IF;
   RETURN NULL;
@@ -842,7 +835,7 @@ INSERT INTO places (name, latitude, longitude, country_code, country_name, regio
 -- MAINTENANCE / CRON JOBS - Optimiert für 20.000 Places
 -- ============================================================================
 -- 
--- STRATEGIE: Tiered Updates basierend auf Priority
+-- STRATEGIE: Tiered Updates basierend auf favourite_count
 -- 
 -- Im Supabase Dashboard unter "Database" → "Cron Jobs" kannst du einrichten:
 --
@@ -852,52 +845,9 @@ INSERT INTO places (name, latitude, longitude, country_code, country_name, regio
 -- 2. Tägliche Zusammenfassungen erstellen (täglich um 1 Uhr nachts):
 --    SELECT cron.schedule('aggregate-daily-weather', '0 1 * * *', $$
 --      SELECT aggregate_daily_weather(place_id, CURRENT_DATE - 1)
---      FROM places WHERE priority_tier = 1;  -- Nur Tier 1!
+--      FROM places WHERE favourite_count >= 50;
 --    $$);
 --
--- 3. TIERED WEATHER UPDATES:
---
---    Tier 1 (Top ~200-500 Places): 2x täglich
---    SELECT cron.schedule('update-tier1-morning', '0 6 * * *', $$
---      SELECT net.http_post(
---        url := 'https://your-function.supabase.co/update-tier1-weather'
---      );
---    $$);
---    SELECT cron.schedule('update-tier1-evening', '0 18 * * *', $$
---      SELECT net.http_post(
---        url := 'https://your-function.supabase.co/update-tier1-weather'
---      );
---    $$);
---
---    Tier 2 (Moderate ~2.000 Places): 1x pro 3 Tage
---    SELECT cron.schedule('update-tier2', '0 12 */3 * *', $$
---      SELECT net.http_post(
---        url := 'https://your-function.supabase.co/update-tier2-weather'
---      );
---    $$);
---
---    Tier 3 (Rest ~17.000 Places): ON-DEMAND ONLY
---    Keine proaktiven Updates! Nur wenn User den Ort aufruft.
---
--- 4. Priority Tier Recalculation (wöchentlich):
---    SELECT cron.schedule('recalculate-tiers', '0 2 * * 0', $$
---      UPDATE places SET priority_tier = CASE
---        WHEN favourite_count >= 50 OR access_count >= 1000 THEN 1
---        WHEN favourite_count >= 10 OR access_count >= 100 THEN 2
---        ELSE 3
---      END;
---    $$);
---
--- ============================================================================
--- API CALL ESTIMATION mit Tiered System:
--- ============================================================================
--- Tier 1: 500 Places × 2 Updates/Tag = 1.000 Calls/Tag
--- Tier 2: 2.000 Places × 0.33 Updates/Tag = 666 Calls/Tag  
--- Tier 3: 17.000 Places × ~0.01 Updates/Tag = ~170 Calls/Tag (on-demand)
--- TOTAL: ~1.836 Calls/Tag
--- 
--- OpenWeatherMap Pro ($40/Monat): 60 Calls/Min = 86.400 Calls/Tag ✅
--- Oder: One Call Daily (1.000 Free + Pay per call danach)
 -- ============================================================================
 
 -- ============================================================================

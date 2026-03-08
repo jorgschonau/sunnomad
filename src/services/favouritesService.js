@@ -17,6 +17,8 @@ export const getFavourites = async () => {
       return { favourites: [], error: null };
     }
 
+    const today = new Date().toISOString().split('T')[0];
+
     const { data, error } = await supabase
       .from('favourites')
       .select(`
@@ -27,26 +29,44 @@ export const getFavourites = async () => {
           latitude,
           longitude,
           country_code,
-          place_type
+          place_type,
+          weather_forecast (
+            forecast_date, temp_min, temp_max,
+            weather_main, weather_description, weather_icon,
+            wind_speed, humidity, rain_volume, snow_volume
+          )
         )
       `)
       .eq('user_id', user.id)
+      .eq('places.weather_forecast.forecast_date', today)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
 
-    // Transform to match legacy format
-    const transformed = data.map(fav => ({
-      id: fav.id,
-      lat: fav.places.latitude,
-      lon: fav.places.longitude,
-      name: fav.places.name,
-      country_code: fav.places.country_code,
-      place_type: fav.places.place_type,
-      notes: fav.notes,
-      savedAt: fav.created_at,
-      placeId: fav.places.id,
-    }));
+    const transformed = data.map(fav => {
+      const place = fav.places;
+      const weather = place?.weather_forecast?.[0] || {};
+      return {
+        id: place.id,
+        favouriteId: fav.id,
+        lat: place.latitude,
+        lon: place.longitude,
+        name: place.name,
+        country_code: place.country_code,
+        place_type: place.place_type,
+        notes: fav.notes,
+        savedAt: fav.created_at,
+        placeId: place.id,
+        temperature: weather.temp_max != null ? Math.round(weather.temp_max) : null,
+        tempMin: weather.temp_min,
+        tempMax: weather.temp_max,
+        condition: weather.weather_main || null,
+        weatherDescription: weather.weather_description || null,
+        weatherIcon: weather.weather_icon || null,
+        windSpeed: weather.wind_speed != null ? Math.round(weather.wind_speed) : null,
+        humidity: weather.humidity || null,
+      };
+    });
 
     return { favourites: transformed, error: null };
   } catch (error) {
