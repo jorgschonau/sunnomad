@@ -475,30 +475,54 @@ export function calculateBeachParadise(destination) {
 /**
  * Calculate "Sunny Streak" eligibility
  * 3+ days of sunshine in a row
- * 
+ *
  * @param {Object} destination - Destination with forecast data
- * @returns {Object} - { shouldAward, sunnyDays }
+ * @returns {Object} - { shouldAward, streakLength, avgTemp, sunshineHours, condition, temp }
  */
 export function calculateSunnyStreak(destination) {
   const currentCondition = destination.condition ?? 'unknown';
   const sunshineDuration = destination.sunshine_duration ?? 0; // seconds of sunshine today
   const temp = destination.temperature ?? 0;
-  
+  const forecast = destination.forecast;
+
   // sunshine_duration > 28800 = more than 8 hours of sun
   const MIN_SUNSHINE_SECONDS = 28800; // 8 hours
   const MIN_TEMP = 10; // At least 10 °C
-  
+
   const isSunny = currentCondition === 'sunny';
   const hasLongSunshine = sunshineDuration >= MIN_SUNSHINE_SECONDS;
   const isWarmEnough = temp >= MIN_TEMP;
-  
-  // Badge: Sunny condition + 8+ hours sunshine + warm enough
+
+  // Count consecutive sunny days from today (for streakLength + avgTemp display)
+  let streakLength = 0;
+  const temps = [];
+  if (isSunny) {
+    streakLength = 1;
+    temps.push(forecast?.today?.high ?? forecast?.today?.temp ?? temp);
+    if (forecast?.tomorrow?.condition === 'sunny') {
+      streakLength++;
+      temps.push(forecast.tomorrow.high ?? forecast.tomorrow.temp ?? temp);
+    }
+    if (streakLength >= 2 && forecast?.day2?.condition === 'sunny') {
+      streakLength++;
+      temps.push(forecast.day2.high ?? forecast.day2.temp ?? temp);
+    }
+    if (streakLength >= 3 && forecast?.day3?.condition === 'sunny') {
+      streakLength++;
+      temps.push(forecast.day3.high ?? forecast.day3.temp ?? temp);
+    }
+  }
+  const avgTemp = temps.length > 0 ? Math.round(temps.reduce((a, b) => a + b, 0) / temps.length) : Math.round(temp);
+
+  // Badge: Sunny condition + 8+ hours sunshine + warm enough (today)
   const shouldAward = isSunny && hasLongSunshine && isWarmEnough;
-  
+
   const sunshineHours = Math.round(sunshineDuration / 3600 * 10) / 10;
-  
+
   return {
     shouldAward,
+    streakLength,
+    avgTemp,
     sunshineHours,
     condition: currentCondition,
     temp,
@@ -760,6 +784,7 @@ export function calculateSnowKing(destination) {
     shouldAward,
     snowDays,
     snowfallAmount: totalSnowfall,
+    totalSnowfall, // alias for UI (snowkingSummary, totalSnowfall badge)
     maxTemp,
     minTemp,
     avgTemp: Math.round(avgTemp * 10) / 10,
@@ -1086,7 +1111,7 @@ export function calculateBadges(destination, userLocation, distanceKm, tempRankM
     badges.push(DestinationBadge.SUNNY_STREAK);
     devLog(
       `☀️ ${destination.name}: Sunny Streak! ` +
-      `${sunnyStreakResult.sunnyDays} days of sunshine`
+      `${sunnyStreakResult.streakLength} days of sunshine, Ø ${sunnyStreakResult.avgTemp} °C`
     );
   }
 

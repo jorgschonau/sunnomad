@@ -228,7 +228,7 @@
     "rainydays": "Jours Pluvieux",
     "rainydaysDescription": "3+ jours de pluie avec au moins 1 forte pluie",
     "weathercurse": "Malédiction Météo",
-    "weathercurseDescription": "Bon maintenant mais va devenir mauvais & plus froid (-5 °C)",
+    "weathercurseDescription": "Météo en dégradation — 5°C de moins en approche",
     "springawakening": "Réveil du Printemps",
     "springawakeningDescription": "Printemps pur: doux, ensoleillé & parfait pour découvrir",
     "worththedriveSummary": "{{tempDelta}} °C | {{distance}} km",
@@ -238,9 +238,9 @@
     "sunnystreakSummary": "{{days}} jours ☀️ | Ø {{avgTemp}} °C",
     "weathermiracleSummary": "+{{tempGain}} °C bientôt ☀️",
     "heatwaveSummary": "{{days}} jours de chaleur | Ø {{avgTemp}} °C",
-    "snowkingSummary": "{{snowDays}} jours ❄️ | {{snowfall}}cm",
+    "snowkingSummary": "{{snowDays}} jours ❄️ | {{snowfall}} cm",
     "rainydaysSummary": "{{rainyDays}} jours de pluie",
-    "weathercurseSummary": "⚠️ {{tempLoss}} °C de perte bientôt!",
+    "weathercurseSummary": "⚠️ Baisse de {{tempLoss}}°C bientôt",
     "springawakeningSummary": "{{tempDelta}} °C | {{distance}} km",
     "tapForDetails": "Appuyez pour détails",
     "awards": "Distinctions",
@@ -259,9 +259,9 @@
     "today": "Aujourd'hui",
     "soon": "Bientôt",
     "bestDay": "Meilleur jour",
-    "miracleDetail": "🌡️ Aujourd'hui: {{todayTemp}} °C → Bientôt: {{futureTemp}} °C (+{{gain}} °C)",
+    "miracleDetail": "🌡️ Aujourd'hui: {{todayTemp}} °C → Bientôt: {{futureTemp}} °C",
     "curseToday": "☀️ Aujourd'hui: {{temp}} °C, {{condition}}",
-    "curseSoon": "⚠️ Bientôt: {{temp}} °C, {{condition}} (-{{loss}} °C!)"
+    "curseSoon": "⚠️ Bientôt: {{temp}}°C, {{condition}}"
   },
   "warnings": {
     "title": "Alertes Météo",

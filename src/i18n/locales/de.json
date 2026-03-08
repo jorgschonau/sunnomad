@@ -228,7 +228,7 @@
     "rainydays": "Regentage",
     "rainydaysDescription": "3+ Regentage mit mindestens 1x Starkregen",
     "weathercurse": "Wetterfluch",
-    "weathercurseDescription": "Heute gut, aber wird bald schlecht & kälter (-5 °C)",
+    "weathercurseDescription": "Wetter verschlechtert sich — 5°C kälter im Anzug",
     "springawakening": "Frühlingserwachen",
     "springawakeningDescription": "Frühling pur: mild, sonnig & perfekt zum Entdecken",
     "worththedriveSummary": "{{tempDelta}} °C | {{distance}} km",
@@ -238,9 +238,9 @@
     "sunnystreakSummary": "{{days}} Tage ☀️ | Ø {{avgTemp}} °C",
     "weathermiracleSummary": "+{{tempGain}} °C bald ☀️",
     "heatwaveSummary": "{{days}} Tage Hitze | Ø {{avgTemp}} °C",
-    "snowkingSummary": "{{snowDays}} Tage ❄️ | {{snowfall}}cm",
+    "snowkingSummary": "{{snowDays}} Tage ❄️ | {{snowfall}} cm",
     "rainydaysSummary": "{{rainyDays}} Regentage",
-    "weathercurseSummary": "⚠️ {{tempLoss}} °C Verlust bald!",
+    "weathercurseSummary": "⚠️ Fällt bald um {{tempLoss}}°C",
     "springawakeningSummary": "{{tempDelta}} °C | {{distance}} km",
     "tapForDetails": "Tap für Details",
     "awards": "Auszeichnungen",
@@ -259,9 +259,9 @@
     "today": "Heute",
     "soon": "Bald",
     "bestDay": "Bester Tag",
-    "miracleDetail": "🌡️ Heute: {{todayTemp}} °C → Bald: {{futureTemp}} °C (+{{gain}} °C)",
+    "miracleDetail": "🌡️ Heute: {{todayTemp}} °C → Bald: {{futureTemp}} °C",
     "curseToday": "☀️ Heute: {{temp}} °C, {{condition}}",
-    "curseSoon": "⚠️ Bald: {{temp}} °C, {{condition}} (-{{loss}} °C!)"
+    "curseSoon": "⚠️ Bald: {{temp}}°C, {{condition}}"
   },
   "warnings": {
     "title": "Wetterwarnungen",

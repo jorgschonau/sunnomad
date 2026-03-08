@@ -713,7 +713,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                   return t('badges.heatwaveSummary', { days: heatwaveData.days, avgTemp: heatwaveData.avgTemp });
                 }
                 if (isSnowKing && snowKingData) {
-                  return t('badges.snowkingSummary', { snowDays: snowKingData.snowDays, snowfall: snowKingData.totalSnowfall });
+                  return t('badges.snowkingSummary', { snowDays: snowKingData.snowDays, snowfall: Math.round((snowKingData.totalSnowfall || 0) / 10) });
                 }
                 if (isRainyDays && rainyDaysData) {
                   return t('badges.rainydaysSummary', { rainyDays: rainyDaysData.rainyDays });
@@ -908,7 +908,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                             ❄️ {t('badges.snowDaysCount', { count: snowKingData.snowDays })}
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            📊 {t('badges.totalSnowfall', { amount: snowKingData.totalSnowfall })}
+                            📊 {t('badges.totalSnowfall', { amount: Math.round((snowKingData.totalSnowfall || 0) / 10) })}
                           </Text>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
                             🌡️ Ø {snowKingData.avgTemp} °C
