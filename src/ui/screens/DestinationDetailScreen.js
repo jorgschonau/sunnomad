@@ -206,9 +206,38 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         country: destination.country,
       };
 
-      // PRIORITY 2: Use inline forecast data from map
+      // PRIORITY 2a: Build from forecastArray if forecast is incomplete (e.g. date offset > 5)
+      if (destination.forecastArray && destination.forecastArray.length > selectedDateOffset) {
+        const startIdx = selectedDateOffset;
+        const keys = ['today', 'tomorrow', 'day3', 'day4', 'day5'];
+        const slots = {};
+        keys.forEach((key, i) => {
+          const entry = destination.forecastArray[startIdx + i];
+          if (entry) {
+            slots[key] = {
+              condition: entry.condition,
+              temp: entry.high ?? entry.temp,
+              high: entry.high,
+              low: entry.low,
+              description: entry.description,
+            };
+          }
+        });
+        if (Object.keys(slots).length >= 2) {
+          const day0 = destination.forecastArray[startIdx];
+          setForecast({
+            ...fallbackBase,
+            temperature: day0?.high ?? day0?.temp ?? destination.temperature,
+            condition: day0?.condition ?? destination.condition,
+            forecast: slots,
+          });
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // PRIORITY 2b: Use inline forecast data from map
       // Map data forecast is already relative to the selected date (targetDate)
-      // So today=selected day, tomorrow=selected+1, etc.
       if (destination.forecast) {
         const normalizedForecast = {
           today: destination.forecast.today ? {

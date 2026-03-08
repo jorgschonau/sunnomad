@@ -418,8 +418,9 @@ const MapScreen = ({ navigation }) => {
           sunshine_duration: entry.sunshine_duration ?? 0,
         };
       };
+      // 5 slots to match DestinationDetailScreen (today, tomorrow, day3, day4, day5)
       const buildShiftedForecast = (arr, off) => {
-        const keys = ['today', 'tomorrow', 'day2', 'day3'];
+        const keys = ['today', 'tomorrow', 'day3', 'day4', 'day5'];
         const result = {};
         keys.forEach((key, i) => {
           const entry = arr[off + i];
@@ -429,7 +430,7 @@ const MapScreen = ({ navigation }) => {
       };
       const buildShiftedKeyedForecast = (forecastObj, off) => {
         const inputKeys = ['today', 'tomorrow', 'day2', 'day3', 'day4', 'day5', 'day6', 'day7', 'day8', 'day9', 'day10', 'day11', 'day12', 'day13'];
-        const outputKeys = ['today', 'tomorrow', 'day2', 'day3'];
+        const outputKeys = ['today', 'tomorrow', 'day3', 'day4', 'day5'];
         const result = {};
         outputKeys.forEach((outKey, i) => {
           const sourceKey = inputKeys[off + i];
@@ -441,7 +442,7 @@ const MapScreen = ({ navigation }) => {
         if (dest.forecastDays && dest.forecastDays[offset]) {
           const dayData = dest.forecastDays[offset];
           const shiftedForecast = {};
-          ['today', 'tomorrow', 'day2', 'day3'].forEach((key, i) => {
+          ['today', 'tomorrow', 'day3', 'day4', 'day5'].forEach((key, i) => {
             const fd = dest.forecastDays[offset + i];
             if (fd) {
               shiftedForecast[key] = normalizeForecastEntry({
