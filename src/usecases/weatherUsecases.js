@@ -202,27 +202,6 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
     console.log(`  ${i+1}. ${c.name}: temp=${data?.tempDest} °C, delta=+${data?.tempDelta} °C, value=${data?.value}, dist=${c.distance?.toFixed(0)}km`);
   });
   
-  // DEBUG: Check if Heerlen is in the candidates
-  const heerlen = worthTheDriveCandidates.find(c => c.name?.toLowerCase().includes('heerlen'));
-  if (heerlen) {
-    const idx = worthTheDriveCandidates.indexOf(heerlen);
-    console.log(`🔍 HEERLEN found at position ${idx + 1} in Worth the Drive candidates!`);
-  } else {
-    // Check if Heerlen is in ALL destinations
-    const heerlenInAll = destinations.find(d => d.name?.toLowerCase().includes('heerlen'));
-    if (heerlenInAll) {
-      console.log(`🔍 HEERLEN found in destinations but NOT in Worth the Drive candidates!`);
-      console.log(`   Badges: ${heerlenInAll.badges?.join(', ') || 'none'}`);
-      console.log(`   Data: temp=${heerlenInAll.temperature} °C, dist=${heerlenInAll.distance?.toFixed(0)}km`);
-      const wtd = heerlenInAll._worthTheDriveData;
-      if (wtd) {
-        console.log(`   WTD criteria: tempDest=${wtd.tempDest}, tempDelta=${wtd.tempDelta}, value=${wtd.value}, delta=${wtd.delta}, shouldAward=${wtd.shouldAward}`);
-      }
-    } else {
-      console.log(`🔍 HEERLEN NOT FOUND in destinations at all!`);
-    }
-  }
-  
   // Greedy selection: pick top candidates that are at least 20km apart
   const selectedWorthBadges = [];
   for (const candidate of worthTheDriveCandidates) {
@@ -257,15 +236,51 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
   // Promote Budget → Worth the Drive when radius >500km, destination is far out
   // (>80% of radius), and no other WTD badges exist. A lone distant Budget
   // badge feels more like a road-trip recommendation than a budget tip.
+  // Backfill: try to find a closer, non–North Africa replacement for the Budget badge.
   if (radiusKm > 500 && selectedWorthBadges.length === 0) {
     const threshold = radiusKm * 0.8;
+    const originCc = (originLocation?.country_code || originLocation?.countryCode || '').toUpperCase();
+    const originInNorthAfrica = originCc && NORTH_AFRICA_CODES.has(originCc);
+    const promoted = [];
+
     for (const dest of selectedBudgetBadges) {
       const dist = dest.distance ?? dest._worthTheDriveBudgetData?.distance ?? 0;
       if (dist >= threshold) {
         dest.badges = dest.badges.filter(b => b !== 'WORTH_THE_DRIVE_BUDGET');
         dest.badges.push('WORTH_THE_DRIVE');
+        promoted.push(dest);
         console.log(
           `🚗💰 ${dest.name}: Budget → Worth the Drive (dist ${Math.round(dist)}km ≥ ${Math.round(threshold)}km threshold, no other WTD badges)`
+        );
+      }
+    }
+
+    // Backfill Budget: find closer replacement(s), not in North Africa when origin outside
+    const remainingBudget = selectedBudgetBadges.filter(b => !promoted.includes(b));
+    const minDistFromOrigin = baseMinBudget * 0.7;
+    for (const _ of promoted) {
+      const replacement = budgetCandidates.find(c => {
+        if (c.badges.includes('WORTH_THE_DRIVE_BUDGET') || promoted.includes(c)) return false;
+        const cDist = c.distance ?? c._worthTheDriveBudgetData?.distance ?? 9999;
+        if (cDist >= threshold) return false;
+        if (cDist < minDistFromOrigin) return false;
+        const cc = (c.country_code || c.countryCode || '').toUpperCase();
+        if (!originInNorthAfrica && NORTH_AFRICA_CODES.has(cc)) return false;
+        const tooClose = remainingBudget.some(r => {
+          const d = getDistanceKm(c.lat || c.latitude, c.lon || c.longitude, r.lat || r.latitude, r.lon || r.longitude);
+          return d < MIN_BUDGET_BADGE_DISTANCE_KM;
+        });
+        return !tooClose;
+      });
+      if (replacement) {
+        replacement.badges.push('WORTH_THE_DRIVE_BUDGET');
+        if (replacement.badges.includes('WORTH_THE_DRIVE')) {
+          replacement.badges = replacement.badges.filter(b => b !== 'WORTH_THE_DRIVE');
+        }
+        remainingBudget.push(replacement);
+        const data = replacement._worthTheDriveBudgetData;
+        console.log(
+          `💰 ${replacement.name}: Budget backfill (closer ${Math.round(data?.distance ?? replacement.distance ?? 0)}km, replacing promoted)`
         );
       }
     }
