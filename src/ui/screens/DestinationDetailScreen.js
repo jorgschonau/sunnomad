@@ -597,7 +597,11 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const heroDateLabel = formatDateLabel(selectedDateOffset);
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.background }]}
+      showsVerticalScrollIndicator={false}
+      showsHorizontalScrollIndicator={false}
+    >
       <View style={[styles.header, { backgroundColor: getWeatherColor(heroCondition, heroTemp) }]}>
         {/* Großes Hintergrund-Icon */}
         <Text style={styles.headerBgIcon}>{getWeatherIcon(heroCondition)}</Text>

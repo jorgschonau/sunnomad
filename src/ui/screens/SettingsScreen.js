@@ -40,7 +40,11 @@ const SettingsScreen = ({ navigation }) => {
   };
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: theme.background }]}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: theme.background }]}
+      showsVerticalScrollIndicator={false}
+      showsHorizontalScrollIndicator={false}
+    >
       <View style={[styles.section, { backgroundColor: theme.surface }]}>
         <Text style={[styles.sectionTitle, { backgroundColor: theme.background, color: theme.text }]}>
           {t('settings.theme')}

@@ -130,6 +130,7 @@ export default function RegisterScreen({ navigation }) {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
       >
         {/* Logo (same as LoginScreen) */}
         <View style={styles.header}>

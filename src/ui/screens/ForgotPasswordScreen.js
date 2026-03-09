@@ -127,6 +127,7 @@ export default function ForgotPasswordScreen({ navigation }) {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
+        showsHorizontalScrollIndicator={false}
       >
         {/* Logo */}
         <View style={styles.header}>

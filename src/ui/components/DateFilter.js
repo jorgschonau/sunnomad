@@ -95,6 +95,7 @@ const DateFilter = ({ selectedDateOffset, onDateOffsetChange }) => {
       <View style={styles.optionsWrapper}>
         <ScrollView
           horizontal
+          showsVerticalScrollIndicator={false}
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={{ paddingHorizontal: 4, gap: 8 }}
           onScroll={handleScroll}

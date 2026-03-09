@@ -79,7 +79,12 @@ export default function ProfileScreen({ navigation }) {
   }
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+    <ScrollView
+      style={styles.container}
+      contentContainerStyle={styles.scrollContent}
+      showsVerticalScrollIndicator={false}
+      showsHorizontalScrollIndicator={false}
+    >
       {/* Header: Avatar + Name */}
       <View style={styles.header}>
         <View style={styles.avatarContainer}>
