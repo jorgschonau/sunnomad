@@ -20,7 +20,7 @@ import * as Location from 'expo-location';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeProvider';
 import { getWeatherForRadius, getWeatherIcon, getWeatherColor, applyBadgesToDestinations } from '../../usecases/weatherUsecases';
-import { BadgeMetadata } from '../../domain/destinationBadge';
+import { BadgeMetadata, DestinationBadge } from '../../domain/destinationBadge';
 import { playTickSound } from '../../utils/soundUtils';
 import { trackMapViews, trackDetailView } from '../../services/placesService';
 import { hybridSearch, ensurePlaceInDB } from '../../services/hybridSearchService';
@@ -40,6 +40,64 @@ const customMapStyle = [
   { featureType: 'landscape.man_made', stylers: [{ visibility: 'off' }] },
   { featureType: 'water', elementType: 'labels', stylers: [{ visibility: 'off' }] },
 ];
+
+// Marker with imageLoaded state for WARM_AND_DRY / HEATWAVE badges
+const DestinationMarker = ({
+  dest,
+  index,
+  onPress,
+  getMapBadges,
+  getWeatherColor,
+  getWeatherIcon,
+  styles: markerStyles,
+}) => {
+  const hasImageBadge = getMapBadges(dest.badges).some(
+    b => b === DestinationBadge.WARM_AND_DRY || b === DestinationBadge.HEATWAVE
+  );
+  const [imageLoaded, setImageLoaded] = useState(false);
+
+  return (
+    <Marker
+      coordinate={{ latitude: dest.lat, longitude: dest.lon }}
+      anchor={{ x: 0.5, y: 0.5 }}
+      style={{ overflow: 'visible', zIndex: 999 }}
+      tracksViewChanges={hasImageBadge ? !imageLoaded : false}
+      onPress={onPress}
+    >
+      <View style={markerStyles.markerFrameAndroid}>
+        <View style={[
+          markerStyles.markerContainer,
+          { backgroundColor: getWeatherColor(dest.condition, dest.temperature) },
+          dest.isCurrentLocation && markerStyles.currentLocationMarker,
+          dest.isCenterPoint && markerStyles.centerPointMarker
+        ]}>
+          <Text style={markerStyles.markerWeatherIcon}>{getWeatherIcon(dest.condition)}</Text>
+          <Text style={markerStyles.markerTemp}>
+            {dest.temperature !== null && dest.temperature !== undefined
+              ? Math.round(dest.temperature)
+              : '?'}°
+          </Text>
+          {getMapBadges(dest.badges).length > 0 && (
+            <View style={markerStyles.badgeOverlayContainer}>
+              {getMapBadges(dest.badges)
+                .sort((a, b) => (BadgeMetadata[a]?.priority || 99) - (BadgeMetadata[b]?.priority || 99))
+                .slice(0, 6)
+                .map((badge, badgeIndex) => (
+                  <AnimatedBadge
+                    key={badgeIndex}
+                    icon={BadgeMetadata[badge].icon}
+                    color={BadgeMetadata[badge].color}
+                    delay={badgeIndex * 100}
+                    onImageLoad={hasImageBadge && typeof BadgeMetadata[badge].icon !== 'string' ? () => setImageLoaded(true) : undefined}
+                  />
+                ))}
+            </View>
+          )}
+        </View>
+      </View>
+    </Marker>
+  );
+};
 
 // Map boundaries - restrict visible area
 const MAP_BOUNDS = {
@@ -1682,49 +1740,18 @@ const MapScreen = ({ navigation }) => {
             const trophyBadges = getMapBadges(dest.badges).filter(b => !BadgeMetadata[b]?.excludeFromTrophy);
             return trophyBadges.length > 0;
           })
-          .map((dest, index) => {
-          // Regular marker rendering (favourites skipped above)
-          return (
-          <Marker
+          .map((dest, index) => (
+          <DestinationMarker
             key={`${dest.lat}-${dest.lon}-${index}`}
-            coordinate={{ latitude: dest.lat, longitude: dest.lon }}
-            anchor={{ x: 0.5, y: 0.5 }}
-            style={{ overflow: 'visible', zIndex: 999 }}
+            dest={dest}
+            index={index}
             onPress={() => handleMarkerPress(dest)}
-          >
-            <View style={styles.markerFrameAndroid}>
-              <View style={[
-                styles.markerContainer, 
-                { backgroundColor: getWeatherColor(dest.condition, dest.temperature) },
-                dest.isCurrentLocation && styles.currentLocationMarker,
-                dest.isCenterPoint && styles.centerPointMarker
-              ]}>
-                <Text style={styles.markerWeatherIcon}>{getWeatherIcon(dest.condition)}</Text>
-                <Text style={styles.markerTemp}>
-                  {dest.temperature !== null && dest.temperature !== undefined 
-                    ? Math.round(dest.temperature) 
-                    : '?'}°
-                </Text>
-                {getMapBadges(dest.badges).length > 0 && (
-                  <View style={styles.badgeOverlayContainer}>
-                    {getMapBadges(dest.badges)
-                      .sort((a, b) => (BadgeMetadata[a]?.priority || 99) - (BadgeMetadata[b]?.priority || 99))
-                      .slice(0, 6)
-                      .map((badge, badgeIndex) => (
-                        <AnimatedBadge
-                          key={badgeIndex}
-                          icon={BadgeMetadata[badge].icon}
-                          color={BadgeMetadata[badge].color}
-                          delay={badgeIndex * 100}
-                        />
-                      ))}
-                  </View>
-                )}
-              </View>
-            </View>
-          </Marker>
-          );
-        })}
+            getMapBadges={getMapBadges}
+            getWeatherColor={getWeatherColor}
+            getWeatherIcon={getWeatherIcon}
+            styles={styles}
+          />
+        ))}
 
         {/* Favourites - ALWAYS VISIBLE, rendered separately */}
         {favouriteDestinations
@@ -1745,7 +1772,7 @@ const MapScreen = ({ navigation }) => {
             coordinate={{ latitude: Number(fav.lat), longitude: Number(fav.lon) }}
             anchor={{ x: 0.5, y: 0.5 }}
             zIndex={10000}
-            tracksViewChanges={true}
+            tracksViewChanges={false}
             onPress={() => handleMarkerPress(withWeather || fav)}
           >
             <View style={styles.markerFrameAndroid}>

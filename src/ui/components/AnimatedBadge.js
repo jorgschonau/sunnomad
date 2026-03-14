@@ -4,7 +4,7 @@ import { View, Text, Image, Animated, StyleSheet, Platform } from 'react-native'
 /**
  * Animated Badge Component with BIG pulse and fade-in effects
  */
-const AnimatedBadge = ({ icon, color, delay = 0 }) => {
+const AnimatedBadge = ({ icon, color, delay = 0, onImageLoad }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
   const scaleAnim = useRef(new Animated.Value(0)).current;
@@ -80,7 +80,7 @@ const AnimatedBadge = ({ icon, color, delay = 0 }) => {
       {typeof icon === 'string' ? (
         <Text style={styles.badgeIcon}>{icon}</Text>
       ) : (
-        <Image source={icon} style={styles.badgeImage} />
+        <Image source={icon} style={styles.badgeImage} onLoad={onImageLoad} />
       )}
     </Animated.View>
   );
