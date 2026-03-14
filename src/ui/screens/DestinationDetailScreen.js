@@ -474,18 +474,14 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     return fixedDesc;
   };
 
-  // Format ETA in H:MM format, rounded to 5 minutes
+  // Format ETA as "5h 50min" (no decimal)
   const formatETA = (decimalHours) => {
-    if (!decimalHours || decimalHours <= 0) return '0:00';
-    
+    if (!decimalHours || decimalHours <= 0) return '0h 0min';
     const totalMinutes = Math.round(decimalHours * 60);
-    // Round to nearest 5 minutes
-    const roundedMinutes = Math.round(totalMinutes / 5) * 5;
-    
+    const roundedMinutes = Math.round(totalMinutes / 5) * 5; // Round to nearest 5 min
     const hours = Math.floor(roundedMinutes / 60);
     const minutes = roundedMinutes % 60;
-    
-    return `${hours}:${minutes.toString().padStart(2, '0')}`;
+    return minutes > 0 ? `${hours}h ${minutes}min` : `${hours}h`;
   };
 
   // Calculate sunshine hours from condition
@@ -951,7 +947,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                             🌡️ {t('badges.temperature')}: {springAwakeningData.tempOrigin} °C → {springAwakeningData.tempDest} °C ({springAwakeningData.tempDelta > 0 ? '+' : ''}{springAwakeningData.tempDelta} °C)
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            💨 ETA: {springAwakeningData.eta}h ({Math.round(springAwakeningData.distance)} km)
+                            💨 ETA: {formatETA(springAwakeningData.eta)} ({Math.round(springAwakeningData.distance)} km)
                           </Text>
                         </View>
                       )}
