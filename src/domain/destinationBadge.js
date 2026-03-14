@@ -371,7 +371,10 @@ export function calculateWarmAndDry(destination, tempRankMap) {
   
   // Criteria - seasonal temperature threshold
   const month = new Date().getMonth() + 1;
-  const MIN_TEMP = month >= 6 && month <= 8 ? 28 : 22; // 28 °C in summer (Jun-Aug), 22 °C otherwise
+  let MIN_TEMP;
+  if (month >= 6 && month <= 8) MIN_TEMP = 28;      // Jun–Aug: >= 28 °C
+  else if (month === 5 || month === 9) MIN_TEMP = 22; // May, Sep: >= 22 °C
+  else MIN_TEMP = 20;                                 // All other months: >= 20 °C
   const MAX_WIND = 30; // Max wind speed in km/h
   const MAX_PRECIPITATION = 2; // Max 2mm precipitation
   const BAD_CONDITIONS = ['rainy', 'snowy']; // Conditions that disqualify
@@ -514,8 +517,8 @@ export function calculateSunnyStreak(destination) {
   }
   const avgTemp = temps.length > 0 ? Math.round(temps.reduce((a, b) => a + b, 0) / temps.length) : Math.round(temp);
 
-  // Badge: Sunny condition + 8+ hours sunshine + warm enough (today)
-  const shouldAward = isSunny && hasLongSunshine && isWarmEnough;
+  // Badge: 3+ consecutive sunny days + 8+ hours sunshine today + warm enough
+  const shouldAward = isSunny && hasLongSunshine && isWarmEnough && streakLength >= 3;
 
   const sunshineHours = Math.round(sunshineDuration / 3600 * 10) / 10;
 
@@ -918,12 +921,12 @@ export function calculateWeatherCurse(destination) {
   };
 }
 
-// Frühlingserwachen: only destinations north of ~48°N (DE, NL, DK, SE, NO, PL, etc.)
-const SPRING_AWAKENING_MIN_LAT = 48;
+// Frühlingserwachen: only destinations north of ~45°N (DE, NL, DK, SE, NO, PL, FR north, etc.)
+const SPRING_AWAKENING_MIN_LAT = 45;
 
 /**
  * Calculate "Spring Awakening" eligibility
- * Strict: 18-23 °C, sunny only, wind ≤ 20 km/h, only north of ~48°N.
+ * Strict: 18-23 °C, sunny only, wind ≤ 20 km/h, only north of ~45°N.
  * Only from March 1 - May 15.
  *
  * @param {Object} destination - Destination with weather data (and .lat)
@@ -962,7 +965,7 @@ export function calculateSpringAwakening(destination, origin, distanceKm) {
     };
   }
 
-  // Only countries north of ~48°N (DE, NL, DK, SE, NO, PL, ...)
+  // Only destinations north of ~45°N (DE, NL, DK, SE, NO, PL, FR north, etc.)
   const isNorthEnough = lat >= SPRING_AWAKENING_MIN_LAT;
   if (!isNorthEnough) {
     return {

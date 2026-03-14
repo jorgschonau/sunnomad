@@ -29,6 +29,52 @@ const getWindDescriptionKey = (windSpeed) => {
   return 'destination.windStorm';
 };
 
+/** Display-only: correct day counts for badge descriptions (no badge logic change).
+ *  Today = dest.condition OR forecast.today (same day, count once). Then tomorrow..day4 (5 days total). */
+const getDisplaySnowDays = (dest) => {
+  const f = dest.forecast;
+  const isTodaySnowy = dest.condition === 'snowy' || f?.today?.condition === 'snowy';
+  let n = isTodaySnowy ? 1 : 0;
+  if (f?.tomorrow?.condition === 'snowy') n++;
+  if (f?.day2?.condition === 'snowy') n++;
+  if (f?.day3?.condition === 'snowy') n++;
+  if (f?.day4?.condition === 'snowy') n++;
+  return n;
+};
+const getDisplayRainyDays = (dest) => {
+  const today = dest.condition === 'rainy' || dest.forecast?.today?.condition === 'rainy';
+  let n = today ? 1 : 0;
+  const f = dest.forecast;
+  if (f?.tomorrow?.condition === 'rainy') n++;
+  if (f?.day2?.condition === 'rainy') n++;
+  if (f?.day3?.condition === 'rainy') n++;
+  if (f?.day4?.condition === 'rainy') n++;
+  if (f?.day5?.condition === 'rainy') n++;
+  return n;
+};
+const getDisplayHotDays = (dest) => {
+  const today = (dest.temperature ?? 0) >= 34 || dest.forecast?.today?.high >= 34;
+  let n = today ? 1 : 0;
+  const f = dest.forecast;
+  if (f?.tomorrow?.high >= 34) n++;
+  if (f?.day2?.high >= 34) n++;
+  if (f?.day3?.high >= 34) n++;
+  if (f?.day4?.high >= 34) n++;
+  if (f?.day5?.high >= 34) n++;
+  return n;
+};
+const getDisplaySunnyStreak = (dest) => {
+  const today = dest.condition === 'sunny' || dest.forecast?.today?.condition === 'sunny';
+  if (!today) return 0;
+  let n = 1;
+  const f = dest.forecast;
+  const days = [f?.tomorrow, f?.day2, f?.day3, f?.day4, f?.day5];
+  for (const d of days) {
+    if (d?.condition === 'sunny') n++; else break;
+  }
+  return n;
+};
+
 const DestinationDetailScreen = ({ route, navigation }) => {
   const { t, i18n } = useTranslation();
   const { theme } = useTheme();
@@ -704,19 +750,19 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                   return t('badges.beachparadiseSummary', { temp: beachData.temp, sunnyDays: beachData.sunnyDays });
                 }
                 if (isSunnyStreak && sunnyStreakData) {
-                  return t('badges.sunnystreakSummary', { days: sunnyStreakData.streakLength, avgTemp: sunnyStreakData.avgTemp });
+                  return t('badges.sunnystreakSummary', { days: getDisplaySunnyStreak(destination), avgTemp: sunnyStreakData.avgTemp });
                 }
                 if (isWeatherMiracle && miracleData) {
                   return t('badges.weathermiracleSummary', { tempGain: Math.round(miracleData.tempGain) });
                 }
                 if (isHeatwave && heatwaveData) {
-                  return t('badges.heatwaveSummary', { days: heatwaveData.days, avgTemp: heatwaveData.avgTemp });
+                  return t('badges.heatwaveSummary', { days: getDisplayHotDays(destination), avgTemp: heatwaveData.avgTemp });
                 }
                 if (isSnowKing && snowKingData) {
-                  return t('badges.snowkingSummary', { snowDays: snowKingData.snowDays, snowfall: Math.round((snowKingData.totalSnowfall || 0) / 10) });
+                  return t('badges.snowkingSummary', { snowDays: getDisplaySnowDays(destination), snowfall: Math.round((snowKingData.totalSnowfall || 0) / 10) });
                 }
                 if (isRainyDays && rainyDaysData) {
-                  return t('badges.rainydaysSummary', { rainyDays: rainyDaysData.rainyDays });
+                  return t('badges.rainydaysSummary', { rainyDays: getDisplayRainyDays(destination) });
                 }
                 if (isWeatherCurse && weatherCurseData) {
                   return t('badges.weathercurseSummary', { tempLoss: weatherCurseData.tempLoss });
@@ -869,7 +915,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isSunnyStreak && sunnyStreakData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: metadata.color }]}>
-                            ☀️ {t('badges.sunshineStreak', { count: sunnyStreakData.streakLength })}
+                            ☀️ {t('badges.sunshineStreak', { count: getDisplaySunnyStreak(destination) })}
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
                             🌡️ Ø {sunnyStreakData.avgTemp} °C
@@ -893,7 +939,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isHeatwave && heatwaveData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: metadata.color }]}>
-                            🔥 {t('badges.heatwaveDays', { count: heatwaveData.days })}
+                            🔥 {t('badges.heatwaveDays', { count: getDisplayHotDays(destination) })}
                           </Text>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
                             🌡️ Ø {heatwaveData.avgTemp} °C (Max {heatwaveData.maxTemp} °C)
@@ -905,7 +951,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isSnowKing && snowKingData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: metadata.color }]}>
-                            ❄️ {t('badges.snowDaysCount', { count: snowKingData.snowDays })}
+                            ❄️ {t('badges.snowDaysCount', { count: getDisplaySnowDays(destination) })}
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
                             📊 {t('badges.totalSnowfall', { amount: Math.round((snowKingData.totalSnowfall || 0) / 10) })}
@@ -920,7 +966,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isRainyDays && rainyDaysData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            🌧️ {t('badges.rainyDaysCount', { count: rainyDaysData.rainyDays })}
+                            🌧️ {t('badges.rainyDaysCount', { count: getDisplayRainyDays(destination) })}
                           </Text>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
                             💧 {t('badges.heavyRain')}: {rainyDaysData.hasHeavyRain ? t('badges.heavyRainYes') : t('badges.heavyRainNo')}
@@ -999,7 +1045,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           )}
           
           {forecastRows.map((day, index) => {
-            const isFirst = index === 0;
+            const isBestDay = bestDay && day.key === bestDay.key;
             const isLast = index === forecastRows.length - 1;
             const hasData = day.data != null;
             return (
@@ -1008,15 +1054,15 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                 style={[
                   styles.forecastItem,
                   { borderBottomColor: isLast ? 'transparent' : theme.background },
-                  isFirst && styles.forecastItemSelected,
+                  isBestDay && styles.forecastItemSelected,
                   !hasData && { opacity: 0.4 },
                 ]}
               >
-                <Text style={[styles.forecastDay, { color: isFirst ? '#FF8C42' : theme.text }]}>
-                  {day.label} {isFirst ? '◀' : ''}
+                <Text style={[styles.forecastDay, { color: isBestDay ? '#FF8C42' : theme.text }]}>
+                  {day.label} {isBestDay ? '◀' : ''}
                 </Text>
                 <Text style={styles.forecastIcon}>{hasData ? getWeatherIcon(day.data.condition) : '—'}</Text>
-                <Text style={[styles.forecastTemp, { color: isFirst ? '#FF8C42' : theme.textSecondary, fontWeight: isFirst ? '700' : '500' }]}>
+                <Text style={[styles.forecastTemp, { color: isBestDay ? '#FF8C42' : theme.textSecondary, fontWeight: isBestDay ? '700' : '500' }]}>
                   {hasData ? `${day.data.high}° / ${day.data.low}°` : '—'}
                 </Text>
               </View>
