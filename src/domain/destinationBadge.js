@@ -220,8 +220,18 @@ export function checkWeatherDeterioration(destination, threshold = 4) {
  * @param {number} distanceKm - Distance in km
  * @returns {Object} - { value, delta, eta, weatherDest, weatherOrigin, shouldAward }
  */
+const UK_IE_CODES = new Set(['GB', 'IE']);
+const getCountryCode = (place) => (place?.country || place?.countryCode || place?.country_code || '').toUpperCase().slice(0, 2);
+const isOriginOutsideUKIreland = (origin) => {
+  const code = getCountryCode(origin);
+  return code && !UK_IE_CODES.has(code);
+};
+
 export function calculateWorthTheDrive(destination, origin, distanceKm, reverseMode = 'warm') {
   const isColdMode = reverseMode === 'cold';
+  if (UK_IE_CODES.has(getCountryCode(destination)) && isOriginOutsideUKIreland(origin)) {
+    return { value: 0, delta: 0, eta: 0, weatherDest: 0, weatherOrigin: 0, tempDest: 0, tempOrigin: 0, tempDelta: 0, shouldAward: false, rankScore: 0 };
+  }
   const eta = calculateETA(distanceKm);
   
   // Get weather scores at the same absolute time window (ETA from now)
@@ -303,6 +313,10 @@ export function calculateWorthTheDrive(destination, origin, distanceKm, reverseM
  */
 export function calculateWorthTheDriveBudget(destination, origin, distanceKm, reverseMode = 'warm') {
   const isColdMode = reverseMode === 'cold';
+  if (UK_IE_CODES.has(getCountryCode(destination)) && isOriginOutsideUKIreland(origin)) {
+    const eta = calculateETA(distanceKm);
+    return { efficiency: 0, tempDelta: 0, tempDest: 0, tempOrigin: 0, distance: Math.round(distanceKm), eta: Math.round(eta * 10) / 10, delta: 0, value: 0, isEligible: false };
+  }
   const tempDest = destination.temperature ?? 0;
   const tempOrigin = origin.temperature ?? 0;
   const tempDelta = tempDest - tempOrigin; // positive = warmer, negative = colder
