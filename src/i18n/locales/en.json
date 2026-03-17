@@ -218,7 +218,7 @@
     "beachparadise": "Beach Paradise",
     "beachparadiseDescription": "Perfect beach weather - warm, sunny, light wind",
     "sunnystreak": "Sunny Streak",
-    "sunnystreakDescription": "3+ days of sunshine in a row - stable weather!",
+    "sunnystreakDescription": "{{count}} days of sunshine in a row - stable weather!",
     "weathermiracle": "Weather Miracle",
     "weathermiracleDescription": "Place transforms: Bad today → Sunny & warm tomorrow!",
     "heatwave": "Heatwave",

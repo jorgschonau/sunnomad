@@ -491,49 +491,43 @@ export function calculateBeachParadise(destination) {
 
 /**
  * Calculate "Sunny Streak" eligibility
- * 3+ days of sunshine in a row
+ * 3+ days of sunshine (simple: today + forecast)
  *
  * @param {Object} destination - Destination with forecast data
  * @returns {Object} - { shouldAward, streakLength, avgTemp, sunshineHours, condition, temp }
  */
 export function calculateSunnyStreak(destination) {
   const currentCondition = destination.condition ?? 'unknown';
-  const sunshineDuration = destination.sunshine_duration ?? 0; // seconds of sunshine today
+  const sunshineDuration = destination.sunshine_duration ?? 0;
   const temp = destination.temperature ?? 0;
   const forecast = destination.forecast;
 
-  // sunshine_duration > 28800 = more than 8 hours of sun
-  const MIN_SUNSHINE_SECONDS = 28800; // 8 hours
-  const MIN_TEMP = 10; // At least 10 °C
-
-  const isSunny = currentCondition === 'sunny';
-  const hasLongSunshine = sunshineDuration >= MIN_SUNSHINE_SECONDS;
-  const isWarmEnough = temp >= MIN_TEMP;
-
-  // Count consecutive sunny days from today (for streakLength + avgTemp display)
-  let streakLength = 0;
-  const temps = [];
-  if (isSunny) {
-    streakLength = 1;
-    temps.push(forecast?.today?.high ?? forecast?.today?.temp ?? temp);
-    if (forecast?.tomorrow?.condition === 'sunny') {
-      streakLength++;
-      temps.push(forecast.tomorrow.high ?? forecast.tomorrow.temp ?? temp);
-    }
-    if (streakLength >= 2 && forecast?.day2?.condition === 'sunny') {
-      streakLength++;
-      temps.push(forecast.day2.high ?? forecast.day2.temp ?? temp);
-    }
-    if (streakLength >= 3 && forecast?.day3?.condition === 'sunny') {
-      streakLength++;
-      temps.push(forecast.day3.high ?? forecast.day3.temp ?? temp);
-    }
+  const MIN_TEMP = 10;
+  const MIN_SUNSHINE_SECONDS = 28800; // 8 hours (Open-Meteo: sunshine_duration in seconds)
+  // Count sunny days: today (dest) + tomorrow..day4 (forecast) — today only once
+  let sunnyDays = currentCondition === 'sunny' ? 1 : 0;
+  if (forecast) {
+    if (forecast.tomorrow?.condition === 'sunny') sunnyDays++;
+    if (forecast.day2?.condition === 'sunny') sunnyDays++;
+    if (forecast.day3?.condition === 'sunny') sunnyDays++;
+    if (forecast.day4?.condition === 'sunny') sunnyDays++;
   }
+
+  const streakLength = sunnyDays;
+  const isWarmEnough = temp >= MIN_TEMP;
+  // When sunshine_duration available: require 8+ h. When 0/null: trust 3+ sunny days.
+  const hasLongSunshine = sunshineDuration >= MIN_SUNSHINE_SECONDS || (sunshineDuration <= 0 && sunnyDays >= 3);
+
+  // Avg temp only from sunny days in the streak (today = dest.temp, rest from forecast)
+  const temps = [];
+  if (currentCondition === 'sunny') temps.push(temp);
+  if (forecast?.tomorrow?.condition === 'sunny') temps.push(forecast.tomorrow.high ?? forecast.tomorrow.temp ?? temp);
+  if (forecast?.day2?.condition === 'sunny') temps.push(forecast.day2.high ?? forecast.day2.temp ?? temp);
+  if (forecast?.day3?.condition === 'sunny') temps.push(forecast.day3.high ?? forecast.day3.temp ?? temp);
+  if (forecast?.day4?.condition === 'sunny') temps.push(forecast.day4.high ?? forecast.day4.temp ?? temp);
   const avgTemp = temps.length > 0 ? Math.round(temps.reduce((a, b) => a + b, 0) / temps.length) : Math.round(temp);
 
-  // Badge: 3+ consecutive sunny days + 8+ hours sunshine today + warm enough
-  const shouldAward = isSunny && hasLongSunshine && isWarmEnough && streakLength >= 3;
-
+  const shouldAward = sunnyDays >= 3 && isWarmEnough && hasLongSunshine;
   const sunshineHours = Math.round(sunshineDuration / 3600 * 10) / 10;
 
   return {

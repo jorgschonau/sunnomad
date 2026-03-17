@@ -41,7 +41,6 @@ const customMapStyle = [
   { featureType: 'water', elementType: 'labels', stylers: [{ visibility: 'off' }] },
 ];
 
-// Marker with imageLoaded state for WARM_AND_DRY / HEATWAVE badges
 const DestinationMarker = ({
   dest,
   index,

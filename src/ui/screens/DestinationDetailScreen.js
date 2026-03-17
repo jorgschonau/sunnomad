@@ -750,7 +750,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                   return t('badges.beachparadiseSummary', { temp: beachData.temp, sunnyDays: beachData.sunnyDays });
                 }
                 if (isSunnyStreak && sunnyStreakData) {
-                  return t('badges.sunnystreakSummary', { days: getDisplaySunnyStreak(destination), avgTemp: sunnyStreakData.avgTemp });
+                  return t('badges.sunnystreakSummary', { days: sunnyStreakData.streakLength, avgTemp: sunnyStreakData.avgTemp });
                 }
                 if (isWeatherMiracle && miracleData) {
                   return t('badges.weathermiracleSummary', { tempGain: Math.round(miracleData.tempGain) });
@@ -854,7 +854,9 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                         {isExpanded && (
                           <>
                             <Text style={[styles.badgeDescription, { color: theme.textSecondary }]}>
-                              {t(`badges.${badge.toLowerCase().replace(/_/g, '')}Description`)}
+                              {isSunnyStreak && sunnyStreakData
+                                ? t('badges.sunnystreakDescription', { count: sunnyStreakData.streakLength })
+                                : t(`badges.${badge.toLowerCase().replace(/_/g, '')}Description`)}
                             </Text>
                             
                             {/* Worth the Drive stats */}
@@ -915,7 +917,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isSunnyStreak && sunnyStreakData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: metadata.color }]}>
-                            ☀️ {t('badges.sunshineStreak', { count: getDisplaySunnyStreak(destination) })}
+                            ☀️ {t('badges.sunshineStreak', { count: sunnyStreakData.streakLength })}
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
                             🌡️ Ø {sunnyStreakData.avgTemp} °C

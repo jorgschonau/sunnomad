@@ -218,7 +218,7 @@
     "beachparadise": "Paradis de Plage",
     "beachparadiseDescription": "Temps parfait pour la plage - chaud, ensoleillé, vent léger",
     "sunnystreak": "Série de Soleil",
-    "sunnystreakDescription": "3+ jours de soleil d'affilée - temps stable!",
+    "sunnystreakDescription": "{{count}} jours de soleil d'affilée - temps stable!",
     "weathermiracle": "Miracle Météo",
     "weathermiracleDescription": "Le lieu se transforme: Mauvais aujourd'hui → Ensoleillé & chaud demain!",
     "heatwave": "Canicule",

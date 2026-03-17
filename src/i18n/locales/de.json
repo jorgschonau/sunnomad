@@ -218,7 +218,7 @@
     "beachparadise": "Strandparadies",
     "beachparadiseDescription": "Perfektes Strandwetter - warm, sonnig, wenig Wind",
     "sunnystreak": "Sonnen-Serie",
-    "sunnystreakDescription": "3+ Tage Sonne in Folge - stabiles Wetter!",
+    "sunnystreakDescription": "{{count}} Tage Sonne in Folge - stabiles Wetter!",
     "weathermiracle": "Wetter-Wunder",
     "weathermiracleDescription": "Ort verwandelt sich: Heute mies → Morgen sonnig & warm!",
     "heatwave": "Hitzewelle",
