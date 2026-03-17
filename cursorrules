@@ -83,6 +83,10 @@ BAD: "There are several approaches we could consider..."
 GOOD: [One concrete solution that works]
 
 
+## Proactive Changes
+- Proaktiv etwas ändern ist OK – aber NUR wenn du VORHER fragst
+- Keine zusätzlichen Änderungen ohne explizite Bestätigung
+
 ## Debugging Approach
 - When something doesn't work: ADD CONSOLE LOGS FIRST before refactoring
 - Don't "fix" working code to make it "better" 
