@@ -2,7 +2,7 @@
 
 /**
  * Full Weather Refresh for ALL Locations
- * Uses Open-Meteo API to fetch current + 14-day forecasts
+ * Uses Open-Meteo API to fetch current + 16-day forecasts
  * 
  * Run: node scripts/refresh-all-weather.js
  */
@@ -111,7 +111,7 @@ async function fetchWeather(place) {
       'sunshine_duration',
       'relative_humidity_2m_mean',
     ].join(','),
-    forecast_days: 14,
+    forecast_days: 16,
     timezone: 'auto',
   });
 

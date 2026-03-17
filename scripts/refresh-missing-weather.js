@@ -55,7 +55,7 @@ async function fetchWeather(place) {
     longitude: place.longitude,
     daily: ['temperature_2m_max', 'temperature_2m_min', 'weather_code', 'precipitation_sum', 'precipitation_probability_max', 'wind_speed_10m_max', 'sunrise', 'sunset'],
     timezone: 'auto',
-    forecast_days: 14
+    forecast_days: 16
   });
 
   const apiKeyParam = OPEN_METEO_API_KEY ? `&apikey=${OPEN_METEO_API_KEY}` : '';

@@ -8,6 +8,8 @@ const DATE_PRESETS = [
   { value: 5, line1: '+5', line2: 'Tage' },
   { value: 7, line1: '+7', line2: 'Tage' },
   { value: 10, line1: '+10', line2: 'Tage' },
+  { value: 14, line1: '+14', line2: 'Tage' },
+  { value: 15, line1: '+15', line2: 'Tage' },
 ];
 
 /**

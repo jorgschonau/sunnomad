@@ -95,7 +95,7 @@ async function fetchWeather(place) {
       'wind_gusts_10m_max', 'wind_direction_10m_dominant',
       'sunrise', 'sunset',
     ].join(','),
-    forecast_days: 14,
+    forecast_days: 16,
     timezone: 'auto',
   });
 

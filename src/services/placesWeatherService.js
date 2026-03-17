@@ -98,9 +98,9 @@ export const getPlacesWithWeather = async (filters = {}) => {
       return { places: [], error: null };
     }
     
-    // Query 2: Get weather for places (15 days: offset 10 + 5 forecast slots)
+    // Query 2: Get weather for places (16 days)
     const placeIds = places.map(p => p.id);
-    const fallbackDate = new Date(new Date(targetDate).getTime() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+    const fallbackDate = new Date(new Date(targetDate).getTime() + 16 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     console.log(`🌤️ Fetching weather for ${placeIds.length} places (${targetDate} to ${fallbackDate})...`);
     
     let allWeather = [];
@@ -115,7 +115,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
         .select('place_id, forecast_date, temp_min, temp_max, weather_main, weather_description, weather_icon, wind_speed, sunshine_duration, fetched_at, humidity, precipitation_sum')
         .in('place_id', chunk)
         .gte('forecast_date', targetDate)
-        .lte('forecast_date', fallbackDate)  // 14 days for forecast + badge recalc at any offset
+        .lte('forecast_date', fallbackDate)  // 16 days for forecast + badge recalc at any offset
         .gte('fetched_at', sevenDaysAgo)
         .order('forecast_date', { ascending: true });
       
@@ -126,7 +126,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
     
     console.log(`🌤️ Got ${allWeather.length} weather records (${targetDate} - ${fallbackDate})`);
     
-    // Build weather map with forecast for multiple days (up to 14 days)
+    // Build weather map with forecast for multiple days (up to 16 days)
     const weatherMap = {};
     // Also build raw arrays per place (for date-offset badge recalculation)
     const forecastArrays = {};
@@ -275,7 +275,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
           wind_speed: place.wind_speed,
           sunshine_duration: place.sunshine_duration,
           forecast: place.forecast, // Multi-day forecast for badges!
-          forecastArray: place.forecastArray, // Raw array (14 days) for date-offset shift in MapScreen + Detail
+          forecastArray: place.forecastArray, // Raw array (16 days) for date-offset shift in MapScreen + Detail
           precipitation_sum: null,
           precipitation_probability: null,
           sunrise: null,
@@ -372,7 +372,7 @@ export const getPlaceDetail = async (placeId, locale = 'en') => {
       return { place: null, forecast: [], error: 'Place not found' };
     }
     
-    // Get weather + forecast (16 days to support date offset 10 + 5 forecast slots)
+    // Get weather + forecast (16 days)
     const today = new Date().toISOString().split('T')[0];
     const { data: allWeather, error: weatherError } = await supabase
       .from('weather_forecast')
@@ -573,7 +573,7 @@ function adaptPlaceToDestination(place, locale = 'en') {
     
     // Multi-day forecast for badge calculation!
     forecast: place.forecast || null,
-    // Raw forecast array (14–15 days) for date-offset shift in MapScreen + Detail
+    // Raw forecast array (16 days) for date-offset shift in MapScreen + Detail
     forecastArray: place.forecastArray || null,
     
     // Future: badges will be calculated based on weather + place attributes
