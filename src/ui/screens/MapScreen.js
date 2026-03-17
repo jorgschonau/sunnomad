@@ -685,7 +685,7 @@ const MapScreen = ({ navigation }) => {
         ].join(','),
         current: ['relative_humidity_2m', 'cloud_cover'].join(','),
         timezone: 'auto',
-        forecast_days: 14,
+        forecast_days: 16,
       });
       const url = `https://customer-api.open-meteo.com/v1/forecast?${params}&apikey=8cJ4NUh7dYHZF1uv`;
       // Run geocode and Open-Meteo in parallel so we don't wait for city name before weather
@@ -1215,7 +1215,7 @@ const MapScreen = ({ navigation }) => {
           'cloud_cover',
         ].join(','),
         timezone: 'auto',
-        forecast_days: 14,
+        forecast_days: 16,
       });
 
       const url = `https://customer-api.open-meteo.com/v1/forecast?${params}&apikey=8cJ4NUh7dYHZF1uv`;
