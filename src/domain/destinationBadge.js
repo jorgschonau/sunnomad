@@ -34,7 +34,7 @@ export const BadgeMetadata = {
     priority: 1, // Same as Budget (mutually exclusive)
   },
   [DestinationBadge.WARM_AND_DRY]: {
-    icon: require('../../assets/warmanddry_new.jpg'),
+    icon: require('../../assets/warmanddry.png'),
     color: '#FF6B35', // Orange-red
     priority: 2,
     excludeFromTrophy: true, // Show on map, but don't count for trophy filter
@@ -45,7 +45,7 @@ export const BadgeMetadata = {
     priority: 3,
   },
   [DestinationBadge.HEATWAVE]: {
-    icon: require('../../assets/heatwave_chatgpt5.jpg'),
+    icon: require('../../assets/heatwave.png'),
     color: '#FF5722', // Red/Orange
     priority: 4,
     excludeFromTrophy: true, // Warning badge, but still combinable with WTD/Budget
@@ -221,15 +221,13 @@ export function checkWeatherDeterioration(destination, threshold = 4) {
  * @returns {Object} - { value, delta, eta, weatherDest, weatherOrigin, shouldAward }
  */
 const UK_IE_CODES = new Set(['GB', 'IE']);
-const getCountryCode = (place) => (place?.country || place?.countryCode || place?.country_code || '').toUpperCase().slice(0, 2);
-const isOriginOutsideUKIreland = (origin) => {
-  const code = getCountryCode(origin);
-  return code && !UK_IE_CODES.has(code);
-};
+const cc = (place) => (place?.country_code || place?.countryCode || '').toUpperCase();
 
 export function calculateWorthTheDrive(destination, origin, distanceKm, reverseMode = 'warm') {
   const isColdMode = reverseMode === 'cold';
-  if (UK_IE_CODES.has(getCountryCode(destination)) && isOriginOutsideUKIreland(origin)) {
+  const destCc = cc(destination);
+  const originCc = cc(origin);
+  if (UK_IE_CODES.has(destCc) && !UK_IE_CODES.has(originCc)) {
     return { value: 0, delta: 0, eta: 0, weatherDest: 0, weatherOrigin: 0, tempDest: 0, tempOrigin: 0, tempDelta: 0, shouldAward: false, rankScore: 0 };
   }
   const eta = calculateETA(distanceKm);
@@ -313,7 +311,9 @@ export function calculateWorthTheDrive(destination, origin, distanceKm, reverseM
  */
 export function calculateWorthTheDriveBudget(destination, origin, distanceKm, reverseMode = 'warm') {
   const isColdMode = reverseMode === 'cold';
-  if (UK_IE_CODES.has(getCountryCode(destination)) && isOriginOutsideUKIreland(origin)) {
+  const destCc = cc(destination);
+  const originCc = cc(origin);
+  if (UK_IE_CODES.has(destCc) && !UK_IE_CODES.has(originCc)) {
     const eta = calculateETA(distanceKm);
     return { efficiency: 0, tempDelta: 0, tempDest: 0, tempOrigin: 0, distance: Math.round(distanceKm), eta: Math.round(eta * 10) / 10, delta: 0, value: 0, isEligible: false };
   }
@@ -500,31 +500,22 @@ export function calculateSunnyStreak(destination) {
   const currentCondition = destination.condition ?? 'unknown';
   const sunshineDuration = destination.sunshine_duration ?? 0;
   const temp = destination.temperature ?? 0;
-  const forecast = destination.forecast;
 
   const MIN_TEMP = 10;
   const MIN_SUNSHINE_SECONDS = 28800; // 8 hours (Open-Meteo: sunshine_duration in seconds)
-  // Count sunny days: today (dest) + tomorrow..day4 (forecast) — today only once
-  let sunnyDays = currentCondition === 'sunny' ? 1 : 0;
-  if (forecast) {
-    if (forecast.tomorrow?.condition === 'sunny') sunnyDays++;
-    if (forecast.day2?.condition === 'sunny') sunnyDays++;
-    if (forecast.day3?.condition === 'sunny') sunnyDays++;
-    if (forecast.day4?.condition === 'sunny') sunnyDays++;
-  }
-
+  // Count sunny days from forecastArray[0..4] — exactly what the UI shows (5 forecast slots)
+  const arr = destination.forecastArray || [];
+  const slots = [arr[0], arr[1], arr[2], arr[3], arr[4]];
+  const sunnySlots = slots.filter(s => s?.condition === 'sunny');
+  const sunnyDays = sunnySlots.length;
   const streakLength = sunnyDays;
+
   const isWarmEnough = temp >= MIN_TEMP;
   // When sunshine_duration available: require 8+ h. When 0/null: trust 3+ sunny days.
   const hasLongSunshine = sunshineDuration >= MIN_SUNSHINE_SECONDS || (sunshineDuration <= 0 && sunnyDays >= 3);
 
-  // Avg temp only from sunny days in the streak (today = dest.temp, rest from forecast)
-  const temps = [];
-  if (currentCondition === 'sunny') temps.push(temp);
-  if (forecast?.tomorrow?.condition === 'sunny') temps.push(forecast.tomorrow.high ?? forecast.tomorrow.temp ?? temp);
-  if (forecast?.day2?.condition === 'sunny') temps.push(forecast.day2.high ?? forecast.day2.temp ?? temp);
-  if (forecast?.day3?.condition === 'sunny') temps.push(forecast.day3.high ?? forecast.day3.temp ?? temp);
-  if (forecast?.day4?.condition === 'sunny') temps.push(forecast.day4.high ?? forecast.day4.temp ?? temp);
+  // Avg temp only from sunny days in those 5 slots
+  const temps = sunnySlots.map(s => s.high ?? s.temp ?? temp);
   const avgTemp = temps.length > 0 ? Math.round(temps.reduce((a, b) => a + b, 0) / temps.length) : Math.round(temp);
 
   const shouldAward = sunnyDays >= 3 && isWarmEnough && hasLongSunshine;

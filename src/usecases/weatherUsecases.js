@@ -381,6 +381,25 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
     });
   }
   
+  // UK/IE: Strip Budget + Worth the Drive from GB/IE destinations when origin is outside UK/Ireland
+  const UK_IE_CODES = new Set(['GB', 'IE']);
+  const getCc = (p) => (p?.country_code || p?.countryCode || '').toUpperCase().slice(0, 2);
+  const originCc = getCc(originLocation);
+  const originInUKIreland = originCc && UK_IE_CODES.has(originCc);
+  if (!originInUKIreland) {
+    destinations.forEach(d => {
+      if (d.isCurrentLocation || d.isCenterPoint) return;
+      const destCc = getCc(d);
+      if (UK_IE_CODES.has(destCc)) {
+        const had = d.badges?.length ?? 0;
+        d.badges = (d.badges || []).filter(b => b !== 'WORTH_THE_DRIVE' && b !== 'WORTH_THE_DRIVE_BUDGET');
+        if (d.badges.length < had && __DEV__) {
+          console.log(`🇬🇧 Stripped ${d.name} (${destCc}): no Budget/WTD when origin outside UK/IE (origin: ${originCc || 'unknown'})`);
+        }
+      }
+    });
+  }
+
   const destWithBadges = destinations.filter(d => d.badges && d.badges.length > 0);
   const totalBadges = destWithBadges.reduce((sum, d) => sum + d.badges.length, 0);
   const worthCount = destinations.filter(d => d.badges?.includes('WORTH_THE_DRIVE')).length;
@@ -510,7 +529,11 @@ export const getWeatherForRadius = async (userLat, userLon, radiusKm, desiredCon
       : (filteredPlaces.length > 0 
           ? Math.round(filteredPlaces.reduce((sum, p) => sum + (p.temperature || 15), 0) / filteredPlaces.length)
           : 15);
-    
+    // Use closest place's country for UK/IE badge logic (Budget/Drive blocked when dest in GB/IE, origin outside)
+    const closest = filteredPlaces.length > 0
+      ? filteredPlaces.reduce((a, b) => ((a.distance ?? 999999) < (b.distance ?? 999999) ? a : b))
+      : null;
+    const originCountry = closest?.country_code || closest?.countryCode || null;
     currentLocationWeather = {
       lat: userLat,
       lon: userLon,
@@ -521,6 +544,8 @@ export const getWeatherForRadius = async (userLat, userLon, radiusKm, desiredCon
       humidity: 50,
       name: 'Your Location',
       isCurrentLocation: true,
+      country_code: originCountry,
+      countryCode: originCountry,
     };
   }
   

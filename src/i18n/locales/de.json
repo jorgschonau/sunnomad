@@ -222,7 +222,7 @@
     "weathermiracle": "Wetter-Wunder",
     "weathermiracleDescription": "Ort verwandelt sich: Heute mies → Morgen sonnig & warm!",
     "heatwave": "Hitzewelle",
-    "heatwaveDescription": "3+ Tage über 34 °C ohne Regen",
+    "heatwaveDescription": "{{count}} Tage über 34 °C ohne Regen",
     "snowking": "Schneekönig",
     "snowkingDescription": "Viel Schnee (10+ mm) und kalt genug - perfekt zum Skifahren",
     "rainydays": "Regentage",

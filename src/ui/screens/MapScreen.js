@@ -54,6 +54,9 @@ const DestinationMarker = ({
     b => b === DestinationBadge.WARM_AND_DRY || b === DestinationBadge.HEATWAVE
   );
   const [imageLoaded, setImageLoaded] = useState(false);
+  const handleImageLoad = useCallback(() => {
+    setTimeout(() => setImageLoaded(true), 500);
+  }, []);
 
   return (
     <Marker
@@ -87,7 +90,7 @@ const DestinationMarker = ({
                     icon={BadgeMetadata[badge].icon}
                     color={BadgeMetadata[badge].color}
                     delay={badgeIndex * 100}
-                    onImageLoad={hasImageBadge && typeof BadgeMetadata[badge].icon !== 'string' ? () => setImageLoaded(true) : undefined}
+                    onImageLoad={hasImageBadge && typeof BadgeMetadata[badge].icon !== 'string' ? handleImageLoad : undefined}
                   />
                 ))}
             </View>
@@ -695,8 +698,11 @@ const MapScreen = ({ navigation }) => {
       if (!response.ok) return null;
       const data = await response.json();
       let cityName = 'Dein Standort';
+      let countryCode = null;
       if (geocodeResult && geocodeResult[0]) {
-        cityName = geocodeResult[0].city || geocodeResult[0].district || geocodeResult[0].region || 'Dein Standort';
+        const g = geocodeResult[0];
+        cityName = g.city || g.district || g.region || 'Dein Standort';
+        countryCode = g.isoCountryCode || null;
       }
       const daily = data.daily;
       const current = data.current || {};
@@ -732,6 +738,8 @@ const MapScreen = ({ navigation }) => {
         isCurrentLocation: true,
         badges: [],
         forecastDays: forecastDaysArr, // All 6 days for date filter
+        country_code: countryCode,
+        countryCode,
       };
     } catch (error) {
       console.warn('Failed to fetch current location weather:', error);
@@ -1182,8 +1190,9 @@ const MapScreen = ({ navigation }) => {
    */
   const fetchCenterPointWeather = async (lat, lon) => {
     try {
-      // Get city name from reverse geocoding
+      // Get city name and country from reverse geocoding
       let cityName = 'Neuer Mittelpunkt';
+      let countryCode = null;
       try {
         const geocode = await Location.reverseGeocodeAsync({
           latitude: lat,
@@ -1191,7 +1200,9 @@ const MapScreen = ({ navigation }) => {
         });
         
         if (geocode && geocode[0]) {
-          cityName = geocode[0].city || geocode[0].district || geocode[0].region || 'Neuer Mittelpunkt';
+          const g = geocode[0];
+          cityName = g.city || g.district || g.region || 'Neuer Mittelpunkt';
+          countryCode = g.isoCountryCode || null;
         }
       } catch (geoError) {
         console.warn('Reverse geocoding failed:', geoError);
@@ -1259,6 +1270,8 @@ const MapScreen = ({ navigation }) => {
         isCenterPoint: true,
         badges: [],
         forecastDays: forecastDaysArr, // All 6 days for date filter
+        country_code: countryCode,
+        countryCode,
       };
       
       setCenterPointWeather(weatherData);

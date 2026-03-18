@@ -63,16 +63,16 @@ const getDisplayHotDays = (dest) => {
   if (f?.day5?.high >= 34) n++;
   return n;
 };
+// Must match calculateSunnyStreak: count sunny in first 5 slots (same as UI)
 const getDisplaySunnyStreak = (dest) => {
-  const today = dest.condition === 'sunny' || dest.forecast?.today?.condition === 'sunny';
-  if (!today) return 0;
-  let n = 1;
-  const f = dest.forecast;
-  const days = [f?.tomorrow, f?.day2, f?.day3, f?.day4, f?.day5];
-  for (const d of days) {
-    if (d?.condition === 'sunny') n++; else break;
+  const arr = dest.forecastArray;
+  if (arr?.length) {
+    const slots = [arr[0], arr[1], arr[2], arr[3], arr[4]];
+    return slots.filter(s => s?.condition === 'sunny').length;
   }
-  return n;
+  const f = dest.forecast;
+  const slots = [f?.today, f?.tomorrow, f?.day2, f?.day3, f?.day4];
+  return slots.filter(s => s?.condition === 'sunny').length;
 };
 
 const DestinationDetailScreen = ({ route, navigation }) => {
@@ -749,14 +749,16 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                 if (isBeachParadise && beachData) {
                   return t('badges.beachparadiseSummary', { temp: beachData.temp, sunnyDays: beachData.sunnyDays });
                 }
-                if (isSunnyStreak && sunnyStreakData) {
-                  return t('badges.sunnystreakSummary', { days: sunnyStreakData.streakLength, avgTemp: sunnyStreakData.avgTemp });
+                if (isSunnyStreak) {
+                  const days = sunnyStreakData?.streakLength ?? getDisplaySunnyStreak(destination);
+                  const avg = sunnyStreakData?.avgTemp ?? destination.temperature;
+                  return t('badges.sunnystreakSummary', { days, avgTemp: avg });
                 }
                 if (isWeatherMiracle && miracleData) {
                   return t('badges.weathermiracleSummary', { tempGain: Math.round(miracleData.tempGain) });
                 }
                 if (isHeatwave && heatwaveData) {
-                  return t('badges.heatwaveSummary', { days: getDisplayHotDays(destination), avgTemp: heatwaveData.avgTemp });
+                  return t('badges.heatwaveSummary', { days: heatwaveData.hotDays, avgTemp: heatwaveData.avgTemp });
                 }
                 if (isSnowKing && snowKingData) {
                   return t('badges.snowkingSummary', { snowDays: getDisplaySnowDays(destination), snowfall: Math.round((snowKingData.totalSnowfall || 0) / 10) });
@@ -854,8 +856,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                         {isExpanded && (
                           <>
                             <Text style={[styles.badgeDescription, { color: theme.textSecondary }]}>
-                              {isSunnyStreak && sunnyStreakData
-                                ? t('badges.sunnystreakDescription', { count: sunnyStreakData.streakLength })
+                              {isSunnyStreak
+                                ? t('badges.sunnystreakDescription', { count: sunnyStreakData?.streakLength ?? getDisplaySunnyStreak(destination) })
+                                : isHeatwave && heatwaveData
+                                ? t('badges.heatwaveDescription', { count: heatwaveData.hotDays })
                                 : t(`badges.${badge.toLowerCase().replace(/_/g, '')}Description`)}
                             </Text>
                             
@@ -914,13 +918,13 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       )}
                       
                       {/* Sunny Streak stats */}
-                      {isSunnyStreak && sunnyStreakData && (
+                      {isSunnyStreak && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: metadata.color }]}>
-                            ☀️ {t('badges.sunshineStreak', { count: sunnyStreakData.streakLength })}
+                            ☀️ {t('badges.sunshineStreak', { count: sunnyStreakData?.streakLength ?? getDisplaySunnyStreak(destination) })}
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            🌡️ Ø {sunnyStreakData.avgTemp} °C
+                            🌡️ Ø {Math.round(sunnyStreakData?.avgTemp ?? destination.temperature ?? 0)} °C
                           </Text>
                         </View>
                       )}
@@ -941,7 +945,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isHeatwave && heatwaveData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: metadata.color }]}>
-                            🔥 {t('badges.heatwaveDays', { count: getDisplayHotDays(destination) })}
+                            🔥 {t('badges.heatwaveDays', { count: heatwaveData.hotDays })}
                           </Text>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
                             🌡️ Ø {heatwaveData.avgTemp} °C (Max {heatwaveData.maxTemp} °C)

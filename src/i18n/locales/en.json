@@ -222,7 +222,7 @@
     "weathermiracle": "Weather Miracle",
     "weathermiracleDescription": "Place transforms: Bad today → Sunny & warm tomorrow!",
     "heatwave": "Heatwave",
-    "heatwaveDescription": "3+ days above 34 °C with no rain",
+    "heatwaveDescription": "{{count}} days above 34 °C with no rain",
     "snowking": "Snow King",
     "snowkingDescription": "Heavy snow (10+ mm) and cold enough - perfect for skiing",
     "rainydays": "Rainy Days",
