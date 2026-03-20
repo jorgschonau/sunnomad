@@ -1055,14 +1055,14 @@ const MapScreen = ({ navigation }) => {
         const bScore = b.attractivenessScore || b.attractiveness_score || 50;
         return bScore - aScore;
       });
-    const pinnedMinDist = minDistance * 1.5;
+    const PINNED_MIN_DIST_KM = 30;
     const pinned = [];
     for (const p of pinnedCandidates) {
       const lat = p.lat || p.latitude;
       const lon = p.lon || p.longitude;
       let tooClose = false;
       for (const existing of pinned) {
-        if (getDistanceKm(lat, lon, existing.lat || existing.latitude, existing.lon || existing.longitude) < pinnedMinDist) {
+        if (getDistanceKm(lat, lon, existing.lat || existing.latitude, existing.lon || existing.longitude) < PINNED_MIN_DIST_KM) {
           tooClose = true;
           break;
         }
