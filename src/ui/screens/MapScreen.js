@@ -1146,14 +1146,15 @@ const MapScreen = ({ navigation }) => {
 
   const visibleMarkers = useMemo(() => {
     if (!displayDestinations.length || !location || !radius) return [];
+    const effectiveCenter = centerPoint || location;
     const inRadiusDestinations = displayDestinations.filter(d => {
       const lat = d.lat ?? d.latitude;
       const lon = d.lon ?? d.longitude;
       if (!lat || !lon) return false;
-      return getDistanceKm(location.latitude, location.longitude, lat, lon) <= radius;
+      return getDistanceKm(effectiveCenter.latitude, effectiveCenter.longitude, lat, lon) <= radius;
     });
     return getVisibleMarkers(inRadiusDestinations, currentZoom, currentBounds, favouriteDestinations);
-  }, [displayDestinations, currentZoom, currentBounds, location, radius, favouriteDestinations]);
+  }, [displayDestinations, currentZoom, currentBounds, location, radius, favouriteDestinations, centerPoint]);
 
   // Track map_view_count as a side-effect of visibleMarkers changing
   useEffect(() => {
