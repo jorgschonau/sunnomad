@@ -492,26 +492,25 @@ export const getWeatherForRadius = async (userLat, userLon, radiusKm, desiredCon
     MAX_PLACES_ON_MAP = 8000;
   }
   
-  if (filteredPlaces.length > MAX_PLACES_ON_MAP) {
-    // WICHTIG: Sortiere nach Relevanz BEVOR wir kürzen!
-    // Sonst werden gute Orte zufällig abgeschnitten (z.B. Heerlen bei 1000km)
-    filteredPlaces.sort((a, b) => {
-      // 1. Attractiveness Score (höher = besser)
-      const aScore = a.attractivenessScore || a.attractiveness_score || 50;
-      const bScore = b.attractivenessScore || b.attractiveness_score || 50;
-      if (aScore !== bScore) return bScore - aScore;
-      
-      // 2. Temperatur (warm mode: wärmer = besser, cold mode: kälter = besser)
-      const aTemp = a.temperature || 0;
-      const bTemp = b.temperature || 0;
-      if (Math.abs(aTemp - bTemp) > 3) return reverseMode === 'cold' ? aTemp - bTemp : bTemp - aTemp;
-      
-      // 3. Distanz (näher = besser)
-      const aDist = a.distance || Infinity;
-      const bDist = b.distance || Infinity;
-      return aDist - bDist;
-    });
+  // Sort by relevance (mode-aware: warm = hottest first, cold = coldest first)
+  filteredPlaces.sort((a, b) => {
+    // 1. Attractiveness Score (höher = besser)
+    const aScore = a.attractivenessScore || a.attractiveness_score || 50;
+    const bScore = b.attractivenessScore || b.attractiveness_score || 50;
+    if (aScore !== bScore) return bScore - aScore;
     
+    // 2. Temperatur (warm mode: wärmer = besser, cold mode: kälter = besser)
+    const aTemp = a.temperature || 0;
+    const bTemp = b.temperature || 0;
+    if (Math.abs(aTemp - bTemp) > 3) return reverseMode === 'cold' ? aTemp - bTemp : bTemp - aTemp;
+    
+    // 3. Distanz (näher = besser)
+    const aDist = a.distance || Infinity;
+    const bDist = b.distance || Infinity;
+    return aDist - bDist;
+  });
+
+  if (filteredPlaces.length > MAX_PLACES_ON_MAP) {
     console.log(`⚡ Limiting to ${MAX_PLACES_ON_MAP} places for radius ${radiusKm}km (sorted by attractiveness)`);
     filteredPlaces = filteredPlaces.slice(0, MAX_PLACES_ON_MAP);
   }

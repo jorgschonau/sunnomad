@@ -961,7 +961,10 @@ const MapScreen = ({ navigation }) => {
     else zoomFactor = 5.0;
     
     const maxCap = Platform.OS === 'android' ? 80 : 150;
-    const minFloor = Platform.OS === 'android' ? 20 : 40;
+    const minFloor = zoom >= 7 ? (Platform.OS === 'android' ? 40 : 80) :
+                     zoom >= 5 ? (Platform.OS === 'android' ? 30 : 65) :
+                     zoom >= 4 ? (Platform.OS === 'android' ? 25 : 55) :
+                     (Platform.OS === 'android' ? 20 : 40);
     const total = Math.min(Math.max(base * zoomFactor, minFloor), maxCap);
     return Math.round(total);
   };
