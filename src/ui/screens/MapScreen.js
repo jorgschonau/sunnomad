@@ -56,10 +56,17 @@ const DestinationMarker = ({
   const hasImageBadge = getMapBadges(dest.badges).some(
     b => b === DestinationBadge.WARM_AND_DRY || b === DestinationBadge.HEATWAVE
   );
-  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(!hasImageBadge);
   const handleImageLoad = useCallback(() => {
     setTimeout(() => setImageLoaded(true), 500);
   }, []);
+
+  // Safety: force tracksViewChanges off after 3s even if image never fires onLoad
+  useEffect(() => {
+    if (imageLoaded || !hasImageBadge) return;
+    const safety = setTimeout(() => setImageLoaded(true), 3000);
+    return () => clearTimeout(safety);
+  }, [hasImageBadge, imageLoaded]);
 
   return (
     <Marker
@@ -1182,7 +1189,6 @@ const MapScreen = ({ navigation }) => {
     
     playTickSound();
     
-    // Set new center point
     const newCenter = {
       latitude,
       longitude,
@@ -1190,21 +1196,17 @@ const MapScreen = ({ navigation }) => {
       longitudeDelta: 2,
     };
     
-    setCenterPoint(newCenter);
-    
-    // Fetch weather for new center point
+    // Fetch weather FIRST so centerPointWeather is ready when useEffect fires
     await fetchCenterPointWeather(latitude, longitude);
     
-    // Save to AsyncStorage
-    try {
-      await AsyncStorage.setItem('mapCenterPoint', JSON.stringify(newCenter));
-    } catch (error) {
-      console.warn('Failed to save center point:', error);
-    }
+    // Now set center point — this triggers the useEffect that calls loadDestinations
+    setCenterPoint(newCenter);
+    
+    AsyncStorage.setItem('mapCenterPoint', JSON.stringify(newCenter)).catch(error =>
+      console.warn('Failed to save center point:', error)
+    );
     
     showToast('📍 Neuer Mittelpunkt gesetzt', 'info');
-    
-    // Note: useEffect with centerPoint dependency will automatically reload destinations
   };
 
   /**

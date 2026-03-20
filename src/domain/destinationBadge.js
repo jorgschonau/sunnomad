@@ -223,7 +223,7 @@ export function checkWeatherDeterioration(destination, threshold = 4) {
  * @param {number} distanceKm - Distance in km
  * @returns {Object} - { value, delta, eta, weatherDest, weatherOrigin, shouldAward }
  */
-const UK_IE_CODES = new Set(['GB', 'IE']);
+const UK_IE_CODES = new Set(['GB', 'IE', 'CU', 'JM', 'DO', 'HT', 'TN']);
 const cc = (place) => (place?.country_code || place?.countryCode || '').toUpperCase();
 
 export function calculateWorthTheDrive(destination, origin, distanceKm, reverseMode = 'warm') {
@@ -1086,7 +1086,11 @@ export function calculateBadges(destination, userLocation, distanceKm, tempRankM
   
   // Flag: Skip Worth the Drive badges if weather is getting worse
   // In cold mode, deterioration (getting colder) is actually GOOD, so don't skip
-  const skipWorthTheDrive = reverseMode === 'cold' ? false : (hasWeatherCurse || isDeterioritating);
+  // Deterioration is only a problem if future temp drops below origin + 4°C
+  // (e.g. 32→27 is fine if origin is 20°C, because 27 > 20+4)
+  const originTemp = userLocation?.temperature ?? 0;
+  const futureStillWarm = deteriorationResult.avgFutureTemp >= (originTemp + 4);
+  const skipWorthTheDrive = reverseMode === 'cold' ? false : (hasWeatherCurse || (isDeterioritating && !futureStillWarm));
   
   if (skipWorthTheDrive) {
     devLog(`⚠️ ${destination.name}: Skipping Worth the Drive - ` +
