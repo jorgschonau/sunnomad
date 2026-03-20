@@ -662,7 +662,24 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         {/* Obere Zeile: Name & Temperatur */}
         <View style={styles.headerTop}>
           <View style={styles.headerNameContainer}>
-            <Text style={[styles.headerTitle, { color: textColor }]} numberOfLines={2}>{forecast.name}</Text>
+            {(() => {
+              const name = forecast.name || '';
+              const hasSpace = name.includes(' ');
+              const isLong = name.length > 15;
+              return (
+                <Text
+                  style={[styles.headerTitle, {
+                    color: textColor,
+                    fontSize: isLong ? (hasSpace ? 28 : 22) : 34,
+                  }]}
+                  numberOfLines={hasSpace ? 2 : 1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.5}
+                >
+                  {name}
+                </Text>
+              );
+            })()}
             {(forecast.countryCode || forecast.country_code) && (
               <Text style={[styles.headerCountry, { color: subtitleColor }]}>
                 {getCountryName(forecast.countryCode || forecast.country_code, i18n.language || 'en')}
