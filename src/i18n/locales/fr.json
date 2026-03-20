@@ -211,8 +211,10 @@
   "badges": {
     "worththedrive": "Vaut le détour",
     "worththedriveDescription": "Meilleur gain météo par km",
+    "worththedriveDescriptionCold": "Meilleure fraîcheur par km",
     "worththedrivebudget": "Choix Budget",
     "worththedrivebudgetDescription": "Bon temps, plus proche - économise du carburant!",
+    "worththedrivebudgetDescriptionCold": "Fraîcheur proche - économise du carburant!",
     "warmanddry": "Chaud & Sec",
     "warmanddryDescription": "Chaleur maximale avec bonnes conditions",
     "beachparadise": "Paradis de Plage",

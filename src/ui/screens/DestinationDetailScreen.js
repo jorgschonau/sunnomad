@@ -81,7 +81,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const { t, i18n } = useTranslation();
   const { theme } = useTheme();
   const { temperatureUnit, distanceUnit } = useUnits();
-  const { destination, selectedDateOffset = 0 } = route.params;
+  const { destination, selectedDateOffset = 0, reverseMode = 'warm' } = route.params;
   const tempSym = getTemperatureSymbol(temperatureUnit);
   const distSym = getDistanceSymbol(distanceUnit);
   const fmtTemp = (c) => formatTemperature(c, temperatureUnit);
@@ -580,32 +580,32 @@ const DestinationDetailScreen = ({ route, navigation }) => {
    */
   const findBestDay = () => {
     if (!forecast?.forecast) return null;
-    
+    const isColdMode = reverseMode === 'cold';
+
     const conditionScore = (condition) => {
       if (!condition) return 0;
       const c = condition.toLowerCase();
       if (c === 'sunny' || c.includes('clear')) return 100;
       if (c === 'cloudy' || c.includes('partly')) return 60;
       if (c.includes('overcast')) return 40;
-      if (c.includes('wind')) return 50;  // wind not as bad as rain; warm + windy can still be best day
+      if (c.includes('wind')) return 50;
       if (c.includes('rain') || c.includes('snow')) return 10;
       return 50;
     };
-    
+
     const days = forecastRows.filter(d => d.data);
     if (days.length === 0) return null;
-    
+
     const scored = days.map(day => {
       const temp = day.data.high ?? day.data.temp ?? 0;
       const cond = conditionScore(day.data.condition);
-      // Range: -20 °C = 0, +35 °C = 100 (handles winter temps properly)
-      const tempNormalized = Math.max(0, Math.min(100, ((temp + 20) / 55) * 100));
-      // Temperature 60%, condition 40% so warmer days can win over cooler but slightly nicer conditions
+      const tempNormalized = isColdMode
+        ? Math.max(0, Math.min(100, ((35 - temp) / 55) * 100))
+        : Math.max(0, Math.min(100, ((temp + 20) / 55) * 100));
       const score = tempNormalized * 0.6 + cond * 0.4;
       return { ...day, score, temp, condition: day.data.condition };
     });
-    
-    // a.score >= b.score: prefer earlier day on tie
+
     return scored.reduce((a, b) => a.score >= b.score ? a : b);
   };
 
@@ -871,6 +871,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                                 ? t('badges.sunnystreakDescription', { count: sunnyStreakData?.streakLength ?? getDisplaySunnyStreak(destination) })
                                 : isHeatwave && heatwaveData
                                 ? t('badges.heatwaveDescription', { count: heatwaveData.hotDays, heatThreshold: fmtTemp(34) })
+                                : (isWorthTheDrive || isWorthTheDriveBudget) && reverseMode === 'cold'
+                                ? t(`badges.${badge.toLowerCase().replace(/_/g, '')}DescriptionCold`)
                                 : t(`badges.${badge.toLowerCase().replace(/_/g, '')}Description`)}
                             </Text>
                             

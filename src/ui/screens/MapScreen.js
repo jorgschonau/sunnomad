@@ -784,7 +784,7 @@ const MapScreen = ({ navigation }) => {
 
   const handleMarkerPress = (destination) => {
     if (destination.id) trackDetailView(destination.id);
-    navigation.navigate('DestinationDetail', { destination, selectedDateOffset });
+    navigation.navigate('DestinationDetail', { destination, selectedDateOffset, reverseMode });
   };
 
   const handleRadiusIncrease = async () => {

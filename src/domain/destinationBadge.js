@@ -258,13 +258,19 @@ export function calculateWorthTheDrive(destination, origin, distanceKm, reverseM
   const effectiveDelta = isColdMode ? Math.abs(tempDelta) : delta;
   const value = effectiveDelta / (eta + 0.75); // +0.75 penalty factor
   
-  // Gating criteria
+  // Distance-dependent thresholds for geographic diversity at large radii
+  const isLongRange = roadDistanceKm > 1500;
+  const isMidRange = roadDistanceKm > 600 && roadDistanceKm <= 1500;
+
+  const MIN_VALUE = isLongRange ? 0.1 : isMidRange ? 0.4 : 1.0;
   const MIN_WEATHER_SCORE = 
+    isLongRange ? 45 :
+    isMidRange ? 50 :
     tempDelta >= 6 ? 45 :
     tempDest >= 20 ? 50 :
     60;
-  const MIN_DELTA = 3; // Weather score must be at least slightly better than origin
-  const MIN_VALUE = 1.5; // Must have reasonable value per hour
+  const MIN_TEMP_DELTA = isLongRange ? 5 : isMidRange ? 4 : 3;
+  const MIN_DELTA = isLongRange ? 2 : isMidRange ? 2 : 3;
   const MIN_DISTANCE_KM = 30; // Must be at least 30km away (otherwise not "worth the drive")
   
   let shouldAward;
@@ -282,21 +288,21 @@ export function calculateWorthTheDrive(destination, origin, distanceKm, reverseM
     // Sunny destinations get slightly relaxed thresholds (leichte Bias)
     const isSunny = destination.condition === 'sunny';
     const MIN_TEMP_ABSOLUTE = 4; // Destination must be at least 4 °C (not freezing!)
-    const MIN_TEMP_DELTA = isSunny ? 3 : 4;
     shouldAward = (
       distanceKm >= MIN_DISTANCE_KM &&
       boostedWeatherDest >= MIN_WEATHER_SCORE &&
-      delta >= (isSunny ? 2 : MIN_DELTA) &&
-      value >= (isSunny ? 1.2 : MIN_VALUE) &&
+      delta >= (isSunny ? Math.min(2, MIN_DELTA) : MIN_DELTA) &&
+      value >= (isSunny ? Math.min(1.2, MIN_VALUE) : MIN_VALUE) &&
       tempDest >= MIN_TEMP_ABSOLUTE &&
-      tempDelta >= MIN_TEMP_DELTA
+      tempDelta >= (isSunny ? MIN_TEMP_DELTA : MIN_TEMP_DELTA + 1)
     );
   }
   
   // Final ranking score (for sorting multiple candidates)
-  const rankScore = isColdMode 
-    ? Math.abs(tempDelta) * 1.0 + (100 - weatherDest) * 0.02 // Colder + worse weather = more extreme
-    : value * 1.0 + weatherDest * 0.02; // Tie-breaker favors better weather
+  const distancePenalty = roadDistanceKm * 0.0005; // slight bias: closer is better
+  const rankScore = isColdMode
+    ? Math.abs(tempDelta) * 1.0 + (100 - weatherDest) * 0.02 - distancePenalty
+    : value * 1.0 + boostedWeatherDest * 0.02 - distancePenalty;
   
   return {
     value: Math.round(value * 10) / 10,
