@@ -982,8 +982,10 @@ const MapScreen = ({ navigation }) => {
    * Minimum distance between markers (in km) based on zoom
    * Standard zoom: 3-4, reinzoomen: 5-6
    */
-  const getMinDistanceForZoom = (zoom) => {
-    return getGridSizeKm(zoom) * 0.6;
+  const getMinDistanceForZoom = (zoom, radius) => {
+    const base = getGridSizeKm(zoom) * 0.6;
+    const maxAllowed = radius * 0.25;
+    return Math.min(base, maxAllowed);
   };
   
   /**
@@ -1029,7 +1031,7 @@ const MapScreen = ({ navigation }) => {
     const userLat = location?.latitude;
     const userLon = location?.longitude;
     const maxMarkers = getMaxMarkers(zoom, radius);
-    const minDistance = getMinDistanceForZoom(zoom);
+    const minDistance = getMinDistanceForZoom(zoom, radius);
     
     const GRID_SIZE_KM = getGridSizeKm(zoom);
     const gridSize = GRID_SIZE_KM / 111;
@@ -1796,16 +1798,18 @@ const MapScreen = ({ navigation }) => {
           />
         ))}
 
-        {/* Favourites - rendered separately, filtered by radius + bounds */}
+        {/* Favourites - rendered separately; skip radius check when trophy filter active */}
         {favouriteDestinations
           .filter(fav => fav && fav.lat != null && fav.lon != null)
           .map((fav, index) => {
-            const effectiveCenter = centerPoint || location;
-            const distToCenter = getDistanceKm(
-              effectiveCenter.latitude, effectiveCenter.longitude,
-              Number(fav.lat), Number(fav.lon)
-            );
-            if (distToCenter > radius) return null;
+            if (!showOnlyBadges) {
+              const effectiveCenter = centerPoint || location;
+              const distToCenter = getDistanceKm(
+                effectiveCenter.latitude, effectiveCenter.longitude,
+                Number(fav.lat), Number(fav.lon)
+              );
+              if (distToCenter > radius) return null;
+            }
 
             const withWeather = displayDestinations.find(d => 
               Math.abs((d.lat ?? d.latitude) - fav.lat) < 0.05 &&
@@ -1860,15 +1864,10 @@ const MapScreen = ({ navigation }) => {
         </View>
       )}
 
-      {/* Empty state when trophy filter is active but no places (also consider favourites in radius) */}
-      {showOnlyBadges && !loadingDestinations && visibleMarkers.filter(dest => {
+      {/* Empty state when trophy filter is active but no places and no favourites */}
+      {showOnlyBadges && !loadingDestinations && favouriteDestinations.length === 0 && visibleMarkers.filter(dest => {
         const trophyBadges = getMapBadges(dest.badges).filter(b => !BadgeMetadata[b]?.excludeFromTrophy);
         return trophyBadges.length > 0;
-      }).length === 0 && favouriteDestinations.filter(fav => {
-        if (!fav || fav.lat == null || fav.lon == null) return false;
-        const effectiveCenter = centerPoint || location;
-        if (!effectiveCenter) return false;
-        return getDistanceKm(effectiveCenter.latitude, effectiveCenter.longitude, Number(fav.lat), Number(fav.lon)) <= radius;
       }).length === 0 && (
         <View style={[styles.emptyStateOverlay, { backgroundColor: 'rgba(0, 0, 0, 0.5)' }]} pointerEvents="box-none">
           <View style={[styles.emptyStateBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
