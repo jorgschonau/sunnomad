@@ -866,7 +866,7 @@ export function calculateRainyDays(destination) {
  */
 export function calculateWeatherCurse(destination) {
   const todayCondition = destination.condition ?? 'unknown';
-  const todayTemp = destination.temperature ?? 0;
+  const todayTemp = destination.temperatureMax ?? destination.temperature ?? 0;
   const forecast = destination.forecast;
   
   if (!forecast) {
@@ -879,31 +879,38 @@ export function calculateWeatherCurse(destination) {
   const isWarmToday = todayTemp > MIN_TODAY_TEMP;
   const isGoodToday = GOOD_CONDITIONS.includes(todayCondition);
   
-  // Future: bad weather
+  // Future: bad weather — require at least 2 out of 3 future days
   const BAD_CONDITIONS = ['rainy', 'snowy', 'windy'];
-  const tomorrowBad = BAD_CONDITIONS.includes(forecast.tomorrow?.condition);
-  const day3Bad = BAD_CONDITIONS.includes(forecast.day3?.condition);
+  const futureDays = [
+    forecast.tomorrow?.condition,
+    forecast.day2?.condition,
+    forecast.day3?.condition,
+  ];
+  const badDayCount = futureDays.filter(c => BAD_CONDITIONS.includes(c)).length;
   
-  const tomorrowTemp = forecast.tomorrow?.temp ?? todayTemp;
-  const day3Temp = forecast.day3?.temp ?? todayTemp;
+  // Use tempMax for fair day-vs-day comparison (avoid day vs night false positives)
+  const tomorrowTemp = forecast.tomorrow?.tempMax ?? forecast.tomorrow?.temp ?? todayTemp;
+  const day3Temp = forecast.day3?.tempMax ?? forecast.day3?.temp ?? todayTemp;
   const futureTempMin = Math.min(tomorrowTemp, day3Temp);
   const tempLoss = todayTemp - futureTempMin;
   
-  // Badge criteria: warm + good today AND bad future AND ≥5 °C colder
+  // Badge criteria: warm + good today AND ≥2 bad future days AND ≥5 °C colder
   const MIN_TEMP_LOSS = 5;
   const shouldAward = (
     isWarmToday &&
     isGoodToday &&
-    (tomorrowBad || day3Bad) &&
+    badDayCount >= 2 &&
     tempLoss >= MIN_TEMP_LOSS
   );
   
   // Debug logging for Weather Curse candidates
-  if (isGoodToday && (tomorrowBad || day3Bad)) {
+  if (isGoodToday && badDayCount >= 1) {
     const reason = !isWarmToday ? `TOO COLD (${todayTemp} °C ≤ ${MIN_TODAY_TEMP} °C)` :
+                   badDayCount < 2 ? `NOT ENOUGH BAD DAYS (${badDayCount}/3)` :
                    tempLoss < MIN_TEMP_LOSS ? `NOT ENOUGH TEMP LOSS (${tempLoss} °C < ${MIN_TEMP_LOSS} °C)` : 'OK';
     console.log(`🔮 ${destination.name}: Weather Curse candidate! ` +
       `Today: ${todayCondition} ${todayTemp} °C, ` +
+      `Future: ${badDayCount}/3 bad days, ` +
       `Tomorrow: ${forecast.tomorrow?.condition || 'N/A'} ${tomorrowTemp} °C, ` +
       `Day3: ${forecast.day3?.condition || 'N/A'} ${day3Temp} °C, ` +
       `TempLoss: ${tempLoss} °C → ${shouldAward ? '✅ AWARD' : `❌ ${reason}`}`
@@ -914,9 +921,10 @@ export function calculateWeatherCurse(destination) {
     shouldAward,
     todayCondition,
     todayTemp: Math.round(todayTemp),
-    futureCondition: tomorrowBad ? forecast.tomorrow?.condition : forecast.day3?.condition,
+    futureCondition: futureDays.find(c => BAD_CONDITIONS.includes(c)) || 'unknown',
     futureTempMin: Math.round(futureTempMin),
     tempLoss: Math.round(tempLoss),
+    badDayCount,
   };
 }
 

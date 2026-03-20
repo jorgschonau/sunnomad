@@ -604,28 +604,16 @@ const MapScreen = ({ navigation }) => {
   // Update visible markers when display data or zoom changes (NOT on pan/bounds)
   useEffect(() => {
     if (displayDestinations.length > 0) {
-      const favs = favouriteDestinations.filter(f => f && f.lat != null && f.lon != null);
-      const regularMarkers = getVisibleMarkers(displayDestinations, currentZoom, currentBounds, favs);
-      
-      // Add favourites with weather to visibleMarkers (so they render in regular flow)
-      const favsWithWeather = favs.map(fav => {
-        const match = displayDestinations.find(d => 
-          Math.abs((d.lat ?? d.latitude) - fav.lat) < 0.01 &&
-          Math.abs((d.lon ?? d.longitude) - fav.lon) < 0.01
-        );
-        return match ? { ...fav, ...match, isFavourite: true } : { ...fav, isFavourite: true };
-      });
-      
-      const visible = [...favsWithWeather, ...regularMarkers];
-      setVisibleMarkers(visible);
+      const regularMarkers = getVisibleMarkers(displayDestinations, currentZoom, currentBounds);
+      setVisibleMarkers(regularMarkers);
       
       if (__DEV__) {
-        const specialCount = visible.filter(v => v.isCurrentLocation || v.isCenterPoint).length;
-        console.log(`🔍 Zoom ${currentZoom}: ${visible.length} markers (${favsWithWeather.length} favs, ${specialCount} special) of ${displayDestinations.length}`);
+        const specialCount = regularMarkers.filter(v => v.isCurrentLocation || v.isCenterPoint).length;
+        console.log(`🔍 Zoom ${currentZoom}: ${regularMarkers.length} markers (${specialCount} special) of ${displayDestinations.length}`);
       }
 
       // Track map_view_count: collect new IDs, debounce 2s, then batch-fire
-      const newIds = visible
+      const newIds = regularMarkers
         .filter(d => d.id && !d.isCurrentLocation && !d.isCenterPoint && !mapViewTrackedIds.current.has(d.id))
         .map(d => d.id);
       if (newIds.length > 0) {
@@ -634,7 +622,7 @@ const MapScreen = ({ navigation }) => {
         mapViewTrackTimer.current = setTimeout(() => trackMapViews(newIds), 2000);
       }
     }
-  }, [displayDestinations, currentZoom, favouriteDestinations]);
+  }, [displayDestinations, currentZoom]);
 
   const loadDestinations = async () => {
     if (!location) return;
@@ -962,27 +950,36 @@ const MapScreen = ({ navigation }) => {
     let base = Math.floor(radiusKm / 20);
     
     let zoomFactor;
-    if (zoom <= 3) zoomFactor = 0.6;
-    else if (zoom <= 4) zoomFactor = 1.0;
-    else if (zoom <= 5) zoomFactor = 1.5;
-    else zoomFactor = 2.0;
+    if (zoom <= 3) zoomFactor = 0.5;
+    else if (zoom <= 4) zoomFactor = 0.8;
+    else if (zoom <= 5) zoomFactor = 1.2;
+    else if (zoom <= 6) zoomFactor = 2.5;
+    else if (zoom <= 7) zoomFactor = 3.5;
+    else zoomFactor = 5.0;
     
     const maxCap = Platform.OS === 'android' ? 80 : 150;
-    const minFloor = Platform.OS === 'android' ? 15 : 25;
+    const minFloor = Platform.OS === 'android' ? 20 : 40;
     const total = Math.min(Math.max(base * zoomFactor, minFloor), maxCap);
     return Math.round(total);
   };
   
+  const getGridSizeKm = (zoom) => {
+    if (zoom <= 3) return 600;
+    if (zoom <= 4) return 400;
+    if (zoom <= 5) return 300;
+    if (zoom <= 6) return 200;
+    if (zoom <= 7) return 120;
+    if (zoom <= 8) return 70;
+    if (zoom <= 9) return 40;
+    return 20;
+  };
+
   /**
    * Minimum distance between markers (in km) based on zoom
    * Standard zoom: 3-4, reinzoomen: 5-6
    */
   const getMinDistanceForZoom = (zoom) => {
-    if (zoom <= 4) return 80;    // Weit rausgezoomt (Europa)
-    if (zoom <= 5) return 60;    // Länder-Ansicht
-    if (zoom <= 6) return 45;    // Regional
-    if (zoom <= 7) return 30;    // Städte-Ansicht
-    return 20;                   // 8+ (nah dran)
+    return getGridSizeKm(zoom) * 0.6;
   };
   
   /**
@@ -1019,7 +1016,7 @@ const MapScreen = ({ navigation }) => {
     });
   };
   
-  const getVisibleMarkers = (allPlaces, zoom, bounds, favPlaces = []) => {
+  const getVisibleMarkers = (allPlaces, zoom, bounds) => {
     const candidates = allPlaces.filter(p => 
       p.temperature !== null && p.temperature !== undefined
     );
@@ -1030,8 +1027,7 @@ const MapScreen = ({ navigation }) => {
     const maxMarkers = getMaxMarkers(zoom, radius);
     const minDistance = getMinDistanceForZoom(zoom);
     
-    // Constant grid size for consistent geographic balance (independent of zoom)
-    const GRID_SIZE_KM = 250;
+    const GRID_SIZE_KM = getGridSizeKm(zoom);
     const gridSize = GRID_SIZE_KM / 111;
     
     if (__DEV__) {
@@ -1041,18 +1037,39 @@ const MapScreen = ({ navigation }) => {
     // Separate special markers (always shown)
     const specialMarkers = candidates.filter(p => p.isCurrentLocation || p.isCenterPoint);
     
-    // Budget badge places are ALWAYS shown, regardless of zoom/grid/distance
-    const budgetPlaces = candidates.filter(p => 
-      !p.isCurrentLocation && !p.isCenterPoint && 
-      p.badges?.includes('WORTH_THE_DRIVE_BUDGET')
-    );
+    // Pinned badges: always shown, but distance-filtered against each other (1.5x spread)
+    const pinnedBadges = [DestinationBadge.WORTH_THE_DRIVE, DestinationBadge.WORTH_THE_DRIVE_BUDGET];
+    const pinnedCandidates = candidates
+      .filter(p => 
+        !p.isCurrentLocation && !p.isCenterPoint &&
+        p.badges?.some(b => pinnedBadges.includes(b))
+      )
+      .sort((a, b) => {
+        const aScore = a.attractivenessScore || a.attractiveness_score || 50;
+        const bScore = b.attractivenessScore || b.attractiveness_score || 50;
+        return bScore - aScore;
+      });
+    const pinnedMinDist = minDistance * 1.5;
+    const pinned = [];
+    for (const p of pinnedCandidates) {
+      const lat = p.lat || p.latitude;
+      const lon = p.lon || p.longitude;
+      let tooClose = false;
+      for (const existing of pinned) {
+        if (getDistanceKm(lat, lon, existing.lat || existing.latitude, existing.lon || existing.longitude) < pinnedMinDist) {
+          tooClose = true;
+          break;
+        }
+      }
+      if (!tooClose) pinned.push(p);
+    }
     
-    // Sort rest: badges first, then by quality
-    const rest = candidates.filter(p => 
-      !p.isCurrentLocation && !p.isCenterPoint && 
-      !p.badges?.includes('WORTH_THE_DRIVE_BUDGET')
+    // Normal places: subject to grid/distance/maxMarkers filtering
+    const normal = candidates.filter(p => 
+      !p.isCurrentLocation && !p.isCenterPoint &&
+      !p.badges?.some(b => pinnedBadges.includes(b))
     );
-    const sorted = [...rest].sort((a, b) => {
+    const sorted = [...normal].sort((a, b) => {
       const aBadges = getMapBadges(a.badges).length;
       const bBadges = getMapBadges(b.badges).length;
       if (aBadges !== bBadges) return bBadges - aBadges;
@@ -1085,39 +1102,25 @@ const MapScreen = ({ navigation }) => {
       return `${gLat.toFixed(1)},${gLon.toFixed(1)}`;
     };
     
-    const result = [...specialMarkers, ...budgetPlaces];
+    // Seed result with special + pinned so normal markers check distance against them
+    const result = [...specialMarkers, ...pinned];
     let skipped = 0;
     let gridLimited = 0;
-    let favBlocked = 0;
     
     for (const place of sorted) {
-      if (result.length >= maxMarkers) {
+      if (result.length >= maxMarkers + pinned.length) {
         break;
       }
       
       const lat = place.lat || place.latitude;
       const lon = place.lon || place.longitude;
       
-      // Check if too close to ANY favourite (favourites always win)
-      let blockedByFav = false;
-      for (const fav of favPlaces) {
-        const dist = getDistanceKm(lat, lon, Number(fav.lat), Number(fav.lon));
-        if (dist < minDistance) {
-          blockedByFav = true;
-          break;
-        }
-      }
-      if (blockedByFav) {
-        favBlocked++;
-        continue;
-      }
-      
       const gridKey = getGridKey(lat, lon);
       const gridCount = gridsUsed.get(gridKey) || 0;
       const hasBadges = getMapBadges(place.badges).length > 0;
       
       // PHASE 1: First 40% - take best places, no grid limit (badges always allowed)
-      const inPhase1 = result.length < phase1Limit;
+      const inPhase1 = (result.length - pinned.length) < phase1Limit;
       
       // PHASE 2: Last 60% - enforce grid limit (max 3 per grid)
       if (!inPhase1 && !hasBadges && gridCount >= GRID_LIMIT) {
@@ -1125,7 +1128,7 @@ const MapScreen = ({ navigation }) => {
         continue;
       }
       
-      // Distance check (same as before)
+      // Distance check against all placed markers (special + pinned + normal)
       let tooClose = false;
       for (const existing of result) {
         const dist = getDistanceKm(lat, lon, existing.lat || existing.latitude, existing.lon || existing.longitude);
@@ -1143,10 +1146,10 @@ const MapScreen = ({ navigation }) => {
       }
     }
     
-    const finalBadgeCount = result.filter(p => getMapBadges(p.badges).length > 0).length;
-    const normalCount = result.length - finalBadgeCount - specialMarkers.length;
-    const phase = result.length <= phase1Limit ? 'Phase1 only' : 'Phase1+2';
-    console.log(`📊 Final: ${result.length} markers (${finalBadgeCount} badges + ${normalCount} normal), ${favBlocked} blocked by favs, ${skipped} too close, ${gridLimited} grid limited, ${gridsUsed.size} grids [${phase}]`);
+    const pinnedCount = pinned.length;
+    const normalCount = result.length - specialMarkers.length - pinnedCount;
+    const phase = normalCount <= phase1Limit ? 'Phase1 only' : 'Phase1+2';
+    console.log(`📊 Final: ${result.length} markers (${pinnedCount} pinned + ${normalCount} normal + ${specialMarkers.length} special), ${pinnedCandidates.length - pinnedCount} pinned filtered, ${skipped} too close, ${gridLimited} grid limited, ${gridsUsed.size} grids [${phase}]`);
     return result;
   };
 
@@ -1731,6 +1734,7 @@ const MapScreen = ({ navigation }) => {
           <Marker
             coordinate={{ latitude: centerPoint.latitude, longitude: centerPoint.longitude }}
             anchor={{ x: 0.5, y: 0.5 }}
+            tracksViewChanges={false}
             onPress={() => displayCenterPointWeather && handleMarkerPress(displayCenterPointWeather)}
           >
             {displayCenterPointWeather ? (
@@ -1784,18 +1788,24 @@ const MapScreen = ({ navigation }) => {
           />
         ))}
 
-        {/* Favourites - ALWAYS VISIBLE, rendered separately */}
+        {/* Favourites - rendered separately, filtered by radius + bounds */}
         {favouriteDestinations
           .filter(fav => fav && fav.lat != null && fav.lon != null)
           .map((fav, index) => {
-            // Lookup weather from displayDestinations
+            const effectiveCenter = centerPoint || location;
+            const distToCenter = getDistanceKm(
+              effectiveCenter.latitude, effectiveCenter.longitude,
+              Number(fav.lat), Number(fav.lon)
+            );
+            if (distToCenter > radius) return null;
+
             const withWeather = displayDestinations.find(d => 
-              Math.abs((d.lat ?? d.latitude) - fav.lat) < 0.01 &&
-              Math.abs((d.lon ?? d.longitude) - fav.lon) < 0.01
+              Math.abs((d.lat ?? d.latitude) - fav.lat) < 0.05 &&
+              Math.abs((d.lon ?? d.longitude) - fav.lon) < 0.05
             );
             
-            const temp = withWeather?.temperature ?? null;
-            const cond = withWeather?.condition ?? 'cloudy';
+            const temp = withWeather?.temperature ?? fav.temperature ?? null;
+            const cond = withWeather?.condition ?? fav.condition ?? 'cloudy';
             
             return (
           <Marker
@@ -1809,19 +1819,15 @@ const MapScreen = ({ navigation }) => {
             <View style={styles.markerFrameAndroid}>
               <View style={[
                 styles.markerContainer,
-                { backgroundColor: temp != null ? getWeatherColor(cond, temp) : '#FFD700' },
+                { backgroundColor: temp != null ? getWeatherColor(cond, temp) : '#888' },
                 styles.favouriteMarkerBorder,
               ]}>
-                {temp != null ? (
-                  <>
-                    <Text style={styles.markerWeatherIcon}>{getWeatherIcon(cond)}</Text>
-                    <Text style={styles.markerTemp}>{Math.round(temp)}°</Text>
-                  </>
-                ) : (
-                  <Text style={{ fontSize: 18, fontWeight: '700', color: '#fff' }}>
-                    {(fav.name || '★').replace(/^📍\s?/, '').replace(/^⊕\s?/, '').substring(0, 6)}
-                  </Text>
-                )}
+                <Text style={styles.markerWeatherIcon}>
+                  {getWeatherIcon(temp != null ? cond : 'cloudy')}
+                </Text>
+                <Text style={styles.markerTemp}>
+                  {temp != null ? `${Math.round(temp)}°` : '?°'}
+                </Text>
                 <View style={styles.favouriteBadgeWrap}>
                   <AnimatedBadge icon="⭐" color="#FFD700" delay={0} />
                 </View>

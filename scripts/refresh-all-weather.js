@@ -31,16 +31,16 @@ const FETCH_TIMEOUT = 15000; // 15s timeout per request
  * Weather code mapping
  */
 const getWeatherMain = (code) => {
-  if (code === 0) return 'Clear';
-  if (code <= 3) return 'Clouds';
-  if (code <= 49) return 'Fog';
-  if (code <= 59) return 'Drizzle';
-  if (code <= 69) return 'Rain';
-  if (code <= 79) return 'Snow';
-  if (code <= 84) return 'Rain';
-  if (code <= 94) return 'Snow';
-  if (code <= 99) return 'Thunderstorm';
-  return 'Unknown';
+  if (code === 0) return 'sunny';
+  if (code <= 3) return 'cloudy';
+  if (code <= 49) return 'cloudy';
+  if (code <= 59) return 'rainy';
+  if (code <= 69) return 'rainy';
+  if (code <= 79) return 'snowy';
+  if (code <= 84) return 'rainy';
+  if (code <= 94) return 'snowy';
+  if (code <= 99) return 'rainy';
+  return 'cloudy';
 };
 
 const getWeatherDescription = (code) => {
