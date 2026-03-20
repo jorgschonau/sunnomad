@@ -9,6 +9,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useAuth } from '../../contexts/AuthContext';
+import { useUnits } from '../../contexts/UnitContext';
 
 const LANGUAGES = [
   { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
@@ -18,16 +19,21 @@ const LANGUAGES = [
 
 const THEMES = [
   { id: 'standard', name: 'Standard', icon: '🌱' },
-  { id: 'light', name: 'Hell', icon: '☀️' },
   { id: 'dark', name: 'Dunkel', icon: '🌙' },
   { id: 'blue', name: 'Blau', icon: '🌊' },
   { id: 'amber', name: 'Gold', icon: '✨' },
+];
+
+const UNIT_OPTIONS = [
+  { id: 'metric', label: 'km / °C', icon: '🌡️' },
+  { id: 'imperial', label: 'mi / °F', icon: '🌡️' },
 ];
 
 const SettingsScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
   const { theme, currentTheme, changeTheme } = useTheme();
   const { isAuthenticated, user, profile } = useAuth();
+  const { useImperial, setUseImperial } = useUnits();
 
   const handleSelectLanguage = (langCode) => {
     i18n.changeLanguage(langCode);
@@ -105,6 +111,39 @@ const SettingsScreen = ({ navigation }) => {
         ))}
       </View>
 
+      <View style={[styles.section, { backgroundColor: theme.surface }]}>
+        <Text style={[styles.sectionTitle, { backgroundColor: theme.background, color: theme.text }]}>
+          {t('settings.units')}
+        </Text>
+        
+        {UNIT_OPTIONS.map((option) => {
+          const isSelected = option.id === 'imperial' ? useImperial : !useImperial;
+          return (
+            <TouchableOpacity
+              key={option.id}
+              style={[
+                styles.settingItem,
+                { backgroundColor: theme.surface, borderBottomColor: theme.background },
+                isSelected && { backgroundColor: theme.background }
+              ]}
+              onPress={() => setUseImperial(option.id === 'imperial')}
+            >
+              <Text style={styles.settingItemFlag}>{option.icon}</Text>
+              <Text style={[
+                styles.settingItemText,
+                { color: theme.textSecondary },
+                isSelected && { fontWeight: '700', color: theme.primary }
+              ]}>
+                {option.label}
+              </Text>
+              {isSelected && (
+                <Text style={[styles.checkmark, { color: theme.primary }]}>✓</Text>
+              )}
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+
       {/* Account Section */}
       <View style={[styles.section, { backgroundColor: theme.surface }]}>
         <Text style={[styles.sectionTitle, { backgroundColor: theme.background, color: theme.text }]}>
@@ -133,16 +172,6 @@ const SettingsScreen = ({ navigation }) => {
         ) : null}
       </View>
 
-      <View style={[styles.section, { backgroundColor: theme.surface }]}>
-        <Text style={[styles.sectionTitle, { backgroundColor: theme.background, color: theme.text }]}>
-          {t('settings.preferences')}
-        </Text>
-        <View style={styles.placeholderItem}>
-          <Text style={[styles.placeholderText, { color: theme.textTertiary }]}>
-            {t('settings.comingSoon')}
-          </Text>
-        </View>
-      </View>
     </ScrollView>
   );
 };

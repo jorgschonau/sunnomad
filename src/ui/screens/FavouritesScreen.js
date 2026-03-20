@@ -13,10 +13,13 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeProvider';
 import { getFavourites, removeFromFavourites } from '../../usecases/favouritesUsecases';
 import { getWeatherIcon, getWeatherColor } from '../../usecases/weatherUsecases';
+import { useUnits } from '../../contexts/UnitContext';
+import { formatTemperature, formatWindSpeed } from '../../utils/unitConversion';
 
 const FavouritesScreen = ({ navigation }) => {
   const { t } = useTranslation();
   const { theme } = useTheme();
+  const { temperatureUnit, windSpeedUnit } = useUnits();
   const [favourites, setFavourites] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -82,7 +85,7 @@ const FavouritesScreen = ({ navigation }) => {
         <Text style={styles.weatherIcon}>{getWeatherIcon(item.condition)}</Text>
         <View style={styles.headerInfo}>
           <Text style={[styles.locationName, { color: theme.text }]}>{item.name}</Text>
-          <Text style={[styles.temperature, { color: theme.text }]}>{item.temperature} °C</Text>
+          <Text style={[styles.temperature, { color: theme.text }]}>{formatTemperature(item.temperature, temperatureUnit)}</Text>
         </View>
       </View>
 
@@ -98,7 +101,7 @@ const FavouritesScreen = ({ navigation }) => {
             <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
               {t('destination.wind')}
             </Text>
-            <Text style={[styles.statValue, { color: theme.text }]}>{item.windSpeed} km/h</Text>
+            <Text style={[styles.statValue, { color: theme.text }]}>{formatWindSpeed(item.windSpeed, windSpeedUnit)}</Text>
           </View>
           <View style={styles.statItem}>
             <Text style={[styles.statLabel, { color: theme.textSecondary }]}>

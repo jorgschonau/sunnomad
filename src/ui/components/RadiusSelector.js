@@ -2,12 +2,15 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeProvider';
+import { useUnits } from '../../contexts/UnitContext';
+import { formatDistance } from '../../utils/unitConversion';
 
 const RADIUS_OPTIONS = [200, 400, 600, 1500, 3000];
 
 const RadiusSelector = ({ selectedRadius, onRadiusChange }) => {
   const { t } = useTranslation();
   const { theme } = useTheme();
+  const { distanceUnit } = useUnits();
   const [modalVisible, setModalVisible] = useState(false);
 
   const handleSelectRadius = (radius) => {
@@ -26,7 +29,7 @@ const RadiusSelector = ({ selectedRadius, onRadiusChange }) => {
         onPress={() => setModalVisible(true)}
       >
         <Text style={[styles.radiusButtonText, { color: theme.text }]}>
-          {t('radius.inRadius', { radius: selectedRadius })}
+          {formatDistance(selectedRadius, distanceUnit, 0)}
         </Text>
         <Text style={[styles.arrow, { color: theme.textSecondary }]}>▼</Text>
       </TouchableOpacity>
@@ -60,7 +63,7 @@ const RadiusSelector = ({ selectedRadius, onRadiusChange }) => {
                     selectedRadius === radius && { fontWeight: '700', color: theme.primary },
                   ]}
                 >
-                  {radius} km
+                  {formatDistance(radius, distanceUnit, 0)}
                 </Text>
                 {selectedRadius === radius && (
                   <Text style={[styles.checkmark, { color: theme.primary }]}>✓</Text>

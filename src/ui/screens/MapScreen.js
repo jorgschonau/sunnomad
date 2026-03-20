@@ -30,6 +30,8 @@ import DateFilter from '../components/DateFilter';
 import OnboardingOverlay from '../components/OnboardingOverlay';
 import AnimatedBadge from '../components/AnimatedBadge';
 import { SkeletonMapMarker } from '../components/SkeletonLoader';
+import { useUnits } from '../../contexts/UnitContext';
+import { formatTemperature, formatDistance, kmToMiles } from '../../utils/unitConversion';
 
 // Custom map style to hide POI Business and Transit
 const customMapStyle = [
@@ -49,6 +51,7 @@ const DestinationMarker = ({
   getWeatherColor,
   getWeatherIcon,
   styles: markerStyles,
+  temperatureUnit,
 }) => {
   const hasImageBadge = getMapBadges(dest.badges).some(
     b => b === DestinationBadge.WARM_AND_DRY || b === DestinationBadge.HEATWAVE
@@ -76,8 +79,8 @@ const DestinationMarker = ({
           <Text style={markerStyles.markerWeatherIcon}>{getWeatherIcon(dest.condition)}</Text>
           <Text style={markerStyles.markerTemp}>
             {dest.temperature !== null && dest.temperature !== undefined
-              ? Math.round(dest.temperature)
-              : '?'}°
+              ? formatTemperature(dest.temperature, temperatureUnit, false)
+              : '?°'}
           </Text>
           {getMapBadges(dest.badges).length > 0 && (() => {
             const sorted = getMapBadges(dest.badges)
@@ -131,6 +134,7 @@ const MAP_BOUNDS = {
 const MapScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
   const { theme } = useTheme();
+  const { useImperial, temperatureUnit, distanceUnit } = useUnits();
   const mapRef = useRef(null);
   const [location, setLocation] = useState(null);
   const [centerPoint, setCenterPoint] = useState(null); // Custom center point (if set)
@@ -1714,6 +1718,9 @@ const MapScreen = ({ navigation }) => {
         onLongPress={handleMapLongPress}
         onRegionChangeComplete={handleRegionChangeComplete}
       >
+        {/* Guard: no markers until location + radius are ready */}
+        {(!location || !radius) ? null : <>
+
         {/* Radius Circle - centered on centerPoint or location */}
         {(centerPoint || location) && (
           <Circle
@@ -1746,8 +1753,8 @@ const MapScreen = ({ navigation }) => {
                 <Text style={styles.markerWeatherIcon}>{getWeatherIcon(displayCenterPointWeather.condition)}</Text>
                 <Text style={styles.markerTemp}>
                   {displayCenterPointWeather.temperature !== null && displayCenterPointWeather.temperature !== undefined 
-                    ? Math.round(displayCenterPointWeather.temperature) 
-                    : '?'}°
+                    ? formatTemperature(displayCenterPointWeather.temperature, temperatureUnit, false) 
+                    : '?°'}
                 </Text>
                 <View style={styles.centerPointBadgeIndicator}>
                   <Text style={styles.centerPointBadgeText}>⊕</Text>
@@ -1785,6 +1792,7 @@ const MapScreen = ({ navigation }) => {
             getWeatherColor={getWeatherColor}
             getWeatherIcon={getWeatherIcon}
             styles={styles}
+            temperatureUnit={temperatureUnit}
           />
         ))}
 
@@ -1826,7 +1834,7 @@ const MapScreen = ({ navigation }) => {
                   {getWeatherIcon(temp != null ? cond : 'cloudy')}
                 </Text>
                 <Text style={styles.markerTemp}>
-                  {temp != null ? `${Math.round(temp)}°` : '?°'}
+                  {temp != null ? formatTemperature(temp, temperatureUnit, false) : '?°'}
                 </Text>
                 <View style={styles.favouriteBadgeWrap}>
                   <AnimatedBadge icon="⭐" color="#FFD700" delay={0} />
@@ -1836,6 +1844,8 @@ const MapScreen = ({ navigation }) => {
           </Marker>
             );
           })}
+
+        </>}
       </MapView>
 
       {/* Loading Overlay for destinations */}
@@ -1850,17 +1860,22 @@ const MapScreen = ({ navigation }) => {
         </View>
       )}
 
-      {/* Empty state when trophy filter is active but no places */}
+      {/* Empty state when trophy filter is active but no places (also consider favourites in radius) */}
       {showOnlyBadges && !loadingDestinations && visibleMarkers.filter(dest => {
         const trophyBadges = getMapBadges(dest.badges).filter(b => !BadgeMetadata[b]?.excludeFromTrophy);
         return trophyBadges.length > 0;
+      }).length === 0 && favouriteDestinations.filter(fav => {
+        if (!fav || fav.lat == null || fav.lon == null) return false;
+        const effectiveCenter = centerPoint || location;
+        if (!effectiveCenter) return false;
+        return getDistanceKm(effectiveCenter.latitude, effectiveCenter.longitude, Number(fav.lat), Number(fav.lon)) <= radius;
       }).length === 0 && (
         <View style={[styles.emptyStateOverlay, { backgroundColor: 'rgba(0, 0, 0, 0.5)' }]} pointerEvents="box-none">
           <View style={[styles.emptyStateBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <Text style={styles.emptyStateIcon}>🏆</Text>
             <Text style={[styles.emptyStateTitle, { color: theme.text }]}>Keine Highlights</Text>
             <Text style={[styles.emptyStateMessage, { color: theme.textSecondary }]}>
-              in {radius} km Radius
+              in {formatDistance(radius, distanceUnit, 0)} Radius
             </Text>
             <TouchableOpacity
               style={styles.emptyStatePrimaryButton}
@@ -2034,7 +2049,7 @@ const MapScreen = ({ navigation }) => {
                   styles.radiusPresetText,
                   { color: radiusOption === radius ? theme.primary : theme.text }
                 ]}>
-                  {radiusOption} km
+                  {formatDistance(radiusOption, distanceUnit, 0)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -2052,7 +2067,7 @@ const MapScreen = ({ navigation }) => {
           accessibilityRole="button"
         >
           <Text style={[styles.radiusLabel, { color: theme.textTertiary }]}>{t('radius.title')}</Text>
-          <Text style={[styles.radiusDisplayText, { color: theme.text }]}>{radius} km</Text>
+          <Text style={[styles.radiusDisplayText, { color: theme.text }]}>{formatDistance(radius, distanceUnit, 0)}</Text>
         </TouchableOpacity>
         <View style={[styles.radiusControls, {
           backgroundColor: theme.surface,
@@ -2067,7 +2082,7 @@ const MapScreen = ({ navigation }) => {
             onPress={handleRadiusIncrease}
             accessibilityLabel={t('radius.more')}
             accessibilityRole="button"
-            accessibilityHint={`Increase search radius from ${radius} km`}
+            accessibilityHint={`Increase search radius from ${formatDistance(radius, distanceUnit, 0)}`}
           >
             <Text style={[styles.radiusButtonText, { color: theme.text }]}>+</Text>
             <Text style={[styles.radiusButtonLabel, { color: theme.textSecondary }]}>{t('radius.more')}</Text>
@@ -2081,7 +2096,7 @@ const MapScreen = ({ navigation }) => {
             onPress={handleRadiusDecrease}
             accessibilityLabel={t('radius.less')}
             accessibilityRole="button"
-            accessibilityHint={`Decrease search radius from ${radius} km`}
+            accessibilityHint={`Decrease search radius from ${formatDistance(radius, distanceUnit, 0)}`}
           >
             <Text style={[styles.radiusButtonText, { color: theme.text }]}>−</Text>
             <Text style={[styles.radiusButtonLabel, { color: theme.textSecondary }]}>{t('radius.less')}</Text>
