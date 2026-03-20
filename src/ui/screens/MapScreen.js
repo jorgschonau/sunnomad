@@ -1864,10 +1864,18 @@ const MapScreen = ({ navigation }) => {
         </View>
       )}
 
-      {/* Empty state when trophy filter is active but no places and no favourites */}
-      {showOnlyBadges && !loadingDestinations && favouriteDestinations.length === 0 && visibleMarkers.filter(dest => {
+      {/* Empty state when trophy filter is active but no trophy-worthy places visible */}
+      {showOnlyBadges && !loadingDestinations && visibleMarkers.filter(dest => {
         const trophyBadges = getMapBadges(dest.badges).filter(b => !BadgeMetadata[b]?.excludeFromTrophy);
         return trophyBadges.length > 0;
+      }).length === 0 && favouriteDestinations.filter(fav => {
+        if (!fav || fav.lat == null || fav.lon == null) return false;
+        const withWeather = displayDestinations.find(d =>
+          Math.abs((d.lat ?? d.latitude) - fav.lat) < 0.05 &&
+          Math.abs((d.lon ?? d.longitude) - fav.lon) < 0.05
+        );
+        const badges = withWeather?.badges || fav.badges || [];
+        return getMapBadges(badges).some(b => !BadgeMetadata[b]?.excludeFromTrophy);
       }).length === 0 && (
         <View style={[styles.emptyStateOverlay, { backgroundColor: 'rgba(0, 0, 0, 0.5)' }]} pointerEvents="box-none">
           <View style={[styles.emptyStateBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>

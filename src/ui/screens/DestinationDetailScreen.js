@@ -749,10 +749,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
               // Get summary text for collapsed state
               const getSummaryText = () => {
                 if (isWorthTheDrive && worthData) {
-                  return t('badges.worththedriveSummary', { tempDelta: fmtTempDelta(worthData.tempDelta), distance: fmtDist(destination.distance) });
+                  return t('badges.worththedriveSummary', { tempDelta: fmtTempDelta(worthData.tempDelta), distance: fmtDist(worthData.roadDistanceKm ?? destination.distance) });
                 }
                 if (isWorthTheDriveBudget && worthBudgetData) {
-                  return t('badges.worththedrivebudgetSummary', { tempDelta: fmtTempDelta(worthBudgetData.tempDelta), distance: fmtDist(destination.distance) });
+                  return t('badges.worththedrivebudgetSummary', { tempDelta: fmtTempDelta(worthBudgetData.tempDelta), distance: fmtDist(worthBudgetData.roadDistanceKm ?? destination.distance) });
                 }
                 if (isWarmAndDry && warmDryData) {
                   return t('badges.warmanddrySummary', { temp: fmtTemp(warmDryData.temp), condition: translateCondition(warmDryData.condition) });
@@ -781,7 +781,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                   return t('badges.weathercurseSummary', { tempLoss: fmtTempDelta(-Math.abs(weatherCurseData.tempLoss)) });
                 }
                 if (isSpringAwakening && springAwakeningData) {
-                  return t('badges.springawakeningSummary', { tempDelta: fmtTempDelta(springAwakeningData.tempDelta), distance: fmtDist(springAwakeningData.distance) });
+                  return t('badges.springawakeningSummary', { tempDelta: fmtTempDelta(springAwakeningData.tempDelta), distance: fmtDist(springAwakeningData.roadDistanceKm ?? springAwakeningData.distance) });
                 }
                 return t('badges.tapForDetails');
               };
@@ -881,7 +881,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                             🌡️ {t('badges.temperature')}: {fmtTemp(worthData.tempOrigin)} → {fmtTemp(worthData.tempDest)} ({fmtTempDelta(worthData.tempDelta)})
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            💨 ETA: {formatETA(worthData.eta)} ({fmtDist(destination.distance)})
+                            💨 ETA: {formatETA(worthData.eta)} ({fmtDist(worthData.roadDistanceKm ?? destination.distance)})
                           </Text>
                         </View>
                       )}
@@ -893,7 +893,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                             🌡️ {t('badges.temperature')}: {fmtTemp(worthBudgetData.tempOrigin)} → {fmtTemp(worthBudgetData.tempDest)} ({fmtTempDelta(worthBudgetData.tempDelta)})
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            💨 ETA: {formatETA(worthBudgetData.eta)} ({fmtDist(destination.distance)})
+                            💨 ETA: {formatETA(worthBudgetData.eta)} ({fmtDist(worthBudgetData.roadDistanceKm ?? destination.distance)})
                           </Text>
                         </View>
                       )}
@@ -1010,7 +1010,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                             🌡️ {t('badges.temperature')}: {fmtTemp(springAwakeningData.tempOrigin)} → {fmtTemp(springAwakeningData.tempDest)} ({fmtTempDelta(springAwakeningData.tempDelta)})
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            💨 ETA: {formatETA(springAwakeningData.eta)} ({fmtDist(springAwakeningData.distance)})
+                            💨 ETA: {formatETA(springAwakeningData.eta)} ({fmtDist(springAwakeningData.roadDistanceKm ?? springAwakeningData.distance)})
                           </Text>
                         </View>
                       )}

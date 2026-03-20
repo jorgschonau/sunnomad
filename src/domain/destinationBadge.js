@@ -1,6 +1,8 @@
 /** Only log in dev to avoid blocking UI when calculating many badges */
 const devLog = (...args) => { if (typeof __DEV__ !== 'undefined' && __DEV__) console.log(...args); };
 
+const ROAD_FACTOR = 1.35;
+
 /**
  * Badge types that can be awarded to destinations
  * based on various criteria
@@ -131,16 +133,17 @@ export function calculateWeatherScore(destination) {
 }
 
 /**
- * Calculate ETA in hours based on distance
+ * Calculate ETA in hours based on road distance
  * Assumes average speed of 80 km/h (highway driving)
+ * Callers should pass road distance (straight-line * ROAD_FACTOR)
  * 
- * @param {number} distanceKm - Distance in kilometers
+ * @param {number} roadDistanceKm - Road distance in kilometers
  * @returns {number} - ETA in hours
  */
-export function calculateETA(distanceKm) {
+export function calculateETA(roadDistanceKm) {
   const AVERAGE_SPEED_KMH = 80;
-  const eta = distanceKm / AVERAGE_SPEED_KMH;
-  return Math.max(0.5, eta); // Minimum 0.5h to prevent huge scores for very close destinations
+  const eta = roadDistanceKm / AVERAGE_SPEED_KMH;
+  return Math.max(0.5, eta);
 }
 
 /**
@@ -225,12 +228,13 @@ const cc = (place) => (place?.country_code || place?.countryCode || '').toUpperC
 
 export function calculateWorthTheDrive(destination, origin, distanceKm, reverseMode = 'warm') {
   const isColdMode = reverseMode === 'cold';
+  const roadDistanceKm = distanceKm * ROAD_FACTOR;
   const destCc = cc(destination);
   const originCc = cc(origin);
   if (UK_IE_CODES.has(destCc) && !UK_IE_CODES.has(originCc)) {
-    return { value: 0, delta: 0, eta: 0, weatherDest: 0, weatherOrigin: 0, tempDest: 0, tempOrigin: 0, tempDelta: 0, shouldAward: false, rankScore: 0 };
+    return { value: 0, delta: 0, eta: 0, weatherDest: 0, weatherOrigin: 0, tempDest: 0, tempOrigin: 0, tempDelta: 0, shouldAward: false, rankScore: 0, roadDistanceKm: Math.round(roadDistanceKm) };
   }
-  const eta = calculateETA(distanceKm);
+  const eta = calculateETA(roadDistanceKm);
   
   // Get weather scores at the same absolute time window (ETA from now)
   const weatherDest = getWeatherScoreAtETA(destination, eta);
@@ -292,7 +296,7 @@ export function calculateWorthTheDrive(destination, origin, distanceKm, reverseM
     : value * 1.0 + weatherDest * 0.02; // Tie-breaker favors better weather
   
   return {
-    value: Math.round(value * 10) / 10, // Round to 1 decimal
+    value: Math.round(value * 10) / 10,
     delta: Math.round(delta),
     eta: Math.round(eta * 10) / 10,
     weatherDest: Math.round(weatherDest),
@@ -302,6 +306,7 @@ export function calculateWorthTheDrive(destination, origin, distanceKm, reverseM
     tempDelta: Math.round(tempDelta),
     shouldAward,
     rankScore,
+    roadDistanceKm: Math.round(roadDistanceKm),
   };
 }
 
@@ -317,55 +322,49 @@ export function calculateWorthTheDrive(destination, origin, distanceKm, reverseM
  */
 export function calculateWorthTheDriveBudget(destination, origin, distanceKm, reverseMode = 'warm') {
   const isColdMode = reverseMode === 'cold';
+  const roadDistanceKm = distanceKm * ROAD_FACTOR;
   const destCc = cc(destination);
   const originCc = cc(origin);
   if (UK_IE_CODES.has(destCc) && !UK_IE_CODES.has(originCc)) {
-    const eta = calculateETA(distanceKm);
-    return { efficiency: 0, tempDelta: 0, tempDest: 0, tempOrigin: 0, distance: Math.round(distanceKm), eta: Math.round(eta * 10) / 10, delta: 0, value: 0, isEligible: false };
+    const eta = calculateETA(roadDistanceKm);
+    return { efficiency: 0, tempDelta: 0, tempDest: 0, tempOrigin: 0, distance: Math.round(distanceKm), roadDistanceKm: Math.round(roadDistanceKm), eta: Math.round(eta * 10) / 10, delta: 0, value: 0, isEligible: false };
   }
   const tempDest = destination.temperature ?? 0;
   const tempOrigin = origin.temperature ?? 0;
-  const tempDelta = tempDest - tempOrigin; // positive = warmer, negative = colder
+  const tempDelta = tempDest - tempOrigin;
   
-  // Calculate ETA
-  const eta = calculateETA(distanceKm);
+  const eta = calculateETA(roadDistanceKm);
   
-  // Calculate weather scores for display
   const weatherDest = calculateWeatherScore(destination);
   const weatherOrigin = calculateWeatherScore(origin);
   const delta = weatherDest - weatherOrigin;
   
-  const MIN_DISTANCE = 1; // Avoid division by zero
-  const MIN_DISTANCE_KM = 30; // Must be at least 30km away
+  const MIN_DISTANCE = 1;
+  const MIN_DISTANCE_KM = 30; // straight-line check
   
   let isEligible;
   if (isColdMode) {
-    // Cold mode: reward places that are COLDER (tempDelta negative)
-    const MIN_TEMP_DELTA_COLD = 3; // At least 3 °C colder
-    const MAX_TEMP_ABSOLUTE = 30; // Not scorching
+    const MIN_TEMP_DELTA_COLD = 3;
+    const MAX_TEMP_ABSOLUTE = 30;
     isEligible = distanceKm >= MIN_DISTANCE_KM && (-tempDelta) >= MIN_TEMP_DELTA_COLD && tempDest <= MAX_TEMP_ABSOLUTE;
   } else {
-    // Warm mode (default): reward places that are WARMER
-    // Sunny destinations get slightly relaxed threshold (leichte Bias)
     const isSunny = destination.condition === 'sunny';
     const MIN_TEMP_DELTA = isSunny ? 2 : 3;
-    const MIN_TEMP_ABSOLUTE = 10; // At least 10 °C (not freezing)
+    const MIN_TEMP_ABSOLUTE = 10;
     isEligible = distanceKm >= MIN_DISTANCE_KM && tempDelta >= MIN_TEMP_DELTA && tempDest >= MIN_TEMP_ABSOLUTE;
   }
   
-  // Efficiency = temp change per km (use absolute delta for cold mode)
   const effectiveTempDelta = isColdMode ? Math.abs(tempDelta) : tempDelta;
-  const efficiency = effectiveTempDelta / Math.max(distanceKm, MIN_DISTANCE);
-  
-  // Value = for display (temp change per 100km)
-  const value = effectiveTempDelta / (distanceKm / 100);
+  const efficiency = effectiveTempDelta / Math.max(roadDistanceKm, MIN_DISTANCE);
+  const value = effectiveTempDelta / (roadDistanceKm / 100);
   
   return {
-    efficiency: Math.round(efficiency * 1000) / 1000, // 3 decimals
+    efficiency: Math.round(efficiency * 1000) / 1000,
     tempDelta: Math.round(tempDelta),
     tempDest: Math.round(tempDest),
     tempOrigin: Math.round(tempOrigin),
     distance: Math.round(distanceKm),
+    roadDistanceKm: Math.round(roadDistanceKm),
     eta: Math.round(eta * 10) / 10,
     delta: Math.round(delta),
     value: Math.round(value * 10) / 10,
@@ -951,6 +950,7 @@ export function calculateSpringAwakening(destination, origin, distanceKm) {
   const tempDest = destination.temperature ?? 0;
   const tempOrigin = origin?.temperature ?? 0;
   const tempDelta = tempDest - tempOrigin;
+  const roadDistanceKm = distanceKm * ROAD_FACTOR;
   const lat = destination.lat ?? destination.latitude ?? 0;
 
   // Normal mode: Check date: March 1 - May 15
@@ -988,7 +988,8 @@ export function calculateSpringAwakening(destination, origin, distanceKm) {
       tempDest: Math.round(tempDest),
       tempOrigin: Math.round(tempOrigin),
       distance: Math.round(distanceKm),
-      eta: Math.round(calculateETA(distanceKm) * 10) / 10,
+      roadDistanceKm: Math.round(roadDistanceKm),
+      eta: Math.round(calculateETA(roadDistanceKm) * 10) / 10,
       isSpringPeriod: true
     };
   }
@@ -1010,7 +1011,7 @@ export function calculateSpringAwakening(destination, origin, distanceKm) {
 
   // All criteria must be met
   const shouldAward = isGoodTemp && isGoodCondition && isLightWind;
-  const eta = calculateETA(distanceKm);
+  const eta = calculateETA(roadDistanceKm);
 
   return {
     shouldAward,
@@ -1018,6 +1019,7 @@ export function calculateSpringAwakening(destination, origin, distanceKm) {
     tempDest: Math.round(tempDest),
     tempOrigin: Math.round(tempOrigin),
     distance: Math.round(distanceKm),
+    roadDistanceKm: Math.round(roadDistanceKm),
     eta: Math.round(eta * 10) / 10,
     isSpringPeriod: true,
     reason: shouldAward
