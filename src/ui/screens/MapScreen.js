@@ -79,22 +79,41 @@ const DestinationMarker = ({
               ? Math.round(dest.temperature)
               : '?'}°
           </Text>
-          {getMapBadges(dest.badges).length > 0 && (
-            <View style={markerStyles.badgeOverlayContainer}>
-              {getMapBadges(dest.badges)
-                .sort((a, b) => (BadgeMetadata[a]?.priority || 99) - (BadgeMetadata[b]?.priority || 99))
-                .slice(0, 6)
-                .map((badge, badgeIndex) => (
-                  <AnimatedBadge
-                    key={badgeIndex}
-                    icon={BadgeMetadata[badge].icon}
-                    color={BadgeMetadata[badge].color}
-                    delay={badgeIndex * 100}
-                    onImageLoad={hasImageBadge && typeof BadgeMetadata[badge].icon !== 'string' ? handleImageLoad : undefined}
-                  />
-                ))}
-            </View>
-          )}
+          {getMapBadges(dest.badges).length > 0 && (() => {
+            const sorted = getMapBadges(dest.badges)
+              .sort((a, b) => (BadgeMetadata[a]?.priority || 99) - (BadgeMetadata[b]?.priority || 99))
+              .slice(0, 6);
+            const right = sorted.slice(0, 3);
+            const left = sorted.slice(3);
+            return (
+              <>
+                <View style={markerStyles.badgeOverlayContainer}>
+                  {right.map((badge, i) => (
+                    <AnimatedBadge
+                      key={i}
+                      icon={BadgeMetadata[badge].icon}
+                      color={BadgeMetadata[badge].color}
+                      delay={i * 100}
+                      onImageLoad={hasImageBadge && typeof BadgeMetadata[badge].icon !== 'string' ? handleImageLoad : undefined}
+                    />
+                  ))}
+                </View>
+                {left.length > 0 && (
+                  <View style={markerStyles.badgeOverlayContainerLeft}>
+                    {left.map((badge, i) => (
+                      <AnimatedBadge
+                        key={i}
+                        icon={BadgeMetadata[badge].icon}
+                        color={BadgeMetadata[badge].color}
+                        delay={(i + 3) * 100}
+                        onImageLoad={hasImageBadge && typeof BadgeMetadata[badge].icon !== 'string' ? handleImageLoad : undefined}
+                      />
+                    ))}
+                  </View>
+                )}
+              </>
+            );
+          })()}
         </View>
       </View>
     </Marker>
@@ -2390,6 +2409,13 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -8,
     right: -8,
+    flexDirection: 'column',
+    gap: 4,
+  },
+  badgeOverlayContainerLeft: {
+    position: 'absolute',
+    top: -8,
+    left: -8,
     flexDirection: 'column',
     gap: 4,
   },
