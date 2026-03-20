@@ -236,6 +236,12 @@ export function calculateWorthTheDrive(destination, origin, distanceKm, reverseM
   const weatherDest = getWeatherScoreAtETA(destination, eta);
   const weatherOrigin = getWeatherScoreAtETA(origin, eta);
   
+  const badgeBoost = 
+    destination.badges?.includes(DestinationBadge.SUNNY_STREAK) ? 8 :
+    destination.badges?.includes(DestinationBadge.WEATHER_MIRACLE) ? 10 :
+    destination.badges?.includes(DestinationBadge.WARM_AND_DRY) ? 5 : 0;
+  const boostedWeatherDest = Math.min(weatherDest + badgeBoost, 100);
+  
   const delta = weatherDest - weatherOrigin;
   
   // Temperature check: In warm mode destination MUST be warmer, in cold mode COLDER
@@ -249,7 +255,7 @@ export function calculateWorthTheDrive(destination, origin, distanceKm, reverseM
   const value = effectiveDelta / (eta + 0.75); // +0.75 penalty factor
   
   // Gating criteria
-  const MIN_WEATHER_SCORE = 60; // Destination must be decent weather
+  const MIN_WEATHER_SCORE = tempDelta >= 6 ? 45 : 60;
   const MIN_DELTA = 3; // Weather score must be at least slightly better than origin
   const MIN_VALUE = 1.5; // Must have reasonable value per hour
   const MIN_DISTANCE_KM = 30; // Must be at least 30km away (otherwise not "worth the drive")
@@ -272,7 +278,7 @@ export function calculateWorthTheDrive(destination, origin, distanceKm, reverseM
     const MIN_TEMP_DELTA = isSunny ? 3 : 4;
     shouldAward = (
       distanceKm >= MIN_DISTANCE_KM &&
-      weatherDest >= MIN_WEATHER_SCORE &&
+      boostedWeatherDest >= MIN_WEATHER_SCORE &&
       delta >= (isSunny ? 2 : MIN_DELTA) &&
       value >= (isSunny ? 1.2 : MIN_VALUE) &&
       tempDest >= MIN_TEMP_ABSOLUTE &&
