@@ -252,7 +252,7 @@ const generateMockWeatherData = (lat, lon, index, desiredCondition = null) => {
  * Mutates destination objects by adding 'badges' array
  * Limits "Worth the Drive" badges to top 3 destinations only
  */
-const applyBadgesToDestinations = (destinations, originLocation, originLat, originLon) => {
+const applyBadgesToDestinations = (destinations, originLocation, originLat, originLon, reverseMode = 'warm', radiusKm = null) => {
   if (!destinations || !originLocation) return;
   
   // Pre-compute temperature rank map once (O(n log n)) instead of per-destination (O(n²))
@@ -271,7 +271,7 @@ const applyBadgesToDestinations = (destinations, originLocation, originLat, orig
     if (!dest.distance) {
       dest.distance = getDistanceKm(originLat, originLon, dest.lat, dest.lon);
     }
-    dest.badges = calculateBadges(dest, originLocation, dest.distance, tempRankMap);
+    dest.badges = calculateBadges(dest, originLocation, dest.distance, tempRankMap, reverseMode, radiusKm);
   });
   
   // Limit "Worth the Drive" badges to top 3 WARMEST destinations (among those that qualify)

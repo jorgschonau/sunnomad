@@ -259,7 +259,10 @@ export function calculateWorthTheDrive(destination, origin, distanceKm, reverseM
   const value = effectiveDelta / (eta + 0.75); // +0.75 penalty factor
   
   // Gating criteria
-  const MIN_WEATHER_SCORE = tempDelta >= 6 ? 45 : 60;
+  const MIN_WEATHER_SCORE = 
+    tempDelta >= 6 ? 45 :
+    tempDest >= 20 ? 50 :
+    60;
   const MIN_DELTA = 3; // Weather score must be at least slightly better than origin
   const MIN_VALUE = 1.5; // Must have reasonable value per hour
   const MIN_DISTANCE_KM = 30; // Must be at least 30km away (otherwise not "worth the drive")
@@ -318,9 +321,11 @@ export function calculateWorthTheDrive(destination, origin, distanceKm, reverseM
  * @param {Object} destination - Destination to evaluate
  * @param {Object} origin - User's current location
  * @param {number} distanceKm - Distance in km
+ * @param {string} reverseMode - 'warm' or 'cold'
+ * @param {number|null} radius - Search radius in km (used for max distance cap)
  * @returns {Object} - { efficiency, tempDelta, distance, tempDest, eta, delta, value }
  */
-export function calculateWorthTheDriveBudget(destination, origin, distanceKm, reverseMode = 'warm') {
+export function calculateWorthTheDriveBudget(destination, origin, distanceKm, reverseMode = 'warm', radius = null) {
   const isColdMode = reverseMode === 'cold';
   const roadDistanceKm = distanceKm * ROAD_FACTOR;
   const destCc = cc(destination);
@@ -354,6 +359,28 @@ export function calculateWorthTheDriveBudget(destination, origin, distanceKm, re
     isEligible = distanceKm >= MIN_DISTANCE_KM && tempDelta >= MIN_TEMP_DELTA && tempDest >= MIN_TEMP_ABSOLUTE;
   }
   
+  if (isEligible && radius != null) {
+    const MAX_BUDGET_DISTANCE = radius * 0.5;
+    if (roadDistanceKm > MAX_BUDGET_DISTANCE) {
+      const effectiveTempDelta = isColdMode ? Math.abs(tempDelta) : tempDelta;
+      const efficiency = effectiveTempDelta / Math.max(roadDistanceKm, MIN_DISTANCE);
+      const value = effectiveTempDelta / (roadDistanceKm / 100);
+      return {
+        efficiency: Math.round(efficiency * 1000) / 1000,
+        tempDelta: Math.round(tempDelta),
+        tempDest: Math.round(tempDest),
+        tempOrigin: Math.round(tempOrigin),
+        distance: Math.round(distanceKm),
+        roadDistanceKm: Math.round(roadDistanceKm),
+        eta: Math.round(eta * 10) / 10,
+        delta: Math.round(delta),
+        value: Math.round(value * 10) / 10,
+        isEligible: false,
+        skipReason: 'Too far for budget badge',
+      };
+    }
+  }
+
   const effectiveTempDelta = isColdMode ? Math.abs(tempDelta) : tempDelta;
   const efficiency = effectiveTempDelta / Math.max(roadDistanceKm, MIN_DISTANCE);
   const value = effectiveTempDelta / (roadDistanceKm / 100);
@@ -1037,7 +1064,7 @@ export function calculateSpringAwakening(destination, origin, distanceKm) {
  * @param {Array} allDestinations - All destinations for comparison
  * @returns {Array<string>} - Array of badge types this destination earned
  */
-export function calculateBadges(destination, userLocation, distanceKm, tempRankMap = new Map(), reverseMode = 'warm') {
+export function calculateBadges(destination, userLocation, distanceKm, tempRankMap = new Map(), reverseMode = 'warm', radius = null) {
   const badges = [];
 
   // === PRE-CHECK: Weather Curse & Deterioration ===
@@ -1064,7 +1091,7 @@ export function calculateBadges(destination, userLocation, distanceKm, tempRankM
 
   // 1. Worth the Drive Budget - RANKING SYSTEM (PRIORITY 1!)
   // Calculate efficiency for this destination
-  const budgetResult = calculateWorthTheDriveBudget(destination, userLocation, distanceKm, reverseMode);
+  const budgetResult = calculateWorthTheDriveBudget(destination, userLocation, distanceKm, reverseMode, radius);
   destination._worthTheDriveBudgetData = budgetResult;
   
   // Mark as ineligible if weather is deteriorating

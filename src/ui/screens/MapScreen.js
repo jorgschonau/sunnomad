@@ -141,7 +141,7 @@ const MapScreen = ({ navigation }) => {
   const [centerPointWeather, setCenterPointWeather] = useState(null); // Weather for custom center
   const [destinations, setDestinations] = useState([]);
   const [displayDestinations, setDisplayDestinations] = useState([]); // Derived from destinations + date offset (async when offset !== 0)
-  const [visibleMarkers, setVisibleMarkers] = useState([]); // Filtered markers based on zoom
+  // visibleMarkers is derived via useMemo below
   const [currentZoom, setCurrentZoom] = useState(5); // Track zoom level
   const [currentBounds, setCurrentBounds] = useState(null); // Track viewport bounds
   const radiusDebounceTimer = useRef(null);
@@ -605,28 +605,27 @@ const MapScreen = ({ navigation }) => {
     return displayDestinations.find(d => d.isCenterPoint) || centerPointWeather;
   }, [displayDestinations, centerPointWeather]);
 
-  // Update visible markers when display data or zoom changes (NOT on pan/bounds)
-  useEffect(() => {
-    if (displayDestinations.length > 0) {
-      const regularMarkers = getVisibleMarkers(displayDestinations, currentZoom, currentBounds);
-      setVisibleMarkers(regularMarkers);
-      
-      if (__DEV__) {
-        const specialCount = regularMarkers.filter(v => v.isCurrentLocation || v.isCenterPoint).length;
-        console.log(`🔍 Zoom ${currentZoom}: ${regularMarkers.length} markers (${specialCount} special) of ${displayDestinations.length}`);
-      }
+  const toRadians = (degrees) => {
+    return degrees * (Math.PI / 180);
+  };
 
-      // Track map_view_count: collect new IDs, debounce 2s, then batch-fire
-      const newIds = regularMarkers
-        .filter(d => d.id && !d.isCurrentLocation && !d.isCenterPoint && !mapViewTrackedIds.current.has(d.id))
-        .map(d => d.id);
-      if (newIds.length > 0) {
-        newIds.forEach(id => mapViewTrackedIds.current.add(id));
-        clearTimeout(mapViewTrackTimer.current);
-        mapViewTrackTimer.current = setTimeout(() => trackMapViews(newIds), 2000);
-      }
-    }
-  }, [displayDestinations, currentZoom]);
+  /**
+   * Calculate distance between two points (Haversine formula)
+   */
+  const getDistanceKm = (lat1, lon1, lat2, lon2) => {
+    const R = 6371; // Earth radius in km
+    const dLat = toRadians(lat2 - lat1);
+    const dLon = toRadians(lon2 - lon1);
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRadians(lat1)) *
+        Math.cos(toRadians(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  };
+
 
   const loadDestinations = async () => {
     if (!location) return;
@@ -984,8 +983,10 @@ const MapScreen = ({ navigation }) => {
    */
   const getMinDistanceForZoom = (zoom, radius) => {
     const base = getGridSizeKm(zoom) * 0.6;
-    const maxAllowed = radius * 0.25;
-    return Math.min(base, maxAllowed);
+    if (zoom >= 8) return Math.min(base, radius * 0.15);
+    if (zoom >= 7) return Math.min(base, radius * 0.18);
+    if (zoom >= 6) return Math.min(base, radius * 0.20);
+    return Math.min(base, radius * 0.25);
   };
   
   /**
@@ -1043,37 +1044,18 @@ const MapScreen = ({ navigation }) => {
     // Separate special markers (always shown)
     const specialMarkers = candidates.filter(p => p.isCurrentLocation || p.isCenterPoint);
     
-    // Pinned badges: always shown, but distance-filtered against each other (1.5x spread)
+    // Pinned badges: always visible — no distance/grid/maxMarkers filtering between them
     const pinnedBadges = [DestinationBadge.WORTH_THE_DRIVE, DestinationBadge.WORTH_THE_DRIVE_BUDGET];
-    const pinnedCandidates = candidates
-      .filter(p => 
-        !p.isCurrentLocation && !p.isCenterPoint &&
-        p.badges?.some(b => pinnedBadges.includes(b))
-      )
-      .sort((a, b) => {
-        const aScore = a.attractivenessScore || a.attractiveness_score || 50;
-        const bScore = b.attractivenessScore || b.attractiveness_score || 50;
-        return bScore - aScore;
-      });
-    const PINNED_MIN_DIST_KM = 30;
-    const pinned = [];
-    for (const p of pinnedCandidates) {
-      const lat = p.lat || p.latitude;
-      const lon = p.lon || p.longitude;
-      let tooClose = false;
-      for (const existing of pinned) {
-        if (getDistanceKm(lat, lon, existing.lat || existing.latitude, existing.lon || existing.longitude) < PINNED_MIN_DIST_KM) {
-          tooClose = true;
-          break;
-        }
-      }
-      if (!tooClose) pinned.push(p);
-    }
+    const pinned = candidates.filter(p => 
+      !p.isCurrentLocation && !p.isCenterPoint &&
+      Array.isArray(p.badges) && p.badges.some(b => pinnedBadges.includes(b))
+    );
+    console.log('📌 Pinned badges:', pinned.map(p => p.name));
     
     // Normal places: subject to grid/distance/maxMarkers filtering
     const normal = candidates.filter(p => 
       !p.isCurrentLocation && !p.isCenterPoint &&
-      !p.badges?.some(b => pinnedBadges.includes(b))
+      !(Array.isArray(p.badges) && p.badges.some(b => pinnedBadges.includes(b)))
     );
     const sorted = [...normal].sort((a, b) => {
       const aBadges = getMapBadges(a.badges).length;
@@ -1155,30 +1137,38 @@ const MapScreen = ({ navigation }) => {
     const pinnedCount = pinned.length;
     const normalCount = result.length - specialMarkers.length - pinnedCount;
     const phase = normalCount <= phase1Limit ? 'Phase1 only' : 'Phase1+2';
-    console.log(`📊 Final: ${result.length} markers (${pinnedCount} pinned + ${normalCount} normal + ${specialMarkers.length} special), ${pinnedCandidates.length - pinnedCount} pinned filtered, ${skipped} too close, ${gridLimited} grid limited, ${gridsUsed.size} grids [${phase}]`);
+    console.log(`📊 Final: ${result.length} markers (${pinnedCount} pinned + ${normalCount} normal + ${specialMarkers.length} special), ${skipped} too close, ${gridLimited} grid limited, ${gridsUsed.size} grids [${phase}]`);
     return result;
   };
 
-  /**
-   * Calculate distance between two points (Haversine formula)
-   */
-  const getDistanceKm = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // Earth radius in km
-    const dLat = toRadians(lat2 - lat1);
-    const dLon = toRadians(lon2 - lon1);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(toRadians(lat1)) *
-        Math.cos(toRadians(lat2)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
+  const visibleMarkers = useMemo(() => {
+    if (!displayDestinations.length || !location || !radius) return [];
+    const inRadiusDestinations = displayDestinations.filter(d => {
+      const lat = d.lat ?? d.latitude;
+      const lon = d.lon ?? d.longitude;
+      if (!lat || !lon) return false;
+      return getDistanceKm(location.latitude, location.longitude, lat, lon) <= radius;
+    });
+    return getVisibleMarkers(inRadiusDestinations, currentZoom, currentBounds, favouriteDestinations);
+  }, [displayDestinations, currentZoom, currentBounds, location, radius, favouriteDestinations]);
 
-  const toRadians = (degrees) => {
-    return degrees * (Math.PI / 180);
-  };
+  // Track map_view_count as a side-effect of visibleMarkers changing
+  useEffect(() => {
+    if (visibleMarkers.length === 0) return;
+    if (__DEV__) {
+      const specialCount = visibleMarkers.filter(v => v.isCurrentLocation || v.isCenterPoint).length;
+      console.log(`🔍 Zoom ${currentZoom}: ${visibleMarkers.length} markers (${specialCount} special) of ${displayDestinations.length}`);
+    }
+    const newIds = visibleMarkers
+      .filter(d => d.id && !d.isCurrentLocation && !d.isCenterPoint && !mapViewTrackedIds.current.has(d.id))
+      .map(d => d.id);
+    if (newIds.length > 0) {
+      newIds.forEach(id => mapViewTrackedIds.current.add(id));
+      clearTimeout(mapViewTrackTimer.current);
+      mapViewTrackTimer.current = setTimeout(() => trackMapViews(newIds), 2000);
+    }
+  }, [visibleMarkers]);
+
 
   /**
    * Handle long press on map to set new center point
@@ -1798,18 +1788,16 @@ const MapScreen = ({ navigation }) => {
           />
         ))}
 
-        {/* Favourites - rendered separately; skip radius check when trophy filter active */}
+        {/* Favourites - rendered separately; always check radius */}
         {favouriteDestinations
           .filter(fav => fav && fav.lat != null && fav.lon != null)
           .map((fav, index) => {
-            if (!showOnlyBadges) {
-              const effectiveCenter = centerPoint || location;
-              const distToCenter = getDistanceKm(
-                effectiveCenter.latitude, effectiveCenter.longitude,
-                Number(fav.lat), Number(fav.lon)
-              );
-              if (distToCenter > radius) return null;
-            }
+            const effectiveCenter = centerPoint || location;
+            const distToCenter = getDistanceKm(
+              effectiveCenter.latitude, effectiveCenter.longitude,
+              Number(fav.lat), Number(fav.lon)
+            );
+            if (distToCenter > radius) return null;
 
             const withWeather = displayDestinations.find(d => 
               Math.abs((d.lat ?? d.latitude) - fav.lat) < 0.05 &&

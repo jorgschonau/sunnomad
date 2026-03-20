@@ -19,6 +19,7 @@ import ProfileScreen from './src/ui/screens/ProfileScreen';
 import { ThemeProvider, useTheme } from './src/theme/ThemeProvider';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
 import { UnitProvider } from './src/contexts/UnitContext';
+import { startLocationPreload } from './src/utils/locationPreload';
 import './src/i18n';
 import { useTranslation } from 'react-i18next';
 
@@ -145,11 +146,34 @@ function RootNavigator() {
   const { theme } = useTheme();
   const [splashPhase, setSplashPhase] = useState('intro');
   const [fontsLoaded] = useFonts({ Yellowtail_400Regular });
+  const [locationPreloaded, setLocationPreloaded] = useState(false);
 
+  // Start location + AsyncStorage preload immediately (during splash)
+  useEffect(() => {
+    startLocationPreload()
+      .then(() => setLocationPreloaded(true))
+      .catch(() => setLocationPreloaded(true));
+  }, []);
+
+  // Intro phase: always 3.5s
   useEffect(() => {
     const introTimer = setTimeout(() => setSplashPhase('main'), 3500);
-    const mainTimer = setTimeout(() => setSplashPhase('done'), 8000);
-    return () => { clearTimeout(introTimer); clearTimeout(mainTimer); };
+    return () => clearTimeout(introTimer);
+  }, []);
+
+  // Main phase: end when location preload is done (min 500ms to avoid flash)
+  useEffect(() => {
+    if (splashPhase !== 'main' || !locationPreloaded) return;
+    const t = setTimeout(() => setSplashPhase('done'), 500);
+    return () => clearTimeout(t);
+  }, [splashPhase, locationPreloaded]);
+
+  // Safety fallback: never show splash longer than 15s total
+  useEffect(() => {
+    const safety = setTimeout(() => {
+      setSplashPhase(prev => prev === 'done' ? prev : 'done');
+    }, 15000);
+    return () => clearTimeout(safety);
   }, []);
 
   const onSplashLayout = useCallback(() => {

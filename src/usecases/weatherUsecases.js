@@ -82,7 +82,7 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
     if (!dest.distance) {
       dest.distance = getDistanceKm(originLat, originLon, dest.lat, dest.lon);
     }
-    dest.badges = calculateBadges(dest, originLocation, dest.distance, tempRankMap, reverseMode);
+    dest.badges = calculateBadges(dest, originLocation, dest.distance, tempRankMap, reverseMode, radiusKm);
   });
   
   // Limit certain badges to prevent overcrowding
@@ -483,13 +483,13 @@ export const getWeatherForRadius = async (userLat, userLon, radiusKm, desiredCon
   // HÖHERE LIMITS - mehr Orte auf der Karte!
   let MAX_PLACES_ON_MAP;
   if (radiusKm <= 400) {
-    MAX_PLACES_ON_MAP = 500;   // War 100
+    MAX_PLACES_ON_MAP = 1500;
   } else if (radiusKm <= 800) {
-    MAX_PLACES_ON_MAP = 1000;  // War 300
+    MAX_PLACES_ON_MAP = 2500;
   } else if (radiusKm <= 1500) {
-    MAX_PLACES_ON_MAP = 2000;  // War 1000
+    MAX_PLACES_ON_MAP = 4000;
   } else {
-    MAX_PLACES_ON_MAP = 5000;  // War 3000
+    MAX_PLACES_ON_MAP = 8000;
   }
   
   if (filteredPlaces.length > MAX_PLACES_ON_MAP) {
