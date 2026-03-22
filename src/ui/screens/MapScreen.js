@@ -1405,7 +1405,7 @@ const MapScreen = ({ navigation }) => {
   };
 
   const searchPlaces = useCallback(async (text) => {
-    if (!text || text.length < 2) {
+    if (!text || text.length < 3) {
       setSearchResults([]);
       setGoogleResults([]);
       return;
@@ -1452,8 +1452,8 @@ const MapScreen = ({ navigation }) => {
       const newRegion = {
         latitude: lat,
         longitude: lng,
-        latitudeDelta: 0.5,
-        longitudeDelta: 0.5,
+        latitudeDelta: 1.5,
+        longitudeDelta: 1.5,
       };
       skipNextLocationAnimRef.current = true;
       setLocation(newRegion);
@@ -1645,7 +1645,7 @@ const MapScreen = ({ navigation }) => {
             </TouchableOpacity>
           )}
         </View>
-        {(searchResults.length > 0 || googleResults.length > 0) && (
+        {(searchResults.length > 0 || googleResults.length > 0 || searchLoading) && (
           <View style={styles.searchResultsList}>
             {searchResults.map((item) => (
               <TouchableOpacity
@@ -1655,9 +1655,16 @@ const MapScreen = ({ navigation }) => {
                 activeOpacity={0.6}
               >
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Text style={[styles.searchDescription, { flex: 1 }]} numberOfLines={1}>
-                    {item.description}
-                  </Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.searchDescription} numberOfLines={1}>
+                      {item.description}
+                    </Text>
+                    {(item.place_type || item.country_code) && (
+                      <Text style={styles.searchSubtitle} numberOfLines={1}>
+                        {[item.place_type ? t(`placeType.${item.place_type}`, item.place_type.replace(/_/g, ' ')) : null, item.country_code].filter(Boolean).join(' · ')}
+                      </Text>
+                    )}
+                  </View>
                   {item.distLabel ? (
                     <Text style={{ color: '#999', fontSize: 12, marginLeft: 8 }}>{item.distLabel}</Text>
                   ) : null}
@@ -1677,9 +1684,16 @@ const MapScreen = ({ navigation }) => {
                     activeOpacity={0.6}
                   >
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <Text style={[styles.searchDescription, { flex: 1 }]} numberOfLines={1}>
-                        {item.description}
-                      </Text>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.searchDescription} numberOfLines={1}>
+                          {item.description}
+                        </Text>
+                        {item.country_code && (
+                          <Text style={styles.searchSubtitle} numberOfLines={1}>
+                            {item.country_code}
+                          </Text>
+                        )}
+                      </View>
                       <Text style={{ color: '#999', fontSize: 11, marginLeft: 8 }}>via Google</Text>
                     </View>
                   </TouchableOpacity>
@@ -1713,6 +1727,11 @@ const MapScreen = ({ navigation }) => {
         rotateEnabled={false}  // Disable rotation
         showsUserLocation={false}
         showsMyLocationButton={false}
+        onPress={() => {
+          if (searchFocused || searchResults.length > 0 || googleResults.length > 0) {
+            clearSearch();
+          }
+        }}
         onLongPress={handleMapLongPress}
         onRegionChangeComplete={handleRegionChangeComplete}
       >
@@ -2260,6 +2279,11 @@ const styles = StyleSheet.create({
   searchDescription: {
     fontSize: 14,
     color: '#333',
+  },
+  searchSubtitle: {
+    fontSize: 11,
+    color: '#999',
+    marginTop: 2,
   },
   searchDivider: {
     paddingVertical: 6,

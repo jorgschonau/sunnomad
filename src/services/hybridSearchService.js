@@ -4,13 +4,25 @@ import { getCountryName } from '../utils/countryNames';
 
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.googleMapsApiKey;
 
-// Same bounds as MapScreen MAP_BOUNDS
-const SEARCH_BOUNDS = {
-  north: 75,
-  south: 15,
-  west: -175,
-  east: 50,
-};
+// Google Places API allows max 180° wide rectangle, so we split into
+// Europe+Africa and Americas. searchGoogle tries the user's region first.
+const BOUNDS_EUROPE = { north: 75, south: 15, west: -25, east: 50 };
+const BOUNDS_AMERICAS = { north: 75, south: 15, west: -175, east: -25 };
+
+const ALLOWED_COUNTRIES = new Set([
+  'DE', 'FR', 'ES', 'PT', 'IT', 'GB', 'NL', 'BE', 'AT', 'CH',
+  'SE', 'NO', 'DK', 'FI', 'PL', 'CZ', 'GR', 'IE', 'HR', 'SI',
+  'HU', 'SK', 'RO', 'BG', 'TR', 'CY', 'MT', 'IS', 'LU', 'MC',
+  'AL', 'ME', 'RS', 'BA', 'MK', 'XK', 'LV', 'LT', 'EE', 'UA',
+  'MD', 'US', 'CA', 'MX', 'CR', 'PA', 'CU', 'JM', 'DO', 'PR',
+]);
+
+function isGeographicPlace(types) {
+  if (types.includes('establishment')) return false;
+  if (types.includes('route') || types.includes('street_address') ||
+      types.includes('premise') || types.includes('street_number')) return false;
+  return true;
+}
 
 /**
  * Hybrid search: DB first, Google fallback if <3 DB results.
@@ -23,13 +35,13 @@ export const hybridSearch = async (query, center, language = 'de') => {
   if (!query || query.length < 2) return { dbPlaces: [], googlePlaces: [] };
 
   // 1. DB search (fast, free)
-  const dbPlaces = await searchDB(query, center);
+  const dbPlaces = await searchDB(query, center, language);
 
-  // 2. Google fallback only if few DB results
+  // 2. Google supplement when DB has few results (saves API costs for obvious queries)
   let googlePlaces = [];
-  if (dbPlaces.length < 3 && GOOGLE_API_KEY) {
-    googlePlaces = await searchGoogle(query, language);
-    // Remove Google results that already exist in DB (by proximity)
+  if (dbPlaces.length < 5 && GOOGLE_API_KEY) {
+    const bounds = (center && center.longitude < -25) ? BOUNDS_AMERICAS : BOUNDS_EUROPE;
+    googlePlaces = await searchGoogle(query, language, bounds);
     googlePlaces = await deduplicateAgainstDB(googlePlaces);
   }
 
@@ -39,15 +51,15 @@ export const hybridSearch = async (query, center, language = 'de') => {
 /**
  * Search the places table by name, sorted by distance to center.
  */
-async function searchDB(query, center) {
+async function searchDB(query, center, language = 'en') {
   try {
     const { data, error } = await supabase
       .from('places')
-      .select('id, name, latitude, longitude, country_code, country_name, attractiveness_score')
+      .select('id, name, latitude, longitude, place_type, country_code, attractiveness_score')
       .ilike('name', `%${query}%`)
       .eq('is_active', true)
       .order('attractiveness_score', { ascending: false, nullsFirst: false })
-      .limit(15);
+      .limit(10);
 
     if (error) throw error;
     if (!data?.length) return [];
@@ -56,12 +68,14 @@ async function searchDB(query, center) {
       const lat = parseFloat(p.latitude);
       const lng = parseFloat(p.longitude);
       const dist = center ? haversineKm(center.latitude, center.longitude, lat, lng) : 0;
+      const countryName = getCountryName(p.country_code, language);
       return {
         id: p.id,
         name: p.name,
-        description: p.country_name ? `${p.name}, ${p.country_name}` : p.name,
+        description: countryName ? `${p.name}, ${countryName}` : p.name,
         latitude: lat,
         longitude: lng,
+        place_type: p.place_type || null,
         country_code: p.country_code,
         distLabel: dist > 0 ? `${Math.round(dist)} km` : '',
         _dist: dist,
@@ -77,44 +91,52 @@ async function searchDB(query, center) {
 /**
  * Search Google Places Text Search API (New), restricted to app bounds.
  */
-async function searchGoogle(query, language) {
+async function searchGoogle(query, language, bounds = BOUNDS_EUROPE) {
   try {
     const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-Goog-Api-Key': GOOGLE_API_KEY,
-        'X-Goog-FieldMask': 'places.id,places.displayName,places.location,places.addressComponents,places.formattedAddress',
+        'X-Goog-FieldMask': 'places.id,places.displayName,places.location,places.addressComponents,places.formattedAddress,places.types',
       },
       body: JSON.stringify({
         textQuery: query,
         languageCode: language,
-        includedType: 'locality',
         locationBias: {
           rectangle: {
-            low: { latitude: SEARCH_BOUNDS.south, longitude: SEARCH_BOUNDS.west },
-            high: { latitude: SEARCH_BOUNDS.north, longitude: SEARCH_BOUNDS.east },
+            low: { latitude: bounds.south, longitude: bounds.west },
+            high: { latitude: bounds.north, longitude: bounds.east },
           },
         },
-        maxResultCount: 5,
+        maxResultCount: 20,
       }),
     });
     const json = await res.json();
+    if (!res.ok || json.error) {
+      if (__DEV__) console.warn('Google Places API error:', json.error?.message || res.status);
+      return [];
+    }
     if (!json.places?.length) return [];
 
-    return json.places.map(p => {
-      const countryComponent = p.addressComponents?.find(c => c.types?.includes('country'));
-      return {
-        googlePlaceId: p.id,
-        name: p.displayName?.text || '',
-        description: p.formattedAddress || p.displayName?.text || '',
-        latitude: p.location?.latitude,
-        longitude: p.location?.longitude,
-        country_code: countryComponent?.shortText || null,
-        country_name: countryComponent?.longText || null,
-        source: 'google',
-      };
-    }).filter(p => p.latitude && p.longitude);
+    return json.places
+      .filter(p => {
+        const types = p.types || [];
+        return isGeographicPlace(types);
+      })
+      .map(p => {
+        const countryComponent = p.addressComponents?.find(c => c.types?.includes('country'));
+        return {
+          googlePlaceId: p.id,
+          name: p.displayName?.text || '',
+          description: p.formattedAddress || p.displayName?.text || '',
+          latitude: p.location?.latitude,
+          longitude: p.location?.longitude,
+          country_code: countryComponent?.shortText || null,
+          source: 'google',
+        };
+      })
+      .filter(p => p.latitude && p.longitude && (!p.country_code || ALLOWED_COUNTRIES.has(p.country_code)));
   } catch (e) {
     if (__DEV__) console.warn('Google search failed:', e);
     return [];
@@ -188,10 +210,11 @@ export const ensurePlaceInDB = async (googlePlace) => {
         latitude: googlePlace.latitude,
         longitude: googlePlace.longitude,
         country_code: googlePlace.country_code || null,
-        country_name: googlePlace.country_name || getCountryName(googlePlace.country_code, 'en') || null,
         region,
         place_type: 'city',
         is_active: true,
+        source: 'user_search',
+        attractiveness_score: 50,
       })
       .select()
       .single();

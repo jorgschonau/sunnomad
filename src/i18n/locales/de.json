@@ -47,6 +47,21 @@
     "filtersShow": "▶ Filter",
     "filtersHide": "▼ Filter"
   },
+  "placeType": {
+    "city": "Stadt",
+    "large_city": "Großstadt",
+    "medium_city": "Mittelstadt",
+    "town": "Kleinstadt",
+    "small_town": "Ortschaft",
+    "village": "Dorf",
+    "beach": "Strand",
+    "mountain": "Berg",
+    "campground": "Campingplatz",
+    "national_park": "Nationalpark",
+    "natural_park": "Naturpark",
+    "nature_reserve": "Naturschutzgebiet",
+    "poi": "Sehenswürdigkeit"
+  },
   "radius": {
     "title": "Radius",
     "inRadius": "in {{radius}} km Umkreis",
