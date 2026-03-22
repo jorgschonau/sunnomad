@@ -23,7 +23,7 @@ const { createClient } = require('@supabase/supabase-js');
 const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
 const GEONAMES_USER = process.env.GEONAMES_USER;
 const BATCH_SIZE = 50;
-const DELAY_MS = 1200; // ~50 req/min, well within free tier
+const DELAY_MS = 800; // Delay between API calls (~3 calls per place)
 
 if (!GEONAMES_USER) {
   console.error('❌ GEONAMES_USER env var is required.\n   Register free at https://www.geonames.org/login');
@@ -48,9 +48,12 @@ function mapPlaceType(featureClass, featureCode, population) {
   return 'poi';
 }
 
-async function fetchGeoNames(lat, lng) {
-  const url = `http://api.geonames.org/findNearbyPlaceNameJSON?lat=${lat}&lng=${lng}&radius=10&maxRows=1&username=${GEONAMES_USER}`;
-  const res = await fetch(url);
+async function fetchGeoNames(name, lat, lng, countryCode) {
+  // 1. Search by name + country for exact match (style=FULL gives all fields)
+  const nameEnc = encodeURIComponent(name);
+  const countryParam = countryCode ? `&country=${countryCode}` : '';
+  const searchUrl = `http://api.geonames.org/searchJSON?name=${nameEnc}${countryParam}&lat=${lat}&lng=${lng}&radius=50&maxRows=5&style=FULL&username=${GEONAMES_USER}`;
+  const res = await fetch(searchUrl);
   const json = await res.json();
 
   if (json.status) {
@@ -58,16 +61,56 @@ async function fetchGeoNames(lat, lng) {
     return null;
   }
 
-  const place = json.geonames?.[0];
+  // Pick the closest match by distance to our coordinates
+  let place = null;
+  if (json.geonames?.length) {
+    place = json.geonames.reduce((best, p) => {
+      const dist = Math.abs(p.lat - lat) + Math.abs(p.lng - lng);
+      const bestDist = best ? Math.abs(best.lat - lat) + Math.abs(best.lng - lng) : Infinity;
+      return dist < bestDist ? p : best;
+    }, null);
+  }
+
+  // 2. Fallback: nearest place by coordinates
+  if (!place) {
+    const nearbyUrl = `http://api.geonames.org/findNearbyPlaceNameJSON?lat=${lat}&lng=${lng}&radius=20&maxRows=1&style=FULL&username=${GEONAMES_USER}`;
+    const nearbyRes = await fetch(nearbyUrl);
+    const nearbyJson = await nearbyRes.json();
+    place = nearbyJson.geonames?.[0];
+    await sleep(DELAY_MS);
+  }
+
   if (!place) return null;
+
+  // 3. DEM elevation (separate endpoint)
+  let dem = parseInt(place.astergdem) || parseInt(place.srtm3) || null;
+  if (!dem) {
+    try {
+      const demRes = await fetch(`http://api.geonames.org/srtm3JSON?lat=${lat}&lng=${lng}&username=${GEONAMES_USER}`);
+      const demJson = await demRes.json();
+      if (demJson.srtm3 && demJson.srtm3 > 0) dem = demJson.srtm3;
+    } catch (_) { /* non-critical */ }
+    await sleep(DELAY_MS);
+  }
+
+  // 4. Check if place is on an island (look for ISL feature nearby)
+  let isIsland = false;
+  try {
+    const nearbyFeatUrl = `http://api.geonames.org/findNearbyJSON?lat=${lat}&lng=${lng}&featureCode=ISL&featureCode=ISLS&radius=30&maxRows=1&username=${GEONAMES_USER}`;
+    const islandRes = await fetch(nearbyFeatUrl);
+    const islandJson = await islandRes.json();
+    isIsland = (islandJson.geonames?.length || 0) > 0;
+  } catch (_) { /* non-critical */ }
 
   return {
     population: parseInt(place.population) || 0,
     elevation: parseInt(place.elevation) || null,
-    dem: parseInt(place.astergdem) || parseInt(place.srtm3) || null,
-    feature_class: place.fclName ? place.fcl : null,
+    dem,
+    feature_class: place.fcl || null,
     feature_code: place.fcode || null,
     country_code: place.countryCode || null,
+    is_island: isIsland,
+    timezone: place.timezone?.timeZoneId || null,
   };
 }
 
@@ -107,11 +150,10 @@ async function main() {
 
     for (const place of batch) {
       try {
-        const geo = await fetchGeoNames(place.latitude, place.longitude);
+        const geo = await fetchGeoNames(place.name, place.latitude, place.longitude, place.country_code);
 
         if (!geo) {
           console.log(`   ⏭️  ${place.name}: no GeoNames match`);
-          // Mark as checked so we don't retry forever
           await supabase.from('places').update({ feature_code: 'UNKNOWN' }).eq('id', place.id);
           skipped++;
         } else {
@@ -125,6 +167,8 @@ async function main() {
               feature_class: geo.feature_class,
               feature_code: geo.feature_code,
               place_type: placeType,
+              is_island: geo.is_island,
+              timezone: geo.timezone,
               country_code: place.country_code || geo.country_code,
             })
             .eq('id', place.id);
@@ -133,7 +177,11 @@ async function main() {
             console.log(`   ❌ ${place.name}: update failed — ${updateError.message}`);
             errors++;
           } else {
-            console.log(`   ✅ ${place.name}: ${placeType}, pop=${geo.population}, dem=${geo.dem || '?'}`);
+            const extras = [
+              geo.is_island ? '🏝️' : null,
+              geo.dem ? `${geo.dem}m` : null,
+            ].filter(Boolean).join(' ');
+            console.log(`   ✅ ${place.name}: ${placeType}, pop=${geo.population}, dem=${geo.dem || '?'} ${extras}`);
             enriched++;
           }
         }
