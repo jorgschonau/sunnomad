@@ -96,7 +96,7 @@ async function fetchGeoNames(name, lat, lng, countryCode) {
   // 4. Check if place is on an island (look for ISL feature nearby)
   let isIsland = false;
   try {
-    const nearbyFeatUrl = `http://api.geonames.org/findNearbyJSON?lat=${lat}&lng=${lng}&featureCode=ISL&featureCode=ISLS&radius=30&maxRows=1&username=${GEONAMES_USER}`;
+    const nearbyFeatUrl = `http://api.geonames.org/findNearbyJSON?lat=${lat}&lng=${lng}&featureCode=ISL&featureCode=ISLS&radius=15&maxRows=1&username=${GEONAMES_USER}`;
     const islandRes = await fetch(nearbyFeatUrl);
     const islandJson = await islandRes.json();
     isIsland = (islandJson.geonames?.length || 0) > 0;
@@ -119,14 +119,18 @@ async function main() {
   console.log('║   Enrich User-Search Places via GeoNames          ║');
   console.log('╚═══════════════════════════════════════════════════╝\n');
 
-  // Find un-enriched user_search places
-  const { data: places, error } = await supabase
+  const force = process.argv.includes('--force');
+  let query = supabase
     .from('places')
     .select('id, name, latitude, longitude, country_code')
     .eq('source', 'user_search')
-    .is('feature_code', null)
     .order('created_at', { ascending: false })
     .limit(500);
+
+  if (!force) query = query.is('feature_code', null);
+  else console.log('⚡ --force mode: re-enriching ALL user_search places\n');
+
+  const { data: places, error } = await query;
 
   if (error) {
     console.error('❌ DB query failed:', error.message);
