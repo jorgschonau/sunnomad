@@ -20,7 +20,12 @@
 require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+if (!serviceKey) {
+  console.error('❌ SUPABASE_SERVICE_ROLE_KEY is required (bypasses RLS for updates).\n   Find it in Supabase Dashboard → Settings → API → service_role key');
+  process.exit(1);
+}
+const supabase = createClient(process.env.SUPABASE_URL, serviceKey);
 const GEONAMES_USER = process.env.GEONAMES_USER;
 const BATCH_SIZE = 50;
 const DELAY_MS = 800; // Delay between API calls (~3 calls per place)

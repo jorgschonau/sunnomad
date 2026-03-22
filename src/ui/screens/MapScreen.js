@@ -706,7 +706,7 @@ const MapScreen = ({ navigation }) => {
         timezone: 'auto',
         forecast_days: 16,
       });
-      const url = `https://customer-api.open-meteo.com/v1/forecast?${params}&apikey=8cJ4NUh7dYHZF1uv`;
+      const url = `https://customer-api.open-meteo.com/v1/forecast?${params}&apikey=${process.env.EXPO_PUBLIC_OPEN_METEO_KEY}`;
       // Run geocode and Open-Meteo in parallel so we don't wait for city name before weather
       const [geocodeResult, response] = await Promise.all([
         Location.reverseGeocodeAsync({ latitude: location.latitude, longitude: location.longitude }).catch(() => null),
@@ -1252,7 +1252,7 @@ const MapScreen = ({ navigation }) => {
         forecast_days: 16,
       });
 
-      const url = `https://customer-api.open-meteo.com/v1/forecast?${params}&apikey=8cJ4NUh7dYHZF1uv`;
+      const url = `https://customer-api.open-meteo.com/v1/forecast?${params}&apikey=${process.env.EXPO_PUBLIC_OPEN_METEO_KEY}`;
       const response = await fetch(url);
 
       if (!response.ok) {

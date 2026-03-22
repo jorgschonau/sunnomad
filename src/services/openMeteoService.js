@@ -7,7 +7,7 @@ import { supabase } from '../config/supabase';
  * Documentation: https://open-meteo.com/en/docs
  */
 
-const OPEN_METEO_API_KEY = '8cJ4NUh7dYHZF1uv';
+const OPEN_METEO_API_KEY = process.env.EXPO_PUBLIC_OPEN_METEO_KEY;
 const OPEN_METEO_BASE_URL = 'https://customer-api.open-meteo.com/v1';
 const BATCH_SIZE = 20; // Process 20 locations in parallel
 const RATE_LIMIT_DELAY = 100; // 100ms between batches
