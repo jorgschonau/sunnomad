@@ -83,22 +83,20 @@ const FavouritesScreen = ({ navigation }) => {
     >
       <View style={[styles.cardHeader, { backgroundColor: getWeatherColor(item.condition, item.temperature) }]}>
         <Text style={styles.weatherIcon}>{getWeatherIcon(item.condition)}</Text>
-        <View style={styles.headerInfo}>
-          <Text style={[styles.locationName, { color: theme.text }]}>{item.name}</Text>
-          <Text style={[styles.temperature, { color: theme.text }]}>{formatTemperature(item.temperature, temperatureUnit)}</Text>
-        </View>
+        <Text style={[styles.locationName, { color: theme.text }]} numberOfLines={1}>{item.name}</Text>
+        <Text style={[styles.temperature, { color: theme.text }]}>{formatTemperature(item.temperature, temperatureUnit)}</Text>
       </View>
 
       <View style={styles.cardBody}>
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
-            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+            <Text style={[styles.statLabel, { color: theme.text, opacity: 0.7 }]}>
               {t('destination.humidity')}
             </Text>
             <Text style={[styles.statValue, { color: theme.text }]}>{item.humidity}%</Text>
           </View>
           <View style={styles.statItem}>
-            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
+            <Text style={[styles.statLabel, { color: theme.text, opacity: 0.7 }]}>
               {t('destination.wind')}
             </Text>
             <Text style={[styles.statValue, { color: theme.text }]}>{formatWindSpeed(item.windSpeed, windSpeedUnit)}</Text>
@@ -110,10 +108,10 @@ const FavouritesScreen = ({ navigation }) => {
             {t('favourites.savedOn', { date: formatDate(item.savedAt) })}
           </Text>
           <TouchableOpacity
-            style={[styles.removeButton, { backgroundColor: theme.error + '20', borderColor: theme.error }]}
+            style={styles.removeButton}
             onPress={() => handleRemoveFavourite(item.placeId, item.name)}
           >
-            <Text style={[styles.removeButtonText, { color: theme.error }]}>✖</Text>
+            <Text style={[styles.removeButtonText, { color: theme.error }]}>✕</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -170,77 +168,80 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   listContent: {
-    padding: 16,
+    padding: 12,
   },
   favouriteCard: {
-    borderRadius: 16,
-    marginBottom: 16,
+    borderRadius: 12,
+    marginBottom: 10,
     overflow: 'hidden',
-    borderWidth: 2,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
   },
   cardHeader: {
     flexDirection: 'row',
-    padding: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
     alignItems: 'center',
   },
   weatherIcon: {
-    fontSize: 48,
-    marginRight: 16,
-  },
-  headerInfo: {
-    flex: 1,
+    fontSize: 40,
+    marginRight: 10,
   },
   locationName: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: 'bold',
-    marginBottom: 4,
+    flex: 1,
   },
   temperature: {
-    fontSize: 28,
+    fontSize: 16,
     fontWeight: '700',
+    marginLeft: 8,
   },
   cardBody: {
-    padding: 16,
+    paddingHorizontal: 12,
+    paddingTop: 12,
+    paddingBottom: 10,
   },
   statsRow: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginBottom: 12,
+    marginBottom: 6,
   },
   statItem: {
     alignItems: 'center',
   },
   statLabel: {
-    fontSize: 12,
-    marginBottom: 4,
+    fontSize: 13,
+    marginBottom: 2,
   },
   statValue: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: 'bold',
   },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(0,0,0,0.1)',
+    paddingTop: 6,
   },
   savedDate: {
-    fontSize: 12,
+    fontSize: 11,
+    opacity: 0.6,
+    marginTop: 4,
   },
   removeButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 8,
-    borderWidth: 1,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255,0,0,0.08)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   removeButtonText: {
-    fontSize: 16,
+    fontSize: 13,
   },
   emptyContainer: {
     flex: 1,
