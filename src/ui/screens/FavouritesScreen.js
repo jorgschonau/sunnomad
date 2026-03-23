@@ -16,6 +16,11 @@ import { getWeatherIcon, getWeatherColor } from '../../usecases/weatherUsecases'
 import { useUnits } from '../../contexts/UnitContext';
 import { formatTemperature, formatWindSpeed } from '../../utils/unitConversion';
 
+const formatDate = (dateString) => {
+  const date = new Date(dateString);
+  return date.toLocaleDateString();
+};
+
 const FavouritesScreen = ({ navigation }) => {
   const { t } = useTranslation();
   const { theme } = useTheme();
@@ -67,12 +72,7 @@ const FavouritesScreen = ({ navigation }) => {
     navigation.navigate('DestinationDetail', { destination });
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString();
-  };
-
-  const renderFavouriteItem = ({ item }) => (
+  const renderFavouriteItem = useCallback(({ item }) => (
     <TouchableOpacity
       style={[styles.favouriteCard, {
         backgroundColor: theme.surface,
@@ -103,12 +103,6 @@ const FavouritesScreen = ({ navigation }) => {
             </Text>
             <Text style={[styles.statValue, { color: theme.text }]}>{formatWindSpeed(item.windSpeed, windSpeedUnit)}</Text>
           </View>
-          <View style={styles.statItem}>
-            <Text style={[styles.statLabel, { color: theme.textSecondary }]}>
-              {t('destination.stability')}
-            </Text>
-            <Text style={[styles.statValue, { color: theme.text }]}>{item.stability}%</Text>
-          </View>
         </View>
 
         <View style={styles.cardFooter}>
@@ -124,7 +118,7 @@ const FavouritesScreen = ({ navigation }) => {
         </View>
       </View>
     </TouchableOpacity>
-  );
+  ), [theme, t, temperatureUnit, windSpeedUnit]);
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>

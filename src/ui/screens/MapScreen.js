@@ -140,6 +140,17 @@ const MAP_BOUNDS = {
   east: 50     // Östlich Ural + Puffer
 };
 
+const LOADING_STATES = [
+  { text: 'Suche GPS Signal... 🛰️', duration: 2000 },
+  { text: 'Bestimme Position... 📍', duration: 2000 },
+  { text: 'Gleich geschafft... ⏱️', duration: 3000 },
+];
+const LOADING_TIPS = [
+  'Tipp: WiFi hilft bei Indoor-Ortung',
+  'Tipp: GPS funktioniert draußen am besten',
+  'Tipp: Standort wird im Hintergrund aktualisiert',
+];
+
 const MapScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
   const { theme } = useTheme();
@@ -170,17 +181,7 @@ const MapScreen = ({ navigation }) => {
   const recenterCooldownUntilRef = useRef(0); // Throttle on-demand GPS requests
   const mapViewTrackedIds = useRef(new Set()); // Deduplicate map_view_count per session
   const mapViewTrackTimer = useRef(null);
-  const loadingStates = [
-    { text: 'Suche GPS Signal... 🛰️', duration: 2000 },
-    { text: 'Bestimme Position... 📍', duration: 2000 },
-    { text: 'Gleich geschafft... ⏱️', duration: 3000 },
-  ];
-  const loadingTips = [
-    'Tipp: WiFi hilft bei Indoor-Ortung',
-    'Tipp: GPS funktioniert draußen am besten',
-    'Tipp: Standort wird im Hintergrund aktualisiert',
-  ];
-  const [loadingState, setLoadingState] = useState(loadingStates[0].text);
+  const [loadingState, setLoadingState] = useState(LOADING_STATES[0].text);
   const [loadingTipIndex, setLoadingTipIndex] = useState(0);
   const [showSkipLocation, setShowSkipLocation] = useState(false);
   const [loadingDestinations, setLoadingDestinations] = useState(false);
@@ -272,7 +273,7 @@ const MapScreen = ({ navigation }) => {
   const initializeLocation = async () => {
     setLoading(true);
     setShowSkipLocation(false);
-    setLoadingState(loadingStates[0].text);
+    setLoadingState(LOADING_STATES[0].text);
     setLoadingTipIndex(0);
     setLocationError(null);
 
@@ -412,9 +413,9 @@ const MapScreen = ({ navigation }) => {
     if (!(loading && !location)) return undefined;
     let currentIndex = 0;
     const interval = setInterval(() => {
-      currentIndex = (currentIndex + 1) % loadingStates.length;
-      setLoadingState(loadingStates[currentIndex].text);
-      setLoadingTipIndex(prev => (prev + 1) % loadingTips.length);
+      currentIndex = (currentIndex + 1) % LOADING_STATES.length;
+      setLoadingState(LOADING_STATES[currentIndex].text);
+      setLoadingTipIndex(prev => (prev + 1) % LOADING_TIPS.length);
     }, 2000);
 
     return () => clearInterval(interval);
@@ -1209,10 +1210,12 @@ const MapScreen = ({ navigation }) => {
       }
       
       // Distance check against all placed markers (special + pinned + normal)
+      // Badged places use half the minimum distance so they show up at lower zoom levels
+      const effectiveMinDist = hasBadges ? minDistance * 0.4 : minDistance;
       let tooClose = false;
       for (const existing of result) {
         const dist = getDistanceKm(lat, lon, existing.lat || existing.latitude, existing.lon || existing.longitude);
-        if (dist < minDistance) {
+        if (dist < effectiveMinDist) {
           tooClose = true;
           break;
         }
@@ -1707,7 +1710,7 @@ const MapScreen = ({ navigation }) => {
           {loadingState}
         </Text>
         <Text style={[styles.hintText, { color: theme.textSecondary || '#888' }]}>
-          {loadingTips[loadingTipIndex]}
+          {LOADING_TIPS[loadingTipIndex]}
         </Text>
         {/* Skip button visible after 5 seconds */}
         {showSkipLocation && (

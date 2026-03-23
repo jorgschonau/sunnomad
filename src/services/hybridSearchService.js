@@ -3,6 +3,7 @@ import { supabase } from '../config/supabase';
 import { getCountryName } from '../utils/countryNames';
 
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.googleMapsApiKey;
+console.log('🔑 Google API Key:', GOOGLE_API_KEY ? `${GOOGLE_API_KEY.slice(0, 10)}...` : 'MISSING');
 
 // Google Places API allows max 180° wide rectangle, so we split into
 // Europe+Africa and Americas. searchGoogle tries the user's region first.
@@ -17,11 +18,17 @@ const ALLOWED_COUNTRIES = new Set([
   'MD', 'US', 'CA', 'MX', 'CR', 'PA', 'CU', 'JM', 'DO', 'PR',
 ]);
 
+const GEO_TYPES = new Set([
+  'locality', 'sublocality', 'sublocality_level_1',
+  'administrative_area_level_1', 'administrative_area_level_2',
+  'administrative_area_level_3', 'administrative_area_level_4',
+  'postal_town', 'natural_feature', 'island', 'archipelago',
+  'park', 'national_park', 'town_square', 'neighborhood',
+  'city_hall', 'colloquial_area', 'continent', 'country',
+]);
+
 function isGeographicPlace(types) {
-  if (types.includes('establishment')) return false;
-  if (types.includes('route') || types.includes('street_address') ||
-      types.includes('premise') || types.includes('street_number')) return false;
-  return true;
+  return types.some(t => GEO_TYPES.has(t));
 }
 
 /**
@@ -34,17 +41,26 @@ function isGeographicPlace(types) {
 export const hybridSearch = async (query, center, language = 'de') => {
   if (!query || query.length < 2) return { dbPlaces: [], googlePlaces: [] };
 
-  // 1. DB search (fast, free)
-  const dbPlaces = await searchDB(query, center, language);
+  // Run DB and Google in parallel (Google only when API key is available)
+  const bounds = (center && center.longitude < -25) ? BOUNDS_AMERICAS : BOUNDS_EUROPE;
+  const [dbPlaces, rawGooglePlaces] = await Promise.all([
+    searchDB(query, center, language),
+    GOOGLE_API_KEY ? searchGoogle(query, language, bounds) : Promise.resolve([]),
+  ]);
 
-  // 2. Google supplement when DB has few results (saves API costs for obvious queries)
+  // Deduplicate Google results against DB; promote DB matches the name search missed
   let googlePlaces = [];
-  if (dbPlaces.length < 5 && GOOGLE_API_KEY) {
-    const bounds = (center && center.longitude < -25) ? BOUNDS_AMERICAS : BOUNDS_EUROPE;
-    googlePlaces = await searchGoogle(query, language, bounds);
-    googlePlaces = await deduplicateAgainstDB(googlePlaces);
+  if (rawGooglePlaces.length > 0) {
+    const dbIds = new Set(dbPlaces.map(p => p.id));
+    const { unique, promoted } = await deduplicateAndPromote(rawGooglePlaces, dbIds, center, language);
+    googlePlaces = unique;
+    if (promoted.length > 0) {
+      dbPlaces.push(...promoted);
+      console.log(`🔍 Promoted ${promoted.length} DB places from Google coord match:`, promoted.map(p => p.name));
+    }
   }
 
+  console.log(`🔍 hybridSearch "${query}": ${dbPlaces.length} DB, ${rawGooglePlaces.length} Google raw, ${googlePlaces.length} Google after dedup`);
   return { dbPlaces, googlePlaces };
 };
 
@@ -93,6 +109,7 @@ async function searchDB(query, center, language = 'en') {
  */
 async function searchGoogle(query, language, bounds = BOUNDS_EUROPE) {
   try {
+    console.log(`🔍 Google search: query="${query}", key=${GOOGLE_API_KEY ? 'present' : 'MISSING'}`);
     const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
       method: 'POST',
       headers: {
@@ -113,30 +130,39 @@ async function searchGoogle(query, language, bounds = BOUNDS_EUROPE) {
       }),
     });
     const json = await res.json();
+    console.log(`🔍 Google response: status=${res.status}, places=${json.places?.length || 0}, error=${json.error?.message || 'none'}`);
     if (!res.ok || json.error) {
-      if (__DEV__) console.warn('Google Places API error:', json.error?.message || res.status);
+      console.warn('Google Places API error:', json.error?.message || res.status);
       return [];
     }
     if (!json.places?.length) return [];
 
-    return json.places
-      .filter(p => {
-        const types = p.types || [];
-        return isGeographicPlace(types);
-      })
-      .map(p => {
-        const countryComponent = p.addressComponents?.find(c => c.types?.includes('country'));
-        return {
-          googlePlaceId: p.id,
-          name: p.displayName?.text || '',
-          description: p.formattedAddress || p.displayName?.text || '',
-          latitude: p.location?.latitude,
-          longitude: p.location?.longitude,
-          country_code: countryComponent?.shortText || null,
-          source: 'google',
-        };
-      })
-      .filter(p => p.latitude && p.longitude && (!p.country_code || ALLOWED_COUNTRIES.has(p.country_code)));
+    const allMapped = json.places.map(p => {
+      const types = p.types || [];
+      const countryComponent = p.addressComponents?.find(c => c.types?.includes('country'));
+      const cc = countryComponent?.shortText || null;
+      const geo = isGeographicPlace(types);
+      const allowed = !cc || ALLOWED_COUNTRIES.has(cc);
+      return {
+        googlePlaceId: p.id,
+        name: p.displayName?.text || '',
+        description: p.formattedAddress || p.displayName?.text || '',
+        latitude: p.location?.latitude,
+        longitude: p.location?.longitude,
+        country_code: cc,
+        source: 'google',
+        _types: types,
+        _geo: geo,
+        _allowed: allowed,
+      };
+    });
+    const rejected = allMapped.filter(p => !p._geo || !p._allowed);
+    if (rejected.length > 0) {
+      console.log(`🔍 Google filtered out ${rejected.length}:`, rejected.map(p => `${p.name} [geo=${p._geo}, cc=${p.country_code}, allowed=${p._allowed}, types=${p._types.slice(0, 3).join(',')}]`));
+    }
+    return allMapped
+      .filter(p => p._geo && p._allowed && p.latitude && p.longitude)
+      .map(({ _types, _geo, _allowed, ...rest }) => rest);
   } catch (e) {
     if (__DEV__) console.warn('Google search failed:', e);
     return [];
@@ -144,17 +170,39 @@ async function searchGoogle(query, language, bounds = BOUNDS_EUROPE) {
 }
 
 /**
- * Remove Google results that already exist in DB (within ~1km).
+ * Deduplicate Google results against DB. If a Google result matches a DB place
+ * by coordinates but wasn't found by the name search, promote it to DB results.
  */
-async function deduplicateAgainstDB(googlePlaces) {
-  if (!googlePlaces.length) return [];
-
-  const deduplicated = [];
+async function deduplicateAndPromote(googlePlaces, existingDbIds, center, language) {
+  const unique = [];
+  const promoted = [];
   for (const gp of googlePlaces) {
     const existing = await findExistingPlace(gp.latitude, gp.longitude);
-    if (!existing) deduplicated.push(gp);
+    if (existing) {
+      if (!existingDbIds.has(existing.id)) {
+        const lat = parseFloat(existing.latitude);
+        const lng = parseFloat(existing.longitude);
+        const dist = center ? haversineKm(center.latitude, center.longitude, lat, lng) : 0;
+        const countryName = getCountryName(existing.country_code, language);
+        promoted.push({
+          id: existing.id,
+          name: existing.name,
+          description: countryName ? `${existing.name}, ${countryName}` : existing.name,
+          latitude: lat,
+          longitude: lng,
+          place_type: existing.place_type || null,
+          country_code: existing.country_code,
+          distLabel: dist > 0 ? `${Math.round(dist)} km` : '',
+          _dist: dist,
+          source: 'db',
+        });
+        existingDbIds.add(existing.id);
+      }
+    } else {
+      unique.push(gp);
+    }
   }
-  return deduplicated;
+  return { unique, promoted };
 }
 
 /**
