@@ -847,11 +847,11 @@ const MapScreen = ({ navigation }) => {
     return Math.round((cloudScore + windScore) / 2);
   };
 
-  const handleMarkerPress = (destination, { source = 'marker' } = {}) => {
+  const handleMarkerPress = (destination) => {
     markerJustPressedRef.current = true;
     setTimeout(() => { markerJustPressedRef.current = false; }, 500);
     if (destination.id) trackDetailView(destination.id);
-    navigation.navigate('DestinationDetail', { destination, selectedDateOffset, reverseMode, source });
+    navigation.navigate('DestinationDetail', { destination, selectedDateOffset, reverseMode });
   };
 
   const handleRadiusIncrease = async () => {
@@ -1306,7 +1306,7 @@ const MapScreen = ({ navigation }) => {
       );
 
       if (match) {
-        handleMarkerPress(match, { source: 'rpc' });
+        handleMarkerPress(match);
       } else {
         showToast('No destination found nearby', 'info');
       }

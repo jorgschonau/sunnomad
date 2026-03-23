@@ -139,7 +139,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const { t, i18n } = useTranslation();
   const { theme } = useTheme();
   const { temperatureUnit, distanceUnit } = useUnits();
-  const { destination, selectedDateOffset = 0, reverseMode = 'warm', source = 'marker' } = route.params;
+  const { destination, selectedDateOffset = 0, reverseMode = 'warm' } = route.params;
   const tempSym = getTemperatureSymbol(temperatureUnit);
   const distSym = getDistanceSymbol(distanceUnit);
   const fmtTemp = (c) => formatTemperature(c, temperatureUnit);
@@ -743,13 +743,6 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                 {getCountryName(forecast.countryCode || forecast.country_code, i18n.language || 'en')}
               </Text>
             )}
-            {__DEV__ && (
-              <View style={{ backgroundColor: source === 'rpc' ? '#00E676' : '#FF3D00', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, marginTop: 4, alignSelf: 'flex-start' }}>
-                <Text style={{ fontSize: 14, color: '#000', fontWeight: '900', letterSpacing: 0.5 }}>
-                  {source === 'rpc' ? '⚡ DB/RPC' : '📌 MARKER'}
-                </Text>
-              </View>
-            )}
           </View>
           <Text style={[styles.headerTemp, { color: textColor }]}>{heroTemp != null ? formatTemperature(heroTemp, temperatureUnit, false) : '?°'}</Text>
         </View>
@@ -763,11 +756,13 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         
         {/* Untere Zeile: Description */}
         <Text style={[styles.headerSubtitle, { color: subtitleColor }]}>{translateCondition(heroDescription)}</Text>
+        {/* Score display hidden
         {(forecast?.attractivenessScore ?? destination.attractivenessScore) != null && (
           <Text style={[styles.headerSubtitle, { color: subtitleColor, marginTop: 4, fontSize: 12, opacity: 0.7 }]}>
             Score: {forecast?.attractivenessScore ?? destination.attractivenessScore}
           </Text>
         )}
+        */}
       </View>
 
       <View style={styles.content}>
