@@ -84,7 +84,23 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
     }
     dest.badges = calculateBadges(dest, originLocation, dest.distance, tempRankMap, reverseMode, radiusKm);
   });
-  
+
+  // TEMPORARY: Strip WTD/Budget badges for Ukraine west of Moldova (~28°E)
+  // TODO: Remove this block once the data quality / place density in that region improves
+  const UKRAINE_BADGE_EXCLUSION = { minLat: 44, maxLat: 53, maxLon: 28 };
+  destinations.forEach(dest => {
+    const lat = dest.lat ?? dest.latitude;
+    const lon = dest.lon ?? dest.longitude;
+    const cc = (dest.country_code || dest.countryCode || '').toUpperCase();
+    if (
+      cc === 'UA' &&
+      lat >= UKRAINE_BADGE_EXCLUSION.minLat && lat <= UKRAINE_BADGE_EXCLUSION.maxLat &&
+      lon <= UKRAINE_BADGE_EXCLUSION.maxLon
+    ) {
+      dest.badges = dest.badges.filter(b => b !== 'WORTH_THE_DRIVE' && b !== 'WORTH_THE_DRIVE_BUDGET');
+    }
+  });
+
   // Limit certain badges to prevent overcrowding
   const MAX_WORTH_THE_DRIVE_BADGES = 5;
   const MAX_BUDGET_BADGES = 2;

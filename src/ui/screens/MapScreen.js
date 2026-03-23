@@ -1114,19 +1114,41 @@ const MapScreen = ({ navigation }) => {
     // Separate special markers (always shown)
     const specialMarkers = candidates.filter(p => p.isCurrentLocation || p.isCenterPoint);
     
-    // Pinned badges: always visible — no distance/grid/maxMarkers filtering between them
+    // Pinned badges: always visible, but soft grid limit (max 2 per grid) to avoid clustering
+    const PINNED_GRID_LIMIT = 2;
     const pinnedBadges = [DestinationBadge.WORTH_THE_DRIVE, DestinationBadge.WORTH_THE_DRIVE_BUDGET];
-    const pinned = candidates.filter(p => 
+    const allPinned = candidates.filter(p => 
       !p.isCurrentLocation && !p.isCenterPoint &&
       Array.isArray(p.badges) && p.badges.some(b => pinnedBadges.includes(b))
     );
-    console.log('📌 Pinned badges:', pinned.map(p => p.name));
+    const pinnedGridCounts = new Map();
+    const pinned = [];
+    const pinnedOverflow = [];
+    const sortedPinned = sortByQuality(allPinned, userLat, userLon);
+    for (const p of sortedPinned) {
+      const pLat = p.lat || p.latitude;
+      const pLon = p.lon || p.longitude;
+      const gLat = Math.floor((pLat / (GRID_SIZE_KM / 111))) * (GRID_SIZE_KM / 111);
+      const gLon = Math.floor((pLon / (GRID_SIZE_KM / 111))) * (GRID_SIZE_KM / 111);
+      const key = `${gLat.toFixed(1)},${gLon.toFixed(1)}`;
+      const count = pinnedGridCounts.get(key) || 0;
+      if (count < PINNED_GRID_LIMIT) {
+        pinned.push(p);
+        pinnedGridCounts.set(key, count + 1);
+      } else {
+        pinnedOverflow.push(p);
+      }
+    }
+    console.log(`📌 Pinned: ${pinned.length} shown, ${pinnedOverflow.length} redistributed`);
     
-    // Normal places: subject to grid/distance/maxMarkers filtering
-    const normal = candidates.filter(p => 
-      !p.isCurrentLocation && !p.isCenterPoint &&
-      !(Array.isArray(p.badges) && p.badges.some(b => pinnedBadges.includes(b)))
-    );
+    // Normal places + overflow pinned: subject to grid/distance/maxMarkers filtering
+    const normal = [
+      ...pinnedOverflow,
+      ...candidates.filter(p => 
+        !p.isCurrentLocation && !p.isCenterPoint &&
+        !(Array.isArray(p.badges) && p.badges.some(b => pinnedBadges.includes(b)))
+      ),
+    ];
     const sorted = [...normal].sort((a, b) => {
       const aBadges = getMapBadges(a.badges).length;
       const bBadges = getMapBadges(b.badges).length;
