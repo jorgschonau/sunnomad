@@ -172,6 +172,10 @@ const SettingsScreen = ({ navigation }) => {
         ) : null}
       </View>
 
+      <Text style={[styles.attribution, { color: theme.textTertiary }]}>
+        Weather data by Open-Meteo.com
+      </Text>
+
     </ScrollView>
   );
 };
@@ -227,6 +231,13 @@ const styles = StyleSheet.create({
   placeholderText: {
     fontSize: 18,
     fontStyle: 'italic',
+  },
+  attribution: {
+    fontSize: 12,
+    textAlign: 'center',
+    marginTop: 32,
+    marginBottom: 24,
+    opacity: 0.5,
   },
 });
 
