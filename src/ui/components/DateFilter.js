@@ -217,4 +217,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default DateFilter;
+export default React.memo(DateFilter);

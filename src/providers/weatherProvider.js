@@ -1,6 +1,6 @@
 import Constants from 'expo-constants';
 import { calculateBadges } from '../domain/destinationBadge';
-import { parseWeatherAlert, shouldShowWarning, WarningType } from '../domain/weatherWarning';
+import { WarningType } from '../domain/weatherWarning';
 
 const API_BASE_URL = 'https://api.openweathermap.org/data/2.5';
 const SEARCH_URL = `${API_BASE_URL}/find`;

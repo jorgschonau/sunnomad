@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
   },
 });
 
-export default WeatherFilter;
+export default React.memo(WeatherFilter);
 
 
 
