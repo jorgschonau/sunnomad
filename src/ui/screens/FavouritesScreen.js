@@ -113,7 +113,7 @@ const FavouritesScreen = ({ navigation }) => {
             style={[styles.removeButton, { backgroundColor: theme.error + '20', borderColor: theme.error }]}
             onPress={() => handleRemoveFavourite(item.placeId, item.name)}
           >
-            <Text style={[styles.removeButtonText, { color: theme.error }]}>❌</Text>
+            <Text style={[styles.removeButtonText, { color: theme.error }]}>✖</Text>
           </TouchableOpacity>
         </View>
       </View>

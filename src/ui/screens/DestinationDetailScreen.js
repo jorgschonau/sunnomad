@@ -741,6 +741,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
             {(forecast.countryCode || forecast.country_code) && (
               <Text style={[styles.headerCountry, { color: subtitleColor }]}>
                 {getCountryName(forecast.countryCode || forecast.country_code, i18n.language || 'en')}
+                {(forecast?.elevation || destination.elevation || 0) > 500 ? `\n${forecast?.elevation || destination.elevation}m` : ''}
               </Text>
             )}
           </View>
