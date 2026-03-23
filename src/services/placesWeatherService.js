@@ -178,6 +178,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
         return {
           condition: getCondition(dayRecord.weather_main),
           temp: dayRecord.temp_max,
+          tempMax: dayRecord.temp_max,
           high: Math.round(dayRecord.temp_max),
           low: Math.round(dayRecord.temp_min),
           description: dayRecord.weather_description,

@@ -77,11 +77,69 @@ const getDisplaySunnyStreak = (dest) => {
   return slots.filter(s => s?.condition === 'sunny').length;
 };
 
+const AnimatedBadgeCard = ({ index, destination, badge, isExpanded, onToggle, theme, children }) => {
+  const fadeAnim = React.useRef(new Animated.Value(0)).current;
+  const slideAnim = React.useRef(new Animated.Value(50)).current;
+  const scaleAnim = React.useRef(new Animated.Value(0.8)).current;
+
+  React.useEffect(() => {
+    fadeAnim.setValue(0);
+    slideAnim.setValue(50);
+    scaleAnim.setValue(0.8);
+
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        delay: index * 200,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 40,
+        friction: 6,
+        delay: index * 200,
+        useNativeDriver: true,
+      }),
+      Animated.spring(scaleAnim, {
+        toValue: 1,
+        tension: 40,
+        friction: 6,
+        delay: index * 200,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [destination, badge]);
+
+  return (
+    <TouchableOpacity onPress={onToggle} activeOpacity={0.7}>
+      <Animated.View
+        style={[
+          styles.badgeCard,
+          { backgroundColor: theme.background },
+          {
+            opacity: fadeAnim,
+            transform: [
+              { translateX: slideAnim },
+              { scale: scaleAnim }
+            ],
+          }
+        ]}
+      >
+        {children}
+        <Text style={[styles.badgeExpandIndicator, { color: theme.textSecondary }]}>
+          {isExpanded ? '▲' : '▼'}
+        </Text>
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
+
 const DestinationDetailScreen = ({ route, navigation }) => {
   const { t, i18n } = useTranslation();
   const { theme } = useTheme();
   const { temperatureUnit, distanceUnit } = useUnits();
-  const { destination, selectedDateOffset = 0, reverseMode = 'warm' } = route.params;
+  const { destination, selectedDateOffset = 0, reverseMode = 'warm', source = 'marker' } = route.params;
   const tempSym = getTemperatureSymbol(temperatureUnit);
   const distSym = getDistanceSymbol(distanceUnit);
   const fmtTemp = (c) => formatTemperature(c, temperatureUnit);
@@ -685,6 +743,13 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                 {getCountryName(forecast.countryCode || forecast.country_code, i18n.language || 'en')}
               </Text>
             )}
+            {__DEV__ && (
+              <View style={{ backgroundColor: source === 'rpc' ? '#00E676' : '#FF3D00', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, marginTop: 4, alignSelf: 'flex-start' }}>
+                <Text style={{ fontSize: 14, color: '#000', fontWeight: '900', letterSpacing: 0.5 }}>
+                  {source === 'rpc' ? '⚡ DB/RPC' : '📌 MARKER'}
+                </Text>
+              </View>
+            )}
           </View>
           <Text style={[styles.headerTemp, { color: textColor }]}>{heroTemp != null ? formatTemperature(heroTemp, temperatureUnit, false) : '?°'}</Text>
         </View>
@@ -803,64 +868,18 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                 return t('badges.tapForDetails');
               };
               
-              // Animated Badge Card
-              const AnimatedBadgeCard = () => {
-                const fadeAnim = React.useRef(new Animated.Value(0)).current;
-                const slideAnim = React.useRef(new Animated.Value(50)).current;
-                const scaleAnim = React.useRef(new Animated.Value(0.8)).current;
-                const isExpanded = expandedBadges[badge] || false;
-                
-                React.useEffect(() => {
-                  fadeAnim.setValue(0);
-                  slideAnim.setValue(50);
-                  scaleAnim.setValue(0.8);
-                  
-                  Animated.parallel([
-                    Animated.timing(fadeAnim, {
-                      toValue: 1,
-                      duration: 600,
-                      delay: index * 200,
-                      useNativeDriver: true,
-                    }),
-                    Animated.spring(slideAnim, {
-                      toValue: 0,
-                      tension: 40,
-                      friction: 6,
-                      delay: index * 200,
-                      useNativeDriver: true,
-                    }),
-                    Animated.spring(scaleAnim, {
-                      toValue: 1,
-                      tension: 40,
-                      friction: 6,
-                      delay: index * 200,
-                      useNativeDriver: true,
-                    }),
-                  ]).start();
-                }, [destination, badge]);
-                
-                const toggleExpand = () => {
-                  setExpandedBadges(prev => ({
-                    ...prev,
-                    [badge]: !prev[badge]
-                  }));
-                };
-                
-                return (
-                  <TouchableOpacity onPress={toggleExpand} activeOpacity={0.7}>
-                    <Animated.View 
-                      style={[
-                        styles.badgeCard, 
-                        { backgroundColor: theme.background },
-                        {
-                          opacity: fadeAnim,
-                          transform: [
-                            { translateX: slideAnim },
-                            { scale: scaleAnim }
-                          ],
-                        }
-                      ]}
-                    >
+              const isExpanded = expandedBadges[badge] || false;
+
+              return (
+                <AnimatedBadgeCard
+                  key={index}
+                  index={index}
+                  destination={destination}
+                  badge={badge}
+                  isExpanded={isExpanded}
+                  onToggle={() => setExpandedBadges(prev => ({ ...prev, [badge]: !prev[badge] }))}
+                  theme={theme}
+                >
                       <View style={[styles.badgeIconContainer, { backgroundColor: metadata.color }]}>
                         {typeof metadata.icon === 'string' ? (
                           <Text style={styles.badgeCardIcon}>{metadata.icon}</Text>
@@ -1036,15 +1055,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                           </>
                         )}
                       </View>
-                      <Text style={[styles.badgeExpandIndicator, { color: theme.textSecondary }]}>
-                        {isExpanded ? '▲' : '▼'}
-                      </Text>
-                    </Animated.View>
-                  </TouchableOpacity>
-                );
-              };
-              
-              return <AnimatedBadgeCard key={index} />;
+                </AnimatedBadgeCard>
+              );
             })}
           </View>
         )}

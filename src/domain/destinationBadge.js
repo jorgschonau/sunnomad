@@ -177,9 +177,10 @@ export function checkWeatherDeterioration(destination, threshold = 4) {
   }
   
   // Get temps for tomorrow, day2, and day3 (use all available)
-  const tomorrowTemp = forecast.tomorrow?.temp ?? forecast.tomorrow?.high ?? null;
-  const day2Temp = forecast.day2?.temp ?? forecast.day2?.high ?? null;
-  const day3Temp = forecast.day3?.temp ?? forecast.day3?.high ?? null;
+  // Prefer tempMax/high (daily max) to match currentTemp which is also the daily max
+  const tomorrowTemp = forecast.tomorrow?.tempMax ?? forecast.tomorrow?.high ?? forecast.tomorrow?.temp ?? null;
+  const day2Temp = forecast.day2?.tempMax ?? forecast.day2?.high ?? forecast.day2?.temp ?? null;
+  const day3Temp = forecast.day3?.tempMax ?? forecast.day3?.high ?? forecast.day3?.temp ?? null;
   
   // Collect all available future temps
   const futureTemps = [tomorrowTemp, day2Temp, day3Temp].filter(t => t !== null);
@@ -591,9 +592,9 @@ export function calculateWeatherMiracle(destination) {
   
   const tomorrowSunny = forecast.tomorrow?.condition === 'sunny';
   const day3Sunny = forecast.day3?.condition === 'sunny';
-  
-  const tomorrowTemp = forecast.tomorrow?.temp ?? todayTemp;
-  const day3Temp = forecast.day3?.temp ?? todayTemp;
+
+  const tomorrowTemp = forecast.tomorrow?.tempMax ?? forecast.tomorrow?.temp ?? todayTemp;
+  const day3Temp = forecast.day3?.tempMax ?? forecast.day3?.temp ?? todayTemp;
   const futureTempMax = Math.max(tomorrowTemp, day3Temp);
   const tempGain = futureTempMax - todayTemp;
   

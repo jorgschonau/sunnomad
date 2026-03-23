@@ -24,6 +24,7 @@ import { BadgeMetadata, DestinationBadge } from '../../domain/destinationBadge';
 import { playTickSound } from '../../utils/soundUtils';
 import { trackMapViews, trackDetailView } from '../../services/placesService';
 import { hybridSearch, ensurePlaceInDB } from '../../services/hybridSearchService';
+import { getPlaceDetail } from '../../services/placesWeatherService';
 import { getFavourites } from '../../usecases/favouritesUsecases';
 import WeatherFilter from '../components/WeatherFilter';
 import DateFilter from '../components/DateFilter';
@@ -31,7 +32,8 @@ import OnboardingOverlay from '../components/OnboardingOverlay';
 import AnimatedBadge from '../components/AnimatedBadge';
 import { SkeletonMapMarker } from '../components/SkeletonLoader';
 import { useUnits } from '../../contexts/UnitContext';
-import { formatTemperature, formatDistance, kmToMiles } from '../../utils/unitConversion';
+import { formatTemperature, formatDistance } from '../../utils/unitConversion';
+import { supabase } from '../../config/supabase';
 
 // Custom map style to hide POI Business and Transit
 const customMapStyle = [
@@ -152,10 +154,12 @@ const MapScreen = ({ navigation }) => {
   const [currentZoom, setCurrentZoom] = useState(5); // Track zoom level
   const [currentBounds, setCurrentBounds] = useState(null); // Track viewport bounds
   const radiusDebounceTimer = useRef(null);
-  const boundsDebounceTimer = useRef(null);
+
   const regionChangeDebounceTimer = useRef(null);
   const hasLoadedForLocationRef = useRef(false);
   const skipNextLocationAnimRef = useRef(false);
+  const markerJustPressedRef = useRef(false);
+  const lastMapTapRef = useRef(0);
   const [radius, setRadius] = useState(500); // Default 500km
   const [selectedCondition, setSelectedCondition] = useState(null);
   const [selectedDateOffset, setSelectedDateOffset] = useState(0); // 0=today, 1=tomorrow, 3=+3days, 5=+5days
@@ -469,6 +473,12 @@ const MapScreen = ({ navigation }) => {
       if (regionChangeDebounceTimer.current) {
         clearTimeout(regionChangeDebounceTimer.current);
       }
+      if (mapViewTrackTimer.current) {
+        clearTimeout(mapViewTrackTimer.current);
+      }
+      if (searchDebounceRef.current) {
+        clearTimeout(searchDebounceRef.current);
+      }
     };
   }, []);
 
@@ -499,6 +509,7 @@ const MapScreen = ({ navigation }) => {
           ...entry,
           condition: entry.condition,
           temp,
+          tempMax: high,
           high,
           low,
           precipitation: entry.precipitation ?? 0,
@@ -691,6 +702,56 @@ const MapScreen = ({ navigation }) => {
   const getCurrentLocationWeather = async () => {
     if (!location) return null;
     try {
+      // --- Try Supabase DB first ---
+      const { data: rpcData, error: rpcError } = await supabase.rpc('nearest_place', {
+        user_lat: location.latitude,
+        user_lon: location.longitude,
+        max_distance_km: 50,
+      });
+
+      if (!rpcError && rpcData && rpcData.length > 0) {
+        const place = rpcData[0];
+        const { place: detail, forecast: forecastData } = await getPlaceDetail(place.id);
+
+        if (detail && forecastData && forecastData.length >= 1) {
+          const forecastDaysArr = forecastData.map(f => ({
+            condition: f.condition,
+            temperature: f.tempMax ?? f.tempMin,
+            temp_max: f.tempMax,
+            temp_min: f.tempMin,
+            windSpeed: f.windSpeed || 0,
+            precipitation: f.precipitation || 0,
+            sunshine_duration: 0,
+          }));
+
+          console.log(`📍 Location weather from DB: ${detail.name} (${forecastData.length} days)`);
+          return {
+            id: place.id,
+            lat: location.latitude,
+            lon: location.longitude,
+            name: `📍 ${detail.name || place.name}`,
+            condition: detail.condition || 'cloudy',
+            temperature: detail.temperature,
+            temp_max: detail.temp_max ?? detail.temperature,
+            temp_min: detail.temp_min ?? detail.temperature,
+            humidity: detail.humidity || null,
+            windSpeed: detail.windSpeed || 0,
+            precipitation: detail.precipitation || 0,
+            cloudCover: detail.cloudCover || null,
+            stability: calculateStability(detail.cloudCover, detail.windSpeed),
+            distance: 0,
+            isCurrentLocation: true,
+            badges: [],
+            forecastDays: forecastDaysArr,
+            country_code: detail.countryCode || detail.country_code || place.country_code,
+            countryCode: detail.countryCode || detail.country_code || place.country_code,
+          };
+        }
+      }
+
+      // --- Fallback: Open-Meteo API (no nearby place in DB) ---
+      console.log('📍 No nearby DB place for location, falling back to Open-Meteo API');
+
       const params = new URLSearchParams({
         latitude: location.latitude,
         longitude: location.longitude,
@@ -707,7 +768,6 @@ const MapScreen = ({ navigation }) => {
         forecast_days: 16,
       });
       const url = `https://customer-api.open-meteo.com/v1/forecast?${params}&apikey=${process.env.EXPO_PUBLIC_OPEN_METEO_KEY}`;
-      // Run geocode and Open-Meteo in parallel so we don't wait for city name before weather
       const [geocodeResult, response] = await Promise.all([
         Location.reverseGeocodeAsync({ latitude: location.latitude, longitude: location.longitude }).catch(() => null),
         fetch(url),
@@ -724,7 +784,6 @@ const MapScreen = ({ navigation }) => {
       const daily = data.daily;
       const current = data.current || {};
 
-      // Build forecastDays array (index 0 = today, 1 = tomorrow, etc.)
       const forecastDaysArr = daily.weather_code?.map((code, i) => ({
         condition: mapWeatherCodeToCondition(code),
         temperature: Math.round(daily.temperature_2m_max?.[i] || 0),
@@ -735,9 +794,8 @@ const MapScreen = ({ navigation }) => {
         sunshine_duration: daily.sunshine_duration?.[i] || 0,
       })) || [];
 
-      // Default display: today's data (offset applied later via useMemo)
       const condition = mapWeatherCodeToCondition(daily.weather_code?.[0]);
-      
+
       return {
         lat: location.latitude,
         lon: location.longitude,
@@ -754,7 +812,7 @@ const MapScreen = ({ navigation }) => {
         distance: 0,
         isCurrentLocation: true,
         badges: [],
-        forecastDays: forecastDaysArr, // All 6 days for date filter
+        forecastDays: forecastDaysArr,
         country_code: countryCode,
         countryCode,
       };
@@ -789,9 +847,11 @@ const MapScreen = ({ navigation }) => {
     return Math.round((cloudScore + windScore) / 2);
   };
 
-  const handleMarkerPress = (destination) => {
+  const handleMarkerPress = (destination, { source = 'marker' } = {}) => {
+    markerJustPressedRef.current = true;
+    setTimeout(() => { markerJustPressedRef.current = false; }, 500);
     if (destination.id) trackDetailView(destination.id);
-    navigation.navigate('DestinationDetail', { destination, selectedDateOffset, reverseMode });
+    navigation.navigate('DestinationDetail', { destination, selectedDateOffset, reverseMode, source });
   };
 
   const handleRadiusIncrease = async () => {
@@ -1209,20 +1269,116 @@ const MapScreen = ({ navigation }) => {
     showToast('📍 Neuer Mittelpunkt gesetzt', 'info');
   };
 
+  const handleMapTap = async (event) => {
+    if (markerJustPressedRef.current) return;
+
+    const now = Date.now();
+    if (now - lastMapTapRef.current < 1000) return;
+    lastMapTapRef.current = now;
+
+    if (searchFocused || searchResults.length > 0 || googleResults.length > 0) {
+      clearSearch();
+      return;
+    }
+
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+
+    const maxDistance = currentZoom >= 8 ? 20 :
+                        currentZoom >= 6 ? 50 :
+                        100;
+
+    try {
+      const { data, error } = await supabase.rpc('nearest_place', {
+        user_lat: latitude,
+        user_lon: longitude,
+        max_distance_km: maxDistance,
+      });
+
+      if (error || !data || data.length === 0) {
+        showToast('No destination found nearby', 'info');
+        return;
+      }
+
+      const place = data[0];
+      const match = displayDestinations.find(d =>
+        Math.abs((d.lat ?? d.latitude) - place.latitude) < 0.05 &&
+        Math.abs((d.lon ?? d.longitude) - place.longitude) < 0.05
+      );
+
+      if (match) {
+        handleMarkerPress(match, { source: 'rpc' });
+      } else {
+        showToast('No destination found nearby', 'info');
+      }
+    } catch (err) {
+      console.warn('nearest_place RPC failed:', err);
+      showToast('No destination found nearby', 'info');
+    }
+  };
+
   /**
-   * Fetch weather for center point (similar to getCurrentLocationWeather)
+   * Fetch weather for center point.
+   * Tries nearest DB place first (no API call). Falls back to Open-Meteo
+   * only when no place is within 50 km.
    */
   const fetchCenterPointWeather = async (lat, lon) => {
     try {
-      // Get city name and country from reverse geocoding
+      // --- Try Supabase DB first ---
+      const { data: rpcData, error: rpcError } = await supabase.rpc('nearest_place', {
+        user_lat: lat,
+        user_lon: lon,
+        max_distance_km: 50,
+      });
+
+      if (!rpcError && rpcData && rpcData.length > 0) {
+        const place = rpcData[0];
+        const { place: detail, forecast: forecastData } = await getPlaceDetail(place.id);
+
+        if (detail && forecastData && forecastData.length >= 1) {
+          const forecastDaysArr = forecastData.map(f => ({
+            condition: f.condition,
+            temperature: f.tempMax ?? f.tempMin,
+            temp_max: f.tempMax,
+            temp_min: f.tempMin,
+            windSpeed: f.windSpeed || 0,
+            precipitation: f.precipitation || 0,
+            sunshine_duration: 0,
+          }));
+
+          const weatherData = {
+            id: place.id,
+            lat,
+            lon,
+            name: `⊕ ${detail.name || place.name}`,
+            condition: detail.condition || 'cloudy',
+            temperature: detail.temperature,
+            temp_max: detail.temp_max ?? detail.temperature,
+            temp_min: detail.temp_min ?? detail.temperature,
+            humidity: detail.humidity || null,
+            windSpeed: detail.windSpeed || 0,
+            precipitation: detail.precipitation || 0,
+            cloudCover: detail.cloudCover || null,
+            stability: calculateStability(detail.cloudCover, detail.windSpeed),
+            isCenterPoint: true,
+            badges: [],
+            forecastDays: forecastDaysArr,
+            country_code: detail.countryCode || detail.country_code || place.country_code,
+            countryCode: detail.countryCode || detail.country_code || place.country_code,
+          };
+
+          console.log(`⊕ Center point weather from DB: ${detail.name} (${forecastData.length} days)`);
+          setCenterPointWeather(weatherData);
+          return;
+        }
+      }
+
+      // --- Fallback: Open-Meteo API (no nearby place in DB) ---
+      console.log('⊕ No nearby DB place, falling back to Open-Meteo API');
+
       let cityName = 'Neuer Mittelpunkt';
       let countryCode = null;
       try {
-        const geocode = await Location.reverseGeocodeAsync({
-          latitude: lat,
-          longitude: lon,
-        });
-        
+        const geocode = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lon });
         if (geocode && geocode[0]) {
           const g = geocode[0];
           cityName = g.city || g.district || g.region || 'Neuer Mittelpunkt';
@@ -1232,7 +1388,6 @@ const MapScreen = ({ navigation }) => {
         console.warn('Reverse geocoding failed:', geoError);
       }
 
-      // Use Open-Meteo API - fetch 16 days for badge recalc at any date offset
       const params = new URLSearchParams({
         latitude: lat,
         longitude: lon,
@@ -1264,7 +1419,6 @@ const MapScreen = ({ navigation }) => {
       const daily = data.daily;
       const current = data.current || {};
 
-      // Build forecastDays array (index 0 = today, 1 = tomorrow, etc.)
       const forecastDaysArr = daily.weather_code?.map((code, i) => ({
         condition: mapWeatherCodeToCondition(code),
         temperature: Math.round(daily.temperature_2m_max?.[i] || 0),
@@ -1275,9 +1429,8 @@ const MapScreen = ({ navigation }) => {
         sunshine_duration: daily.sunshine_duration?.[i] || 0,
       })) || [];
 
-      // Default display: today's data (offset applied later via useMemo)
       const condition = mapWeatherCodeToCondition(daily.weather_code?.[0]);
-      
+
       const weatherData = {
         lat,
         lon,
@@ -1293,11 +1446,11 @@ const MapScreen = ({ navigation }) => {
         stability: calculateStability(current.cloud_cover, daily.wind_speed_10m_max?.[0]),
         isCenterPoint: true,
         badges: [],
-        forecastDays: forecastDaysArr, // All 6 days for date filter
+        forecastDays: forecastDaysArr,
         country_code: countryCode,
         countryCode,
       };
-      
+
       setCenterPointWeather(weatherData);
     } catch (error) {
       console.warn('Failed to fetch center point weather:', error);
@@ -1727,11 +1880,7 @@ const MapScreen = ({ navigation }) => {
         rotateEnabled={false}  // Disable rotation
         showsUserLocation={false}
         showsMyLocationButton={false}
-        onPress={() => {
-          if (searchFocused || searchResults.length > 0 || googleResults.length > 0) {
-            clearSearch();
-          }
-        }}
+        onPress={handleMapTap}
         onLongPress={handleMapLongPress}
         onRegionChangeComplete={handleRegionChangeComplete}
       >

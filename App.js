@@ -6,10 +6,17 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, Yellowtail_400Regular } from '@expo-google-fonts/yellowtail';
+import * as Sentry from '@sentry/react-native';
+
+Sentry.init({
+  dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
+  tracesSampleRate: 0.2,
+  enabled: !!process.env.EXPO_PUBLIC_SENTRY_DSN,
+});
 import MapScreen from './src/ui/screens/MapScreen';
 import SettingsScreen from './src/ui/screens/SettingsScreen';
 import CommunityScreen from './src/ui/screens/CommunityScreen';
-import DestinationDetailScreen from './src/ui/screens/DestinationDetailScreen';
+const DestinationDetailScreen = React.lazy(() => import('./src/ui/screens/DestinationDetailScreen'));
 import FavouritesScreen from './src/ui/screens/FavouritesScreen';
 import LoginScreen from './src/ui/screens/LoginScreen';
 import RegisterScreen from './src/ui/screens/RegisterScreen';
@@ -235,7 +242,7 @@ const splashStyles = StyleSheet.create({
   },
 });
 
-export default function App() {
+function App() {
   return (
     <ThemeProvider>
       <UnitProvider>
@@ -247,3 +254,5 @@ export default function App() {
     </ThemeProvider>
   );
 }
+
+export default Sentry.wrap(App);

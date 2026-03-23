@@ -41,6 +41,10 @@ export default {
         },
       ],
       'expo-localization',
+      ['@sentry/react-native/expo', {
+        organization: 'goldieapps',
+        project: 'react-native',
+      }],
     ],
     extra: {
       eas: {
