@@ -12,6 +12,9 @@ export default {
     ios: {
       supportsTablet: true,
       bundleIdentifier: 'com.sunnomad.app',
+      infoPlist: {
+        NSLocationWhenInUseUsageDescription: 'SunNomad uses your location to show weather for destinations near you.',
+      },
       config: {
         googleMapsApiKey: 'AIzaSyAcADrrPdRzJK7d_TC3GBajsKviqp0iVBI'
       }
