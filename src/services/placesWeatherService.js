@@ -73,7 +73,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
     // Query 1: Get places
     let placesQuery = supabase
       .from('places')
-      .select('id, name, latitude, longitude, country_code, place_type, population, attractiveness_score, clustering_radius_m, elevation, dem')
+      .select('id, name, latitude, longitude, country_code, place_type, population, attractiveness_score, clustering_radius_m, elevation, dem, state_name')
       .eq('is_active', true);
     
     if (latMin !== undefined) {
@@ -366,7 +366,7 @@ export const getPlaceDetail = async (placeId, locale = 'en') => {
     // Get place (separate query - no FK needed)
     const { data: place, error: placeError } = await supabase
       .from('places')
-      .select('id, name, latitude, longitude, country_code, place_type, population, attractiveness_score, elevation, dem')
+      .select('id, name, latitude, longitude, country_code, place_type, population, attractiveness_score, elevation, dem, state_name')
       .eq('id', placeId)
       .maybeSingle();
 
@@ -398,6 +398,7 @@ export const getPlaceDetail = async (placeId, locale = 'en') => {
       place_category: place.place_type,
       population: place.population,
       elevation: place.dem ?? place.elevation ?? null,
+      state_name: place.state_name || null,
       attractiveness_score: place.attractiveness_score,
       temperature: weather.temp_max != null ? Math.round(weather.temp_max) : null,
       temp_min: weather.temp_min,
@@ -571,6 +572,7 @@ function adaptPlaceToDestination(place, locale = 'en') {
     attractivenessScore: place.attractiveness_score ?? 50,
     population: place.population || 0,
     elevation: place.dem ?? place.elevation ?? null,
+    state_name: place.state_name || null,
     clusteringRadiusM: place.clustering_radius_m || 50000, // Default 50km if missing
     
     // Distance (filled in by getPlacesWithWeather if applicable)

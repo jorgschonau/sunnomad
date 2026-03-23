@@ -738,12 +738,17 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                 </Text>
               );
             })()}
-            {(forecast.countryCode || forecast.country_code) && (
-              <Text style={[styles.headerCountry, { color: subtitleColor }]}>
-                {getCountryName(forecast.countryCode || forecast.country_code, i18n.language || 'en')}
-                {(forecast?.elevation || destination.elevation || 0) > 500 ? `\n${forecast?.elevation || destination.elevation}m` : ''}
-              </Text>
-            )}
+            {(forecast.countryCode || forecast.country_code) && (() => {
+              const countryName = getCountryName(forecast.countryCode || forecast.country_code, i18n.language || 'en');
+              const stateName = forecast.state_name || destination.state_name;
+              const showState = stateName && stateName !== countryName;
+              return (
+                <Text style={[styles.headerCountry, { color: subtitleColor }]}>
+                  {countryName}{showState ? `, ${stateName}` : ''}
+                  {(forecast?.elevation || destination.elevation || 0) > 500 ? `\n${forecast?.elevation || destination.elevation}m` : ''}
+                </Text>
+              );
+            })()}
           </View>
           <Text style={[styles.headerTemp, { color: textColor }]}>{heroTemp != null ? formatTemperature(heroTemp, temperatureUnit, false) : '?°'}</Text>
         </View>
@@ -773,8 +778,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         }]}>
           <View style={[styles.statsContainer, { borderTopColor: theme.border }]}>
             <View style={styles.statItem}>
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>Sonne</Text>
-              <Text style={[styles.statValue, { color: theme.text }]}>{getSunshineHours()} Std</Text>
+              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('destination.sun')}</Text>
+              <Text style={[styles.statValue, { color: theme.text }]}>{getSunshineHours()} {t('destination.hoursShort')}</Text>
             </View>
             <View style={styles.statItem}>
               <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('destination.humidity')}</Text>

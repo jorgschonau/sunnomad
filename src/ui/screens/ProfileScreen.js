@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -58,7 +58,7 @@ export default function ProfileScreen({ navigation }) {
     return date.toLocaleDateString(undefined, { month: 'short', year: 'numeric' });
   };
 
-  const styles = createStyles(theme);
+  const styles = useMemo(() => createStyles(theme), [theme]);
 
   if (!isAuthenticated) {
     return (

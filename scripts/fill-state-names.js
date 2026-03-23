@@ -7,7 +7,9 @@ const supabase = createClient(
 
 const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
-const SKIP_IF_EXISTS = ['US', 'GB', 'IE'];
+const SKIP_IF_EXISTS = ['US'];
+const PAGE_SIZE = 1000;
+const COUNTY_FIRST = ['GB', 'DK', 'IE', 'NL', 'BE', 'HR', 'SI', 'BA', 'ME', 'AL', 'XK', 'EE', 'LV', 'FI', 'LU'];
 
 const shortenStateName = (name) => {
   if (!name) return null;
@@ -24,11 +26,14 @@ const shortenStateName = (name) => {
     .replace('State of ', '')
     .replace('County of the ', '')
     .replace('County of ', '')
+    .replace(' Denmark Region', '')
+    .replace(' Denmark', '')
+    .replace(/^Region /, '')
     .replace(/^the /, '')
     .trim();
 };
 
-const getStateName = async (lat, lon) => {
+const getStateName = async (lat, lon, countryCode) => {
   try {
     const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`;
     const res = await fetch(url, {
@@ -39,7 +44,14 @@ const getStateName = async (lat, lon) => {
     });
     const data = await res.json();
     const addr = data.address;
-    const raw = addr.state || addr.province || addr.region || addr.county || null;
+
+    let raw;
+    if (COUNTY_FIRST.includes(countryCode)) {
+      raw = addr.county || addr.state_district || addr.state || null;
+    } else {
+      raw = addr.state || addr.province || addr.region || addr.county || null;
+    }
+
     return shortenStateName(raw);
   } catch (e) {
     console.error(`Error for ${lat},${lon}:`, e.message);
@@ -47,17 +59,34 @@ const getStateName = async (lat, lon) => {
   }
 };
 
-const run = async () => {
-  const { data: places, error } = await supabase
-    .from('places')
-    .select('id, name, latitude, longitude, country_code, state_name')
-    .eq('is_active', true)
-    .order('id');
+const fetchAllPlaces = async () => {
+  let all = [];
+  let from = 0;
 
-  if (error) {
-    console.error('Supabase error:', error);
-    return;
+  while (true) {
+    const { data, error } = await supabase
+      .from('places')
+      .select('id, name, latitude, longitude, country_code, state_name')
+      .eq('is_active', true)
+      .order('id')
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (error) { console.error('Supabase error:', error); break; }
+    if (!data || data.length === 0) break;
+
+    all = all.concat(data);
+    console.log(`Fetched ${all.length} places so far...`);
+
+    if (data.length < PAGE_SIZE) break;
+    from += PAGE_SIZE;
   }
+
+  return all;
+};
+
+const run = async () => {
+  const places = await fetchAllPlaces();
+  console.log(`Total places fetched: ${places.length}`);
 
   const toProcess = places.filter(p => {
     if (SKIP_IF_EXISTS.includes(p.country_code) && p.state_name) return false;
@@ -71,7 +100,7 @@ const run = async () => {
 
   for (let i = 0; i < toProcess.length; i++) {
     const place = toProcess[i];
-    const stateName = await getStateName(place.latitude, place.longitude);
+    const stateName = await getStateName(place.latitude, place.longitude, place.country_code);
 
     if (stateName) {
       await supabase

@@ -18,8 +18,7 @@ const AnimatedBadge = ({ icon, color, delay = 0, onImageLoad }) => {
     const isAndroid = Platform.OS === 'android';
     const startDelay = isAndroid ? 50 : (100 + delay);
 
-    // Entry animation: snappier on Android to reduce jank
-    Animated.sequence([
+    const entryAnimation = Animated.sequence([
       Animated.delay(startDelay),
       Animated.parallel([
         Animated.timing(fadeAnim, {
@@ -34,9 +33,9 @@ const AnimatedBadge = ({ icon, color, delay = 0, onImageLoad }) => {
           useNativeDriver: true,
         }),
       ]),
-    ]).start();
+    ]);
+    entryAnimation.start();
 
-    // Pulse animation — disabled on Android (causes jank with many markers)
     if (!isAndroid) {
       const pulse = Animated.loop(
         Animated.sequence([
@@ -58,10 +57,15 @@ const AnimatedBadge = ({ icon, color, delay = 0, onImageLoad }) => {
       }, 100 + delay + 800);
 
       return () => {
+        entryAnimation.stop();
         clearTimeout(pulseTimeout);
         pulse.stop();
       };
     }
+
+    return () => {
+      entryAnimation.stop();
+    };
   }, [icon, color]);
 
   return (

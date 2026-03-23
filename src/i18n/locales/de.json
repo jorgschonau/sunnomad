@@ -156,6 +156,8 @@
   },
   "destination": {
     "stability": "Stabilität",
+    "sun": "Sonne",
+    "hoursShort": "Std",
     "humidity": "Luftfeuchtigkeit",
     "wind": "Wind",
     "windCalm": "Windstill",
