@@ -2540,8 +2540,8 @@ const styles = StyleSheet.create({
     fontSize: 28,
   },
   markerTemp: {
-    fontSize: 18,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#000',
     marginTop: 2,
     textShadowColor: '#fff',
