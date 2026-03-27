@@ -726,8 +726,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
             resizeMode="cover"
           />
           <LinearGradient
-            colors={['rgba(0,0,0,0.0)', 'rgba(0,0,0,0.15)', 'rgba(0,0,0,0.45)']}
-            locations={[0, 0.6, 1]}
+            colors={['rgba(0,0,0,0.0)', 'rgba(0,0,0,0.08)', 'rgba(0,0,0,0.35)']}
+            locations={[0, 0.5, 1]}
             style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
             pointerEvents="none"
           />
@@ -813,7 +813,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
             backgroundColor: theme.surface,
             shadowColor: theme.shadow
           }]}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>🏆 {t('badges.awards')}</Text>
+            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('badges.awards')}</Text>
             {destination.badges
               .sort((a, b) => (BadgeMetadata[a]?.priority || 99) - (BadgeMetadata[b]?.priority || 99)) // Sort by priority
               .map((badge, index) => {
@@ -899,7 +899,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                         {typeof metadata.icon === 'string' ? (
                           <Text style={styles.badgeCardIcon}>{metadata.icon}</Text>
                         ) : (
-                          <Image source={metadata.icon} style={{ width: 56, height: 56, resizeMode: 'cover', borderRadius: 28 }} />
+                          <Image source={metadata.icon} style={{ width: 44, height: 44, resizeMode: 'cover', borderRadius: 22 }} />
                         )}
                       </View>
                       <View style={styles.badgeContent}>
@@ -1095,8 +1095,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           
           {/* Best Day Highlight */}
           {bestDay && (
-            <View style={[styles.bestDayContainer, { backgroundColor: '#FFF8E1', borderColor: '#FFD54F' }]}>
-              <Text style={styles.bestDayIcon}>⭐</Text>
+            <View style={[styles.bestDayContainer, { backgroundColor: 'rgba(245, 240, 230, 0.8)', borderColor: 'rgba(180, 160, 120, 0.3)' }]}>
+              <Text style={styles.bestDayIcon}>✦</Text>
               <View style={styles.bestDayContent}>
                 <Text style={styles.bestDayLabel}>{t('badges.bestDay')}</Text>
                 <Text style={styles.bestDayValue}>
@@ -1121,11 +1121,11 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                   !hasData && { opacity: 0.4 },
                 ]}
               >
-                <Text style={[styles.forecastDay, { color: isBestDay ? '#FF8C42' : theme.text }]}>
+                <Text style={[styles.forecastDay, { color: isBestDay ? '#7A6B55' : theme.text }]}>
                   {day.label}
                 </Text>
                 <Text style={styles.forecastIcon}>{hasData ? getWeatherIcon(day.data.condition) : '—'}</Text>
-                <Text style={[styles.forecastTemp, { color: isBestDay ? '#FF8C42' : theme.textSecondary, fontWeight: isBestDay ? '700' : '500' }]}>
+                <Text style={[styles.forecastTemp, { color: isBestDay ? '#7A6B55' : theme.textSecondary, fontWeight: isBestDay ? '600' : '500' }]}>
                   {hasData ? `${formatTemperature(day.data.high, temperatureUnit, false)} / ${formatTemperature(day.data.low, temperatureUnit, false)}` : '—'}
                 </Text>
               </View>
@@ -1269,24 +1269,24 @@ const styles = StyleSheet.create({
     textShadowRadius: 6,
   },
   headerSubtitle: {
-    fontSize: 17,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '500',
     zIndex: 1,
-    textShadowColor: 'rgba(0,0,0,0.8)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 6,
+    textShadowColor: 'rgba(0,0,0,0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
   },
   content: {
     padding: 20,
   },
   mainInfo: {
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 14,
+    padding: 18,
     marginBottom: 20,
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.22,
-    shadowRadius: 2.22,
-    elevation: 3,
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   statsContainer: {
     flexDirection: 'row',
@@ -1297,54 +1297,59 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statLabel: {
-    fontSize: 12,
-    marginBottom: 5,
+    fontSize: 11,
+    fontWeight: '500',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+    marginBottom: 4,
+    opacity: 0.6,
   },
   statValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '600',
   },
   forecastSection: {
-    borderRadius: 16,
-    padding: 15,
+    borderRadius: 14,
+    padding: 16,
     marginBottom: 20,
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.22,
-    shadowRadius: 2.22,
-    elevation: 3,
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   badgeSection: {
-    borderRadius: 16,
-    padding: 20,
+    borderRadius: 14,
+    padding: 18,
     marginBottom: 20,
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.22,
-    shadowRadius: 2.22,
-    elevation: 3,
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
   },
   badgeCard: {
     flexDirection: 'row',
-    padding: 16,
+    padding: 14,
     borderRadius: 12,
-    marginBottom: 12,
+    marginBottom: 10,
   },
   badgeIconContainer: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16,
+    marginRight: 14,
+    opacity: 0.85,
   },
   badgeCardIcon: {
-    fontSize: 32,
+    fontSize: 24,
   },
   badgeContent: {
     flex: 1,
   },
   badgeName: {
-    fontSize: 18,
-    fontWeight: 'bold',
+    fontSize: 16,
+    fontWeight: '600',
     marginBottom: 4,
   },
   badgeDescription: {
@@ -1371,40 +1376,44 @@ const styles = StyleSheet.create({
     top: 20,
   },
   sectionTitle: {
-    fontSize: 17,
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontWeight: '600',
     marginBottom: 10,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+    opacity: 0.7,
   },
   driveButtonTop: {
-    paddingVertical: 18,
+    paddingVertical: 16,
     paddingHorizontal: 32,
-    minHeight: 72,
-    borderRadius: 16,
+    minHeight: 64,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 6,
   },
   driveButtonTopText: {
-    fontSize: 26,
-    fontWeight: 'bold',
+    fontSize: 20,
+    fontWeight: '600',
     color: '#fff',
-    letterSpacing: 0.5,
+    letterSpacing: 0.3,
   },
   bestDayContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     padding: 10,
     borderRadius: 10,
-    borderWidth: 2,
+    borderWidth: 1,
     marginBottom: 12,
   },
   bestDayIcon: {
-    fontSize: 22,
-    marginRight: 10,
+    fontSize: 16,
+    marginRight: 8,
+    opacity: 0.7,
   },
   bestDayContent: {
     flex: 1,
@@ -1412,17 +1421,19 @@ const styles = StyleSheet.create({
   bestDayLabel: {
     fontSize: 11,
     fontWeight: '600',
-    color: '#B8860B',
+    color: '#8B7355',
     marginBottom: 1,
+    letterSpacing: 0.2,
   },
   bestDayValue: {
     fontSize: 14,
-    fontWeight: '700',
-    color: '#5D4037',
+    fontWeight: '600',
+    color: '#5D4F45',
   },
   bestDayWeatherIcon: {
-    fontSize: 26,
+    fontSize: 22,
     marginLeft: 6,
+    opacity: 0.8,
   },
   forecastItem: {
     flexDirection: 'row',
@@ -1432,12 +1443,12 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   forecastItemSelected: {
-    backgroundColor: 'rgba(255, 140, 66, 0.1)',
+    backgroundColor: 'rgba(180, 155, 120, 0.08)',
     borderRadius: 8,
     paddingHorizontal: 8,
     marginHorizontal: -8,
-    borderLeftWidth: 3,
-    borderLeftColor: '#FF8C42',
+    borderLeftWidth: 2,
+    borderLeftColor: 'rgba(180, 140, 80, 0.4)',
   },
   forecastDay: {
     fontSize: 16,
@@ -1445,8 +1456,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   forecastIcon: {
-    fontSize: 30,
-    width: 45,
+    fontSize: 24,
+    width: 40,
     textAlign: 'center',
     marginHorizontal: 10,
   },
@@ -1461,33 +1472,33 @@ const styles = StyleSheet.create({
     marginBottom: 30,
   },
   favouriteButton: {
-    paddingVertical: 20,
+    paddingVertical: 16,
     paddingHorizontal: 24,
-    minHeight: 68,
+    minHeight: 56,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 3,
+    borderWidth: 1.5,
   },
   favouriteButtonText: {
-    fontSize: 32,
-    fontWeight: 'bold',
+    fontSize: 24,
+    fontWeight: '600',
   },
   driveButton: {
-    paddingVertical: 20,
+    paddingVertical: 16,
     paddingHorizontal: 24,
-    minHeight: 68,
+    minHeight: 56,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4.65,
-    elevation: 8,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.18,
+    shadowRadius: 4,
+    elevation: 5,
   },
   driveButtonText: {
-    fontSize: 22,
-    fontWeight: 'bold',
+    fontSize: 18,
+    fontWeight: '600',
     color: '#fff',
   },
 });
