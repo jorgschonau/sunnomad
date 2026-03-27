@@ -22,6 +22,9 @@ import { getCountryName } from '../../utils/countryNames';
 import { useUnits } from '../../contexts/UnitContext';
 import { formatTemperature, formatDistance, getTemperatureSymbol, getDistanceSymbol } from '../../utils/unitConversion';
 
+import { LinearGradient } from 'expo-linear-gradient';
+import { getHeroImage } from '../../utils/heroImages';
+
 const getWindDescriptionKey = (windSpeed) => {
   const speed = windSpeed || 0;
   if (speed <= 10) return 'destination.windCalm';
@@ -693,9 +696,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     return false;
   };
 
-  const useDarkText = needsDarkText();
+  const hasHero = !!getHeroImage(destination);
+  const useDarkText = !hasHero && needsDarkText();
   const textColor = useDarkText ? '#2b3e50' : '#fff';
-  const subtitleColor = useDarkText ? '#4a5f6d' : 'rgba(255,255,255,0.9)';
+  const subtitleColor = useDarkText ? '#3a4f5d' : '#fff';
 
   // Date label for hero card
   const formatDateLabel = (offset) => {
@@ -713,63 +717,74 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       showsVerticalScrollIndicator={false}
       showsHorizontalScrollIndicator={false}
     >
-      <View style={[styles.header, { backgroundColor: getWeatherColor(heroCondition, heroTemp) }]}>
-        {/* Großes Hintergrund-Icon */}
-        <Text style={styles.headerBgIcon}>{getWeatherIcon(heroCondition)}</Text>
-        
-        {/* Obere Zeile: Name & Temperatur */}
-        <View style={styles.headerTop}>
-          <View style={styles.headerNameContainer}>
-            {(() => {
-              const name = forecast.name || '';
-              const hasSpace = name.includes(' ');
-              const isLong = name.length > 15;
-              return (
-                <Text
-                  style={[styles.headerTitle, {
-                    color: textColor,
-                    fontSize: isLong ? (hasSpace ? 28 : 22) : 34,
-                  }]}
-                  numberOfLines={hasSpace ? 2 : 1}
-                  adjustsFontSizeToFit
-                  minimumFontScale={0.5}
-                >
-                  {name}
-                </Text>
-              );
-            })()}
-            {(forecast.countryCode || forecast.country_code) && (() => {
-              const countryName = getCountryName(forecast.countryCode || forecast.country_code, i18n.language || 'en');
-              const stateName = forecast.state_name || destination.state_name;
-              const showState = stateName && stateName !== countryName;
-              return (
-                <Text style={[styles.headerCountry, { color: subtitleColor }]}>
-                  {countryName}{showState ? `, ${stateName}` : ''}
-                  {(forecast?.elevation || destination.elevation || 0) > 500 ? `\n${forecast?.elevation || destination.elevation}m` : ''}
-                </Text>
-              );
-            })()}
-          </View>
-          <Text style={[styles.headerTemp, { color: textColor }]}>{heroTemp != null ? formatTemperature(heroTemp, temperatureUnit, false) : '?°'}</Text>
+      <View style={{ position: 'relative' }}>
+      {getHeroImage(destination) && (
+        <View style={{ position: 'absolute', top: -30, left: 0, right: 0, height: 450, overflow: 'hidden' }}>
+          <Image
+            source={getHeroImage(destination)}
+            style={{ width: '100%', height: '100%' }}
+            resizeMode="cover"
+          />
+          <LinearGradient
+            colors={['rgba(0,0,0,0.0)', 'rgba(0,0,0,0.15)', 'rgba(0,0,0,0.45)']}
+            locations={[0, 0.6, 1]}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+            pointerEvents="none"
+          />
+          <LinearGradient
+            colors={['transparent', 'rgba(235,242,255,1)']}
+            style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 80 }}
+            pointerEvents="none"
+          />
         </View>
-        
-        {/* Date label when not today */}
-        {heroDateLabel && (
-          <View style={styles.heroDateBadge}>
-            <Text style={styles.heroDateBadgeText}>{heroDateLabel}</Text>
-          </View>
-        )}
-        
-        {/* Untere Zeile: Description */}
-        <Text style={[styles.headerSubtitle, { color: subtitleColor }]}>{translateCondition(heroDescription)}</Text>
-        {/* Score display hidden
-        {(forecast?.attractivenessScore ?? destination.attractivenessScore) != null && (
-          <Text style={[styles.headerSubtitle, { color: subtitleColor, marginTop: 4, fontSize: 12, opacity: 0.7 }]}>
-            Score: {forecast?.attractivenessScore ?? destination.attractivenessScore}
+      )}
+      <View style={[styles.header, { backgroundColor: getHeroImage(destination) ? 'transparent' : getWeatherColor(heroCondition, heroTemp) }]}>
+  <Text style={styles.headerBgIcon}>{getWeatherIcon(heroCondition)}</Text>
+  
+  <View style={styles.headerTop}>
+    <View style={styles.headerNameContainer}>
+      {(() => {
+        const name = forecast.name || '';
+        const hasSpace = name.includes(' ');
+        const isLong = name.length > 15;
+        return (
+          <Text
+            style={[styles.headerTitle, {
+              color: textColor,
+              fontSize: isLong ? (hasSpace ? 28 : 22) : 34,
+            }]}
+            numberOfLines={2}
+            adjustsFontSizeToFit
+            minimumFontScale={0.5}
+          >
+            {name}
           </Text>
-        )}
-        */}
-      </View>
+        );
+      })()}
+      {(forecast.countryCode || forecast.country_code) && (() => {
+        const countryName = getCountryName(forecast.countryCode || forecast.country_code, i18n.language || 'en');
+        const stateName = forecast.state_name || destination.state_name;
+        const showState = stateName && stateName !== countryName;
+        return (
+          <Text style={[styles.headerCountry, { color: subtitleColor }]}>
+            {countryName}{showState ? `, ${stateName}` : ''}
+            {(forecast?.elevation || destination.elevation || 0) > 500 ? `\n${forecast?.elevation || destination.elevation}m` : ''}
+          </Text>
+        );
+      })()}
+    </View>
+    <Text style={[styles.headerTemp, { color: textColor }]}>{heroTemp != null ? formatTemperature(heroTemp, temperatureUnit, false) : '?°'}</Text>
+  </View>
+  
+  {heroDateLabel && (
+    <View style={styles.heroDateBadge}>
+      <Text style={styles.heroDateBadgeText}>{heroDateLabel}</Text>
+    </View>
+  )}
+  
+  <Text style={[styles.headerSubtitle, { color: subtitleColor }]}>{translateCondition(heroDescription)}</Text>
+</View>
+
 
       <View style={styles.content}>
         <View style={[styles.mainInfo, { 
@@ -796,8 +811,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         {destination.badges && destination.badges.length > 0 && (
           <View style={[styles.badgeSection, {
             backgroundColor: theme.surface,
-            shadowColor: theme.shadow,
-            borderColor: theme.border
+            shadowColor: theme.shadow
           }]}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>🏆 {t('badges.awards')}</Text>
             {destination.badges
@@ -1108,7 +1122,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                 ]}
               >
                 <Text style={[styles.forecastDay, { color: isBestDay ? '#FF8C42' : theme.text }]}>
-                  {day.label} {isBestDay ? '◀' : ''}
+                  {day.label}
                 </Text>
                 <Text style={styles.forecastIcon}>{hasData ? getWeatherIcon(day.data.condition) : '—'}</Text>
                 <Text style={[styles.forecastTemp, { color: isBestDay ? '#FF8C42' : theme.textSecondary, fontWeight: isBestDay ? '700' : '500' }]}>
@@ -1137,6 +1151,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
             )}
           </TouchableOpacity>
         </View>
+      </View>
       </View>
     </ScrollView>
   );
@@ -1199,31 +1214,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
+
   header: {
     padding: 20,
     paddingTop: 28,
     paddingBottom: 20,
     position: 'relative',
-    overflow: 'hidden',
-    borderBottomLeftRadius: 24,
-    borderBottomRightRadius: 24,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
     minHeight: 140,
   },
+
   headerBgIcon: {
     position: 'absolute',
-    fontSize: 90,
+    fontSize: 80,
     top: '50%',
     left: '80%',
-    transform: [{ translateX: -45 }, { translateY: -45 }],
-    opacity: 0.35,
-    textShadowColor: 'rgba(255, 255, 255, 0.5)',
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 12,
+    transform: [{ translateX: -40 }, { translateY: -40 }],
+    opacity: 0.7,
+    textShadowColor: 'rgba(0, 0, 0, 0.4)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 10,
   },
   headerTop: {
     flexDirection: 'row',
@@ -1239,21 +1248,33 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
   },
   headerCountry: {
-    fontSize: 14,
-    fontWeight: '400',
+    fontSize: 15,
+    fontWeight: '500',
     marginTop: 2,
-    opacity: 0.9,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
   },
   headerTemp: {
     fontSize: 56,
     fontWeight: '300',
     letterSpacing: -2,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   headerSubtitle: {
-    fontSize: 15,
+    fontSize: 17,
+    fontWeight: '600',
     zIndex: 1,
+    textShadowColor: 'rgba(0,0,0,0.8)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
   },
   content: {
     padding: 20,
@@ -1296,11 +1317,10 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
-    borderWidth: 2,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.22,
+    shadowRadius: 2.22,
+    elevation: 3,
   },
   badgeCard: {
     flexDirection: 'row',

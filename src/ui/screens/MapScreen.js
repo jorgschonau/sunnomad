@@ -305,7 +305,10 @@ const MapScreen = ({ navigation }) => {
     if (cachedDestinations) {
       try {
         const cacheData = JSON.parse(cachedDestinations);
-        if (Date.now() - cacheData.timestamp < 3600000 && Array.isArray(cacheData.data) && cacheData.data.length > 0) {
+        const cacheValid = Date.now() - cacheData.timestamp < 3600000
+          && Array.isArray(cacheData.data) && cacheData.data.length > 0
+          && cacheData.data.some(d => d.image_region !== undefined);
+        if (cacheValid) {
           setCachedData(cacheData.data);
           setDestinations(cacheData.data);
         }
@@ -674,6 +677,10 @@ const MapScreen = ({ navigation }) => {
       allDestinations = [...allDestinations, ...weatherData];
       if (__DEV__) {
         console.log(`🏆 Badge origin: ${centerPointWeather ? 'centerPoint' : 'currentLocation'}, ${allDestinations.length} places`);
+      }
+      if (__DEV__ && allDestinations.length > 1) {
+        const sample = allDestinations.find(d => !d.isCurrentLocation && !d.isCenterPoint);
+        if (sample) console.log('[DEBUG MapScreen] sample dest:', sample.name, '| place_type:', sample.place_type, '| image_region:', sample.image_region);
       }
       setDestinations(allDestinations);
       // Cache in background so we don't block UI

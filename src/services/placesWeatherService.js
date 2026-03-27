@@ -73,7 +73,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
     // Query 1: Get places
     let placesQuery = supabase
       .from('places')
-      .select('id, name, latitude, longitude, country_code, place_type, population, attractiveness_score, clustering_radius_m, elevation, dem, state_name')
+      .select('id, name, latitude, longitude, country_code, place_type, image_region, population, attractiveness_score, clustering_radius_m, elevation, dem, state_name')
       .eq('is_active', true);
     
     if (latMin !== undefined) {
@@ -93,6 +93,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
     }
     
     console.log(`📍 Got ${places?.length || 0} places`);
+    if (places?.[0]) console.log('[DEBUG] first place keys:', Object.keys(places[0]).join(', '), '| place_type:', places[0].place_type, '| image_region:', places[0].image_region);
     
     if (!places || places.length === 0) {
       return { places: [], error: null };
@@ -259,6 +260,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
           lon: place.longitude,
           country_code: place.country_code, // WICHTIG für Ländername!
           place_type: place.place_type,
+          image_region: place.image_region,
           place_category: place.place_type,
           population: place.population,
           elevation: place.elevation,
@@ -542,7 +544,9 @@ function adaptPlaceToDestination(place, locale = 'en') {
     countryCode: place.country_code,
     country_code: place.country_code, // Also include as country_code for compatibility
     countryFlag: getCountryFlag(place.country_code),
-    
+    place_type: place.place_type || null,
+    image_region: place.image_region || null,
+
     // Weather data (from database)
     condition,
     temperature: place.temperature != null ? Math.round(place.temperature) : null,
