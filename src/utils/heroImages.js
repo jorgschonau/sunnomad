@@ -77,6 +77,9 @@ const GENERIC = {
   city_na:              require('../../assets/destinations/generic/na_city.webp'),
 };
 
+// DEBUG helper – true when a place has a dedicated (hand-picked) hero image
+export const hasDedicatedHeroImage = (id) => !!id && !!DEDICATED[id];
+
 export const getHeroImage = (dest) => {
   if (!dest) return null;
 

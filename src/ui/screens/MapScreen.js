@@ -33,6 +33,7 @@ import AnimatedBadge from '../components/AnimatedBadge';
 import { SkeletonMapMarker } from '../components/SkeletonLoader';
 import { useUnits } from '../../contexts/UnitContext';
 import { formatTemperature, formatDistance } from '../../utils/unitConversion';
+import { hasDedicatedHeroImage } from '../../utils/heroImages';
 import { supabase } from '../../config/supabase';
 
 // Custom map style to hide POI Business and Transit
@@ -83,7 +84,8 @@ const DestinationMarker = ({
           markerStyles.markerContainer,
           { backgroundColor: getWeatherColor(dest.condition, dest.temperature) },
           dest.isCurrentLocation && markerStyles.currentLocationMarker,
-          dest.isCenterPoint && markerStyles.centerPointMarker
+          dest.isCenterPoint && markerStyles.centerPointMarker,
+          hasDedicatedHeroImage(dest.id || dest.placeId) && markerStyles.debugDedicatedMarker,
         ]}>
           <Text style={markerStyles.markerWeatherIcon}>{getWeatherIcon(dest.condition)}</Text>
           <Text style={markerStyles.markerTemp}>
@@ -1637,8 +1639,8 @@ const MapScreen = ({ navigation }) => {
       const newRegion = {
         latitude: lat,
         longitude: lng,
-        latitudeDelta: 1.5,
-        longitudeDelta: 1.5,
+        latitudeDelta: (radius * 2) / 111,
+        longitudeDelta: (radius * 2) / (111 * Math.cos(lat * Math.PI / 180)),
       };
       skipNextLocationAnimRef.current = true;
       setLocation(newRegion);
@@ -1646,7 +1648,7 @@ const MapScreen = ({ navigation }) => {
         mapRef.current?.animateToRegion(newRegion, 800);
       });
     }
-  }, []);
+  }, [radius]);
 
   const clearSearch = useCallback(() => {
     setSearchQuery('');
@@ -2577,6 +2579,16 @@ const styles = StyleSheet.create({
   centerPointMarker: {
     borderColor: '#D96240',
     borderWidth: 2.5,
+  },
+  // DEBUG: remove when done – highlights places with dedicated hero images
+  debugDedicatedMarker: {
+    borderColor: '#FFD700',
+    borderWidth: 3,
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 6,
+    elevation: 8,
   },
   centerPointBadge: {
     backgroundColor: '#FF5722',
