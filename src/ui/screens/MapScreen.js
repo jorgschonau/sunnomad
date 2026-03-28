@@ -755,6 +755,9 @@ const MapScreen = ({ navigation }) => {
             forecastDays: forecastDaysArr,
             country_code: detail.countryCode || detail.country_code || place.country_code,
             countryCode: detail.countryCode || detail.country_code || place.country_code,
+            place_type: detail.place_type || detail.place_category || null,
+            place_category: detail.place_category || detail.place_type || null,
+            image_region: detail.image_region || null,
           };
         }
       }
@@ -1398,6 +1401,9 @@ const MapScreen = ({ navigation }) => {
             forecastDays: forecastDaysArr,
             country_code: detail.countryCode || detail.country_code || place.country_code,
             countryCode: detail.countryCode || detail.country_code || place.country_code,
+            place_type: detail.place_type || detail.place_category || null,
+            place_category: detail.place_category || detail.place_type || null,
+            image_region: detail.image_region || null,
           };
 
           console.log(`⊕ Center point weather from DB: ${detail.name} (${forecastData.length} days)`);
@@ -1636,16 +1642,23 @@ const MapScreen = ({ navigation }) => {
     const lat = Number(item.latitude);
     const lng = Number(item.longitude);
     if (Number.isFinite(lat) && Number.isFinite(lng)) {
-      const newRegion = {
+      const newCenter = {
         latitude: lat,
         longitude: lng,
         latitudeDelta: (radius * 2) / 111,
         longitudeDelta: (radius * 2) / (111 * Math.cos(lat * Math.PI / 180)),
       };
+
+      // Set as center point so radius + destinations center around the searched place
+      await fetchCenterPointWeather(lat, lng);
+      setCenterPoint(newCenter);
+      AsyncStorage.setItem('mapCenterPoint', JSON.stringify(newCenter)).catch(err =>
+        console.warn('Failed to save center point:', err)
+      );
+
       skipNextLocationAnimRef.current = true;
-      setLocation(newRegion);
       InteractionManager.runAfterInteractions(() => {
-        mapRef.current?.animateToRegion(newRegion, 800);
+        mapRef.current?.animateToRegion(newCenter, 800);
       });
     }
   }, [radius]);

@@ -368,7 +368,7 @@ export const getPlaceDetail = async (placeId, locale = 'en') => {
     // Get place (separate query - no FK needed)
     const { data: place, error: placeError } = await supabase
       .from('places')
-      .select('id, name, latitude, longitude, country_code, place_type, population, attractiveness_score, elevation, dem, state_name')
+      .select('id, name, latitude, longitude, country_code, place_type, image_region, population, attractiveness_score, elevation, dem, state_name')
       .eq('id', placeId)
       .maybeSingle();
 
@@ -398,6 +398,7 @@ export const getPlaceDetail = async (placeId, locale = 'en') => {
       country_code: place.country_code,
       place_type: place.place_type,
       place_category: place.place_type,
+      image_region: place.image_region,
       population: place.population,
       elevation: place.dem ?? place.elevation ?? null,
       state_name: place.state_name || null,

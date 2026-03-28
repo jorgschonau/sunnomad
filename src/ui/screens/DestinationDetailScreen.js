@@ -696,7 +696,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     return false;
   };
 
-  const hasHero = !!getHeroImage(destination);
+  const heroSource = getHeroImage(destination) || getHeroImage({ ...destination, place_type: forecast?.place_type, image_region: forecast?.image_region });
+  const hasHero = !!heroSource;
   const useDarkText = !hasHero && needsDarkText();
   const textColor = useDarkText ? '#2b3e50' : '#fff';
   const subtitleColor = useDarkText ? '#3a4f5d' : '#fff';
@@ -718,10 +719,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       showsHorizontalScrollIndicator={false}
     >
       <View style={{ position: 'relative' }}>
-      {getHeroImage(destination) && (
+      {heroSource && (
         <View style={{ position: 'absolute', top: -30, left: 0, right: 0, height: 450, overflow: 'hidden' }}>
           <Image
-            source={getHeroImage(destination)}
+            source={heroSource}
             style={{ width: '100%', height: '100%' }}
             resizeMode="cover"
           />
@@ -738,7 +739,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           />
         </View>
       )}
-      <View style={[styles.header, { backgroundColor: getHeroImage(destination) ? 'transparent' : getWeatherColor(heroCondition, heroTemp) }]}>
+      <View style={[styles.header, { backgroundColor: heroSource ? 'transparent' : getWeatherColor(heroCondition, heroTemp) }]}>
   <Text style={styles.headerBgIcon}>{getWeatherIcon(heroCondition)}</Text>
   
   <View style={styles.headerTop}>

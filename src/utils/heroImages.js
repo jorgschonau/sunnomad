@@ -13,6 +13,9 @@ const DEDICATED = {
   '10f6bae1-1841-44c7-a790-cb39144e1fd0': require('../../assets/destinations/dedicated/drachenfels.webp'),
   '44f371e4-31db-4760-93d9-4635f2381e05': require('../../assets/destinations/dedicated/dubrovnik.webp'),
   'e23ea23d-08c8-4e96-a139-bb4c1c28680a': require('../../assets/destinations/dedicated/etretat.webp'),
+
+  'fec09e0e-8b56-46c4-896e-ea34bde680b1': require('../../assets/destinations/dedicated/etretat.webp'),
+
   '328f021b-9557-4e4b-97b9-d60db5c07f9b': require('../../assets/destinations/dedicated/fehmarn.webp'),
   '2d110c86-cd8d-4d19-b8a4-d3103cb1ed51': require('../../assets/destinations/dedicated/flensburg.webp'),
   'b62b2b8a-6a55-4e64-a71d-fd125f3e7461': require('../../assets/destinations/dedicated/kassel.webp'),
@@ -28,7 +31,7 @@ const DEDICATED = {
   '4f472fe0-8bcd-432c-9c57-2d19a6490d74': require('../../assets/destinations/dedicated/nazare.webp'),
   '8bd4824b-21c5-4977-afd4-ffb9d0e3e566': require('../../assets/destinations/dedicated/neuruppin.webp'),
   'f0706d1a-e358-4416-a36f-9bf9129299e7': require('../../assets/destinations/dedicated/nice.webp'),
-  '2a151a5e-250d-49b0-abaa-5a325a5c7e99': require('../../assets/destinations/dedicated/nice.webp'),
+  '2a151a5e-250d-49b0-abaa-5a325a5c7e99': require('../../assets/destinations/dedicated/cannes.webp'),
   'c381cc64-16c2-430a-ace4-cc1c44804baa': require('../../assets/destinations/dedicated/picos_de_europa.webp'),
   '314bdc76-b459-4e38-a3bd-49db5c1740a5': require('../../assets/destinations/dedicated/pioneertown_bikergirl.webp'),
   'fcc3cd64-180f-4fe3-9f0b-39db6571a149': require('../../assets/destinations/dedicated/playa_de_los_muertos.webp'),
@@ -48,15 +51,26 @@ const DEDICATED = {
   '02f21248-0183-48ca-bdfd-b151d806e11b': require('../../assets/destinations/dedicated/sedona.webp'),
   '7c8a121d-dc3b-48d3-8577-674b0549f598': require('../../assets/destinations/dedicated/pch.webp'),
   '8eb3ad85-8047-48c5-833d-151800dbe2cf': require('../../assets/destinations/dedicated/girona.webp'),
+  '19797f1e-eabf-4963-b2c6-c0d02653eb5f': require('../../assets/destinations/dedicated/athens.webp'),
+  '0e176d63-d4a7-4dee-a62b-654d494b269d': require('../../assets/destinations/dedicated/omahabeach.webp'),
+  'be3a21b9-8382-425b-a9cf-0d88ad4fc260': require('../../assets/destinations/dedicated/sainte-mere-eglise.webp'),
+  '815aa67c-d295-4b7c-969c-3ce9679315f9': require('../../assets/destinations/dedicated/grindelwald.webp'),
+
+'3684fc0f-d640-41f1-8df6-67e26b7c9a44': require('../../assets/destinations/dedicated/fehmarn.webp'),
+'328f021b-9557-4e4b-97b9-d60db5c07f9b': require('../../assets/destinations/dedicated/fehmarn.webp'),
+
 };
 
 const GENERIC = {
   beach_atlantic:       require('../../assets/destinations/generic/eu_atlanticbeach.webp'),
   beach_med:            require('../../assets/destinations/generic/eu_spanishbeach.webp'),
   beach_generic:        require('../../assets/destinations/generic/eu_north_beach.webp'),
+  // find sth better later for mountain
   mountain:             require('../../assets/destinations/generic/eu_alps_1.webp'),
-  natural_feature:      null, // ⚠️ FILE FEHLT
-  scenic_drive:         null, // ⚠️ FILE FEHLT
+  // find sth better later for natural_feature
+  natural_feature:      require('../../assets/destinations/generic/picos_de_europa.webp'),
+  // find sth better later for scenic_drive
+  scenic_drive:         require('../../assets/destinations/generic/scenicdrive.webp'),
 
   small_town_eu_south:  require('../../assets/destinations/generic/eu_south_smalltown.webp'),
   small_town_eu_north:  require('../../assets/destinations/generic/eu_north_smalltown.webp'),
@@ -88,10 +102,11 @@ export const getHeroImage = (dest) => {
   if (id && DEDICATED[id]) return DEDICATED[id];
 
   // 2. Generic by type
-  const type = dest.place_type?.toLowerCase();
+  const rawType = dest.place_type || dest.place_category || dest.placeType;
+  const type = rawType?.toLowerCase().replace(/\s+/g, '_');
   const cc = (dest.countryCode || dest.country_code || '').toUpperCase();
   const region = dest.image_region;
-  console.log('[heroImage]', dest.name, '| type:', type, '| region:', region, '| cc:', cc);
+  console.log('[heroImage]', dest.name, '| type:', type, '| raw:', rawType, '| region:', region, '| cc:', cc);
 
   if (type === 'scenic_drive') return GENERIC.scenic_drive;
 
