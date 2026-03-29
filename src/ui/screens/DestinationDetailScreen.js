@@ -180,6 +180,11 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const [isFavourite, setIsFavourite] = useState(false);
   const [favouriteLoading, setFavouriteLoading] = useState(false);
   const [expandedBadges, setExpandedBadges] = useState({});
+  const [favToast, setFavToast] = useState(null);
+  const favScaleAnim = React.useRef(new Animated.Value(1)).current;
+  const favOpacityAnim = React.useRef(new Animated.Value(1)).current;
+  const toastOpacityAnim = React.useRef(new Animated.Value(0)).current;
+  const toastScaleAnim = React.useRef(new Animated.Value(0.98)).current;
 
   /**
    * Helper: Convert a forecastData entry (from Supabase) to the app forecast slot format
@@ -422,6 +427,72 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     const placeId = forecast?.id || effectivePlaceId;
     const status = await isDestinationFavourite(placeId);
     setIsFavourite(status);
+    favOpacityAnim.setValue(status ? 1 : 0);
+  };
+
+  const animateFavourite = (willBeFavourite) => {
+    if (willBeFavourite) {
+      // Activate: scale 1 → 1.08 → 1, fill appears with ~40ms delay
+      favScaleAnim.setValue(1);
+      favOpacityAnim.setValue(0);
+      Animated.sequence([
+        Animated.timing(favScaleAnim, {
+          toValue: 1.08,
+          duration: 100,
+          useNativeDriver: true,
+        }),
+        Animated.parallel([
+          Animated.spring(favScaleAnim, {
+            toValue: 1,
+            friction: 5,
+            tension: 140,
+            useNativeDriver: true,
+          }),
+          Animated.timing(favOpacityAnim, {
+            toValue: 1,
+            duration: 120,
+            delay: 40,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]).start();
+    } else {
+      // Deactivate: scale 1 → 0.94 → 1, fill → outline + color → grey
+      Animated.sequence([
+        Animated.timing(favScaleAnim, {
+          toValue: 0.94,
+          duration: 80,
+          useNativeDriver: true,
+        }),
+        Animated.parallel([
+          Animated.spring(favScaleAnim, {
+            toValue: 1,
+            friction: 5,
+            tension: 120,
+            useNativeDriver: true,
+          }),
+          Animated.timing(favOpacityAnim, {
+            toValue: 0,
+            duration: 120,
+            useNativeDriver: true,
+          }),
+        ]),
+      ]).start();
+    }
+  };
+
+  const showFavToast = (message) => {
+    setFavToast(message);
+    toastOpacityAnim.setValue(0);
+    toastScaleAnim.setValue(0.98);
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(toastOpacityAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
+        Animated.timing(toastScaleAnim, { toValue: 1, duration: 150, useNativeDriver: true }),
+      ]),
+      Animated.delay(1500),
+      Animated.timing(toastOpacityAnim, { toValue: 0, duration: 250, useNativeDriver: true }),
+    ]).start(() => setFavToast(null));
   };
 
   const handleToggleFavourite = async () => {
@@ -432,19 +503,16 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       const target = forecast || destination;
       const result = await toggleFavourite({ ...target, id: target.id || effectivePlaceId });
       if (result.success) {
+        animateFavourite(result.isFavourite);
         setIsFavourite(result.isFavourite);
-        Alert.alert(
-          result.isFavourite ? t('favourites.addedToFavourites') : t('favourites.removedFromFavourites'),
-          '',
-          [{ text: 'OK' }]
-        );
+        showFavToast(result.isFavourite ? t('favourites.saved') : t('favourites.removed'));
       } else {
         if (__DEV__) console.warn('Toggle favourite failed:', result.message);
-        Alert.alert(t('map.error'), result.message || 'Failed to update favourites');
+        showFavToast(result.message || 'Failed to update favourites');
       }
     } catch (error) {
       console.error('Failed to toggle favourite:', error);
-      Alert.alert(t('map.error'), 'Failed to update favourites');
+      showFavToast('Failed to update favourites');
     } finally {
       setFavouriteLoading(false);
     }
@@ -713,6 +781,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const heroDateLabel = formatDateLabel(selectedDateOffset);
 
   return (
+    <View style={{ flex: 1 }}>
     <ScrollView
       style={[styles.container, { backgroundColor: theme.background }]}
       showsVerticalScrollIndicator={false}
@@ -744,24 +813,43 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   
   <View style={styles.headerTop}>
     <View style={styles.headerNameContainer}>
-      {(() => {
-        const name = forecast.name || '';
-        const hasSpace = name.includes(' ');
-        const isLong = name.length > 15;
-        return (
-          <Text
-            style={[styles.headerTitle, {
-              color: textColor,
-              fontSize: isLong ? (hasSpace ? 28 : 22) : 34,
-            }]}
-            numberOfLines={2}
-            adjustsFontSizeToFit
-            minimumFontScale={0.5}
+      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+        {(() => {
+          const name = forecast.name || '';
+          const hasSpace = name.includes(' ');
+          const isLong = name.length > 15;
+          return (
+            <Text
+              style={[styles.headerTitle, {
+                color: textColor,
+                fontSize: isLong ? (hasSpace ? 28 : 22) : 34,
+                flexShrink: 1,
+              }]}
+              numberOfLines={2}
+              adjustsFontSizeToFit
+              minimumFontScale={0.5}
+            >
+              {name}
+            </Text>
+          );
+        })()}
+        {heroSource && (
+          <TouchableOpacity
+            onPress={handleToggleFavourite}
+            disabled={favouriteLoading}
+            activeOpacity={0.7}
+            hitSlop={{ top: 12, bottom: 12, left: 10, right: 10 }}
+            style={styles.heroFavouriteButton}
           >
-            {name}
-          </Text>
-        );
-      })()}
+            <Animated.View style={{ transform: [{ scale: favScaleAnim }] }}>
+              <Text style={styles.heroFavouriteOutline}>☆</Text>
+              <Animated.Text style={[styles.heroFavouriteFilled, { opacity: favOpacityAnim }]}>
+                ★
+              </Animated.Text>
+            </Animated.View>
+          </TouchableOpacity>
+        )}
+      </View>
       {(forecast.countryCode || forecast.country_code) && (() => {
         const countryName = getCountryName(forecast.countryCode || forecast.country_code, i18n.language || 'en');
         const stateName = forecast.state_name || destination.state_name;
@@ -1155,6 +1243,12 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       </View>
       </View>
     </ScrollView>
+    {favToast && (
+      <Animated.View style={[styles.favToast, { opacity: toastOpacityAnim, transform: [{ scale: toastScaleAnim }] }]} pointerEvents="none">
+        <Text style={styles.favToastText}>{favToast}</Text>
+      </Animated.View>
+    )}
+    </View>
   );
 };
 
@@ -1301,7 +1395,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '500',
     letterSpacing: 0.3,
-    textTransform: 'uppercase',
+    textTransform: 'capitalize',
     marginBottom: 4,
     opacity: 0.6,
   },
@@ -1471,6 +1565,42 @@ const styles = StyleSheet.create({
     gap: 12,
     marginTop: 24,
     marginBottom: 30,
+  },
+  favToast: {
+    position: 'absolute',
+    top: '58%',
+    alignSelf: 'center',
+    backgroundColor: 'rgba(50, 50, 52, 0.72)',
+    paddingHorizontal: 19,
+    paddingVertical: 9,
+    borderRadius: 15,
+  },
+  favToastText: {
+    color: 'rgba(255, 255, 255, 0.82)',
+    fontSize: 15,
+    fontWeight: '400',
+    letterSpacing: 0.1,
+  },
+  heroFavouriteButton: {
+    marginLeft: 4,
+    marginTop: 3,
+    padding: 2,
+  },
+  heroFavouriteOutline: {
+    fontSize: 18,
+    color: '#8E8E93',
+    textShadowColor: 'rgba(255, 255, 255, 0.4)',
+    textShadowOffset: { width: 0, height: 0.5 },
+    textShadowRadius: 1,
+  },
+  heroFavouriteFilled: {
+    position: 'absolute',
+    fontSize: 18,
+    color: '#C9A84C',
+    opacity: 0.7,
+    textShadowColor: 'rgba(0, 0, 0, 0.2)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 1,
   },
   favouriteButton: {
     paddingVertical: 16,

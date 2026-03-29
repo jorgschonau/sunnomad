@@ -220,6 +220,8 @@
     "emptyDescription": "Tap the star icon on a destination to save it here",
     "addedToFavourites": "Added to favourites",
     "removedFromFavourites": "Removed from favourites",
+    "saved": "Saved",
+    "removed": "Removed",
     "alreadyInFavourites": "Already in favourites",
     "viewDetails": "View Details",
     "removeFromFavourites": "Remove from favourites",

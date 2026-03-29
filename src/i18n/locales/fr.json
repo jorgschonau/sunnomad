@@ -220,6 +220,8 @@
     "emptyDescription": "Appuyez sur l'icône étoile d'une destination pour l'enregistrer ici",
     "addedToFavourites": "Ajouté aux favoris",
     "removedFromFavourites": "Retiré des favoris",
+    "saved": "Enregistré",
+    "removed": "Retiré",
     "alreadyInFavourites": "Déjà dans les favoris",
     "viewDetails": "Voir les détails",
     "removeFromFavourites": "Retirer des favoris",
