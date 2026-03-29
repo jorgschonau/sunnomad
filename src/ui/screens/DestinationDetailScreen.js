@@ -720,10 +720,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     >
       <View style={{ position: 'relative' }}>
       {heroSource && (
-        <View style={{ position: 'absolute', top: -30, left: 0, right: 0, height: 450, overflow: 'hidden' }}>
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 440, overflow: 'hidden' }}>
           <Image
             source={heroSource}
-            style={{ width: '100%', height: '100%' }}
+            style={{ width: '100%', height: '100%', top: 0 }}
             resizeMode="cover"
           />
           <LinearGradient

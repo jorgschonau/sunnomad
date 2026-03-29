@@ -56,8 +56,16 @@ const DEDICATED = {
   'be3a21b9-8382-425b-a9cf-0d88ad4fc260': require('../../assets/destinations/dedicated/sainte-mere-eglise.webp'),
   '815aa67c-d295-4b7c-969c-3ce9679315f9': require('../../assets/destinations/dedicated/grindelwald.webp'),
 
-'3684fc0f-d640-41f1-8df6-67e26b7c9a44': require('../../assets/destinations/dedicated/fehmarn.webp'),
-'328f021b-9557-4e4b-97b9-d60db5c07f9b': require('../../assets/destinations/dedicated/fehmarn.webp'),
+  '3684fc0f-d640-41f1-8df6-67e26b7c9a44': require('../../assets/destinations/dedicated/fehmarn.webp'),
+  '328f021b-9557-4e4b-97b9-d60db5c07f9b': require('../../assets/destinations/dedicated/fehmarn.webp'),
+
+  '70e3a160-65a6-4d9d-a09b-55f910d51ece': require('../../assets/destinations/dedicated/moab.webp'),
+  '1ff9a5bc-88b7-4ec8-9f70-6f7398dbd9bf': require('../../assets/destinations/dedicated/lloretdemar.webp'),
+  'cd84e94b-e325-4aef-a420-7dacedcff4be': require('../../assets/destinations/dedicated/lisbon.webp'),
+  '5cd8986c-664c-4773-b06f-bdd164195f7d': require('../../assets/destinations/dedicated/berchtesgaden.webp'),
+  '90bc1f68-81da-44f8-82a6-c9378880f4c5': require('../../assets/destinations/dedicated/berchtesgaden.webp'),
+
+  
 
 };
 

@@ -2062,9 +2062,6 @@ const MapScreen = ({ navigation }) => {
                 <Text style={styles.markerTemp}>
                   {temp != null ? formatTemperature(temp, temperatureUnit, false) : '?°'}
                 </Text>
-                <View style={styles.favouriteBadgeWrap}>
-                  <AnimatedBadge icon="⭐" color="#FFD700" delay={0} />
-                </View>
               </View>
             </View>
           </Marker>
@@ -2608,9 +2605,9 @@ const styles = StyleSheet.create({
   },
   // DEBUG: remove when done – highlights places with dedicated hero images
   debugDedicatedMarker: {
-    borderColor: '#FFD700',
+    borderColor: '#87CEEB',
     borderWidth: 3,
-    shadowColor: '#FFD700',
+    shadowColor: '#87CEEB',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.8,
     shadowRadius: 6,
@@ -3156,13 +3153,13 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   favouriteMarkerBorder: {
-    borderWidth: 3,
     borderColor: '#FFD700',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
-    elevation: 6,
+    borderWidth: 3,
+    shadowColor: '#FFD700',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.8,
+    shadowRadius: 6,
+    elevation: 8,
   },
   favouriteBadgeWrap: {
     position: 'absolute',
