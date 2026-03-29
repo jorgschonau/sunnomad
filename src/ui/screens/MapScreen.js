@@ -1162,10 +1162,21 @@ const MapScreen = ({ navigation }) => {
         !(Array.isArray(p.badges) && p.badges.some(b => pinnedBadges.includes(b)))
       ),
     ];
+    const HIGHLIGHT_POI_TYPES = ['beach', 'scenic_drive', 'mountain', 'national_park', 'natural_park', 'nature_reserve'];
+    const isHighlightType = (p) => {
+      const t = p.place_type || p.place_category || p.placeType || '';
+      return HIGHLIGHT_POI_TYPES.includes(t);
+    };
+    
     const sorted = [...normal].sort((a, b) => {
       const aBadges = getMapBadges(a.badges).length;
       const bBadges = getMapBadges(b.badges).length;
       if (aBadges !== bBadges) return bBadges - aBadges;
+      
+      // Highlight POIs (beaches, scenic drives, mountains, national parks) get priority
+      const aHighlight = isHighlightType(a) ? 1 : 0;
+      const bHighlight = isHighlightType(b) ? 1 : 0;
+      if (aHighlight !== bHighlight) return bHighlight - aHighlight;
       
       const aScore = a.attractivenessScore || a.attractiveness_score || 50;
       const bScore = b.attractivenessScore || b.attractiveness_score || 50;
@@ -1216,14 +1227,16 @@ const MapScreen = ({ navigation }) => {
       const inPhase1 = (result.length - pinned.length) < phase1Limit;
       
       // PHASE 2: Last 60% - enforce grid limit (max 3 per grid)
-      if (!inPhase1 && !hasBadges && gridCount >= GRID_LIMIT) {
+      // Badges and highlight POIs (beaches, mountains, scenic drives, national parks) are exempt
+      const isHighlightPOI = isHighlightType(place);
+      if (!inPhase1 && !hasBadges && !isHighlightPOI && gridCount >= GRID_LIMIT) {
         gridLimited++;
         continue;
       }
       
       // Distance check against all placed markers (special + pinned + normal)
-      // Badged places use half the minimum distance so they show up at lower zoom levels
-      const effectiveMinDist = hasBadges ? minDistance * 0.4 : minDistance;
+      // Badged places: 40% of min distance; highlight POIs: 50%
+      const effectiveMinDist = hasBadges ? minDistance * 0.4 : isHighlightPOI ? minDistance * 0.5 : minDistance;
       let tooClose = false;
       for (const existing of result) {
         const dist = getDistanceKm(lat, lon, existing.lat || existing.latitude, existing.lon || existing.longitude);
