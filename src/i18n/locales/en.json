@@ -157,6 +157,7 @@
   "destination": {
     "stability": "Stability",
     "sun": "Sun",
+    "stopStay": "Stop & Stay",
     "hoursShort": "hrs",
     "humidity": "Humidity",
     "wind": "Wind",

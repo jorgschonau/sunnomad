@@ -64,7 +64,7 @@ const DEDICATED = {
   'cd84e94b-e325-4aef-a420-7dacedcff4be': require('../../assets/destinations/dedicated/lisbon.webp'),
   '5cd8986c-664c-4773-b06f-bdd164195f7d': require('../../assets/destinations/dedicated/berchtesgaden.webp'),
   '90bc1f68-81da-44f8-82a6-c9378880f4c5': require('../../assets/destinations/dedicated/berchtesgaden.webp'),
-
+//  '2d110c86-cd8d-4d19-b8a4-d3103cb1ed51': require('../../assets/destinations/dedicated/flensburg.jpg'),
   
 
 };

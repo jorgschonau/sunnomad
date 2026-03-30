@@ -151,7 +151,7 @@ function MainNavigator() {
 function RootNavigator() {
   const { isAuthenticated, loading } = useAuth();
   const { theme } = useTheme();
-  const [splashPhase, setSplashPhase] = useState('intro');
+  const [splashPhase, setSplashPhase] = useState('done'); // DEBUG: skip splash
   const [fontsLoaded] = useFonts({ Yellowtail_400Regular });
   const [locationPreloaded, setLocationPreloaded] = useState(false);
 
@@ -185,6 +185,11 @@ function RootNavigator() {
 
   const onSplashLayout = useCallback(() => {
     SplashScreen.hideAsync();
+  }, []);
+
+  // DEBUG: hide native splash immediately when skipping splash phases
+  useEffect(() => {
+    if (splashPhase === 'done') SplashScreen.hideAsync();
   }, []);
 
   if (splashPhase === 'intro') {

@@ -85,7 +85,7 @@ const DestinationMarker = ({
           { backgroundColor: getWeatherColor(dest.condition, dest.temperature) },
           dest.isCurrentLocation && markerStyles.currentLocationMarker,
           dest.isCenterPoint && markerStyles.centerPointMarker,
-          hasDedicatedHeroImage(dest.id || dest.placeId) && markerStyles.debugDedicatedMarker,
+          hasDedicatedHeroImage(dest.id || dest.placeId) && markerStyles.dedicatedHeroMarker,
         ]}>
           <Text style={markerStyles.markerWeatherIcon}>{getWeatherIcon(dest.condition)}</Text>
           <Text style={markerStyles.markerTemp}>
@@ -2603,15 +2603,14 @@ const styles = StyleSheet.create({
     borderColor: '#D96240',
     borderWidth: 2.5,
   },
-  // DEBUG: remove when done – highlights places with dedicated hero images
-  debugDedicatedMarker: {
-    borderColor: '#87CEEB',
-    borderWidth: 3,
-    shadowColor: '#87CEEB',
+  dedicatedHeroMarker: {
+    borderColor: '#FFD700',
+    borderWidth: 2.5,
+    shadowColor: '#FFD700',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 6,
-    elevation: 8,
+    shadowOpacity: 0.7,
+    shadowRadius: 5,
+    elevation: 6,
   },
   centerPointBadge: {
     backgroundColor: '#FF5722',
@@ -3125,10 +3124,10 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   favouriteMarkerContainer: {
-    backgroundColor: '#FFD700',
+    backgroundColor: '#E8732A',
     borderRadius: 20,
-    borderWidth: 3,
-    borderColor: '#DAA520',
+    borderWidth: 2.5,
+    borderColor: '#C96122',
     paddingHorizontal: 10,
     paddingVertical: 6,
     alignItems: 'center',
@@ -3153,13 +3152,13 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   favouriteMarkerBorder: {
-    borderColor: '#FFD700',
-    borderWidth: 3,
-    shadowColor: '#FFD700',
+    borderColor: '#E8732A',
+    borderWidth: 2.5,
+    shadowColor: '#E8732A',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.8,
-    shadowRadius: 6,
-    elevation: 8,
+    shadowOpacity: 0.35,
+    shadowRadius: 3,
+    elevation: 4,
   },
   favouriteBadgeWrap: {
     position: 'absolute',

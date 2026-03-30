@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Pressable,
   Alert,
   ActivityIndicator,
   Animated,
@@ -24,6 +25,7 @@ import { formatTemperature, formatDistance, getTemperatureSymbol, getDistanceSym
 
 import { LinearGradient } from 'expo-linear-gradient';
 import { getHeroImage } from '../../utils/heroImages';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const getWindDescriptionKey = (windSpeed) => {
   const speed = windSpeed || 0;
@@ -181,10 +183,14 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const [favouriteLoading, setFavouriteLoading] = useState(false);
   const [expandedBadges, setExpandedBadges] = useState({});
   const [favToast, setFavToast] = useState(null);
+  const [uiFocused, setUiFocused] = useState(false);
+  const [heroHintVisible, setHeroHintVisible] = useState(false);
   const favScaleAnim = React.useRef(new Animated.Value(1)).current;
   const favOpacityAnim = React.useRef(new Animated.Value(1)).current;
   const toastOpacityAnim = React.useRef(new Animated.Value(0)).current;
   const toastScaleAnim = React.useRef(new Animated.Value(0.98)).current;
+  const uiOpacityAnim = React.useRef(new Animated.Value(1)).current;
+  const heroHintAnim = React.useRef(new Animated.Value(0)).current;
 
   /**
    * Helper: Convert a forecastData entry (from Supabase) to the app forecast slot format
@@ -518,6 +524,39 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     }
   };
 
+  const toggleUiFocus = useCallback(() => {
+    const newFocused = !uiFocused;
+    setUiFocused(newFocused);
+    Animated.timing(uiOpacityAnim, {
+      toValue: newFocused ? 0 : 1,
+      duration: 150,
+      useNativeDriver: true,
+    }).start();
+  }, [uiFocused, uiOpacityAnim]);
+
+  // One-time hero hint (shows for 3s on first ever visit, then never again)
+  useEffect(() => {
+    if (!heroSource) return;
+    let timer;
+    AsyncStorage.getItem('heroHintShown').then(val => {
+      if (!val) {
+        setHeroHintVisible(true);
+        heroHintAnim.setValue(1);
+        timer = setTimeout(() => {
+          Animated.timing(heroHintAnim, {
+            toValue: 0,
+            duration: 400,
+            useNativeDriver: true,
+          }).start(() => {
+            setHeroHintVisible(false);
+            AsyncStorage.setItem('heroHintShown', '1').catch(() => {});
+          });
+        }, 3000);
+      }
+    });
+    return () => { if (timer) clearTimeout(timer); };
+  }, [heroSource]);
+
   const handleDriveThere = async () => {
     try {
       // TODO: Add motor sound (real audio, not haptics) when starting navigation
@@ -808,6 +847,18 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           />
         </View>
       )}
+      {heroSource && !uiFocused && (
+        <Pressable onPress={toggleUiFocus} style={styles.heroHintPill} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+          <Text style={styles.heroHintText}>↗</Text>
+        </Pressable>
+      )}
+      {heroSource && uiFocused && (
+        <Pressable onPress={toggleUiFocus} style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 440, zIndex: 10 }}>
+          <View style={styles.heroHintPill}>
+            <Text style={styles.heroHintText}>↙</Text>
+          </View>
+        </Pressable>
+      )}
       <View style={[styles.header, { backgroundColor: heroSource ? 'transparent' : getWeatherColor(heroCondition, heroTemp) }]}>
   <Text style={styles.headerBgIcon}>{getWeatherIcon(heroCondition)}</Text>
   
@@ -861,6 +912,9 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           </Text>
         );
       })()}
+      <TouchableOpacity style={styles.stopStayPill} activeOpacity={0.7}>
+        <Text style={styles.stopStayText}>{t('destination.stopStay')}</Text>
+      </TouchableOpacity>
     </View>
     <Text style={[styles.headerTemp, { color: textColor }]}>{heroTemp != null ? formatTemperature(heroTemp, temperatureUnit, false) : '?°'}</Text>
   </View>
@@ -876,6 +930,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
 
 
       <View style={styles.content}>
+        <Animated.View style={{ opacity: uiOpacityAnim }} pointerEvents={uiFocused ? 'none' : 'auto'}>
         <View style={[styles.mainInfo, { 
           backgroundColor: theme.surface,
           shadowColor: theme.shadow
@@ -895,8 +950,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
             </View>
           </View>
         </View>
+        </Animated.View>
 
         {/* Badge Section */}
+        <Animated.View style={{ opacity: uiOpacityAnim }} pointerEvents={uiFocused ? 'none' : 'auto'}>
         {destination.badges && destination.badges.length > 0 && (
           <View style={[styles.badgeSection, {
             backgroundColor: theme.surface,
@@ -1164,17 +1221,20 @@ const DestinationDetailScreen = ({ route, navigation }) => {
             })}
           </View>
         )}
+        </Animated.View>
 
         {/* Dorthin fahren Button - nach Badges */}
-        <TouchableOpacity
-          style={[styles.driveButtonTop, {
-            backgroundColor: theme.primary,
-            shadowColor: theme.primary
-          }]}
-          onPress={handleDriveThere}
-        >
-          <Text style={styles.driveButtonTopText}>{t('destination.driveThere')}</Text>
-        </TouchableOpacity>
+        <Animated.View style={{ opacity: uiOpacityAnim }} pointerEvents={uiFocused ? 'none' : 'auto'}>
+          <TouchableOpacity
+            style={[styles.driveButtonTop, {
+              backgroundColor: theme.primary,
+              shadowColor: theme.primary
+            }]}
+            onPress={handleDriveThere}
+          >
+            <Text style={styles.driveButtonTopText}>{t('destination.driveThere')}</Text>
+          </TouchableOpacity>
+        </Animated.View>
 
         <View style={[styles.forecastSection, {
           backgroundColor: theme.surface,
@@ -1297,17 +1357,17 @@ const styles = StyleSheet.create({
   },
   heroDateBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: 'rgba(255, 140, 66, 0.9)',
+    backgroundColor: 'rgba(210, 130, 60, 1)',
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: 8,
-    marginBottom: 6,
+    marginBottom: 2,
     zIndex: 1,
   },
   heroDateBadgeText: {
     color: '#fff',
     fontSize: 13,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 
   header: {
@@ -1580,6 +1640,57 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '400',
     letterSpacing: 0.1,
+  },
+  heroHintPill: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    zIndex: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 12,
+  },
+  heroHintText: {
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 12,
+  },
+  tapToShowPill: {
+    position: 'absolute',
+    top: 180,
+    zIndex: 10,
+    alignSelf: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
+  },
+  tapToShowText: {
+    color: 'rgba(255, 255, 255, 0.7)',
+    fontSize: 12,
+    fontWeight: '400',
+  },
+  stopStayPill: {
+    alignSelf: 'flex-start',
+    marginTop: 6,
+    marginBottom: 10,
+    backgroundColor: 'rgba(195, 115, 55, 0.80)',
+    paddingHorizontal: 14,
+    paddingVertical: 4,
+    borderRadius: 16,
+    height: 27,
+    justifyContent: 'center',
+    shadowColor: '#C07337',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  stopStayText: {
+    color: '#fff',
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.2,
   },
   heroFavouriteButton: {
     marginLeft: 4,
