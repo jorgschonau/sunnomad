@@ -92,15 +92,35 @@ export const getPlacesWithWeather = async (filters = {}) => {
       throw placesError;
     }
     
-    console.log(`📍 Got ${places?.length || 0} places`);
-    if (places?.[0]) console.log('[DEBUG] first place keys:', Object.keys(places[0]).join(', '), '| place_type:', places[0].place_type, '| image_region:', places[0].image_region);
+    // Geographic diversity query: fill white spots by sampling places ordered by id (pseudo-random spatial spread)
+    let mergedPlaces = places || [];
+    if (latMin !== undefined) {
+      const { data: diversePlaces } = await supabase
+        .from('places')
+        .select('id, name, latitude, longitude, country_code, place_type, image_region, population, attractiveness_score, clustering_radius_m, elevation, dem, state_name')
+        .eq('is_active', true)
+        .gte('latitude', latMin).lte('latitude', latMax)
+        .gte('longitude', lonMin).lte('longitude', lonMax)
+        .limit(400)
+        .order('id');
+
+      const allIds = new Set(mergedPlaces.map(p => p.id));
+      mergedPlaces = [
+        ...mergedPlaces,
+        ...(diversePlaces || []).filter(p => !allIds.has(p.id))
+      ];
+      console.log(`🗺️ Diversity merge: ${places?.length || 0} score-based + ${diversePlaces?.length || 0} diverse → ${mergedPlaces.length} total`);
+    }
+
+    console.log(`📍 Got ${mergedPlaces.length} places`);
+    if (mergedPlaces[0]) console.log('[DEBUG] first place keys:', Object.keys(mergedPlaces[0]).join(', '), '| place_type:', mergedPlaces[0].place_type, '| image_region:', mergedPlaces[0].image_region);
     
-    if (!places || places.length === 0) {
+    if (mergedPlaces.length === 0) {
       return { places: [], error: null };
     }
     
     // Query 2: Get weather for places (16 days)
-    const placeIds = places.map(p => p.id);
+    const placeIds = mergedPlaces.map(p => p.id);
     const fallbackDate = new Date(new Date(targetDate).getTime() + 16 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     console.log(`🌤️ Fetching weather for ${placeIds.length} places (${targetDate} to ${fallbackDate})...`);
     
@@ -163,7 +183,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
     
     
     // Combine places with weather (including forecast)
-    let placesData = places.map(p => {
+    let placesData = mergedPlaces.map(p => {
       const wData = weatherMap[p.id] || {};
       const today = wData.today || {};
       const tomorrow = wData.tomorrow;
@@ -602,13 +622,17 @@ function mapWeatherMainToCondition(weatherMain) {
   
   const main = weatherMain.toLowerCase();
   
+  // Already mapped app values (pass through)
+  if (main === 'sunny' || main === 'cloudy' || main === 'rainy' || main === 'snowy' || main === 'windy') return main;
+  
+  // OpenWeatherMap raw values
   if (main === 'clear') return 'sunny';
   if (main === 'clouds') return 'cloudy';
   if (main === 'rain' || main === 'drizzle' || main === 'thunderstorm') return 'rainy';
   if (main === 'snow') return 'snowy';
   if (main === 'fog' || main === 'mist' || main === 'haze') return 'windy';
   
-  return 'cloudy'; // Default
+  return 'cloudy';
 }
 
 /**

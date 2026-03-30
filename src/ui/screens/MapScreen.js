@@ -165,6 +165,7 @@ const MapScreen = ({ navigation }) => {
   const [displayDestinations, setDisplayDestinations] = useState([]); // Derived from destinations + date offset (async when offset !== 0)
   // visibleMarkers is derived via useMemo below
   const [currentZoom, setCurrentZoom] = useState(5); // Track zoom level
+  const currentZoomRef = useRef(5);
   const [currentBounds, setCurrentBounds] = useState(null); // Track viewport bounds
   const radiusDebounceTimer = useRef(null);
 
@@ -1049,15 +1050,23 @@ const MapScreen = ({ navigation }) => {
     return Math.round(total);
   };
   
-  const getGridSizeKm = (zoom) => {
-    if (zoom <= 3) return 600;
-    if (zoom <= 4) return 400;
-    if (zoom <= 5) return 300;
-    if (zoom <= 6) return 200;
-    if (zoom <= 7) return 120;
-    if (zoom <= 8) return 70;
-    if (zoom <= 9) return 40;
-    return 20;
+  const getGridSizeKm = (zoom, radius) => {
+    const zoomBase = (() => {
+      if (zoom <= 3) return 600;
+      if (zoom <= 4) return 400;
+      if (zoom <= 5) return 300;
+      if (zoom <= 6) return 200;
+      if (zoom <= 7) return 120;
+      if (zoom <= 8) return 70;
+      if (zoom <= 9) return 40;
+      return 20;
+    })();
+
+    if (radius) {
+      return Math.min(zoomBase, radius * 0.15);
+    }
+
+    return zoomBase;
   };
 
   /**
@@ -1112,25 +1121,39 @@ const MapScreen = ({ navigation }) => {
     );
     if (candidates.length === 0) return [];
     
+    // Filter to viewport + 20% buffer
+    let viewportCandidates = candidates;
+    if (bounds) {
+      const latBuffer = (bounds.north - bounds.south) * 0.2;
+      const lonBuffer = (bounds.east - bounds.west) * 0.2;
+      viewportCandidates = candidates.filter(p =>
+        p.latitude >= bounds.south - latBuffer &&
+        p.latitude <= bounds.north + latBuffer &&
+        p.longitude >= bounds.west - lonBuffer &&
+        p.longitude <= bounds.east + lonBuffer
+      );
+      if (viewportCandidates.length < 5) viewportCandidates = candidates;
+    }
+
     const userLat = location?.latitude;
     const userLon = location?.longitude;
     const maxMarkers = getMaxMarkers(zoom, radius);
     const minDistance = getMinDistanceForZoom(zoom, radius);
     
-    const GRID_SIZE_KM = getGridSizeKm(zoom);
+    const GRID_SIZE_KM = getGridSizeKm(zoom, radius);
     const gridSize = GRID_SIZE_KM / 111;
     
     if (__DEV__) {
-      console.log('🎯 Filter Config:', { maxMarkers, zoom, candidates: candidates.length });
+      console.log('🎯 Filter Config:', { maxMarkers, zoom, candidates: viewportCandidates.length });
     }
     
     // Separate special markers (always shown)
-    const specialMarkers = candidates.filter(p => p.isCurrentLocation || p.isCenterPoint);
+    const specialMarkers = viewportCandidates.filter(p => p.isCurrentLocation || p.isCenterPoint);
     
     // Pinned badges: always visible, but soft grid limit (max 2 per grid) to avoid clustering
     const PINNED_GRID_LIMIT = 2;
     const pinnedBadges = [DestinationBadge.WORTH_THE_DRIVE, DestinationBadge.WORTH_THE_DRIVE_BUDGET];
-    const allPinned = candidates.filter(p => 
+    const allPinned = viewportCandidates.filter(p => 
       !p.isCurrentLocation && !p.isCenterPoint &&
       Array.isArray(p.badges) && p.badges.some(b => pinnedBadges.includes(b))
     );
@@ -1157,7 +1180,7 @@ const MapScreen = ({ navigation }) => {
     // Normal places + overflow pinned: subject to grid/distance/maxMarkers filtering
     const normal = [
       ...pinnedOverflow,
-      ...candidates.filter(p => 
+      ...viewportCandidates.filter(p => 
         !p.isCurrentLocation && !p.isCenterPoint &&
         !(Array.isArray(p.badges) && p.badges.some(b => pinnedBadges.includes(b)))
       ),
@@ -1693,21 +1716,19 @@ const MapScreen = ({ navigation }) => {
     }
     regionChangeDebounceTimer.current = setTimeout(() => {
       regionChangeDebounceTimer.current = null;
-      const zoom = Math.round(Math.log2(360 / region.latitudeDelta));
-      const newZoom = Math.max(1, Math.min(20, zoom));
-      if (newZoom !== currentZoom) {
-        if (__DEV__) {
-          console.log(`📏 ZOOM: ${currentZoom} → ${newZoom}`);
-        }
-        setCurrentZoom(newZoom);
-      }
+      const zoom = Math.max(1, Math.min(20, Math.round(Math.log2(360 / region.latitudeDelta))));
       const { latitude, longitude, latitudeDelta, longitudeDelta } = region;
-      setCurrentBounds({
+      const newBounds = {
         north: latitude + latitudeDelta / 2,
         south: latitude - latitudeDelta / 2,
         east: longitude + longitudeDelta / 2,
         west: longitude - longitudeDelta / 2,
-      });
+      };
+      if (zoom !== currentZoomRef.current) {
+        currentZoomRef.current = zoom;
+        setCurrentZoom(zoom);
+      }
+      setCurrentBounds(newBounds);
       let newLatitude = latitude;
       let newLongitude = longitude;
       let needsAdjustment = false;
@@ -1735,7 +1756,7 @@ const MapScreen = ({ navigation }) => {
       }
       setCurrentRegion(region);
     }, 200);
-  }, [currentZoom]);
+  }, []);
 
   if (loading && !location) {
     return (
