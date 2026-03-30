@@ -1074,11 +1074,11 @@ const MapScreen = ({ navigation }) => {
    * Standard zoom: 3-4, reinzoomen: 5-6
    */
   const getMinDistanceForZoom = (zoom, radius) => {
-    const base = getGridSizeKm(zoom) * 0.6;
-    if (zoom >= 8) return Math.min(base, radius * 0.15);
-    if (zoom >= 7) return Math.min(base, radius * 0.18);
-    if (zoom >= 6) return Math.min(base, radius * 0.20);
-    return Math.min(base, radius * 0.25);
+    const base = getGridSizeKm(zoom, radius) * 0.4;
+    if (zoom >= 8) return Math.min(base, radius * 0.10);
+    if (zoom >= 7) return Math.min(base, radius * 0.12);
+    if (zoom >= 6) return Math.min(base, radius * 0.15);
+    return Math.min(base, radius * 0.20);
   };
   
   /**
@@ -1135,9 +1135,15 @@ const MapScreen = ({ navigation }) => {
       if (viewportCandidates.length < 5) viewportCandidates = candidates;
     }
 
+    console.log('🗺️ bounds:', JSON.stringify(bounds));
+    console.log('📍 candidates total:', candidates.length);
+    console.log('📍 viewportCandidates after bounds filter:', viewportCandidates.length);
+    console.log('🔧 zoom:', zoom, 'maxMarkers:', getMaxMarkers(zoom, radius), 'gridSize:', getGridSizeKm(zoom, radius));
+
     const userLat = location?.latitude;
     const userLon = location?.longitude;
     const maxMarkers = getMaxMarkers(zoom, radius);
+    
     const minDistance = getMinDistanceForZoom(zoom, radius);
     
     const GRID_SIZE_KM = getGridSizeKm(zoom, radius);
@@ -1755,7 +1761,7 @@ const MapScreen = ({ navigation }) => {
         }, 300);
       }
       setCurrentRegion(region);
-    }, 200);
+    }, 100);
   }, []);
 
   if (loading && !location) {
