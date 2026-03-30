@@ -1050,7 +1050,7 @@ const MapScreen = ({ navigation }) => {
     return Math.round(total);
   };
   
-  const getGridSizeKm = (zoom, radius) => {
+  const getGridSizeKm = (zoom, radius, bounds) => {
     const zoomBase = (() => {
       if (zoom <= 3) return 600;
       if (zoom <= 4) return 400;
@@ -1063,7 +1063,11 @@ const MapScreen = ({ navigation }) => {
     })();
 
     if (radius) {
-      return Math.min(zoomBase, radius * 0.15);
+      const radiusCap = radius * 0.15;
+      const viewportCap = bounds 
+        ? (bounds.north - bounds.south) * 111 * 0.25
+        : Infinity;
+      return Math.min(zoomBase, radiusCap, viewportCap);
     }
 
     return zoomBase;
@@ -1073,8 +1077,8 @@ const MapScreen = ({ navigation }) => {
    * Minimum distance between markers (in km) based on zoom
    * Standard zoom: 3-4, reinzoomen: 5-6
    */
-  const getMinDistanceForZoom = (zoom, radius) => {
-    const base = getGridSizeKm(zoom, radius) * 0.4;
+  const getMinDistanceForZoom = (zoom, radius, bounds) => {
+    const base = getGridSizeKm(zoom, radius, bounds) * 0.4;
     if (zoom >= 8) return Math.min(base, radius * 0.10);
     if (zoom >= 7) return Math.min(base, radius * 0.12);
     if (zoom >= 6) return Math.min(base, radius * 0.15);
@@ -1138,21 +1142,51 @@ const MapScreen = ({ navigation }) => {
     console.log('🗺️ bounds:', JSON.stringify(bounds));
     console.log('📍 candidates total:', candidates.length);
     console.log('📍 viewportCandidates after bounds filter:', viewportCandidates.length);
-    console.log('🔧 zoom:', zoom, 'maxMarkers:', getMaxMarkers(zoom, radius), 'gridSize:', getGridSizeKm(zoom, radius));
+    console.log('🔧 zoom:', zoom, 'maxMarkers:', getMaxMarkers(zoom, radius), 'gridSize:', getGridSizeKm(zoom, radius, bounds));
 
     const userLat = location?.latitude;
     const userLon = location?.longitude;
     const maxMarkers = getMaxMarkers(zoom, radius);
     
-    const minDistance = getMinDistanceForZoom(zoom, radius);
+    const minDistance = getMinDistanceForZoom(zoom, radius, bounds);
     
-    const GRID_SIZE_KM = getGridSizeKm(zoom, radius);
+    const GRID_SIZE_KM = getGridSizeKm(zoom, radius, bounds);
     const gridSize = GRID_SIZE_KM / 111;
     
     if (__DEV__) {
       console.log('🎯 Filter Config:', { maxMarkers, zoom, candidates: viewportCandidates.length });
     }
     
+    // Divide viewport into quadrants, ensure coverage in each
+    if (bounds) {
+      const midLat = (bounds.north + bounds.south) / 2;
+      const midLon = (bounds.east + bounds.west) / 2;
+      
+      const quadrants = [
+        viewportCandidates.filter(p => (p.latitude ?? p.lat) >= midLat && (p.longitude ?? p.lon) < midLon),   // NW
+        viewportCandidates.filter(p => (p.latitude ?? p.lat) >= midLat && (p.longitude ?? p.lon) >= midLon),  // NE
+        viewportCandidates.filter(p => (p.latitude ?? p.lat) < midLat && (p.longitude ?? p.lon) < midLon),    // SW
+        viewportCandidates.filter(p => (p.latitude ?? p.lat) < midLat && (p.longitude ?? p.lon) >= midLon),   // SE
+      ];
+      
+      const perQuadrant = Math.floor(maxMarkers / 4);
+      const guaranteed = quadrants.flatMap(q => 
+        q.sort((a, b) => b.attractiveness_score - a.attractiveness_score)
+         .slice(0, perQuadrant)
+      );
+      
+      console.log('🗺️ Quadrant sizes:', quadrants.map(q => q.length));
+      console.log('✅ Guaranteed per quadrant:', quadrants.map(q => 
+        q.sort((a,b) => b.attractiveness_score - a.attractiveness_score)
+         .slice(0, perQuadrant).length
+      ));
+
+      const guaranteedIds = new Set(guaranteed.map(p => p.id));
+      const rest = viewportCandidates.filter(p => !guaranteedIds.has(p.id));
+      
+      viewportCandidates = [...guaranteed, ...rest];
+    }
+
     // Separate special markers (always shown)
     const specialMarkers = viewportCandidates.filter(p => p.isCurrentLocation || p.isCenterPoint);
     
