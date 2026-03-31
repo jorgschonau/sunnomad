@@ -144,7 +144,9 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const { t, i18n } = useTranslation();
   const { theme } = useTheme();
   const { temperatureUnit, distanceUnit } = useUnits();
-  const { destination, selectedDateOffset = 0, reverseMode = 'warm' } = route.params;
+  const { destination, dateOffset: initialDateOffset = 0, reverseMode = 'warm' } = route.params;
+  const [dateOffset, setDateOffset] = useState(initialDateOffset);
+  const [datePickerVisible, setDatePickerVisible] = useState(false);
   const tempSym = getTemperatureSymbol(temperatureUnit);
   const distSym = getDistanceSymbol(distanceUnit);
   const fmtTemp = (c) => formatTemperature(c, temperatureUnit);
@@ -184,9 +186,13 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const [expandedBadges, setExpandedBadges] = useState({});
   const [favToast, setFavToast] = useState(null);
   const [uiFocused, setUiFocused] = useState(false);
+  const [firstLineW, setFirstLineW] = useState(null);
   const [heroHintVisible, setHeroHintVisible] = useState(false);
-  const favScaleAnim = React.useRef(new Animated.Value(1)).current;
   const favOpacityAnim = React.useRef(new Animated.Value(1)).current;
+  const favStarColor = favOpacityAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['#8E8E93', '#C9A84C'],
+  });
   const toastOpacityAnim = React.useRef(new Animated.Value(0)).current;
   const toastScaleAnim = React.useRef(new Animated.Value(0.98)).current;
   const uiOpacityAnim = React.useRef(new Animated.Value(1)).current;
@@ -207,11 +213,11 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   };
 
   /**
-   * Helper: Build 5 forecast slots starting from selectedDateOffset
+   * Helper: Build 5 forecast slots starting from dateOffset
    * forecastData is indexed from today (index 0 = today, 1 = tomorrow, etc.)
    */
   const buildForecastSlots = (forecastData, fallbackPlace) => {
-    const startIdx = selectedDateOffset;
+    const startIdx = dateOffset;
     const keys = ['today', 'tomorrow', 'day3', 'day4', 'day5'];
     const slots = {};
     keys.forEach((key, i) => {
@@ -288,7 +294,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
             throw new Error(fetchError || 'Insufficient forecast data from Supabase');
           }
           
-          // Build 5 forecast slots starting from selectedDateOffset
+          // Build 5 forecast slots starting from dateOffset
           const forecastSlots = buildForecastSlots(forecastData, place);
           
           const convertedForecast = {
@@ -336,8 +342,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       };
 
       // PRIORITY 2a: Build from forecastArray if forecast is incomplete (e.g. date offset > 5)
-      if (destination.forecastArray && destination.forecastArray.length > selectedDateOffset) {
-        const startIdx = selectedDateOffset;
+      if (destination.forecastArray && destination.forecastArray.length > dateOffset) {
+        const startIdx = dateOffset;
         const keys = ['today', 'tomorrow', 'day3', 'day4', 'day5'];
         const slots = {};
         keys.forEach((key, i) => {
@@ -427,7 +433,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   useEffect(() => {
     loadForecast();
     checkFavouriteStatus();
-  }, [destination.lat, destination.lon]);
+  }, [destination.lat, destination.lon, dateOffset]);
 
   const checkFavouriteStatus = async () => {
     const placeId = forecast?.id || effectivePlaceId;
@@ -438,52 +444,19 @@ const DestinationDetailScreen = ({ route, navigation }) => {
 
   const animateFavourite = (willBeFavourite) => {
     if (willBeFavourite) {
-      // Activate: scale 1 → 1.08 → 1, fill appears with ~40ms delay
-      favScaleAnim.setValue(1);
       favOpacityAnim.setValue(0);
-      Animated.sequence([
-        Animated.timing(favScaleAnim, {
-          toValue: 1.08,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.parallel([
-          Animated.spring(favScaleAnim, {
-            toValue: 1,
-            friction: 5,
-            tension: 140,
-            useNativeDriver: true,
-          }),
-          Animated.timing(favOpacityAnim, {
-            toValue: 1,
-            duration: 120,
-            delay: 40,
-            useNativeDriver: true,
-          }),
-        ]),
-      ]).start();
+      Animated.timing(favOpacityAnim, {
+        toValue: 1,
+        duration: 180,
+        delay: 40,
+        useNativeDriver: false,
+      }).start();
     } else {
-      // Deactivate: scale 1 → 0.94 → 1, fill → outline + color → grey
-      Animated.sequence([
-        Animated.timing(favScaleAnim, {
-          toValue: 0.94,
-          duration: 80,
-          useNativeDriver: true,
-        }),
-        Animated.parallel([
-          Animated.spring(favScaleAnim, {
-            toValue: 1,
-            friction: 5,
-            tension: 120,
-            useNativeDriver: true,
-          }),
-          Animated.timing(favOpacityAnim, {
-            toValue: 0,
-            duration: 120,
-            useNativeDriver: true,
-          }),
-        ]),
-      ]).start();
+      Animated.timing(favOpacityAnim, {
+        toValue: 0,
+        duration: 160,
+        useNativeDriver: false,
+      }).start();
     }
   };
 
@@ -724,7 +697,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
    * dayIndex 0 = selected day, 1 = selected+1, etc.
    */
   const getForecastDayLabel = (dayIndex) => {
-    const totalOffset = selectedDateOffset + dayIndex;
+    const totalOffset = dateOffset + dayIndex;
     if (totalOffset === 0) return t('destination.today');
     if (totalOffset === 1) return t('destination.tomorrow');
     const date = new Date();
@@ -809,15 +782,15 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const textColor = useDarkText ? '#2b3e50' : '#fff';
   const subtitleColor = useDarkText ? '#3a4f5d' : '#fff';
 
-  // Date label for hero card
+  // Date label for hero card (always shown so the pill is tappable)
   const formatDateLabel = (offset) => {
-    if (offset === 0) return null; // Don't show extra label for today
+    if (offset === 0) return 'Heute';
     if (offset === 1) return 'Morgen';
-    const date = new Date();
-    date.setDate(date.getDate() + offset);
-    return date.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' });
+    const d = new Date();
+    d.setDate(d.getDate() + offset);
+    return d.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' });
   };
-  const heroDateLabel = formatDateLabel(selectedDateOffset);
+  const heroDateLabel = formatDateLabel(dateOffset);
 
   return (
     <View style={{ flex: 1 }}>
@@ -864,43 +837,56 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   
   <View style={styles.headerTop}>
     <View style={styles.headerNameContainer}>
-      <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-        {(() => {
-          const name = forecast.name || '';
-          const hasSpace = name.includes(' ');
-          const isLong = name.length > 15;
-          return (
+      {(() => {
+        const name = forecast.name || '';
+        const hasSpace = name.includes(' ');
+        const isLong = name.length > 15;
+        const nameFontSize = isLong ? (hasSpace ? 28 : 22) : 34;
+        return (
+          <View style={{ position: 'relative', alignSelf: 'flex-start' }}>
             <Text
               style={[styles.headerTitle, {
                 color: textColor,
-                fontSize: isLong ? (hasSpace ? 28 : 22) : 34,
-                flexShrink: 1,
+                fontSize: nameFontSize,
               }]}
               numberOfLines={2}
               adjustsFontSizeToFit
               minimumFontScale={0.5}
+              onTextLayout={(e) => {
+                const lines = e.nativeEvent.lines;
+                if (lines && lines.length > 0) {
+                  setFirstLineW(lines[0].width);
+                }
+              }}
             >
               {name}
             </Text>
-          );
-        })()}
-        {heroSource && (
-          <TouchableOpacity
-            onPress={handleToggleFavourite}
-            disabled={favouriteLoading}
-            activeOpacity={0.7}
-            hitSlop={{ top: 12, bottom: 12, left: 10, right: 10 }}
-            style={styles.heroFavouriteButton}
-          >
-            <Animated.View style={{ transform: [{ scale: favScaleAnim }] }}>
-              <Text style={styles.heroFavouriteOutline}>☆</Text>
-              <Animated.Text style={[styles.heroFavouriteFilled, { opacity: favOpacityAnim }]}>
-                ★
-              </Animated.Text>
-            </Animated.View>
-          </TouchableOpacity>
-        )}
-      </View>
+            {heroSource && firstLineW != null && (
+              <Pressable
+                onPress={!favouriteLoading ? handleToggleFavourite : undefined}
+                hitSlop={{ top: 12, bottom: 12, left: 10, right: 10 }}
+                style={{
+                  position: 'absolute',
+                  left: firstLineW + 4,
+                  top: 2,
+                }}
+              >
+                <Animated.Text
+                  style={{
+                    fontSize: Math.round(nameFontSize * 0.6),
+                    color: favStarColor,
+                    textShadowColor: 'rgba(0, 0, 0, 0.15)',
+                    textShadowOffset: { width: 0, height: 0.5 },
+                    textShadowRadius: 1,
+                  }}
+                >
+                  {isFavourite ? '★' : '☆'}
+                </Animated.Text>
+              </Pressable>
+            )}
+          </View>
+        );
+      })()}
       {(forecast.countryCode || forecast.country_code) && (() => {
         const countryName = getCountryName(forecast.countryCode || forecast.country_code, i18n.language || 'en');
         const stateName = forecast.state_name || destination.state_name;
@@ -919,11 +905,46 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     <Text style={[styles.headerTemp, { color: textColor }]}>{heroTemp != null ? formatTemperature(heroTemp, temperatureUnit, false) : '?°'}</Text>
   </View>
   
-  {heroDateLabel && (
-    <View style={styles.heroDateBadge}>
-      <Text style={styles.heroDateBadgeText}>{heroDateLabel}</Text>
-    </View>
-  )}
+  <View style={styles.dateDropdownAnchor}>
+    <TouchableOpacity
+      style={styles.heroDateBadge}
+      activeOpacity={0.7}
+      onPress={() => setDatePickerVisible((v) => !v)}
+    >
+      <Text style={styles.heroDateBadgeText}>{heroDateLabel}  ▾</Text>
+    </TouchableOpacity>
+    {datePickerVisible && (
+      <View style={styles.dateDropdown}>
+        {[
+          { label: 'Heute', offset: 0 },
+          { label: '+1', offset: 1 },
+          { label: '+2', offset: 2 },
+          { label: '+5', offset: 5 },
+          { label: '+7', offset: 7 },
+        ].map((opt) => (
+          <TouchableOpacity
+            key={opt.offset}
+            style={[
+              styles.dateDropdownBtn,
+              dateOffset === opt.offset && styles.dateDropdownBtnActive,
+            ]}
+            activeOpacity={0.7}
+            onPress={() => {
+              setDateOffset(opt.offset);
+              setDatePickerVisible(false);
+            }}
+          >
+            <Text style={[
+              styles.dateDropdownBtnText,
+              dateOffset === opt.offset && styles.dateDropdownBtnTextActive,
+            ]}>
+              {opt.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    )}
+  </View>
   
   <Text style={[styles.headerSubtitle, { color: subtitleColor }]}>{translateCondition(heroDescription)}</Text>
 </View>
@@ -1308,6 +1329,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         <Text style={styles.favToastText}>{favToast}</Text>
       </Animated.View>
     )}
+
     </View>
   );
 };
@@ -1403,6 +1425,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
+    lineHeight: 30,
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 6,
@@ -1693,25 +1716,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.2,
   },
   heroFavouriteButton: {
-    marginLeft: 4,
-    marginTop: 3,
+    marginLeft: 2,
+    marginTop: 6,
     padding: 2,
-  },
-  heroFavouriteOutline: {
-    fontSize: 18,
-    color: '#8E8E93',
-    textShadowColor: 'rgba(255, 255, 255, 0.4)',
-    textShadowOffset: { width: 0, height: 0.5 },
-    textShadowRadius: 1,
-  },
-  heroFavouriteFilled: {
-    position: 'absolute',
-    fontSize: 18,
-    color: '#C9A84C',
-    opacity: 0.7,
-    textShadowColor: 'rgba(0, 0, 0, 0.2)',
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 1,
   },
   favouriteButton: {
     paddingVertical: 16,
@@ -1741,6 +1748,33 @@ const styles = StyleSheet.create({
   driveButtonText: {
     fontSize: 18,
     fontWeight: '600',
+    color: '#fff',
+  },
+
+  dateDropdownAnchor: {
+    alignSelf: 'flex-start',
+    zIndex: 20,
+  },
+  dateDropdown: {
+    flexDirection: 'row',
+    marginTop: 4,
+    gap: 4,
+  },
+  dateDropdownBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 7,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  dateDropdownBtnActive: {
+    backgroundColor: 'rgba(210,130,60,1)',
+  },
+  dateDropdownBtnText: {
+    color: 'rgba(255,255,255,0.85)',
+    fontSize: 13,
+    fontWeight: '600',
+  },
+  dateDropdownBtnTextActive: {
     color: '#fff',
   },
 });
