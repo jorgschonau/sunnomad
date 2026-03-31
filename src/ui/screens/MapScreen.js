@@ -1121,9 +1121,6 @@ const MapScreen = ({ navigation }) => {
     );
     if (candidates.length === 0) return [];
     
-    console.log('📍 candidates total:', candidates.length);
-    console.log('🔧 zoom:', zoom, 'maxMarkers:', getMaxMarkers(zoom, radius), 'gridSize:', getGridSizeKm(zoom, radius));
-
     const userLat = location?.latitude;
     const userLon = location?.longitude;
     const maxMarkers = getMaxMarkers(zoom, radius);
@@ -1132,10 +1129,6 @@ const MapScreen = ({ navigation }) => {
     
     const GRID_SIZE_KM = getGridSizeKm(zoom, radius);
     const gridSize = GRID_SIZE_KM / 111;
-    
-    if (__DEV__) {
-      console.log('🎯 Filter Config:', { maxMarkers, zoom, minDistance: minDistance.toFixed(1), gridSize: GRID_SIZE_KM.toFixed(1) });
-    }
 
     // Separate special markers (always shown)
     const specialMarkers = candidates.filter(p => p.isCurrentLocation || p.isCenterPoint);

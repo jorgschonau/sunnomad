@@ -201,11 +201,6 @@ export function checkWeatherDeterioration(destination, threshold = 4) {
   // Deteriorating if AVERAGE drops by more than threshold
   const isDeteriorating = avgTempDrop > threshold;
   
-  console.log(`🌡️ ${destination.name}: Deterioration check - ` +
-    `Today: ${currentTemp} °C, Future avg: ${avgFutureTemp.toFixed(1)} °C (min: ${minFutureTemp} °C), ` +
-    `Drop: ${avgTempDrop.toFixed(1)} °C (max: ${maxTempDrop.toFixed(1)} °C) → ${isDeteriorating ? '❌ DETERIORATING' : '✓ OK'}`
-  );
-  
   return {
     isDeteriorating,
     avgTempDrop: Math.round(avgTempDrop * 10) / 10,
