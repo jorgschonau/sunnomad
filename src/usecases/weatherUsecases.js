@@ -208,7 +208,7 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
       const bBias = getPositiveWeatherBias(b);
       const aTemp = (a._worthTheDriveData?.tempDest || 0) * aBias;
       const bTemp = (b._worthTheDriveData?.tempDest || 0) * bBias;
-      return reverseMode === 'cold' ? aTemp - bTemp : bTemp - aTemp;
+      return reverseMode === 'cold' ? aTemp - bTemp : bTemp - aTemp;  // 'all' treated as 'warm' for badge ranking
     });
   
   // DEBUG: Show ALL Worth the Drive candidates (not just top 10)
@@ -515,10 +515,12 @@ export const getWeatherForRadius = async (userLat, userLon, radiusKm, desiredCon
     const bScore = b.attractivenessScore || b.attractiveness_score || 50;
     if (aScore !== bScore) return bScore - aScore;
     
-    // 2. Temperatur (warm mode: wärmer = besser, cold mode: kälter = besser)
-    const aTemp = a.temperature || 0;
-    const bTemp = b.temperature || 0;
-    if (Math.abs(aTemp - bTemp) > 3) return reverseMode === 'cold' ? aTemp - bTemp : bTemp - aTemp;
+    // 2. Temperatur (warm = hottest first, cold = coldest first, all = skip)
+    if (reverseMode !== 'all') {
+      const aTemp = a.temperature || 0;
+      const bTemp = b.temperature || 0;
+      if (Math.abs(aTemp - bTemp) > 3) return reverseMode === 'cold' ? aTemp - bTemp : bTemp - aTemp;
+    }
     
     // 3. Distanz (näher = besser)
     const aDist = a.distance || Infinity;

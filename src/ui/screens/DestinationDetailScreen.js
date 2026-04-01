@@ -887,14 +887,12 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       })()}
       {(forecast.countryCode || forecast.country_code) && (() => {
         const cc = (forecast.countryCode || forecast.country_code).toUpperCase();
-        const useCode = cc === 'US' || cc === 'CA';
-        const countryLabel = useCode ? cc : getCountryName(cc, i18n.language || 'en');
         const stateName = forecast.state_name || destination.state_name;
-        const showState = stateName && stateName !== countryLabel;
+        const showState = stateName && stateName !== cc;
         return (
           <>
             <Text style={[styles.headerCountry, { color: subtitleColor }]}>
-              {countryLabel}{showState ? `, ${stateName}` : ''}
+              {cc}{showState ? `, ${stateName}` : ''}
               {(forecast?.elevation || destination.elevation || 0) > 500 ? ` · ${forecast?.elevation || destination.elevation}m` : ''}
             </Text>
             <Text style={[styles.headerConditionText, { color: subtitleColor }]}>{translateCondition(heroDescription)}</Text>

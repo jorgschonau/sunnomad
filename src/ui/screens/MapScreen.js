@@ -923,7 +923,7 @@ const MapScreen = ({ navigation }) => {
   };
 
   const toggleReverseMode = async () => {
-    setReverseMode(prev => prev === 'warm' ? 'cold' : 'warm');
+    setReverseMode(prev => prev === 'warm' ? 'cold' : prev === 'cold' ? 'all' : 'warm');
     await playTickSound();
   };
 
@@ -2331,16 +2331,14 @@ const MapScreen = ({ navigation }) => {
         {/* Reverse Mode Button (Warm/Cold) */}
         <TouchableOpacity
           style={[styles.reverseButton, {
-            backgroundColor: reverseMode === 'warm' ? '#FF8C42' : '#4A90E2',
+            backgroundColor: reverseMode === 'warm' ? '#FF8C42' : reverseMode === 'cold' ? '#4A90E2' : '#888',
             shadowColor: theme.shadow
           }]}
           onPress={toggleReverseMode}
-          accessibilityLabel={reverseMode === 'warm' ? 'Wärmer Modus aktiv' : 'Kühler Modus aktiv'}
           accessibilityRole="button"
-          accessibilityHint="Toggle between rewarding warm or cold places"
         >
-          <Text style={styles.reverseIcon}>{reverseMode === 'warm' ? '☀️' : '❄️'}</Text>
-          <Text style={styles.reverseLabel}>{reverseMode === 'warm' ? 'Wärmer' : 'Kühler'}</Text>
+          <Text style={styles.reverseIcon}>{reverseMode === 'warm' ? '☀️' : reverseMode === 'cold' ? '❄️' : <Text>☀️<Text style={{ color: 'rgba(255,255,255,0.5)' }}>/</Text>❄️</Text>}</Text>
+          <Text style={styles.reverseLabel}>{reverseMode === 'warm' ? 'Wärmer' : reverseMode === 'cold' ? 'Kühler' : 'Alle'}</Text>
         </TouchableOpacity>
 
       </View>
