@@ -833,8 +833,6 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         </Pressable>
       )}
       <View style={[styles.header, { backgroundColor: heroSource ? 'transparent' : getWeatherColor(heroCondition, heroTemp) }]}>
-  <Text style={styles.headerBgIcon}>{getWeatherIcon(heroCondition)}</Text>
-  
   <View style={styles.headerTop}>
     <View style={styles.headerNameContainer}>
       {(() => {
@@ -888,31 +886,40 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         );
       })()}
       {(forecast.countryCode || forecast.country_code) && (() => {
-        const countryName = getCountryName(forecast.countryCode || forecast.country_code, i18n.language || 'en');
+        const cc = (forecast.countryCode || forecast.country_code).toUpperCase();
+        const useCode = cc === 'US' || cc === 'CA';
+        const countryLabel = useCode ? cc : getCountryName(cc, i18n.language || 'en');
         const stateName = forecast.state_name || destination.state_name;
-        const showState = stateName && stateName !== countryName;
+        const showState = stateName && stateName !== countryLabel;
         return (
-          <Text style={[styles.headerCountry, { color: subtitleColor }]}>
-            {countryName}{showState ? `, ${stateName}` : ''}
-            {(forecast?.elevation || destination.elevation || 0) > 500 ? `\n${forecast?.elevation || destination.elevation}m` : ''}
-          </Text>
+          <>
+            <Text style={[styles.headerCountry, { color: subtitleColor }]}>
+              {countryLabel}{showState ? `, ${stateName}` : ''}
+              {(forecast?.elevation || destination.elevation || 0) > 500 ? ` · ${forecast?.elevation || destination.elevation}m` : ''}
+            </Text>
+            <Text style={[styles.headerConditionText, { color: subtitleColor }]}>{translateCondition(heroDescription)}</Text>
+          </>
         );
       })()}
-      <TouchableOpacity style={styles.stopStayPill} activeOpacity={0.7}>
-        <Text style={styles.stopStayText}>{t('destination.stopStay')}</Text>
-      </TouchableOpacity>
     </View>
-    <Text style={[styles.headerTemp, { color: textColor }]}>{heroTemp != null ? formatTemperature(heroTemp, temperatureUnit, false) : '?°'}</Text>
+    <View style={styles.headerTempRow}>
+      <Text style={styles.headerWeatherIcon}>{getWeatherIcon(heroCondition)}</Text>
+      <Text style={[styles.headerTemp, { color: textColor }]}>{heroTemp != null ? formatTemperature(heroTemp, temperatureUnit) : '?°'}</Text>
+    </View>
   </View>
   
-  <View style={styles.dateDropdownAnchor}>
-    <TouchableOpacity
-      style={styles.heroDateBadge}
-      activeOpacity={0.7}
-      onPress={() => setDatePickerVisible((v) => !v)}
-    >
-      <Text style={styles.heroDateBadgeText}>{heroDateLabel}  ▾</Text>
+  <View style={styles.headerPillRow}>
+    <TouchableOpacity style={styles.stopStayPill} activeOpacity={0.7}>
+      <Text style={styles.stopStayText}>{t('destination.stopStay')}</Text>
     </TouchableOpacity>
+    <View style={styles.dateDropdownAnchor}>
+      <TouchableOpacity
+        style={styles.heroDateBadge}
+        activeOpacity={0.7}
+        onPress={() => setDatePickerVisible((v) => !v)}
+      >
+        <Text style={styles.heroDateBadgeText}>{heroDateLabel}  ▾</Text>
+      </TouchableOpacity>
     {datePickerVisible && (
       <View style={styles.dateDropdown}>
         {[
@@ -944,9 +951,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         ))}
       </View>
     )}
+    </View>
   </View>
   
-  <Text style={[styles.headerSubtitle, { color: subtitleColor }]}>{translateCondition(heroDescription)}</Text>
+
 </View>
 
 
@@ -1296,7 +1304,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                 </Text>
                 <Text style={styles.forecastIcon}>{hasData ? getWeatherIcon(day.data.condition) : '—'}</Text>
                 <Text style={[styles.forecastTemp, { color: isBestDay ? '#7A6B55' : theme.textSecondary, fontWeight: isBestDay ? '600' : '500' }]}>
-                  {hasData ? `${formatTemperature(day.data.high, temperatureUnit, false)} / ${formatTemperature(day.data.low, temperatureUnit, false)}` : '—'}
+                  {hasData ? `${formatTemperature(day.data.high, temperatureUnit, false)}\u00A0/\u00A0${formatTemperature(day.data.low, temperatureUnit)}` : '—'}
                 </Text>
               </View>
             );
@@ -1378,13 +1386,12 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   heroDateBadge: {
-    alignSelf: 'flex-start',
     backgroundColor: 'rgba(210, 130, 60, 1)',
     paddingHorizontal: 10,
-    paddingVertical: 3,
-    borderRadius: 8,
-    marginBottom: 2,
-    zIndex: 1,
+    paddingVertical: 4,
+    borderRadius: 16,
+    height: 27,
+    justifyContent: 'center',
   },
   heroDateBadgeText: {
     color: '#fff',
@@ -1395,21 +1402,20 @@ const styles = StyleSheet.create({
   header: {
     padding: 20,
     paddingTop: 28,
-    paddingBottom: 20,
+    paddingBottom: 14,
     position: 'relative',
-    minHeight: 140,
   },
 
-  headerBgIcon: {
-    position: 'absolute',
-    fontSize: 80,
-    top: '50%',
-    left: '80%',
-    transform: [{ translateX: -40 }, { translateY: -40 }],
-    opacity: 0.7,
+  headerTempRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  headerWeatherIcon: {
+    fontSize: 28,
+    marginRight: 4,
     textShadowColor: 'rgba(0, 0, 0, 0.4)',
-    textShadowOffset: { width: 0, height: 2 },
-    textShadowRadius: 10,
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
   headerTop: {
     flexDirection: 'row',
@@ -1438,10 +1444,18 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 6,
   },
+  headerConditionText: {
+    fontSize: 14,
+    fontWeight: '400',
+    marginTop: 6,
+    textShadowColor: 'rgba(0,0,0,0.6)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 4,
+  },
   headerTemp: {
-    fontSize: 56,
+    fontSize: 36,
     fontWeight: '300',
-    letterSpacing: -2,
+    letterSpacing: -1,
     textShadowColor: 'rgba(0,0,0,0.6)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 6,
@@ -1456,11 +1470,12 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 20,
+    paddingTop: 30,
   },
   mainInfo: {
     borderRadius: 14,
-    padding: 18,
-    marginBottom: 20,
+    padding: 14,
+    marginBottom: 16,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
@@ -1562,9 +1577,9 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   driveButtonTop: {
-    paddingVertical: 16,
+    paddingVertical: 13,
     paddingHorizontal: 32,
-    minHeight: 64,
+    minHeight: 56,
     borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1693,10 +1708,13 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '400',
   },
+  headerPillRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 6,
+  },
   stopStayPill: {
-    alignSelf: 'flex-start',
-    marginTop: 6,
-    marginBottom: 10,
     backgroundColor: 'rgba(195, 115, 55, 0.80)',
     paddingHorizontal: 14,
     paddingVertical: 4,
@@ -1752,7 +1770,6 @@ const styles = StyleSheet.create({
   },
 
   dateDropdownAnchor: {
-    alignSelf: 'flex-start',
     zIndex: 20,
   },
   dateDropdown: {

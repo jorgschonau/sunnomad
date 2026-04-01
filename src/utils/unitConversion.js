@@ -61,11 +61,12 @@ export const formatDistance = (distanceKm, unit = 'km', decimals = 0) => {
  * @returns {string} - Formatted temperature with unit
  */
 export const formatTemperature = (tempCelsius, unit = 'celsius', includeSymbol = true) => {
+  const NBSP = '\u00A0';
   if (unit === 'fahrenheit') {
     const fahrenheit = celsiusToFahrenheit(tempCelsius);
-    return includeSymbol ? `${Math.round(fahrenheit)} °F` : `${Math.round(fahrenheit)}°`;
+    return includeSymbol ? `${Math.round(fahrenheit)}${NBSP}°F` : `${Math.round(fahrenheit)}°`;
   }
-  return includeSymbol ? `${Math.round(tempCelsius)} °C` : `${Math.round(tempCelsius)}°`;
+  return includeSymbol ? `${Math.round(tempCelsius)}${NBSP}°C` : `${Math.round(tempCelsius)}°`;
 };
 
 /**

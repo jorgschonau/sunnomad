@@ -19,7 +19,7 @@ import MapView, { Marker, Circle } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeProvider';
-import { getWeatherForRadius, getWeatherIcon, getWeatherColor, applyBadgesToDestinations } from '../../usecases/weatherUsecases';
+import { getWeatherForRadius, getWeatherIcon, getWeatherColor, mapWeatherCode, applyBadgesToDestinations } from '../../usecases/weatherUsecases';
 import { BadgeMetadata, DestinationBadge } from '../../domain/destinationBadge';
 import { playTickSound } from '../../utils/soundUtils';
 import { trackMapViews, trackDetailView } from '../../services/placesService';
@@ -836,21 +836,8 @@ const MapScreen = ({ navigation }) => {
     }
   };
 
-  /**
-   * Map Open-Meteo weather code to app condition
-   */
-  const mapWeatherCodeToCondition = (code) => {
-    if (!code && code !== 0) return 'cloudy';
-    
-    if (code === 0 || code === 1) return 'sunny';
-    if (code === 2 || code === 3) return 'cloudy';
-    if (code >= 45 && code <= 48) return 'windy';
-    if (code >= 51 && code <= 67) return 'rainy';
-    if (code >= 71 && code <= 77) return 'snowy';
-    if (code >= 80 && code <= 99) return 'rainy';
-    
-    return 'cloudy';
-  };
+  // mapWeatherCode imported from usecases/weatherUsecases (single source of truth)
+  const mapWeatherCodeToCondition = mapWeatherCode;
 
   /**
    * Calculate stability from cloud cover and wind speed
@@ -865,7 +852,7 @@ const MapScreen = ({ navigation }) => {
     markerJustPressedRef.current = true;
     setTimeout(() => { markerJustPressedRef.current = false; }, 500);
     if (destination.id) trackDetailView(destination.id);
-    navigation.navigate('DestinationDetail', { destination, selectedDateOffset, reverseMode });
+    navigation.navigate('DestinationDetail', { destination, dateOffset: selectedDateOffset, reverseMode });
   };
 
   const handleRadiusIncrease = async () => {

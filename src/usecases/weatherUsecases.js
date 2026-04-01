@@ -1,6 +1,6 @@
 import { getPlacesWithWeather } from '../services/placesWeatherService';
 import { filterDestinationsByCondition } from '../domain/weatherFilter';
-import { getWeatherIcon, getWeatherColor } from '../domain/weatherPresentation';
+import { getWeatherIcon, getWeatherColor, mapWeatherCode, mapWeatherMain } from '../domain/weatherPresentation';
 import { calculateBadges } from '../domain/destinationBadge';
 
 /**
@@ -572,8 +572,8 @@ export const getWeatherForRadius = async (userLat, userLon, radiusKm, desiredCon
   return filteredPlaces;
 };
 
-// Re-export presentation helpers so UI imports only from usecases
-export { getWeatherIcon, getWeatherColor };
+// Re-export so UI imports only from usecases
+export { getWeatherIcon, getWeatherColor, mapWeatherCode, mapWeatherMain };
 
 
 

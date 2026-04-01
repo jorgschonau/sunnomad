@@ -309,8 +309,9 @@ export const updateAllPlaces = async (region = null) => {
  * https://open-meteo.com/en/docs
  */
 const getWeatherMain = (code) => {
-  if (code === 0) return 'Clear';
-  if (code <= 3) return 'Clouds';
+  if (code === null || code === undefined) return 'Unknown';
+  if (code <= 1) return 'Clear';    // 0 = Clear sky, 1 = Mainly clear
+  if (code <= 3) return 'Clouds';   // 2 = Partly cloudy, 3 = Overcast
   if (code <= 49) return 'Fog';
   if (code <= 59) return 'Drizzle';
   if (code <= 69) return 'Rain';

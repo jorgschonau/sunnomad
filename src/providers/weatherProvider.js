@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import { calculateBadges } from '../domain/destinationBadge';
 import { WarningType } from '../domain/weatherWarning';
+import { mapWeatherMain } from '../domain/weatherPresentation';
 
 const API_BASE_URL = 'https://api.openweathermap.org/data/2.5';
 const SEARCH_URL = `${API_BASE_URL}/find`;
@@ -45,27 +46,8 @@ const isWithinRadius = (centerLat, centerLon, targetLat, targetLon, radiusKm) =>
   return getDistanceKm(centerLat, centerLon, targetLat, targetLon) <= radiusKm;
 };
 
-const mapWeatherCondition = (weatherMain = '', weatherDescription = '') => {
-  const main = weatherMain.toLowerCase();
-  const description = weatherDescription.toLowerCase();
-
-  if (main === 'clear') return 'sunny';
-  if (main === 'clouds') return 'cloudy';
-  if (main === 'rain' || main === 'drizzle' || description.includes('shower')) {
-    return 'rainy';
-  }
-  if (main === 'thunderstorm' || description.includes('storm')) return 'rainy';
-  if (main === 'snow') return 'snowy';
-  if (
-    ['mist', 'smoke', 'haze', 'dust', 'fog', 'sand', 'ash', 'squall', 'tornado'].includes(main) ||
-    description.includes('wind')
-  ) {
-    return 'windy';
-  }
-  if (description.includes('sun') || description.includes('clear')) return 'sunny';
-
-  return 'cloudy';
-};
+// mapWeatherMain imported from domain/weatherPresentation.js (single source of truth)
+const mapWeatherCondition = mapWeatherMain;
 
 const normalizeCoordinate = (coordValue) =>
   Number.isFinite(coordValue) ? coordValue : 0;

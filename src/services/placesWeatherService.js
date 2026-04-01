@@ -1,5 +1,6 @@
 import { supabase } from '../config/supabase';
 import { getCountryName, getCountryFlag } from '../utils/countryNames';
+import { mapWeatherMain } from '../domain/weatherPresentation';
 
 /**
  * Places + Weather Service
@@ -82,9 +83,8 @@ export const getPlacesWithWeather = async (filters = {}) => {
         .gte('longitude', lonMin).lte('longitude', lonMax);
     }
     
-    // CHANGED: 5000 → 1000
     const { data: places, error: placesError } = await placesQuery
-      .limit(1000)
+      .limit(2000)
       .order('attractiveness_score', { ascending: false });
     
     if (placesError) {
@@ -170,18 +170,6 @@ export const getPlacesWithWeather = async (filters = {}) => {
       else if (!entry.day5) entry.day5 = w;
     });
     
-    // Helper to map weather_main to condition
-    const getCondition = (weatherMain) => {
-      if (!weatherMain) return 'cloudy';
-      const main = weatherMain.toLowerCase();
-      if (main === 'clear') return 'sunny';
-      if (main === 'clouds') return 'cloudy';
-      if (main === 'rain' || main === 'drizzle' || main === 'thunderstorm') return 'rainy';
-      if (main === 'snow') return 'snowy';
-      return 'cloudy';
-    };
-    
-    
     // Combine places with weather (including forecast)
     let placesData = mergedPlaces.map(p => {
       const wData = weatherMap[p.id] || {};
@@ -197,7 +185,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
       const buildForecastEntry = (dayRecord) => {
         if (!dayRecord) return null;
         return {
-          condition: getCondition(dayRecord.weather_main),
+          condition: mapWeatherMain(dayRecord.weather_main, dayRecord.weather_description),
           temp: dayRecord.temp_max,
           tempMax: dayRecord.temp_max,
           high: Math.round(dayRecord.temp_max),
@@ -227,7 +215,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
         return true;
       });
       const forecastArray = uniqueRecords.map(w => ({
-        condition: getCondition(w.weather_main),
+        condition: mapWeatherMain(w.weather_main, w.weather_description),
         temp: w.temp_max != null && w.temp_min != null ? Math.round((w.temp_min + w.temp_max) / 2) : null,
         high: w.temp_max != null ? Math.round(w.temp_max) : null,
         low: w.temp_min != null ? Math.round(w.temp_min) : null,
@@ -261,15 +249,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
     let finalPlaces = placesData
       .filter(place => place.temp_min != null && place.temp_max != null) // Skip places without temp!
       .map(place => {
-        // Map weather_main to condition
-        let condition = 'cloudy';
-        if (place.weather_main) {
-          const main = place.weather_main.toLowerCase();
-          if (main === 'clear') condition = 'sunny';
-          else if (main === 'clouds') condition = 'cloudy';
-          else if (main === 'rain' || main === 'drizzle' || main === 'thunderstorm') condition = 'rainy';
-          else if (main === 'snow') condition = 'snowy';
-        }
+        const condition = mapWeatherMain(place.weather_main, place.weather_description);
         
         return {
           id: place.id,
@@ -552,8 +532,7 @@ function toRadians(degrees) {
  * Adapt place + weather to destination format used by app
  */
 function adaptPlaceToDestination(place, locale = 'en') {
-  // Map weather_main to app condition
-  const condition = mapWeatherMainToCondition(place.weather_main);
+  const condition = mapWeatherMain(place.weather_main, place.weather_description);
 
   return {
     // Core place data
@@ -613,27 +592,7 @@ function adaptPlaceToDestination(place, locale = 'en') {
   };
 }
 
-/**
- * Map weather_main to app condition
- * Based on OpenWeatherMap categories (Clear, Clouds, Rain, etc.)
- */
-function mapWeatherMainToCondition(weatherMain) {
-  if (!weatherMain) return 'cloudy';
-  
-  const main = weatherMain.toLowerCase();
-  
-  // Already mapped app values (pass through)
-  if (main === 'sunny' || main === 'cloudy' || main === 'rainy' || main === 'snowy' || main === 'windy') return main;
-  
-  // OpenWeatherMap raw values
-  if (main === 'clear') return 'sunny';
-  if (main === 'clouds') return 'cloudy';
-  if (main === 'rain' || main === 'drizzle' || main === 'thunderstorm') return 'rainy';
-  if (main === 'snow') return 'snowy';
-  if (main === 'fog' || main === 'mist' || main === 'haze') return 'windy';
-  
-  return 'cloudy';
-}
+// mapWeatherMain imported from domain/weatherPresentation.js (single source of truth)
 
 /**
  * Calculate simple stability score (0-100)
@@ -668,7 +627,7 @@ function adaptForecastEntry(entry) {
       month: 'short',
       day: 'numeric',
     }),
-    condition: mapWeatherMainToCondition(entry.weather_main),
+    condition: mapWeatherMain(entry.weather_main, entry.weather_description),
     tempMin: entry.temp_min != null ? Math.round(entry.temp_min) : null,
     tempMax: entry.temp_max != null ? Math.round(entry.temp_max) : null,
     precipitation: entry.precipitation_sum || entry.rain_volume || 0,
