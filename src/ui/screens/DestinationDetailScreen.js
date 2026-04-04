@@ -837,9 +837,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     <View style={styles.headerNameContainer}>
       {(() => {
         const name = forecast.name || '';
-        const hasSpace = name.includes(' ');
-        const isLong = name.length > 15;
-        const nameFontSize = isLong ? (hasSpace ? 28 : 22) : 34;
+        const len = name.length;
+        const nameFontSize = len > 18 ? 20 : len > 14 ? 24 : len > 10 ? 28 : 34;
         return (
           <View style={{ position: 'relative', alignSelf: 'flex-start' }}>
             <Text
@@ -847,9 +846,9 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                 color: textColor,
                 fontSize: nameFontSize,
               }]}
-              numberOfLines={2}
+              numberOfLines={1}
               adjustsFontSizeToFit
-              minimumFontScale={0.5}
+              minimumFontScale={0.45}
               onTextLayout={(e) => {
                 const lines = e.nativeEvent.lines;
                 if (lines && lines.length > 0) {

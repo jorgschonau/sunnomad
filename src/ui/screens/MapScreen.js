@@ -993,7 +993,7 @@ const MapScreen = ({ navigation }) => {
     if (zoom <= 3) zoomFactor = 0.5;
     else if (zoom <= 4) zoomFactor = 0.8;
     else if (zoom <= 5) zoomFactor = 1.0;
-    else if (zoom <= 6) zoomFactor = 1.8;
+    else if (zoom <= 6) zoomFactor = 1.2;
     else if (zoom <= 7) zoomFactor = 3.0;
     else zoomFactor = 5.0;
     
@@ -1052,8 +1052,8 @@ const MapScreen = ({ navigation }) => {
     const userLon = location?.longitude;
     const maxMarkers = getMaxMarkers(zoom, radius);
     
-    const GRID_COLS = zoom <= 4 ? 6 : zoom <= 5 ? 6 : zoom <= 7 ? 8 : 12;
-    const GRID_ROWS = zoom <= 4 ? 8 : zoom <= 5 ? 8 : zoom <= 7 ? 10 : 16;
+    const GRID_COLS = zoom <= 4 ? 6 : zoom <= 6 ? 6 : zoom <= 7 ? 8 : 12;
+    const GRID_ROWS = zoom <= 4 ? 8 : zoom <= 6 ? 8 : zoom <= 7 ? 10 : 16;
 
     // Separate special markers (always shown)
     const specialMarkers = candidates.filter(p => p.isCurrentLocation || p.isCenterPoint);
