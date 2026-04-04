@@ -225,11 +225,11 @@ async function processBatch(places, batchNum, totalBatches) {
         const data = await fetchWeather(place);
         await saveWeatherData(place.id, data.current, data.daily);
         await saveForecast(place.id, data.daily);
-        return { success: true, name: place.name, temp: data.current.temperature_2m };
+        return { success: true, name: place.name_en, temp: data.current.temperature_2m };
       } catch (error) {
         // Log failed places with details for debugging
-        console.error(`  ❌ FAILED: ${place.name} (ID: ${place.id}) - ${error.message}`);
-        return { success: false, name: place.name, id: place.id, error: error.message };
+        console.error(`  ❌ FAILED: ${place.name_en} (ID: ${place.id}) - ${error.message}`);
+        return { success: false, name: place.name_en, id: place.id, error: error.message };
       }
     })
   );
@@ -287,7 +287,7 @@ async function main() {
   while (hasMore) {
     const { data: pageData, error } = await supabase
       .from('places')
-      .select('id, name, latitude, longitude, country_code')
+      .select('id, name_en, latitude, longitude, country_code')
       .eq('is_active', true)
       .range(page * PAGE_SIZE, (page + 1) * PAGE_SIZE - 1);
     
@@ -408,7 +408,7 @@ async function main() {
   if (totalFailed > 0) {
     console.log(`  📋 Failed places:`);
     allFailedPlaces.slice(0, 20).forEach(p => {
-      console.log(`     - ${p.name} (${p.id})`);
+      console.log(`     - ${p.name_en} (${p.id})`);
     });
     if (allFailedPlaces.length > 20) {
       console.log(`     ... and ${allFailedPlaces.length - 20} more`);

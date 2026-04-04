@@ -15,7 +15,7 @@ async function main() {
   // 1. Get sample places
   const { data: places, error: pe } = await supabase
     .from('places')
-    .select('id, name')
+    .select('id, name_en')
     .eq('is_active', true)
     .limit(5);
 
@@ -26,7 +26,7 @@ async function main() {
 
   console.log('📍 Sample PLACES:');
   places.forEach(p => {
-    console.log(`   ID: "${p.id}" (type: ${typeof p.id}) - ${p.name}`);
+    console.log(`   ID: "${p.id}" (type: ${typeof p.id}) - ${p.name_en}`);
   });
 
   // 2. Get today's date

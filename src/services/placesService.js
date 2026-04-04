@@ -178,7 +178,7 @@ export const searchPlaces = async (searchTerm, limit = 10) => {
     const { data, error } = await supabase
       .from('places')
       .select('*')
-      .ilike('name', `%${searchTerm}%`)
+      .ilike('name_en', `%${searchTerm}%`)
       .eq('is_active', true)
       .limit(limit);
 

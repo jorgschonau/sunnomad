@@ -89,7 +89,7 @@ async function fetchWeatherForPlace(place) {
 
     return await response.json();
   } catch (error) {
-    console.error(`  ❌ Failed to fetch weather for ${place.name}:`, error.message);
+    console.error(`  ❌ Failed to fetch weather for ${place.name_en}:`, error.message);
     return null;
   }
 }
@@ -334,7 +334,7 @@ async function main() {
   
   const { data: places, error: fetchError } = await supabase
     .from('places')
-    .select('id, name, latitude, longitude')
+    .select('id, name_en, latitude, longitude')
     .eq('is_active', true);
   
   if (fetchError) {
@@ -379,9 +379,9 @@ async function main() {
       const weatherData = weatherResults[j];
       
       if (!weatherData) {
-        console.log(`  ❌ ${place.name}: Failed to fetch weather data`);
+        console.log(`  ❌ ${place.name_en}: Failed to fetch weather data`);
         failedPlaces.push({
-          name: place.name,
+          name: place.name_en,
           reason: 'Failed to fetch from API'
         });
         failCount++;
@@ -389,9 +389,9 @@ async function main() {
       }
       
       if (!weatherData.current || !weatherData.daily) {
-        console.log(`  ❌ ${place.name}: Incomplete weather data`);
+        console.log(`  ❌ ${place.name_en}: Incomplete weather data`);
         failedPlaces.push({
-          name: place.name,
+          name: place.name_en,
           reason: 'Incomplete data from API'
         });
         failCount++;
@@ -401,14 +401,14 @@ async function main() {
       // Save current weather
       const currentSaved = await saveCurrentWeather(
         place.id,
-        place.name,
+        place.name_en,
         weatherData.current
       );
       
       // Save forecast
       const forecastSaved = await saveForecast(
         place.id,
-        place.name,
+        place.name_en,
         weatherData.daily
       );
       
@@ -421,9 +421,9 @@ async function main() {
         if (!currentSaved) reasons.push('current weather save failed');
         if (!forecastSaved) reasons.push('forecast save failed');
         
-        console.log(`  ⚠️  ${place.name}: Partial save (${reasons.join(', ')})`);
+        console.log(`  ⚠️  ${place.name_en}: Partial save (${reasons.join(', ')})`);
         failedPlaces.push({
-          name: place.name,
+          name: place.name_en,
           reason: reasons.join(', ')
         });
         failCount++;

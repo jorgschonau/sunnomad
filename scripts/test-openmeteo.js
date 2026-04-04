@@ -241,7 +241,7 @@ async function main() {
   console.log('📍 Fetching 10 test places...');
   const { data: places, error } = await supabase
     .from('places')
-    .select('id, name, latitude, longitude, country_code')
+    .select('id, name_en, latitude, longitude, country_code')
     .eq('is_active', true)
     .limit(10);
 
@@ -258,7 +258,7 @@ async function main() {
 
   for (const place of places) {
     try {
-      console.log(`🌤️  Fetching: ${place.name} (${place.country_code})...`);
+      console.log(`🌤️  Fetching: ${place.name_en} (${place.country_code})...`);
       
       const data = await fetchWeather(place);
       
@@ -267,11 +267,11 @@ async function main() {
       // Save future forecast (tomorrow onwards)
       await saveForecast(place.id, data.daily);
       
-      await verifyData(place.id, place.name);
+      await verifyData(place.id, place.name_en);
       
       successCount++;
     } catch (err) {
-      console.error(`❌ ${place.name}: ${err.message}`);
+      console.error(`❌ ${place.name_en}: ${err.message}`);
       failCount++;
     }
   }

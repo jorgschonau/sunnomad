@@ -246,7 +246,7 @@ export const updateAllPlaces = async (region = null) => {
 
     let query = supabase
       .from('places')
-      .select('id, latitude, longitude, name')
+      .select('id, latitude, longitude, name_en')
       .eq('is_active', true);
 
     if (region) {

@@ -18,8 +18,8 @@ import { ensurePlaceInDB } from '../services/hybridSearchService';
  * Get all favourites sorted by most recently saved
  * @returns {Promise<Array>} Array of favourite destinations
  */
-export const getFavourites = async () => {
-  const { favourites, error } = await fetchFavourites();
+export const getFavourites = async (locale = 'en') => {
+  const { favourites, error } = await fetchFavourites(locale);
   if (error) {
     console.error('getFavourites error:', error);
     return [];

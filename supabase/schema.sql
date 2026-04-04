@@ -61,7 +61,7 @@ CREATE TABLE places (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   
   -- Location
-  name TEXT NOT NULL,
+  name_en TEXT NOT NULL,
   latitude DECIMAL(10, 8) NOT NULL,
   longitude DECIMAL(11, 8) NOT NULL,
   
@@ -72,7 +72,6 @@ CREATE TABLE places (
   place_type TEXT DEFAULT 'city' CHECK (place_type IN ('city', 'town', 'campground', 'beach', 'mountain', 'poi')),
   
   -- Geography
-  elevation INTEGER, -- Höhe in Metern (von GeoNames)
   
   -- External IDs (für Scraping/Integration)
   openweather_id INTEGER, -- OpenWeatherMap City ID
@@ -695,7 +694,7 @@ WHERE p.is_active = true;
 CREATE OR REPLACE VIEW places_with_30day_trends AS
 SELECT
   p.id as place_id,
-  p.name,
+  p.name_en,
   p.latitude,
   p.longitude,
   p.country_code,
@@ -715,7 +714,7 @@ FROM places p
 LEFT JOIN daily_weather_summary d ON p.id = d.place_id
   AND d.date >= CURRENT_DATE - INTERVAL '30 days'
 WHERE p.is_active = true
-GROUP BY p.id, p.name, p.latitude, p.longitude, p.country_code;
+GROUP BY p.id, p.name_en, p.latitude, p.longitude, p.country_code;
 
 -- View: User favourites with current weather + 3-day forecast
 CREATE OR REPLACE VIEW user_favourites_with_weather AS
@@ -756,7 +755,7 @@ LEFT JOIN LATERAL (
 
 /*
 -- Europa - Beliebte Camping & Reise Destinationen
-INSERT INTO places (name, latitude, longitude, country_code, country_name, region, place_type, openweather_id) VALUES
+INSERT INTO places (name_en, latitude, longitude, country_code, country_name, region, place_type, openweather_id) VALUES
   -- Deutschland
   ('Berlin', 52.5200, 13.4050, 'DE', 'Germany', 'europe', 'city', 2950159),
   ('Munich', 48.1351, 11.5820, 'DE', 'Germany', 'europe', 'city', 2867714),
@@ -799,7 +798,7 @@ INSERT INTO places (name, latitude, longitude, country_code, country_name, regio
   ('Oslo', 59.9139, 10.7522, 'NO', 'Norway', 'europe', 'city', 3143244);
 
 -- Nordamerika - Beliebte Camping & Reise Destinationen  
-INSERT INTO places (name, latitude, longitude, country_code, country_name, region, place_type, openweather_id) VALUES
+INSERT INTO places (name_en, latitude, longitude, country_code, country_name, region, place_type, openweather_id) VALUES
   -- USA - West Coast
   ('Los Angeles', 34.0522, -118.2437, 'US', 'United States', 'north_america', 'city', 5368361),
   ('San Francisco', 37.7749, -122.4194, 'US', 'United States', 'north_america', 'city', 5391959),

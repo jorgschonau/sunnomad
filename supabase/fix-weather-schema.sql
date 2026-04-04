@@ -56,7 +56,7 @@ WHERE p.is_active = true;
 CREATE OR REPLACE VIEW places_with_30day_trends AS
 SELECT
   p.id as place_id,
-  p.name,
+  p.name_en,
   p.latitude,
   p.longitude,
   p.country_code,
@@ -74,7 +74,7 @@ FROM places p
 LEFT JOIN daily_weather_summary d ON p.id = d.place_id
   AND d.date >= CURRENT_DATE - INTERVAL '30 days'
 WHERE p.is_active = true
-GROUP BY p.id, p.name, p.latitude, p.longitude, p.country_code;
+GROUP BY p.id, p.name_en, p.latitude, p.longitude, p.country_code;
 
 CREATE OR REPLACE VIEW user_favourites_with_weather AS
 SELECT 

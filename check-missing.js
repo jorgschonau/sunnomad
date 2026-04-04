@@ -9,7 +9,7 @@ async function checkMissing() {
   // Get places without weather data
   const { data: placesWithoutWeather, error } = await supabase
     .from('places')
-    .select('id, name, latitude, longitude, country_code')
+    .select('id, name_en, latitude, longitude, country_code')
     .eq('is_active', true)
     .is('last_weather_fetch', null)
     .limit(20);
@@ -22,7 +22,7 @@ async function checkMissing() {
   console.log(`Found ${placesWithoutWeather.length} places without weather (showing first 20):\n`);
   
   placesWithoutWeather.forEach((p, i) => {
-    console.log(`${i + 1}. ${p.name} (${p.country_code}) - ID: ${p.id.substring(0, 8)}`);
+    console.log(`${i + 1}. ${p.name_en} (${p.country_code}) - ID: ${p.id.substring(0, 8)}`);
   });
 
   // Count by country

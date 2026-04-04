@@ -63,7 +63,7 @@ async function debug() {
   while (page < MAX_PAGES && (!foundVancouver || !foundSeattle)) {
     const { data: pageData } = await supabase
       .from('places_with_latest_weather')
-      .select('id, name, latitude, longitude, population, attractiveness_score, country_code')
+      .select('id, name_en, latitude, longitude, population, attractiveness_score, country_code')
       .gte('latitude', bbox.latMin)
       .lte('latitude', bbox.latMax)
       .gte('longitude', bbox.lonMin)
@@ -73,8 +73,8 @@ async function debug() {
     if (pageData && pageData.length > 0) {
       allData = allData.concat(pageData);
       
-      const van = pageData.find(p => p.name.toLowerCase().includes('vancouver'));
-      const sea = pageData.find(p => p.name.toLowerCase().includes('seattle'));
+      const van = pageData.find(p => p.name_en.toLowerCase().includes('vancouver'));
+      const sea = pageData.find(p => p.name_en.toLowerCase().includes('seattle'));
       
       if (van) {
         foundVancouver = true;
@@ -114,8 +114,8 @@ async function debug() {
     }))
     .filter(p => p.distance <= RADIUS_KM);
   
-  const vancouverFiltered = filtered.find(p => p.name.toLowerCase().includes('vancouver'));
-  const seattleFiltered = filtered.find(p => p.name.toLowerCase().includes('seattle'));
+  const vancouverFiltered = filtered.find(p => p.name_en.toLowerCase().includes('vancouver'));
+  const seattleFiltered = filtered.find(p => p.name_en.toLowerCase().includes('seattle'));
   
   console.log(`   Total after distance filter: ${filtered.length} places`);
   console.log(`   Vancouver after filter? ${vancouverFiltered ? '✅' : '❌'}`);
@@ -166,8 +166,8 @@ async function debug() {
     }
   }
   
-  const vancouverFinal = balancedPlaces.find(p => p.name.toLowerCase().includes('vancouver'));
-  const seattleFinal = balancedPlaces.find(p => p.name.toLowerCase().includes('seattle'));
+  const vancouverFinal = balancedPlaces.find(p => p.name_en.toLowerCase().includes('vancouver'));
+  const seattleFinal = balancedPlaces.find(p => p.name_en.toLowerCase().includes('seattle'));
   
   console.log(`STEP 4: After sector sampling (${balancedPlaces.length} places):`);
   console.log(`   Vancouver in final result? ${vancouverFinal ? '✅' : '❌'}`);
@@ -181,7 +181,7 @@ async function debug() {
         if (scoreDiff !== 0) return scoreDiff;
         return (b.population || 0) - (a.population || 0);
       })
-      .findIndex(p => p.name === vancouverFinal.name) + 1;
+      .findIndex(p => p.name_en === vancouverFinal.name_en) + 1;
     console.log(`   Vancouver rank in sector ${vancouverSector}: #${vancouverRank}/${sectorPlaces.length}`);
   }
   
@@ -193,7 +193,7 @@ async function debug() {
         if (scoreDiff !== 0) return scoreDiff;
         return (b.population || 0) - (a.population || 0);
       })
-      .findIndex(p => p.name === seattleFinal.name) + 1;
+      .findIndex(p => p.name_en === seattleFinal.name_en) + 1;
     console.log(`   Seattle rank in sector ${seattleSector}: #${seattleRank}/${sectorPlaces.length}`);
   }
 }

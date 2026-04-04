@@ -186,9 +186,9 @@ async function processBatch(places, batchNum, totalBatches) {
           .update({ last_weather_fetch: new Date().toISOString() })
           .eq('id', place.id);
         
-        return { success: true, name: place.name, temp: data.current.temperature_2m };
+        return { success: true, name: place.name_en, temp: data.current.temperature_2m };
       } catch (error) {
-        return { success: false, name: place.name, error: error.message };
+        return { success: false, name: place.name_en, error: error.message };
       }
     })
   );
@@ -211,7 +211,7 @@ async function main() {
   
   const { data: places, error } = await supabase
     .from('places')
-    .select('id, name, latitude, longitude')
+    .select('id, name_en, latitude, longitude')
     .eq('is_active', true)
     .range(START_OFFSET, START_OFFSET + CHUNK_SIZE - 1);
 

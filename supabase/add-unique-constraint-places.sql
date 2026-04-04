@@ -23,9 +23,9 @@ SET attractiveness_score =
       END)
       -- PLUS Elevation Bonus
       + (CASE
-          WHEN elevation BETWEEN 800 AND 1800 THEN 15  -- Alpen Sweet Spot
-          WHEN elevation BETWEEN 500 AND 800 THEN 10   -- Hügelig
-          WHEN elevation BETWEEN 1800 AND 2500 THEN 5  -- Hochgebirge
+          WHEN dem BETWEEN 800 AND 1800 THEN 15  -- Alpen Sweet Spot
+          WHEN dem BETWEEN 500 AND 800 THEN 10   -- Hügelig
+          WHEN dem BETWEEN 1800 AND 2500 THEN 5  -- Hochgebirge
           ELSE 0
         END)
     
@@ -39,9 +39,9 @@ SET attractiveness_score =
     -- BERGE (Elevation-abhängig)
     WHEN feature_code IN ('T.MT', 'T.PK') THEN
       CASE
-        WHEN elevation > 2500 THEN 70
-        WHEN elevation > 1500 THEN 60
-        WHEN elevation > 800 THEN 50
+        WHEN dem > 2500 THEN 70
+        WHEN dem > 1500 THEN 60
+        WHEN dem > 800 THEN 50
         ELSE 40
       END
     

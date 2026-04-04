@@ -66,7 +66,7 @@ const fetchAllPlaces = async () => {
   while (true) {
     const { data, error } = await supabase
       .from('places')
-      .select('id, name, latitude, longitude, country_code, state_name')
+      .select('id, name_en, latitude, longitude, country_code, state_name')
       .eq('is_active', true)
       .order('id')
       .range(from, from + PAGE_SIZE - 1);
@@ -108,10 +108,10 @@ const run = async () => {
         .update({ state_name: stateName })
         .eq('id', place.id);
       success++;
-      console.log(`✅ [${i+1}/${toProcess.length}] ${place.name} (${place.country_code}): ${stateName}`);
+      console.log(`✅ [${i+1}/${toProcess.length}] ${place.name_en} (${place.country_code}): ${stateName}`);
     } else {
       failed++;
-      console.log(`⚠️ [${i+1}/${toProcess.length}] ${place.name}: no state found`);
+      console.log(`⚠️ [${i+1}/${toProcess.length}] ${place.name_en}: no state found`);
     }
 
     await sleep(1100);

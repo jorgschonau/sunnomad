@@ -495,7 +495,7 @@ export function calculateBeachParadise(destination) {
   const temp = destination.temperature ?? 0;
   const condition = destination.condition ?? 'unknown';
   const windSpeed = destination.windSpeed ?? 0;
-  const placeType = destination.place_type || destination.place_category || '';
+  const placeType = destination.place_type || '';
   
   // ONLY beaches get this badge!
   const isBeach = placeType === 'beach';

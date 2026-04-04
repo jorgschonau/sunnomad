@@ -127,7 +127,7 @@ async function main() {
   const force = process.argv.includes('--force');
   let query = supabase
     .from('places')
-    .select('id, name, latitude, longitude, country_code')
+    .select('id, name_en, latitude, longitude, country_code')
     .eq('source', 'user_search')
     .order('created_at', { ascending: false })
     .limit(500);
@@ -159,10 +159,10 @@ async function main() {
 
     for (const place of batch) {
       try {
-        const geo = await fetchGeoNames(place.name, place.latitude, place.longitude, place.country_code);
+        const geo = await fetchGeoNames(place.name_en, place.latitude, place.longitude, place.country_code);
 
         if (!geo) {
-          console.log(`   ⏭️  ${place.name}: no GeoNames match`);
+          console.log(`   ⏭️  ${place.name_en}: no GeoNames match`);
           await supabase.from('places').update({ feature_code: 'UNKNOWN' }).eq('id', place.id);
           skipped++;
         } else {
@@ -183,21 +183,21 @@ async function main() {
             .eq('id', place.id);
 
           if (updateError) {
-            console.log(`   ❌ ${place.name}: update failed — ${updateError.message}`);
+            console.log(`   ❌ ${place.name_en}: update failed — ${updateError.message}`);
             errors++;
           } else {
             const extras = [
               geo.is_island ? '🏝️' : null,
               geo.dem ? `${geo.dem}m` : null,
             ].filter(Boolean).join(' ');
-            console.log(`   ✅ ${place.name}: ${placeType}, pop=${geo.population}, dem=${geo.dem || '?'} ${extras}`);
+            console.log(`   ✅ ${place.name_en}: ${placeType}, pop=${geo.population}, dem=${geo.dem || '?'} ${extras}`);
             enriched++;
           }
         }
 
         await sleep(DELAY_MS);
       } catch (e) {
-        console.log(`   ❌ ${place.name}: ${e.message}`);
+        console.log(`   ❌ ${place.name_en}: ${e.message}`);
         errors++;
       }
     }

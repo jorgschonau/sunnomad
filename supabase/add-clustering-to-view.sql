@@ -8,12 +8,12 @@ DROP VIEW IF EXISTS places_with_latest_weather CASCADE;
 CREATE OR REPLACE VIEW places_with_latest_weather AS
 SELECT 
   p.id,
-  p.name,
+  p.name_en,
   p.latitude,
   p.longitude,
   p.country_code,
   p.region,
-  p.place_type AS place_category,
+  p.place_type,
   p.attractiveness_score,
   p.population,
   

@@ -31,7 +31,7 @@ DROP VIEW IF EXISTS places_with_latest_weather CASCADE;
 CREATE OR REPLACE VIEW places_with_latest_weather AS
 SELECT DISTINCT ON (p.id)
   p.id,
-  p.name,
+  p.name_en,
   p.latitude,
   p.longitude,
   p.country_code,

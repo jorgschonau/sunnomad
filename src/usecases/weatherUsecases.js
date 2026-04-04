@@ -104,7 +104,7 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
   // Limit certain badges to prevent overcrowding
   const MAX_WORTH_THE_DRIVE_BADGES = 5;
   const MAX_BUDGET_BADGES = 2;
-  const MIN_BADGE_DISTANCE_KM = 20;
+  const MIN_BADGE_DISTANCE_KM = 60;
   const MIN_BUDGET_BADGE_DISTANCE_KM = 100; // Second budget badge must be ≥100km from first (geographic diversity)
   
   // Budget badge min distance from origin scales with radius (first: closer, second: farther)

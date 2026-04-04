@@ -1,6 +1,7 @@
 import { supabase } from '../config/supabase';
 import { getCountryName, getCountryFlag } from '../utils/countryNames';
 import { mapWeatherMain } from '../domain/weatherPresentation';
+import { getPlaceName } from '../utils/localization';
 
 /**
  * Places + Weather Service
@@ -74,7 +75,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
     // Query 1: Get places
     let placesQuery = supabase
       .from('places')
-      .select('id, name, latitude, longitude, country_code, place_type, image_region, population, attractiveness_score, clustering_radius_m, elevation, dem, state_name')
+      .select('id, name_en, name_de, name_fr, latitude, longitude, country_code, place_type, image_region, population, attractiveness_score, dem, state_name')
       .eq('is_active', true);
     
     if (latMin !== undefined) {
@@ -97,7 +98,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
     if (latMin !== undefined) {
       const { data: diversePlaces } = await supabase
         .from('places')
-        .select('id, name, latitude, longitude, country_code, place_type, image_region, population, attractiveness_score, clustering_radius_m, elevation, dem, state_name')
+        .select('id, name_en, name_de, name_fr, latitude, longitude, country_code, place_type, image_region, population, attractiveness_score, dem, state_name')
         .eq('is_active', true)
         .gte('latitude', latMin).lte('latitude', latMax)
         .gte('longitude', lonMin).lte('longitude', lonMax)
@@ -253,7 +254,9 @@ export const getPlacesWithWeather = async (filters = {}) => {
         
         return {
           id: place.id,
-          name: place.name,
+          name_en: place.name_en,
+          name_de: place.name_de,
+          name_fr: place.name_fr,
           latitude: place.latitude,
           longitude: place.longitude,
           lat: place.latitude,
@@ -261,13 +264,10 @@ export const getPlacesWithWeather = async (filters = {}) => {
           country_code: place.country_code, // WICHTIG für Ländername!
           place_type: place.place_type,
           image_region: place.image_region,
-          place_category: place.place_type,
           population: place.population,
-          elevation: place.elevation,
-          dem: place.dem,
+          elevation: place.dem ?? null,
           attractiveness_score: place.attractiveness_score,
           attractivenessScore: place.attractiveness_score,
-          clustering_radius_m: place.clustering_radius_m,
           
           // Weather data - guaranteed to exist! Always show MAX temp
           temperature: Math.round(place.temp_max),
@@ -368,7 +368,7 @@ export const getPlaceDetail = async (placeId, locale = 'en') => {
     // Get place (separate query - no FK needed)
     const { data: place, error: placeError } = await supabase
       .from('places')
-      .select('id, name, latitude, longitude, country_code, place_type, image_region, population, attractiveness_score, elevation, dem, state_name')
+      .select('id, name_en, name_de, name_fr, latitude, longitude, country_code, place_type, image_region, population, attractiveness_score, dem, state_name')
       .eq('id', placeId)
       .maybeSingle();
 
@@ -392,15 +392,16 @@ export const getPlaceDetail = async (placeId, locale = 'en') => {
     const weather = allWeather?.[0] || {};
     const flatPlace = {
       id: place.id,
-      name: place.name,
+      name_en: place.name_en,
+      name_de: place.name_de,
+      name_fr: place.name_fr,
       latitude: place.latitude,
       longitude: place.longitude,
       country_code: place.country_code,
       place_type: place.place_type,
-      place_category: place.place_type,
       image_region: place.image_region,
       population: place.population,
-      elevation: place.dem ?? place.elevation ?? null,
+      elevation: place.dem ?? null,
       state_name: place.state_name || null,
       attractiveness_score: place.attractiveness_score,
       temperature: weather.temp_max != null ? Math.round(weather.temp_max) : null,
@@ -440,7 +441,7 @@ export const searchPlacesByName = async (searchTerm, limit = 20, locale = 'en') 
     const { data, error } = await supabase
       .from('places')
       .select(`
-        id, name, latitude, longitude, country_code,
+        id, name_en, name_de, name_fr, latitude, longitude, country_code,
         place_type, population, attractiveness_score,
         weather_forecast(
           forecast_date, temp_min, temp_max,
@@ -449,7 +450,7 @@ export const searchPlacesByName = async (searchTerm, limit = 20, locale = 'en') 
         )
       `)
       .eq('is_active', true)
-      .ilike('name', `%${searchTerm}%`)
+      .ilike('name_en', `%${searchTerm}%`)
       .eq('weather_forecast.forecast_date', new Date().toISOString().split('T')[0])
       .limit(limit);
 
@@ -460,12 +461,13 @@ export const searchPlacesByName = async (searchTerm, limit = 20, locale = 'en') 
       const weather = place.weather_forecast?.[0] || {};
       return {
         id: place.id,
-        name: place.name,
+        name_en: place.name_en,
+        name_de: place.name_de,
+        name_fr: place.name_fr,
         latitude: place.latitude,
         longitude: place.longitude,
         country_code: place.country_code,
         place_type: place.place_type,
-        place_category: place.place_type,
         population: place.population,
         attractiveness_score: place.attractiveness_score,
         temperature: weather.temp_max != null ? Math.round(weather.temp_max) : null,
@@ -539,7 +541,7 @@ function adaptPlaceToDestination(place, locale = 'en') {
     id: place.id,
     lat: place.latitude,
     lon: place.longitude,
-    name: place.name,
+    name: getPlaceName(place, locale),
     country: getCountryName(place.country_code, locale),
     countryCode: place.country_code,
     country_code: place.country_code, // Also include as country_code for compatibility
@@ -575,9 +577,8 @@ function adaptPlaceToDestination(place, locale = 'en') {
     // Attractiveness score
     attractivenessScore: place.attractiveness_score ?? 50,
     population: place.population || 0,
-    elevation: place.dem ?? place.elevation ?? null,
+    elevation: place.dem ?? null,
     state_name: place.state_name || null,
-    clusteringRadiusM: place.clustering_radius_m || 50000, // Default 50km if missing
     
     // Distance (filled in by getPlacesWithWeather if applicable)
     distance: place.distance || null,

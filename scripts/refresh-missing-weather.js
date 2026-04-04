@@ -109,7 +109,7 @@ async function main() {
     console.log('Using manual query...');
     const { data: allPlaces } = await supabase
       .from('places')
-      .select('id, name, latitude, longitude, country_code')
+      .select('id, name_en, latitude, longitude, country_code')
       .eq('is_active', true);
     
     const { data: weatherToday } = await supabase
@@ -147,9 +147,9 @@ async function main() {
             .update({ last_weather_fetch: new Date().toISOString() })
             .eq('id', place.id);
           
-          return { success: true, name: place.name };
+          return { success: true, name: place.name_en };
         } catch (error) {
-          return { success: false, name: place.name, error: error.message };
+          return { success: false, name: place.name_en, error: error.message };
         }
       })
     );

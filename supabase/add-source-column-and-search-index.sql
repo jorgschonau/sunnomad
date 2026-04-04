@@ -6,4 +6,4 @@ ALTER TABLE places ADD COLUMN IF NOT EXISTS source TEXT DEFAULT 'geonames';
 CREATE EXTENSION IF NOT EXISTS pg_trgm;
 
 -- Trigram index for fast ILIKE search on place names
-CREATE INDEX IF NOT EXISTS idx_places_name_trgm ON places USING GIN (name gin_trgm_ops);
+CREATE INDEX IF NOT EXISTS idx_places_name_en_trgm ON places USING GIN (name_en gin_trgm_ops);

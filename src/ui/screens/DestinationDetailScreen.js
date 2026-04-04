@@ -256,7 +256,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           if (lat != null && lon != null) {
             const { data, error } = await supabase
               .from('places')
-              .select('id, name')
+              .select('id, name_en')
               .gte('latitude', lat - 0.05)
               .lte('latitude', lat + 0.05)
               .gte('longitude', lon - 0.05)
@@ -272,8 +272,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
             if (cleanName) {
               const { data, error } = await supabase
                 .from('places')
-                .select('id, name')
-                .ilike('name', `%${cleanName}%`)
+                .select('id, name_en')
+                .ilike('name_en', `%${cleanName}%`)
                 .limit(1);
               console.log('[resolvePlace] name result:', data, 'error:', error);
               if (data?.[0]?.id) resolvedId = data[0].id;

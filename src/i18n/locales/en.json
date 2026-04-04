@@ -26,6 +26,7 @@
     "searchPlaceholder": "Search places...",
     "modeWarmer": "Warmer",
     "modeCooler": "Cooler",
+    "modeAll": "All",
     "moreResults": "More results",
     "viaGoogle": "via Google",
     "loadingState0": "Searching GPS signal... 🛰️",

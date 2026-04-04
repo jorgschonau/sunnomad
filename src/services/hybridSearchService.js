@@ -1,6 +1,7 @@
 import Constants from 'expo-constants';
 import { supabase } from '../config/supabase';
 import { getCountryName } from '../utils/countryNames';
+import { getPlaceName } from '../utils/localization';
 
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.googleMapsApiKey;
 console.log('🔑 Google API Key:', GOOGLE_API_KEY ? `${GOOGLE_API_KEY.slice(0, 10)}...` : 'MISSING');
@@ -56,7 +57,7 @@ export const hybridSearch = async (query, center, language = 'de') => {
     googlePlaces = unique;
     if (promoted.length > 0) {
       dbPlaces.push(...promoted);
-      console.log(`🔍 Promoted ${promoted.length} DB places from Google coord match:`, promoted.map(p => p.name));
+      console.log(`🔍 Promoted ${promoted.length} DB places from Google coord match:`, promoted.map(p => p.name_en));
     }
   }
 
@@ -71,8 +72,8 @@ async function searchDB(query, center, language = 'en') {
   try {
     const { data, error } = await supabase
       .from('places')
-      .select('id, name, latitude, longitude, place_type, country_code, attractiveness_score')
-      .ilike('name', `%${query}%`)
+      .select('id, name_en, name_de, name_fr, latitude, longitude, place_type, country_code, attractiveness_score')
+      .ilike('name_en', `%${query}%`)
       .eq('is_active', true)
       .order('attractiveness_score', { ascending: false, nullsFirst: false })
       .limit(10);
@@ -85,10 +86,11 @@ async function searchDB(query, center, language = 'en') {
       const lng = parseFloat(p.longitude);
       const dist = center ? haversineKm(center.latitude, center.longitude, lat, lng) : 0;
       const countryName = getCountryName(p.country_code, language);
+      const localName = getPlaceName(p, language);
       return {
         id: p.id,
-        name: p.name,
-        description: countryName ? `${p.name}, ${countryName}` : p.name,
+        name: localName,
+        description: countryName ? `${localName}, ${countryName}` : localName,
         latitude: lat,
         longitude: lng,
         place_type: p.place_type || null,
@@ -184,10 +186,11 @@ async function deduplicateAndPromote(googlePlaces, existingDbIds, center, langua
         const lng = parseFloat(existing.longitude);
         const dist = center ? haversineKm(center.latitude, center.longitude, lat, lng) : 0;
         const countryName = getCountryName(existing.country_code, language);
+        const localName = getPlaceName(existing, language);
         promoted.push({
           id: existing.id,
-          name: existing.name,
-          description: countryName ? `${existing.name}, ${countryName}` : existing.name,
+          name: localName,
+          description: countryName ? `${localName}, ${countryName}` : localName,
           latitude: lat,
           longitude: lng,
           place_type: existing.place_type || null,
@@ -238,7 +241,7 @@ export const ensurePlaceInDB = async (googlePlace) => {
   // Check for existing
   const existing = await findExistingPlace(googlePlace.latitude, googlePlace.longitude);
   if (existing) {
-    if (__DEV__) console.log('✅ Place already in DB:', existing.name);
+    if (__DEV__) console.log('✅ Place already in DB:', existing.name_en);
     return existing;
   }
 
@@ -254,7 +257,7 @@ export const ensurePlaceInDB = async (googlePlace) => {
     const { data, error } = await supabase
       .from('places')
       .insert({
-        name: googlePlace.name,
+        name_en: googlePlace.name,
         latitude: googlePlace.latitude,
         longitude: googlePlace.longitude,
         country_code: googlePlace.country_code || null,
@@ -268,7 +271,7 @@ export const ensurePlaceInDB = async (googlePlace) => {
       .single();
 
     if (error) throw error;
-    if (__DEV__) console.log('🆕 Added place to DB:', data.name, data.id);
+    if (__DEV__) console.log('🆕 Added place to DB:', data.name_en, data.id);
     return data;
   } catch (e) {
     if (__DEV__) console.warn('Failed to insert place:', e);

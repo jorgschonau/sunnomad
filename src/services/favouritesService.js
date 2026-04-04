@@ -1,4 +1,5 @@
 import { supabase } from '../config/supabase';
+import { getPlaceName } from '../utils/localization';
 
 /**
  * Favourites Service
@@ -9,7 +10,7 @@ import { supabase } from '../config/supabase';
  * Get all favourites for the current user
  * @returns {Promise<{favourites, error}>}
  */
-export const getFavourites = async () => {
+export const getFavourites = async (locale = 'en') => {
   try {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -25,7 +26,7 @@ export const getFavourites = async () => {
         *,
         places (
           id,
-          name,
+          name_en, name_de, name_fr,
           latitude,
           longitude,
           country_code,
@@ -51,7 +52,7 @@ export const getFavourites = async () => {
         favouriteId: fav.id,
         lat: place.latitude,
         lon: place.longitude,
-        name: place.name,
+        name: getPlaceName(place, locale),
         country_code: place.country_code,
         place_type: place.place_type,
         notes: fav.notes,

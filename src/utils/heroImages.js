@@ -1,9 +1,11 @@
 // DEDICATED - mapped by place UUID from DB
+// ⚠️ TEMPORARILY DISABLED - re-enable after fixing file paths (goldie/, chatgpt/, arty/ subfolders)
 const DEDICATED = {
+/*
   'f463c81b-ea6c-46a0-96e5-fe91761a8b08': require('../../assets/destinations/dedicated/albuquerque.webp'),
   '241da438-94e1-4b72-950a-b97cf38a1720': require('../../assets/destinations/dedicated/antelopecanyon.webp'),
   '9e0d1974-159f-410c-af1e-5c052199ea61': require('../../assets/destinations/dedicated/dunedepilat.webp'), 
-  '00e8202a-3a9a-43e8-a62c-07f327b234de': require('../../assets/destinations/dedicated/barcelona.webp'),
+  '00e8202a-3a9a-43e8-a62c-07f327b234de': require('../../assets/destinations/dedicated/barcelona_goldie1.webp'),
   '3bc44fca-2515-40a1-9f86-340093c8387e': require('../../assets/destinations/dedicated/bardenas_reales.webp'),
   'c2b26af1-3e24-47ee-8260-0916531edabc': require('../../assets/destinations/dedicated/barstow.webp'),
   '06f01c73-98d7-4048-9577-c450761b5739': require('../../assets/destinations/dedicated/berlin.webp'),
@@ -13,10 +15,7 @@ const DEDICATED = {
   '10f6bae1-1841-44c7-a790-cb39144e1fd0': require('../../assets/destinations/dedicated/drachenfels.webp'),
   '44f371e4-31db-4760-93d9-4635f2381e05': require('../../assets/destinations/dedicated/dubrovnik.webp'),
   'e23ea23d-08c8-4e96-a139-bb4c1c28680a': require('../../assets/destinations/dedicated/etretat.webp'),
-
   'fec09e0e-8b56-46c4-896e-ea34bde680b1': require('../../assets/destinations/dedicated/etretat.webp'),
-
-  '328f021b-9557-4e4b-97b9-d60db5c07f9b': require('../../assets/destinations/dedicated/fehmarn.webp'),
   '2d110c86-cd8d-4d19-b8a4-d3103cb1ed51': require('../../assets/destinations/dedicated/flensburg.webp'),
   'b62b2b8a-6a55-4e64-a71d-fd125f3e7461': require('../../assets/destinations/dedicated/kassel.webp'),
   'fa7c459e-bf34-4945-b74f-93838f8e2484': require('../../assets/destinations/dedicated/laketahoe.webp'),
@@ -55,18 +54,18 @@ const DEDICATED = {
   '0e176d63-d4a7-4dee-a62b-654d494b269d': require('../../assets/destinations/dedicated/omahabeach.webp'),
   'be3a21b9-8382-425b-a9cf-0d88ad4fc260': require('../../assets/destinations/dedicated/sainte-mere-eglise.webp'),
   '815aa67c-d295-4b7c-969c-3ce9679315f9': require('../../assets/destinations/dedicated/grindelwald.webp'),
-
-  '3684fc0f-d640-41f1-8df6-67e26b7c9a44': require('../../assets/destinations/dedicated/fehmarn.webp'),
   '328f021b-9557-4e4b-97b9-d60db5c07f9b': require('../../assets/destinations/dedicated/fehmarn.webp'),
-
+  '3684fc0f-d640-41f1-8df6-67e26b7c9a44': require('../../assets/destinations/dedicated/fehmarn.webp'),
   '70e3a160-65a6-4d9d-a09b-55f910d51ece': require('../../assets/destinations/dedicated/moab.webp'),
   '1ff9a5bc-88b7-4ec8-9f70-6f7398dbd9bf': require('../../assets/destinations/dedicated/lloretdemar.webp'),
-  'cd84e94b-e325-4aef-a420-7dacedcff4be': require('../../assets/destinations/dedicated/lisbon.webp'),
+  'cd84e94b-e325-4aef-a420-7dacedcff4be': require('../../assets/destinations/dedicated/lisbon_goldie1.webp'),
   '5cd8986c-664c-4773-b06f-bdd164195f7d': require('../../assets/destinations/dedicated/berchtesgaden.webp'),
   '90bc1f68-81da-44f8-82a6-c9378880f4c5': require('../../assets/destinations/dedicated/berchtesgaden.webp'),
-//  '2d110c86-cd8d-4d19-b8a4-d3103cb1ed51': require('../../assets/destinations/dedicated/flensburg.jpg'),
-  
-
+  'bb31bd7f-6e77-426d-b121-652d55453224': require('../../assets/destinations/dedicated/dogtown_goldie1.webp'),
+  '3ed3487f-5432-4a62-88ab-ee874e462b32': require('../../assets/destinations/dedicated/horseshoe_bend_goldie1.webp'),
+  '29300b7c-1449-48f4-9e04-760c396b4c2a': require('../../assets/destinations/dedicated/neuschwanstein_goldie1.webp'),
+  '57f0ecf7-12cc-44bd-9300-b9b523fd2ee2': require('../../assets/destinations/dedicated/paris_goldie2.webp'),
+*/
 };
 
 const GENERIC = {
@@ -110,7 +109,7 @@ export const getHeroImage = (dest) => {
   if (id && DEDICATED[id]) return DEDICATED[id];
 
   // 2. Generic by type
-  const rawType = dest.place_type || dest.place_category || dest.placeType;
+  const rawType = dest.place_type || dest.placeType;
   const type = rawType?.toLowerCase().replace(/\s+/g, '_');
   const cc = (dest.countryCode || dest.country_code || '').toUpperCase();
   const region = dest.image_region;

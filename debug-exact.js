@@ -51,12 +51,12 @@ async function debug() {
   const { data: vanData } = await supabase
     .from('places_with_latest_weather')
     .select('*')
-    .ilike('name', '%vancouver%');
+    .ilike('name_en', '%vancouver%');
   
   const { data: seaData } = await supabase
     .from('places_with_latest_weather')
     .select('*')
-    .ilike('name', '%seattle%');
+    .ilike('name_en', '%seattle%');
   
   console.log(`   Vancouver entries: ${vanData?.length || 0}`);
   if (vanData && vanData.length > 0) {

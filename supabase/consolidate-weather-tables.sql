@@ -101,12 +101,12 @@ ALTER TABLE weather_forecast
 CREATE OR REPLACE VIEW places_with_latest_weather AS
 SELECT 
   p.id,
-  p.name,
+  p.name_en,
   p.latitude,
   p.longitude,
   p.country_code,
   p.region,
-  p.place_type AS place_category,
+  p.place_type,
   p.attractiveness_score,
   p.population,
   p.clustering_radius_m,
@@ -162,12 +162,12 @@ WHERE p.is_active = true
 CREATE OR REPLACE FUNCTION get_weather_for_date(target_date DATE)
 RETURNS TABLE (
   id UUID,
-  name TEXT,
+  name_en TEXT,
   latitude DECIMAL,
   longitude DECIMAL,
   country_code TEXT,
   region TEXT,
-  place_category TEXT,
+  place_type TEXT,
   attractiveness_score INTEGER,
   population INTEGER,
   clustering_radius_m INTEGER,
@@ -191,12 +191,12 @@ BEGIN
   RETURN QUERY
   SELECT 
     p.id,
-    p.name,
+    p.name_en,
     p.latitude,
     p.longitude,
     p.country_code,
     p.region,
-    p.place_type AS place_category,
+    p.place_type,
     p.attractiveness_score,
     p.population,
     p.clustering_radius_m,

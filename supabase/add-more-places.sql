@@ -2,7 +2,7 @@
 -- Run in Supabase SQL Editor
 
 -- European Cities (NEW)
-INSERT INTO places (name, latitude, longitude, country_code, region, place_type, is_active) VALUES
+INSERT INTO places (name_en, latitude, longitude, country_code, region, place_type, is_active) VALUES
   ('London', 51.5074, -0.1278, 'GB', 'europe', 'city', true),
   ('Palermo', 38.1157, 13.3615, 'IT', 'europe', 'city', true),
   ('Naples', 40.8518, 14.2681, 'IT', 'europe', 'city', true),
@@ -17,7 +17,7 @@ INSERT INTO places (name, latitude, longitude, country_code, region, place_type,
   ('Sylt', 54.9079, 8.3369, 'DE', 'europe', 'beach', true);
 
 -- US Cities (NEW - duplicates removed)
-INSERT INTO places (name, latitude, longitude, country_code, region, place_type, is_active) VALUES
+INSERT INTO places (name_en, latitude, longitude, country_code, region, place_type, is_active) VALUES
   ('Oahu', 21.4389, -158.0001, 'US', 'north_america', 'beach', true),
   ('Las Vegas', 36.1699, -115.1398, 'US', 'north_america', 'city', true),
   ('Florida Keys', 24.7110, -81.0529, 'US', 'north_america', 'beach', true),
@@ -38,7 +38,7 @@ INSERT INTO places (name, latitude, longitude, country_code, region, place_type,
   ('Portland', 43.6591, -70.2568, 'US', 'north_america', 'city', true);
 
 -- European Beaches (NEW)
-INSERT INTO places (name, latitude, longitude, country_code, region, place_type, is_active) VALUES
+INSERT INTO places (name_en, latitude, longitude, country_code, region, place_type, is_active) VALUES
   ('Elafonissi Beach', 35.2710, 23.5397, 'GR', 'europe', 'beach', true),
   ('Praia da Falésia', 37.0879, -8.1847, 'PT', 'europe', 'beach', true),
   ('Platja de Muro', 39.7894, 3.1058, 'ES', 'europe', 'beach', true),
@@ -52,7 +52,7 @@ INSERT INTO places (name, latitude, longitude, country_code, region, place_type,
   ('La Concha Beach', 43.3210, -1.9867, 'ES', 'europe', 'beach', true);
 
 -- US Beaches (NEW)
-INSERT INTO places (name, latitude, longitude, country_code, region, place_type, is_active) VALUES
+INSERT INTO places (name_en, latitude, longitude, country_code, region, place_type, is_active) VALUES
   ('Siesta Beach', 27.2636, -82.5487, 'US', 'north_america', 'beach', true),
   ('Poipu Beach', 21.8761, -159.4470, 'US', 'north_america', 'beach', true),
   ('Kaanapali Beach', 20.9261, -156.6942, 'US', 'north_america', 'beach', true),
@@ -63,7 +63,7 @@ INSERT INTO places (name, latitude, longitude, country_code, region, place_type,
   ('Punaluu Black Sand Beach', 19.1378, -155.5038, 'US', 'north_america', 'beach', true);
 
 -- European National Parks (NEW)
-INSERT INTO places (name, latitude, longitude, country_code, region, place_type, is_active) VALUES
+INSERT INTO places (name_en, latitude, longitude, country_code, region, place_type, is_active) VALUES
   ('Plitvice Lakes', 44.8654, 15.5820, 'HR', 'europe', 'poi', true),
   ('Killarney National Park', 52.0116, -9.5675, 'IE', 'europe', 'poi', true),
   ('Timanfaya National Park', 29.0321, -13.7598, 'ES', 'europe', 'poi', true),
@@ -76,7 +76,7 @@ INSERT INTO places (name, latitude, longitude, country_code, region, place_type,
   ('Cairngorms National Park', 57.0833, -3.6667, 'GB', 'europe', 'mountain', true);
 
 -- US National Parks (NEW)
-INSERT INTO places (name, latitude, longitude, country_code, region, place_type, is_active) VALUES
+INSERT INTO places (name_en, latitude, longitude, country_code, region, place_type, is_active) VALUES
   ('Yellowstone', 44.4280, -110.5885, 'US', 'north_america', 'poi', true),
   ('Yosemite', 37.8651, -119.5383, 'US', 'north_america', 'mountain', true),
   ('Grand Canyon', 36.1069, -112.1129, 'US', 'north_america', 'poi', true);

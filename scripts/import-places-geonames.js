@@ -105,7 +105,7 @@ function parseLine(line, fileType) {
   
   return {
     geonames_id: parseInt(fields[0]) || null,
-    name: name.substring(0, 200), // Limit to 200 chars
+    name_en: name.substring(0, 200), // Limit to 200 chars
     latitude: latitude,
     longitude: longitude,
     country_code: fields[8] || null,
@@ -129,7 +129,7 @@ async function filterDuplicates(batch) {
   
   // Build OR query to check all places in batch
   const checks = batch.map(p => 
-    `and(latitude.eq.${p.latitude},longitude.eq.${p.longitude},name.eq.${p.name.replace(/'/g, "''")})`
+    `and(latitude.eq.${p.latitude},longitude.eq.${p.longitude},name_en.eq.${p.name_en.replace(/'/g, "''")})`
   );
   
   // Check in chunks (Supabase has URL length limit)
@@ -140,19 +140,19 @@ async function filterDuplicates(batch) {
     const chunk = checks.slice(i, i + CHUNK_SIZE);
     const { data } = await supabase
       .from('places')
-      .select('latitude,longitude,name')
+      .select('latitude,longitude,name_en')
       .or(chunk.join(','));
     
     if (data) {
       data.forEach(p => {
-        existingPlaces.add(`${p.latitude},${p.longitude},${p.name}`);
+        existingPlaces.add(`${p.latitude},${p.longitude},${p.name_en}`);
       });
     }
   }
   
   // Filter out existing places
   return batch.filter(p => {
-    const key = `${p.latitude},${p.longitude},${p.name}`;
+    const key = `${p.latitude},${p.longitude},${p.name_en}`;
     return !existingPlaces.has(key);
   });
 }

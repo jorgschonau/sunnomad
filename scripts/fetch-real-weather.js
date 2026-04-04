@@ -175,12 +175,12 @@ async function processBatch(places, batchNumber, totalBatches) {
 
   for (const result of results) {
     if (result.error) {
-      console.log(`  ❌ ${result.place.name}: ${result.error.message}`);
+      console.log(`  ❌ ${result.place.name_en}: ${result.error.message}`);
       failCount++;
     } else {
       const saved = await saveWeatherData(result.place.id, result.current);
       if (saved) {
-        console.log(`  ✅ ${result.place.name}: ${result.current.temperature_2m} °C`);
+        console.log(`  ✅ ${result.place.name_en}: ${result.current.temperature_2m} °C`);
         successCount++;
       } else {
         failCount++;
@@ -205,9 +205,9 @@ async function main() {
   console.log('📍 Fetching places from database (first 100)...');
   const { data: places, error } = await supabase
     .from('places')
-    .select('id, name, latitude, longitude')
+    .select('id, name_en, latitude, longitude')
     .eq('is_active', true)
-    .order('name')
+    .order('name_en')
     .limit(100);
 
   if (error) {

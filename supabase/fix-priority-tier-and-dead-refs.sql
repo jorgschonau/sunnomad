@@ -11,8 +11,7 @@
 ALTER TABLE places
   ADD COLUMN IF NOT EXISTS detail_view_count INTEGER DEFAULT 0,
   ADD COLUMN IF NOT EXISTS map_view_count INTEGER DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS last_viewed_at TIMESTAMP WITH TIME ZONE,
-  ADD COLUMN IF NOT EXISTS elevation INTEGER;
+  ADD COLUMN IF NOT EXISTS last_viewed_at TIMESTAMP WITH TIME ZONE;
 
 -- 2) Fix the trigger function: remove priority_tier references
 CREATE OR REPLACE FUNCTION update_place_favourite_count()

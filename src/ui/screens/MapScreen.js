@@ -25,6 +25,7 @@ import { playTickSound } from '../../utils/soundUtils';
 import { trackMapViews, trackDetailView } from '../../services/placesService';
 import { hybridSearch, ensurePlaceInDB } from '../../services/hybridSearchService';
 import { getPlaceDetail } from '../../services/placesWeatherService';
+import { getPlaceName } from '../../utils/localization';
 import { getFavourites } from '../../usecases/favouritesUsecases';
 import WeatherFilter from '../components/WeatherFilter';
 import DateFilter from '../components/DateFilter';
@@ -164,9 +165,8 @@ const MapScreen = ({ navigation }) => {
   const [destinations, setDestinations] = useState([]);
   const [displayDestinations, setDisplayDestinations] = useState([]); // Derived from destinations + date offset (async when offset !== 0)
   // visibleMarkers is derived via useMemo below
-  const [currentZoom, setCurrentZoom] = useState(5); // Track zoom level
+  const [mapViewport, setMapViewport] = useState({ zoom: 5, bounds: null });
   const currentZoomRef = useRef(5);
-  const [currentBounds, setCurrentBounds] = useState(null); // Track viewport bounds
   const radiusDebounceTimer = useRef(null);
 
   const regionChangeDebounceTimer = useRef(null);
@@ -222,12 +222,15 @@ const MapScreen = ({ navigation }) => {
       longitudeDelta: 2,
     };
     setLocation(initialRegion);
-    setCurrentBounds({
-      north: initialRegion.latitude + initialRegion.latitudeDelta / 2,
-      south: initialRegion.latitude - initialRegion.latitudeDelta / 2,
-      east: initialRegion.longitude + initialRegion.longitudeDelta / 2,
-      west: initialRegion.longitude - initialRegion.longitudeDelta / 2,
-    });
+    setMapViewport(prev => ({
+      ...prev,
+      bounds: {
+        north: initialRegion.latitude + initialRegion.latitudeDelta / 2,
+        south: initialRegion.latitude - initialRegion.latitudeDelta / 2,
+        east: initialRegion.longitude + initialRegion.longitudeDelta / 2,
+        west: initialRegion.longitude - initialRegion.longitudeDelta / 2,
+      },
+    }));
     setLocationError(null);
   }, []);
 
@@ -241,13 +244,15 @@ const MapScreen = ({ navigation }) => {
       setLocationError(null);
       setLoading(false);
 
-      // Set initial bounds so marker filtering works immediately
-      setCurrentBounds({
-        north: DEFAULT_LOCATION.latitude + DEFAULT_LOCATION.latitudeDelta / 2,
-        south: DEFAULT_LOCATION.latitude - DEFAULT_LOCATION.latitudeDelta / 2,
-        east: DEFAULT_LOCATION.longitude + DEFAULT_LOCATION.longitudeDelta / 2,
-        west: DEFAULT_LOCATION.longitude - DEFAULT_LOCATION.longitudeDelta / 2,
-      });
+      setMapViewport(prev => ({
+        ...prev,
+        bounds: {
+          north: DEFAULT_LOCATION.latitude + DEFAULT_LOCATION.latitudeDelta / 2,
+          south: DEFAULT_LOCATION.latitude - DEFAULT_LOCATION.latitudeDelta / 2,
+          east: DEFAULT_LOCATION.longitude + DEFAULT_LOCATION.longitudeDelta / 2,
+          west: DEFAULT_LOCATION.longitude - DEFAULT_LOCATION.longitudeDelta / 2,
+        },
+      }));
 
       showToast(t('map.usingDefaultLocation'), 'info');
     } catch (error) {
@@ -383,12 +388,15 @@ const MapScreen = ({ navigation }) => {
     if (!hasInstantLocation) {
       console.warn('No cached or fresh location available, using default location');
       setLocation(DEFAULT_LOCATION);
-      setCurrentBounds({
-        north: DEFAULT_LOCATION.latitude + DEFAULT_LOCATION.latitudeDelta / 2,
-        south: DEFAULT_LOCATION.latitude - DEFAULT_LOCATION.latitudeDelta / 2,
-        east: DEFAULT_LOCATION.longitude + DEFAULT_LOCATION.longitudeDelta / 2,
-        west: DEFAULT_LOCATION.longitude - DEFAULT_LOCATION.longitudeDelta / 2,
-      });
+      setMapViewport(prev => ({
+        ...prev,
+        bounds: {
+          north: DEFAULT_LOCATION.latitude + DEFAULT_LOCATION.latitudeDelta / 2,
+          south: DEFAULT_LOCATION.latitude - DEFAULT_LOCATION.latitudeDelta / 2,
+          east: DEFAULT_LOCATION.longitude + DEFAULT_LOCATION.longitudeDelta / 2,
+          west: DEFAULT_LOCATION.longitude - DEFAULT_LOCATION.longitudeDelta / 2,
+        },
+      }));
       setLocationError(null);
       showToast(t('map.usingDefaultLocation'), 'info');
       setLoading(false);
@@ -740,7 +748,7 @@ const MapScreen = ({ navigation }) => {
             id: place.id,
             lat: location.latitude,
             lon: location.longitude,
-            name: `📍 ${detail.name || place.name}`,
+            name: `📍 ${detail.name || getPlaceName(place, i18n.language)}`,
             condition: detail.condition || 'cloudy',
             temperature: detail.temperature,
             temp_max: detail.temp_max ?? detail.temperature,
@@ -756,8 +764,7 @@ const MapScreen = ({ navigation }) => {
             forecastDays: forecastDaysArr,
             country_code: detail.countryCode || detail.country_code || place.country_code,
             countryCode: detail.countryCode || detail.country_code || place.country_code,
-            place_type: detail.place_type || detail.place_category || null,
-            place_category: detail.place_category || detail.place_type || null,
+            place_type: detail.place_type || null,
             image_region: detail.image_region || null,
           };
         }
@@ -1037,36 +1044,7 @@ const MapScreen = ({ navigation }) => {
     return Math.round(total);
   };
   
-  const getGridSizeKm = (zoom, radius) => {
-    const zoomBase = (() => {
-      if (zoom <= 3) return 600;
-      if (zoom <= 4) return 400;
-      if (zoom <= 5) return 300;
-      if (zoom <= 6) return 200;
-      if (zoom <= 7) return 120;
-      if (zoom <= 8) return 70;
-      if (zoom <= 9) return 40;
-      return 20;
-    })();
-
-    if (radius) {
-      return Math.min(zoomBase, radius * 0.15);
-    }
-
-    return zoomBase;
-  };
-
-  /**
-   * Minimum distance between markers (in km) based on zoom
-   * Standard zoom: 3-4, reinzoomen: 5-6
-   */
-  const getMinDistanceForZoom = (zoom, radius) => {
-    const base = getGridSizeKm(zoom, radius) * 0.4;
-    if (zoom >= 8) return Math.min(base, radius * 0.10);
-    if (zoom >= 7) return Math.min(base, radius * 0.12);
-    if (zoom >= 6) return Math.min(base, radius * 0.15);
-    return Math.min(base, radius * 0.20);
-  };
+  
   
   /**
    * Sort places by: attractiveness score → temperature → distance from user
@@ -1112,13 +1090,18 @@ const MapScreen = ({ navigation }) => {
     const userLon = location?.longitude;
     const maxMarkers = getMaxMarkers(zoom, radius);
     
-    const minDistance = getMinDistanceForZoom(zoom, radius);
-    
-    const GRID_SIZE_KM = getGridSizeKm(zoom, radius);
-    const gridSize = GRID_SIZE_KM / 111;
+    const GRID_COLS = zoom <= 4 ? 6 : zoom <= 5 ? 8 : zoom <= 7 ? 8 : 12;
+    const GRID_ROWS = zoom <= 4 ? 8 : zoom <= 5 ? 10 : zoom <= 7 ? 10 : 16;
 
     // Separate special markers (always shown)
     const specialMarkers = candidates.filter(p => p.isCurrentLocation || p.isCenterPoint);
+
+    const getGridKey = (lat, lon) => {
+      if (!bounds) return '0_0';
+      const col = Math.floor((lon - bounds.west)  / (bounds.east  - bounds.west)  * GRID_COLS);
+      const row = Math.floor((lat - bounds.south) / (bounds.north - bounds.south) * GRID_ROWS);
+      return `${Math.min(col, GRID_COLS-1)}_${Math.min(row, GRID_ROWS-1)}`;
+    };
     
     // Pinned badges: always visible, but soft grid limit (max 2 per grid) to avoid clustering
     const PINNED_GRID_LIMIT = 2;
@@ -1134,9 +1117,7 @@ const MapScreen = ({ navigation }) => {
     for (const p of sortedPinned) {
       const pLat = p.lat || p.latitude;
       const pLon = p.lon || p.longitude;
-      const gLat = Math.floor((pLat / (GRID_SIZE_KM / 111))) * (GRID_SIZE_KM / 111);
-      const gLon = Math.floor((pLon / (GRID_SIZE_KM / 111))) * (GRID_SIZE_KM / 111);
-      const key = `${gLat.toFixed(1)},${gLon.toFixed(1)}`;
+      const key = getGridKey(pLat, pLon);
       const count = pinnedGridCounts.get(key) || 0;
       if (count < PINNED_GRID_LIMIT) {
         pinned.push(p);
@@ -1155,107 +1136,50 @@ const MapScreen = ({ navigation }) => {
         !(Array.isArray(p.badges) && p.badges.some(b => pinnedBadges.includes(b)))
       ),
     ];
-    const HIGHLIGHT_POI_TYPES = ['beach', 'scenic_drive', 'mountain', 'national_park', 'natural_park', 'nature_reserve'];
-    const isHighlightType = (p) => {
-      const t = p.place_type || p.place_category || p.placeType || '';
-      return HIGHLIGHT_POI_TYPES.includes(t);
-    };
-    
-    const sorted = [...normal].sort((a, b) => {
-      const aBadges = getMapBadges(a.badges).length;
-      const bBadges = getMapBadges(b.badges).length;
-      if (aBadges !== bBadges) return bBadges - aBadges;
-      
-      // Highlight POIs (beaches, scenic drives, mountains, national parks) get priority
-      const aHighlight = isHighlightType(a) ? 1 : 0;
-      const bHighlight = isHighlightType(b) ? 1 : 0;
-      if (aHighlight !== bHighlight) return bHighlight - aHighlight;
-      
-      const aScore = a.attractivenessScore || a.attractiveness_score || 50;
-      const bScore = b.attractivenessScore || b.attractiveness_score || 50;
-      if (Math.abs(aScore - bScore) > 5) return bScore - aScore;
-      
-      const aTemp = a.temperature || 0;
-      const bTemp = b.temperature || 0;
-      if (Math.abs(aTemp - bTemp) > 2) return bTemp - aTemp;
-      
-      if (userLat && userLon) {
-        const aDist = getDistanceKm(userLat, userLon, a.lat || a.latitude, a.lon || a.longitude);
-        const bDist = getDistanceKm(userLat, userLon, b.lat || b.latitude, b.lon || b.longitude);
-        return aDist - bDist;
-      }
-      return 0;
-    });
-    
-    // Adaptive strategy: Phase 1 = best places, Phase 2 = grid-limited diversity
-    const PHASE_1_RATIO = 0.4;
-    const phase1Limit = Math.floor(maxMarkers * PHASE_1_RATIO);
-    const GRID_LIMIT = 3;
-    
-    const gridsUsed = new Map();
-    const getGridKey = (lat, lon) => {
-      const gLat = Math.floor(lat / gridSize) * gridSize;
-      const gLon = Math.floor(lon / gridSize) * gridSize;
-      return `${gLat.toFixed(1)},${gLon.toFixed(1)}`;
-    };
-    
-    // Seed result with special + pinned so normal markers check distance against them
-    const result = [...specialMarkers, ...pinned];
-    let skipped = 0;
-    let gridLimited = 0;
-    
-    for (const place of sorted) {
-      if (result.length >= maxMarkers + pinned.length) {
-        break;
-      }
-      
+
+    const viewportPlaces = (bounds)
+      ? normal.filter(p => {
+          const lat = p.lat || p.latitude;
+          const lon = p.lon || p.longitude;
+          return lat >= bounds.south && lat <= bounds.north &&
+                 lon >= bounds.west  && lon <= bounds.east;
+        })
+      : normal;
+
+    // Build grid: best place per cell (guaranteed geographic coverage)
+    const gridMap = new Map();
+    for (const place of viewportPlaces) {
       const lat = place.lat || place.latitude;
       const lon = place.lon || place.longitude;
-      
-      const gridKey = getGridKey(lat, lon);
-      const gridCount = gridsUsed.get(gridKey) || 0;
-      const hasBadges = getMapBadges(place.badges).length > 0;
-      
-      // PHASE 1: First 40% - take best places, no grid limit (badges always allowed)
-      const inPhase1 = (result.length - pinned.length) < phase1Limit;
-      
-      // PHASE 2: Last 60% - enforce grid limit (max 3 per grid)
-      // Badges and highlight POIs (beaches, mountains, scenic drives, national parks) are exempt
-      const isHighlightPOI = isHighlightType(place);
-      if (!inPhase1 && !hasBadges && !isHighlightPOI && gridCount >= GRID_LIMIT) {
-        gridLimited++;
-        continue;
-      }
-      
-      // Distance check against all placed markers (special + pinned + normal)
-      // Badged places: 40% of min distance; highlight POIs: 50%
-      const effectiveMinDist = hasBadges ? minDistance * 0.4 : isHighlightPOI ? minDistance * 0.5 : minDistance;
-      let tooClose = false;
-      for (const existing of result) {
-        const dist = getDistanceKm(lat, lon, existing.lat || existing.latitude, existing.lon || existing.longitude);
-        if (dist < effectiveMinDist) {
-          tooClose = true;
-          break;
-        }
-      }
-      
-      if (!tooClose) {
-        result.push(place);
-        gridsUsed.set(gridKey, gridCount + 1);
-      } else {
-        skipped++;
+      const key = getGridKey(lat, lon);
+      const existing = gridMap.get(key);
+      const score = place.attractivenessScore || place.attractiveness_score || 50;
+      const existingScore = existing ? (existing.attractivenessScore || existing.attractiveness_score || 50) : -1;
+      if (!existing || score > existingScore) {
+        gridMap.set(key, place);
       }
     }
-    
+
+    // Take best-per-grid, sort those by score, cap at maxMarkers
+    const gridWinners = Array.from(gridMap.values())
+      .sort((a, b) => {
+        const aScore = a.attractivenessScore || a.attractiveness_score || 50;
+        const bScore = b.attractivenessScore || b.attractiveness_score || 50;
+        return bScore - aScore;
+      })
+      .slice(0, maxMarkers - pinned.length);
+
+    const result = [...specialMarkers, ...pinned, ...gridWinners];
+
     const pinnedCount = pinned.length;
-    const normalCount = result.length - specialMarkers.length - pinnedCount;
-    const phase = normalCount <= phase1Limit ? 'Phase1 only' : 'Phase1+2';
-    console.log(`📊 Final: ${result.length} markers (${pinnedCount} pinned + ${normalCount} normal + ${specialMarkers.length} special), ${skipped} too close, ${gridLimited} grid limited, ${gridsUsed.size} grids [${phase}]`);
+    const normalCount = gridWinners.length;
+    console.log(`📊 Final: ${result.length} markers (${pinnedCount} pinned + ${normalCount} normal + ${specialMarkers.length} special), ${gridMap.size} grids`);
     return result;
   };
 
   const visibleMarkers = useMemo(() => {
     if (!displayDestinations.length || !location || !radius) return [];
+    const { zoom: currentZoom, bounds: currentBounds } = mapViewport;
     const effectiveCenter = centerPoint || location;
     const inRadiusDestinations = displayDestinations.filter(d => {
       const lat = d.lat ?? d.latitude;
@@ -1264,14 +1188,14 @@ const MapScreen = ({ navigation }) => {
       return getDistanceKm(effectiveCenter.latitude, effectiveCenter.longitude, lat, lon) <= radius;
     });
     return getVisibleMarkers(inRadiusDestinations, currentZoom, currentBounds, favouriteDestinations);
-  }, [displayDestinations, currentZoom, currentBounds, location, radius, favouriteDestinations, centerPoint]);
+  }, [mapViewport, displayDestinations, location, radius, favouriteDestinations, centerPoint]);
 
   // Track map_view_count as a side-effect of visibleMarkers changing
   useEffect(() => {
     if (visibleMarkers.length === 0) return;
     if (__DEV__) {
       const specialCount = visibleMarkers.filter(v => v.isCurrentLocation || v.isCenterPoint).length;
-      console.log(`🔍 Zoom ${currentZoom}: ${visibleMarkers.length} markers (${specialCount} special) of ${displayDestinations.length}`);
+      console.log(`🔍 Zoom ${mapViewport.zoom}: ${visibleMarkers.length} markers (${specialCount} special) of ${displayDestinations.length}`);
     }
     const newIds = visibleMarkers
       .filter(d => d.id && !d.isCurrentLocation && !d.isCenterPoint && !mapViewTrackedIds.current.has(d.id))
@@ -1326,8 +1250,8 @@ const MapScreen = ({ navigation }) => {
 
     const { latitude, longitude } = event.nativeEvent.coordinate;
 
-    const maxDistance = currentZoom >= 8 ? 20 :
-                        currentZoom >= 6 ? 50 :
+    const maxDistance = mapViewport.zoom >= 8 ? 20 :
+                        mapViewport.zoom >= 6 ? 50 :
                         100;
 
     try {
@@ -1392,7 +1316,7 @@ const MapScreen = ({ navigation }) => {
             id: place.id,
             lat,
             lon,
-            name: `⊕ ${detail.name || place.name}`,
+            name: `⊕ ${detail.name || getPlaceName(place, i18n.language)}`,
             condition: detail.condition || 'cloudy',
             temperature: detail.temperature,
             temp_max: detail.temp_max ?? detail.temperature,
@@ -1407,8 +1331,7 @@ const MapScreen = ({ navigation }) => {
             forecastDays: forecastDaysArr,
             country_code: detail.countryCode || detail.country_code || place.country_code,
             countryCode: detail.countryCode || detail.country_code || place.country_code,
-            place_type: detail.place_type || detail.place_category || null,
-            place_category: detail.place_category || detail.place_type || null,
+            place_type: detail.place_type || null,
             image_region: detail.image_region || null,
           };
 
@@ -1641,7 +1564,7 @@ const MapScreen = ({ navigation }) => {
     // If Google place, auto-add to DB first (fire-and-forget for the insert, but we need coords)
     if (item.source === 'google') {
       ensurePlaceInDB(item).then(dbPlace => {
-        if (__DEV__ && dbPlace) console.log('🆕 Google place saved:', dbPlace.name, dbPlace.id);
+        if (__DEV__ && dbPlace) console.log('🆕 Google place saved:', dbPlace.name_en, dbPlace.id);
       });
     }
 
@@ -1687,6 +1610,7 @@ const MapScreen = ({ navigation }) => {
     regionChangeDebounceTimer.current = setTimeout(() => {
       regionChangeDebounceTimer.current = null;
       const zoom = Math.max(1, Math.min(20, Math.round(Math.log2(360 / region.latitudeDelta))));
+      currentZoomRef.current = zoom;
       const { latitude, longitude, latitudeDelta, longitudeDelta } = region;
       const newBounds = {
         north: latitude + latitudeDelta / 2,
@@ -1694,11 +1618,7 @@ const MapScreen = ({ navigation }) => {
         east: longitude + longitudeDelta / 2,
         west: longitude - longitudeDelta / 2,
       };
-      if (zoom !== currentZoomRef.current) {
-        currentZoomRef.current = zoom;
-        setCurrentZoom(zoom);
-      }
-      setCurrentBounds(newBounds);
+      setMapViewport({ zoom, bounds: newBounds });
       let newLatitude = latitude;
       let newLongitude = longitude;
       let needsAdjustment = false;
@@ -1933,6 +1853,12 @@ const MapScreen = ({ navigation }) => {
         showsMyLocationButton={false}
         onPress={handleMapTap}
         onLongPress={handleMapLongPress}
+        onRegionChange={(region) => {
+          const zoom = Math.max(1, Math.min(20,
+            Math.round(Math.log2(360 / region.latitudeDelta))
+          ));
+          currentZoomRef.current = zoom;
+        }}
         onRegionChangeComplete={handleRegionChangeComplete}
       >
         {/* Guard: no markers until location + radius are ready */}
@@ -2034,7 +1960,7 @@ const MapScreen = ({ navigation }) => {
             
             return (
           <Marker
-            key={`sep-fav-${fav.placeId || fav.id || `${fav.lat}-${fav.lon}`}-${selectedDateOffset}-${currentZoom}`}
+            key={`sep-fav-${fav.placeId || fav.id || `${fav.lat}-${fav.lon}`}-${selectedDateOffset}-${mapViewport.zoom}`}
             coordinate={{ latitude: Number(fav.lat), longitude: Number(fav.lon) }}
             anchor={{ x: 0.5, y: 0.5 }}
             zIndex={10000}
@@ -2323,7 +2249,7 @@ const MapScreen = ({ navigation }) => {
 
       {/* Zoom Level Indicator */}
       <View style={[styles.zoomIndicator, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        <Text style={[styles.zoomIndicatorText, { color: theme.textSecondary }]}>Z{currentZoom}</Text>
+        <Text style={[styles.zoomIndicatorText, { color: theme.textSecondary }]}>Z{mapViewport.zoom}</Text>
       </View>
 
       {/* Bottom Left Buttons Container */}
@@ -2338,7 +2264,7 @@ const MapScreen = ({ navigation }) => {
           accessibilityRole="button"
         >
           <Text style={styles.reverseIcon}>{reverseMode === 'warm' ? '☀️' : reverseMode === 'cold' ? '❄️' : <Text>☀️<Text style={{ color: 'rgba(255,255,255,0.5)' }}>/</Text>❄️</Text>}</Text>
-          <Text style={styles.reverseLabel}>{reverseMode === 'warm' ? 'Wärmer' : reverseMode === 'cold' ? 'Kühler' : 'Alle'}</Text>
+          <Text style={styles.reverseLabel}>{reverseMode === 'warm' ? t('map.modeWarmer') : reverseMode === 'cold' ? t('map.modeCooler') : t('map.modeAll')}</Text>
         </TouchableOpacity>
 
       </View>

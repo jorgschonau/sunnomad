@@ -9,14 +9,14 @@ async function checkCities() {
   // Check Vancouver
   const { data: vancouver } = await supabase
     .from('places_with_latest_weather')
-    .select('id, name, latitude, longitude, temperature, weather_description, population, attractiveness_score')
-    .ilike('name', '%vancouver%')
+    .select('id, name_en, latitude, longitude, temperature, weather_description, population, attractiveness_score')
+    .ilike('name_en', '%vancouver%')
     .limit(5);
 
   console.log('🇨🇦 Vancouver:');
   if (vancouver && vancouver.length > 0) {
     vancouver.forEach(p => {
-      console.log(`   ✅ ${p.name}: ${p.temperature} °C, Pop: ${p.population?.toLocaleString() || 'N/A'}, Score: ${p.attractiveness_score}`);
+      console.log(`   ✅ ${p.name_en}: ${p.temperature} °C, Pop: ${p.population?.toLocaleString() || 'N/A'}, Score: ${p.attractiveness_score}`);
     });
   } else {
     console.log('   ❌ Not found!');
@@ -27,14 +27,14 @@ async function checkCities() {
   // Check Seattle
   const { data: seattle } = await supabase
     .from('places_with_latest_weather')
-    .select('id, name, latitude, longitude, temperature, weather_description, population, attractiveness_score')
-    .ilike('name', '%seattle%')
+    .select('id, name_en, latitude, longitude, temperature, weather_description, population, attractiveness_score')
+    .ilike('name_en', '%seattle%')
     .limit(5);
 
   console.log('🇺🇸 Seattle:');
   if (seattle && seattle.length > 0) {
     seattle.forEach(p => {
-      console.log(`   ✅ ${p.name}: ${p.temperature} °C, Pop: ${p.population?.toLocaleString() || 'N/A'}, Score: ${p.attractiveness_score}`);
+      console.log(`   ✅ ${p.name_en}: ${p.temperature} °C, Pop: ${p.population?.toLocaleString() || 'N/A'}, Score: ${p.attractiveness_score}`);
     });
   } else {
     console.log('   ❌ Not found!');

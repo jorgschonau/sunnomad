@@ -2,7 +2,7 @@
 -- Run in Supabase SQL Editor
 
 -- Specific German cities (user requested)
-INSERT INTO places (name, latitude, longitude, country_code, region, place_type, is_active) VALUES
+INSERT INTO places (name_en, latitude, longitude, country_code, region, place_type, is_active) VALUES
   ('Wittstock', 53.1667, 12.4833, 'DE', 'europe', 'town', true),
   ('Neuruppin', 52.9167, 12.8000, 'DE', 'europe', 'town', true),
   ('Rheinsberg', 53.1000, 12.9000, 'DE', 'europe', 'town', true),
@@ -11,7 +11,7 @@ INSERT INTO places (name, latitude, longitude, country_code, region, place_type,
   ('Oranienburg', 52.7542, 13.2364, 'DE', 'europe', 'town', true);
 
 -- Top 10 Germany
-INSERT INTO places (name, latitude, longitude, country_code, region, place_type, is_active) VALUES
+INSERT INTO places (name_en, latitude, longitude, country_code, region, place_type, is_active) VALUES
   ('Berlin', 52.5200, 13.4050, 'DE', 'europe', 'city', true),
   ('Hamburg', 53.5511, 9.9937, 'DE', 'europe', 'city', true),
   ('Munich', 48.1351, 11.5820, 'DE', 'europe', 'city', true),
@@ -25,7 +25,7 @@ INSERT INTO places (name, latitude, longitude, country_code, region, place_type,
 ;
 
 -- Top 10 France
-INSERT INTO places (name, latitude, longitude, country_code, region, place_type, is_active) VALUES
+INSERT INTO places (name_en, latitude, longitude, country_code, region, place_type, is_active) VALUES
   ('Paris', 48.8566, 2.3522, 'FR', 'europe', 'city', true),
   ('Marseille', 43.2965, 5.3698, 'FR', 'europe', 'city', true),
   ('Lyon', 45.7640, 4.8357, 'FR', 'europe', 'city', true),
@@ -39,7 +39,7 @@ INSERT INTO places (name, latitude, longitude, country_code, region, place_type,
 ;
 
 -- Top 10 Spain
-INSERT INTO places (name, latitude, longitude, country_code, region, place_type, is_active) VALUES
+INSERT INTO places (name_en, latitude, longitude, country_code, region, place_type, is_active) VALUES
   ('Madrid', 40.4168, -3.7038, 'ES', 'europe', 'city', true),
   ('Barcelona', 41.3851, 2.1734, 'ES', 'europe', 'city', true),
   ('Valencia', 39.4699, -0.3763, 'ES', 'europe', 'city', true),
@@ -53,7 +53,7 @@ INSERT INTO places (name, latitude, longitude, country_code, region, place_type,
 ;
 
 -- Top 10 Portugal
-INSERT INTO places (name, latitude, longitude, country_code, region, place_type, is_active) VALUES
+INSERT INTO places (name_en, latitude, longitude, country_code, region, place_type, is_active) VALUES
   ('Lisbon', 38.7223, -9.1393, 'PT', 'europe', 'city', true),
   ('Porto', 41.1579, -8.6291, 'PT', 'europe', 'city', true),
   ('Vila Nova de Gaia', 41.1239, -8.6118, 'PT', 'europe', 'city', true),
@@ -67,7 +67,7 @@ INSERT INTO places (name, latitude, longitude, country_code, region, place_type,
 ;
 
 -- Top 10 USA
-INSERT INTO places (name, latitude, longitude, country_code, region, place_type, is_active) VALUES
+INSERT INTO places (name_en, latitude, longitude, country_code, region, place_type, is_active) VALUES
   ('New York', 40.7128, -74.0060, 'US', 'north_america', 'city', true),
   ('Los Angeles', 34.0522, -118.2437, 'US', 'north_america', 'city', true),
   ('Chicago', 41.8781, -87.6298, 'US', 'north_america', 'city', true),
@@ -81,7 +81,7 @@ INSERT INTO places (name, latitude, longitude, country_code, region, place_type,
 ;
 
 -- Top 10 Canada
-INSERT INTO places (name, latitude, longitude, country_code, region, place_type, is_active) VALUES
+INSERT INTO places (name_en, latitude, longitude, country_code, region, place_type, is_active) VALUES
   ('Toronto', 43.6532, -79.3832, 'CA', 'north_america', 'city', true),
   ('Montreal', 45.5017, -73.5673, 'CA', 'north_america', 'city', true),
   ('Vancouver', 49.2827, -123.1207, 'CA', 'north_america', 'city', true),

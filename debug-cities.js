@@ -65,16 +65,16 @@ async function debug() {
   // Query DB with bounding box
   const { data: places, error } = await supabase
     .from('places_with_latest_weather')
-    .select('name, latitude, longitude, population, attractiveness_score')
+    .select('name_en, latitude, longitude, population, attractiveness_score')
     .gte('latitude', bbox.latMin)
     .lte('latitude', bbox.latMax)
     .gte('longitude', bbox.lonMin)
     .lte('longitude', bbox.lonMax)
-    .ilike('name', '%vancouver%');
+    .ilike('name_en', '%vancouver%');
   
   console.log(`🔍 Query for Vancouver in bbox:`);
   if (places && places.length > 0) {
-    places.forEach(p => console.log(`   ✅ ${p.name}`));
+    places.forEach(p => console.log(`   ✅ ${p.name_en}`));
   } else {
     console.log(`   ❌ Not found in bounding box query!`);
   }

@@ -120,7 +120,7 @@ async function main() {
   
   const { data: missing } = await supabase
     .from('places')
-    .select('id, name, latitude, longitude, country_code')
+    .select('id, name_en, latitude, longitude, country_code')
     .eq('is_active', true)
     .is('last_weather_fetch', null);
 
@@ -142,9 +142,9 @@ async function main() {
           await saveWeatherData(place.id, data.current);
           await saveForecast(place.id, data.daily);
           await supabase.from('places').update({ last_weather_fetch: new Date().toISOString() }).eq('id', place.id);
-          return { success: true, name: place.name };
+          return { success: true, name: place.name_en };
         } catch (error) {
-          return { success: false, name: place.name, error: error.message };
+          return { success: false, name: place.name_en, error: error.message };
         }
       })
     );

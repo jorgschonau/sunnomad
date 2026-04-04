@@ -22,7 +22,7 @@ const formatDate = (dateString) => {
 };
 
 const FavouritesScreen = ({ navigation }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { theme } = useTheme();
   const { temperatureUnit, windSpeedUnit } = useUnits();
   const [favourites, setFavourites] = useState([]);
@@ -31,7 +31,7 @@ const FavouritesScreen = ({ navigation }) => {
   const loadFavourites = async () => {
     setLoading(true);
     try {
-      const favs = await getFavourites();
+      const favs = await getFavourites(i18n.language);
       setFavourites(favs);
     } catch (error) {
       console.error('Failed to load favourites:', error);

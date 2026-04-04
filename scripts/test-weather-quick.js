@@ -18,7 +18,7 @@ async function main() {
   // Get 5 places
   const { data: places, error } = await supabase
     .from('places')
-    .select('id, name, latitude, longitude')
+    .select('id, name_en, latitude, longitude')
     .eq('is_active', true)
     .limit(5);
 
@@ -31,7 +31,7 @@ async function main() {
 
   for (const place of places) {
     try {
-      console.log(`Fetching: ${place.name}...`);
+      console.log(`Fetching: ${place.name_en}...`);
       
       const params = new URLSearchParams({
         latitude: place.latitude,
@@ -55,7 +55,7 @@ async function main() {
       const tempMin = data.daily.temperature_2m_min[0];
       const tempMax = data.daily.temperature_2m_max[0];
 
-      console.log(`  ✅ ${place.name}: ${tempMin}°/${tempMax} °C (${today})`);
+      console.log(`  ✅ ${place.name_en}: ${tempMin}°/${tempMax} °C (${today})`);
 
       // Try to save
       const { error: saveError } = await supabase
