@@ -63,7 +63,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
       targetDate = now.toISOString().split('T')[0]; // Default: today
     }
     
-    console.log(`🌤️ Fetching places + weather for ${targetDate}...`);
+    __DEV__ && console.log(`🌤️ Fetching places + weather for ${targetDate}...`);
     
     // Build bounding box
     let latMin, latMax, lonMin, lonMax;
@@ -110,11 +110,11 @@ export const getPlacesWithWeather = async (filters = {}) => {
         ...mergedPlaces,
         ...(diversePlaces || []).filter(p => !allIds.has(p.id))
       ];
-      console.log(`🗺️ Diversity merge: ${places?.length || 0} score-based + ${diversePlaces?.length || 0} diverse → ${mergedPlaces.length} total`);
+      __DEV__ && console.log(`🗺️ Diversity merge: ${places?.length || 0} score-based + ${diversePlaces?.length || 0} diverse → ${mergedPlaces.length} total`);
     }
 
-    console.log(`📍 Got ${mergedPlaces.length} places`);
-    if (mergedPlaces[0]) console.log('[DEBUG] first place keys:', Object.keys(mergedPlaces[0]).join(', '), '| place_type:', mergedPlaces[0].place_type, '| image_region:', mergedPlaces[0].image_region);
+    __DEV__ && console.log(`📍 Got ${mergedPlaces.length} places`);
+    if (mergedPlaces[0]) __DEV__ && console.log('[DEBUG] first place keys:', Object.keys(mergedPlaces[0]).join(', '), '| place_type:', mergedPlaces[0].place_type, '| image_region:', mergedPlaces[0].image_region);
     
     if (mergedPlaces.length === 0) {
       return { places: [], error: null };
@@ -123,7 +123,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
     // Query 2: Get weather for places (16 days)
     const placeIds = mergedPlaces.map(p => p.id);
     const fallbackDate = new Date(new Date(targetDate).getTime() + 16 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    console.log(`🌤️ Fetching weather for ${placeIds.length} places (${targetDate} to ${fallbackDate})...`);
+    __DEV__ && console.log(`🌤️ Fetching weather for ${placeIds.length} places (${targetDate} to ${fallbackDate})...`);
     
     let allWeather = [];
     const CHUNK_SIZE = 500;  // CHANGED: 200 → 500
@@ -146,7 +146,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
       }
     }
     
-    console.log(`🌤️ Got ${allWeather.length} weather records (${targetDate} - ${fallbackDate})`);
+    __DEV__ && console.log(`🌤️ Got ${allWeather.length} weather records (${targetDate} - ${fallbackDate})`);
     
     // Build weather map with forecast for multiple days (up to 16 days)
     const weatherMap = {};
@@ -244,7 +244,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
     });
     
     const withWeather = placesData.filter(p => p.temp_min != null).length;
-    console.log(`🔗 ${withWeather}/${placesData.length} places have weather`);
+    __DEV__ && console.log(`🔗 ${withWeather}/${placesData.length} places have weather`);
     
     // Transform places - ONLY include those with valid temperature!
     let finalPlaces = placesData
@@ -302,12 +302,12 @@ export const getPlacesWithWeather = async (filters = {}) => {
       });
     
     const withWeatherCount = finalPlaces.length;
-    console.log(`✅ ${withWeatherCount} places with valid temperature data`);
+    __DEV__ && console.log(`✅ ${withWeatherCount} places with valid temperature data`);
     
     // Sort by temp (warmest first)
     finalPlaces.sort((a, b) => (b.temp_max || 0) - (a.temp_max || 0));
     
-    console.log(`📊 ${finalPlaces.length} places with weather`);
+    __DEV__ && console.log(`📊 ${finalPlaces.length} places with weather`);
     
     if (filters.userLat && filters.userLon) {
       finalPlaces = finalPlaces
@@ -340,7 +340,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
         })
         .filter(place => !filters.radiusKm || place.distance <= filters.radiusKm);
       
-      console.log(`🗺️ Backend: ${finalPlaces.length} places in radius`);
+      __DEV__ && console.log(`🗺️ Backend: ${finalPlaces.length} places in radius`);
     }
     
     // Sort by temp (warmest first)

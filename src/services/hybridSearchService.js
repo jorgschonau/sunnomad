@@ -4,7 +4,6 @@ import { getCountryName } from '../utils/countryNames';
 import { getPlaceName } from '../utils/localization';
 
 const GOOGLE_API_KEY = Constants.expoConfig?.extra?.googleMapsApiKey;
-console.log('🔑 Google API Key:', GOOGLE_API_KEY ? `${GOOGLE_API_KEY.slice(0, 10)}...` : 'MISSING');
 
 // Google Places API allows max 180° wide rectangle, so we split into
 // Europe+Africa and Americas. searchGoogle tries the user's region first.
@@ -57,11 +56,11 @@ export const hybridSearch = async (query, center, language = 'de') => {
     googlePlaces = unique;
     if (promoted.length > 0) {
       dbPlaces.push(...promoted);
-      console.log(`🔍 Promoted ${promoted.length} DB places from Google coord match:`, promoted.map(p => p.name_en));
+      __DEV__ && console.log(`🔍 Promoted ${promoted.length} DB places from Google coord match:`, promoted.map(p => p.name_en));
     }
   }
 
-  console.log(`🔍 hybridSearch "${query}": ${dbPlaces.length} DB, ${rawGooglePlaces.length} Google raw, ${googlePlaces.length} Google after dedup`);
+  __DEV__ && console.log(`🔍 hybridSearch "${query}": ${dbPlaces.length} DB, ${rawGooglePlaces.length} Google raw, ${googlePlaces.length} Google after dedup`);
   return { dbPlaces, googlePlaces };
 };
 
@@ -111,7 +110,7 @@ async function searchDB(query, center, language = 'en') {
  */
 async function searchGoogle(query, language, bounds = BOUNDS_EUROPE) {
   try {
-    console.log(`🔍 Google search: query="${query}", key=${GOOGLE_API_KEY ? 'present' : 'MISSING'}`);
+    __DEV__ && console.log(`🔍 Google search: query="${query}", key=${GOOGLE_API_KEY ? 'present' : 'MISSING'}`);
     const res = await fetch('https://places.googleapis.com/v1/places:searchText', {
       method: 'POST',
       headers: {
@@ -132,7 +131,7 @@ async function searchGoogle(query, language, bounds = BOUNDS_EUROPE) {
       }),
     });
     const json = await res.json();
-    console.log(`🔍 Google response: status=${res.status}, places=${json.places?.length || 0}, error=${json.error?.message || 'none'}`);
+    __DEV__ && console.log(`🔍 Google response: status=${res.status}, places=${json.places?.length || 0}, error=${json.error?.message || 'none'}`);
     if (!res.ok || json.error) {
       console.warn('Google Places API error:', json.error?.message || res.status);
       return [];
@@ -160,7 +159,7 @@ async function searchGoogle(query, language, bounds = BOUNDS_EUROPE) {
     });
     const rejected = allMapped.filter(p => !p._geo || !p._allowed);
     if (rejected.length > 0) {
-      console.log(`🔍 Google filtered out ${rejected.length}:`, rejected.map(p => `${p.name} [geo=${p._geo}, cc=${p.country_code}, allowed=${p._allowed}, types=${p._types.slice(0, 3).join(',')}]`));
+      __DEV__ && console.log(`🔍 Google filtered out ${rejected.length}:`, rejected.map(p => `${p.name} [geo=${p._geo}, cc=${p.country_code}, allowed=${p._allowed}, types=${p._types.slice(0, 3).join(',')}]`));
     }
     return allMapped
       .filter(p => p._geo && p._allowed && p.latitude && p.longitude)

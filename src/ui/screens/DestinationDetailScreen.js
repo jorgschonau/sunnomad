@@ -251,7 +251,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         try {
           const lat = destination.lat ?? destination.latitude;
           const lon = destination.lon ?? destination.longitude;
-          console.log('[resolvePlace] no UUID, trying lookup. lat:', lat, 'lon:', lon, 'name:', destination.name);
+          __DEV__ && console.log('[resolvePlace] no UUID, trying lookup. lat:', lat, 'lon:', lon, 'name:', destination.name);
           // Try by coordinates (±0.05° ≈ 5.5km)
           if (lat != null && lon != null) {
             const { data, error } = await supabase
@@ -262,24 +262,24 @@ const DestinationDetailScreen = ({ route, navigation }) => {
               .gte('longitude', lon - 0.05)
               .lte('longitude', lon + 0.05)
               .limit(1);
-            console.log('[resolvePlace] coord result:', data, 'error:', error);
+            __DEV__ && console.log('[resolvePlace] coord result:', data, 'error:', error);
             if (data?.[0]?.id) resolvedId = data[0].id;
           }
           // Fallback: try by name (partial, case-insensitive)
           if (!(/^[0-9a-f]{8}-/i.test(resolvedId))) {
             const cleanName = (destination.name || '').replace(/^[📍⊕★]\s?/g, '').trim();
-            console.log('[resolvePlace] coord miss, trying name:', cleanName);
+            __DEV__ && console.log('[resolvePlace] coord miss, trying name:', cleanName);
             if (cleanName) {
               const { data, error } = await supabase
                 .from('places')
                 .select('id, name_en')
                 .ilike('name_en', `%${cleanName}%`)
                 .limit(1);
-              console.log('[resolvePlace] name result:', data, 'error:', error);
+              __DEV__ && console.log('[resolvePlace] name result:', data, 'error:', error);
               if (data?.[0]?.id) resolvedId = data[0].id;
             }
           }
-          console.log('[resolvePlace] final resolvedId:', resolvedId);
+          __DEV__ && console.log('[resolvePlace] final resolvedId:', resolvedId);
         } catch (e) {
           console.warn('[resolvePlace] lookup failed:', e);
         }

@@ -161,33 +161,6 @@ export const isFavourite = async (placeId) => {
 };
 
 /**
- * Update favourite notes
- * @param {string} placeId - Place ID
- * @param {string} notes - Updated notes
- * @returns {Promise<{favourite, error}>}
- */
-export const updateFavouriteNotes = async (placeId, notes) => {
-  try {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) throw new Error('User not authenticated');
-
-    const { data, error } = await supabase
-      .from('favourites')
-      .update({ notes })
-      .eq('user_id', user.id)
-      .eq('place_id', placeId)
-      .select()
-      .single();
-
-    if (error) throw error;
-    return { favourite: data, error: null };
-  } catch (error) {
-    console.error('Update favourite notes error:', error);
-    return { favourite: null, error };
-  }
-};
-
-/**
  * Clear all favourites for the current user
  * @returns {Promise<{error}>}
  */
@@ -214,7 +187,6 @@ export default {
   addFavourite,
   removeFavourite,
   isFavourite,
-  updateFavouriteNotes,
   clearFavourites,
 };
 

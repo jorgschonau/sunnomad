@@ -131,10 +131,10 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
     });
   
   // DEBUG: Show top 10 candidates
-  console.log(`💰 DEBUG Budget Candidates (top 10 of ${budgetCandidates.length}):`);
+  __DEV__ && console.log(`💰 DEBUG Budget Candidates (top 10 of ${budgetCandidates.length}):`);
   budgetCandidates.slice(0, 10).forEach((c, i) => {
     const data = c._worthTheDriveBudgetData;
-    console.log(`  ${i+1}. ${c.name}: eff=${data.efficiency.toFixed(4)}, temp=${c.temperature} °C, delta=+${data.tempDelta} °C, dist=${data.distance}km`);
+    __DEV__ && console.log(`  ${i+1}. ${c.name}: eff=${data.efficiency.toFixed(4)}, temp=${c.temperature} °C, delta=+${data.tempDelta} °C, dist=${data.distance}km`);
   });
   
   // Count how many Worth the Drive candidates exist (before Budget steals them)
@@ -167,7 +167,7 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
       // Don't steal the last Worth the Drive candidate
       const hasWTD = candidate.badges.includes('WORTH_THE_DRIVE');
       if (hasWTD && remainingWTD <= 1) {
-        console.log(`💰 Skipped ${candidate.name} for Budget (would leave 0 Worth the Drive badges)`);
+        __DEV__ && console.log(`💰 Skipped ${candidate.name} for Budget (would leave 0 Worth the Drive badges)`);
         continue;
       }
 
@@ -178,7 +178,7 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
       const destInNorthAfrica = NORTH_AFRICA_CODES.has(destCc);
       const originInNorthAfrica = originCc && NORTH_AFRICA_CODES.has(originCc);
       if (destInNorthAfrica && !originInNorthAfrica && distanceFromOrigin > 1000) {
-        console.log(`💰 Skipped ${candidate.name} for Budget (dest ${destCc} North Africa, origin outside, ${Math.round(distanceFromOrigin)}km > 1000km)`);
+        __DEV__ && console.log(`💰 Skipped ${candidate.name} for Budget (dest ${destCc} North Africa, origin outside, ${Math.round(distanceFromOrigin)}km > 1000km)`);
         continue;
       }
 
@@ -189,7 +189,7 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
         remainingWTD--;
       }
       selectedBudgetBadges.push(candidate);
-      console.log(
+      __DEV__ && console.log(
         `💰 ${candidate.name}: Budget #${selectedBudgetBadges.length}! ` +
         `Efficiency: ${candidate._worthTheDriveBudgetData.efficiency.toFixed(3)} °C/km, ` +
         `Temp: +${candidate._worthTheDriveBudgetData.tempDelta} °C, ` +
@@ -212,10 +212,10 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
     });
   
   // DEBUG: Show ALL Worth the Drive candidates (not just top 10)
-  console.log(`🚗 DEBUG Worth the Drive Candidates (${worthTheDriveCandidates.length} total):`);
+  __DEV__ && console.log(`🚗 DEBUG Worth the Drive Candidates (${worthTheDriveCandidates.length} total):`);
   worthTheDriveCandidates.slice(0, 15).forEach((c, i) => {
     const data = c._worthTheDriveData;
-    console.log(`  ${i+1}. ${c.name}: temp=${data?.tempDest} °C, delta=+${data?.tempDelta} °C, value=${data?.value}, dist=${c.distance?.toFixed(0)}km`);
+    __DEV__ && console.log(`  ${i+1}. ${c.name}: temp=${data?.tempDest} °C, delta=+${data?.tempDelta} °C, value=${data?.value}, dist=${c.distance?.toFixed(0)}km`);
   });
   
   // Greedy selection: pick top candidates that are at least 20km apart
@@ -236,9 +236,9 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
     
     if (!tooClose) {
       selectedWorthBadges.push(candidate);
-      console.log(`  ✅ Selected: ${candidate.name}`);
+      __DEV__ && console.log(`  ✅ Selected: ${candidate.name}`);
     } else {
-      console.log(`  ❌ Skipped (too close): ${candidate.name}`);
+      __DEV__ && console.log(`  ❌ Skipped (too close): ${candidate.name}`);
     }
   }
   
@@ -265,7 +265,7 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
         dest.badges = dest.badges.filter(b => b !== 'WORTH_THE_DRIVE_BUDGET');
         dest.badges.push('WORTH_THE_DRIVE');
         promoted.push(dest);
-        console.log(
+        __DEV__ && console.log(
           `🚗💰 ${dest.name}: Budget → Worth the Drive (dist ${Math.round(dist)}km ≥ ${Math.round(threshold)}km threshold, no other WTD badges)`
         );
       }
@@ -295,7 +295,7 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
         }
         remainingBudget.push(replacement);
         const data = replacement._worthTheDriveBudgetData;
-        console.log(
+        __DEV__ && console.log(
           `💰 ${replacement.name}: Budget backfill (closer ${Math.round(data?.distance ?? replacement.distance ?? 0)}km, replacing promoted)`
         );
       }
@@ -354,7 +354,7 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
     }
   });
   
-  console.log(`☀️ Sunny Streak: ${sunnyCandidates.length} → ${selectedSunny.length} (max 10, min 20km apart)`);
+  __DEV__ && console.log(`☀️ Sunny Streak: ${sunnyCandidates.length} → ${selectedSunny.length} (max 10, min 20km apart)`);
   
   // Limit Snow King: max 10 total, max 3 per country, sorted by score (60% snow + 40% cold)
   const MAX_SNOW_PER_COUNTRY = 3;
@@ -385,7 +385,7 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
     }
   });
   
-  console.log(`⛄ Snow King: ${snowCandidates.length} → ${selectedSnow.length} (max 10, max 3/country, by score)`);
+  __DEV__ && console.log(`⛄ Snow King: ${snowCandidates.length} → ${selectedSnow.length} (max 10, max 3/country, by score)`);
   
   // Limit Warm & Dry: max 10, by warmest temperature
   const warmDryCandidates = destinations
@@ -427,7 +427,7 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
   const heatwaveCount = destinations.filter(d => d.badges?.includes('HEATWAVE')).length;
   const snowCount = destinations.filter(d => d.badges?.includes('SNOW_KING')).length;
   
-  console.log(
+  __DEV__ && console.log(
     `🏆 Awarded ${totalBadges} badges to ${destWithBadges.length} destinations:\n` +
     `  💰 Budget: ${budgetCount}/${budgetCandidates.length} (TOP 1 ONLY)\n` +
     `  🚗 Worth: ${worthCount}/${worthTheDriveCandidates.length} (max 3, min 20km apart)\n` +
@@ -460,14 +460,14 @@ export const getWeatherForRadius = async (userLat, userLon, radiusKm, desiredCon
     return [];
   }
 
-  console.log(`📍 Loaded ${places.length} places from Supabase`);
+  __DEV__ && console.log(`📍 Loaded ${places.length} places from Supabase`);
 
   // Apply condition filter if specified
   let filteredPlaces = desiredCondition 
     ? filterDestinationsByCondition(places, desiredCondition)
     : places;
 
-  console.log(`🔍 After filter: ${filteredPlaces.length} places`);
+  __DEV__ && console.log(`🔍 After filter: ${filteredPlaces.length} places`);
   
   // Limit markers from small/distant countries if user is NOT in these countries
   // This prevents Caribbean islands etc. from flooding the map
@@ -493,7 +493,7 @@ export const getWeatherForRadius = async (userLat, userLon, radiusKm, desiredCon
     });
     
     const limitedCount = Object.values(smallCountryCount).reduce((sum, c) => sum + Math.min(c, MAX_PER_SMALL_COUNTRY), 0);
-    console.log(`🏝️ Limited small countries (${SMALL_COUNTRIES.join(', ')}) to max ${MAX_PER_SMALL_COUNTRY} each: ${limitedCount} markers`);
+    __DEV__ && console.log(`🏝️ Limited small countries (${SMALL_COUNTRIES.join(', ')}) to max ${MAX_PER_SMALL_COUNTRY} each: ${limitedCount} markers`);
   }
 
   // HÖHERE LIMITS - mehr Orte auf der Karte!
@@ -529,7 +529,7 @@ export const getWeatherForRadius = async (userLat, userLon, radiusKm, desiredCon
   });
 
   if (filteredPlaces.length > MAX_PLACES_ON_MAP) {
-    console.log(`⚡ Limiting to ${MAX_PLACES_ON_MAP} places for radius ${radiusKm}km (sorted by attractiveness)`);
+    __DEV__ && console.log(`⚡ Limiting to ${MAX_PLACES_ON_MAP} places for radius ${radiusKm}km (sorted by attractiveness)`);
     filteredPlaces = filteredPlaces.slice(0, MAX_PLACES_ON_MAP);
   }
 
@@ -566,7 +566,7 @@ export const getWeatherForRadius = async (userLat, userLon, radiusKm, desiredCon
     };
   }
   
-  console.log(`🎯 Badge origin: ${currentLocationWeather.name} at ${currentLocationWeather.temperature} °C`);
+  __DEV__ && console.log(`🎯 Badge origin: ${currentLocationWeather.name} at ${currentLocationWeather.temperature} °C`);
 
   // Apply badges to all destinations
   applyBadgesToDestinations(filteredPlaces, currentLocationWeather, userLat, userLon, reverseMode, radiusKm);

@@ -26,7 +26,7 @@ export const AuthProvider = ({ children }) => {
   // Listen to auth state changes
   useEffect(() => {
     const subscription = authService.onAuthStateChange(async (event, session) => {
-      console.log('Auth state changed:', event);
+      if (__DEV__) console.log('Auth state changed:', event);
       setSession(session);
       setUser(session?.user ?? null);
 

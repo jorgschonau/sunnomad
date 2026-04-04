@@ -5,10 +5,8 @@ import {
   TouchableOpacity,
   Text,
   TextInput,
-  FlatList,
   ActivityIndicator,
   Platform,
-  Animated,
   Linking,
   InteractionManager,
   Keyboard,
@@ -31,7 +29,6 @@ import WeatherFilter from '../components/WeatherFilter';
 import DateFilter from '../components/DateFilter';
 import OnboardingOverlay from '../components/OnboardingOverlay';
 import AnimatedBadge from '../components/AnimatedBadge';
-import { SkeletonMapMarker } from '../components/SkeletonLoader';
 import { useUnits } from '../../contexts/UnitContext';
 import { formatTemperature, formatDistance } from '../../utils/unitConversion';
 import { hasDedicatedHeroImage } from '../../utils/heroImages';
@@ -188,13 +185,11 @@ const MapScreen = ({ navigation }) => {
   const [loadingTipIndex, setLoadingTipIndex] = useState(0);
   const [showSkipLocation, setShowSkipLocation] = useState(false);
   const [loadingDestinations, setLoadingDestinations] = useState(false);
-  const [mapType, setMapType] = useState('standard'); // standard, satellite, hybrid, terrain, mutedStandard
   const [controlsExpanded, setControlsExpanded] = useState(true); // Controls einklappbar
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showOnlyBadges, setShowOnlyBadges] = useState(false); // Toggle to show only destinations with badges
   const [showRadiusMenu, setShowRadiusMenu] = useState(false); // Dropdown for radius selection
   const [reverseMode, setReverseMode] = useState('warm'); // 'warm' or 'cold' - which places to reward
-  const [radiusShape, setRadiusShape] = useState('circle'); // 'circle', 'half', 'semi' - radius shape
   const [currentRegion, setCurrentRegion] = useState(null); // Track current map region
   const [favouriteDestinations, setFavouriteDestinations] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -724,7 +719,7 @@ const MapScreen = ({ navigation }) => {
       sunshine_duration: 0,
     }));
 
-    console.log(`${prefix} Weather from DB: ${detail.name} (${forecastData.length} days)`);
+    __DEV__ && console.log(`${prefix} Weather from DB: ${detail.name} (${forecastData.length} days)`);
     return {
       id: place.id,
       lat, lon,
@@ -758,7 +753,7 @@ const MapScreen = ({ navigation }) => {
       if (dbResult) return dbResult;
 
       // --- Fallback: Open-Meteo API (no nearby place in DB) ---
-      console.log('📍 No nearby DB place for location, falling back to Open-Meteo API');
+      __DEV__ && console.log('📍 No nearby DB place for location, falling back to Open-Meteo API');
 
       const params = new URLSearchParams({
         latitude: location.latitude,
@@ -905,29 +900,9 @@ const MapScreen = ({ navigation }) => {
 
   // No more dynamic marker scaling - library handles density!
 
-  const toggleMapType = () => {
-    const mapTypes = ['standard', 'mutedStandard', 'satellite', 'hybrid', 'terrain'];
-    const currentIndex = mapTypes.indexOf(mapType);
-    const nextIndex = (currentIndex + 1) % mapTypes.length;
-    setMapType(mapTypes[nextIndex]);
-  };
-
-  const getMapTypeLabel = () => {
-    return t(`mapType.${mapType}`, { defaultValue: t('mapType.standard') });
-  };
-
   const toggleReverseMode = async () => {
     setReverseMode(prev => prev === 'warm' ? 'cold' : prev === 'cold' ? 'all' : 'warm');
     await playTickSound();
-  };
-
-  const toggleRadiusShape = async () => {
-    const shapes = ['circle', 'half', 'semi'];
-    const currentIndex = shapes.indexOf(radiusShape);
-    const nextIndex = (currentIndex + 1) % shapes.length;
-    setRadiusShape(shapes[nextIndex]);
-    await playTickSound();
-    // TODO: Implement radius shape filtering
   };
 
   /**
@@ -1017,16 +992,16 @@ const MapScreen = ({ navigation }) => {
     let zoomFactor;
     if (zoom <= 3) zoomFactor = 0.5;
     else if (zoom <= 4) zoomFactor = 0.8;
-    else if (zoom <= 5) zoomFactor = 1.2;
-    else if (zoom <= 6) zoomFactor = 2.5;
-    else if (zoom <= 7) zoomFactor = 3.5;
+    else if (zoom <= 5) zoomFactor = 1.0;
+    else if (zoom <= 6) zoomFactor = 1.8;
+    else if (zoom <= 7) zoomFactor = 3.0;
     else zoomFactor = 5.0;
     
-    const maxCap = Platform.OS === 'android' ? 80 : 150;
-    const minFloor = zoom >= 7 ? (Platform.OS === 'android' ? 40 : 80) :
-                     zoom >= 5 ? (Platform.OS === 'android' ? 30 : 65) :
-                     zoom >= 4 ? (Platform.OS === 'android' ? 25 : 55) :
-                     (Platform.OS === 'android' ? 20 : 40);
+    const maxCap = Platform.OS === 'android' ? 80 : 120;
+    const minFloor = zoom >= 7 ? (Platform.OS === 'android' ? 35 : 60) :
+                     zoom >= 5 ? (Platform.OS === 'android' ? 20 : 40) :
+                     zoom >= 4 ? (Platform.OS === 'android' ? 20 : 40) :
+                     (Platform.OS === 'android' ? 15 : 30);
     const total = Math.min(Math.max(base * zoomFactor, minFloor), maxCap);
     return Math.round(total);
   };
@@ -1077,8 +1052,8 @@ const MapScreen = ({ navigation }) => {
     const userLon = location?.longitude;
     const maxMarkers = getMaxMarkers(zoom, radius);
     
-    const GRID_COLS = zoom <= 4 ? 6 : zoom <= 5 ? 8 : zoom <= 7 ? 8 : 12;
-    const GRID_ROWS = zoom <= 4 ? 8 : zoom <= 5 ? 10 : zoom <= 7 ? 10 : 16;
+    const GRID_COLS = zoom <= 4 ? 6 : zoom <= 5 ? 6 : zoom <= 7 ? 8 : 12;
+    const GRID_ROWS = zoom <= 4 ? 8 : zoom <= 5 ? 8 : zoom <= 7 ? 10 : 16;
 
     // Separate special markers (always shown)
     const specialMarkers = candidates.filter(p => p.isCurrentLocation || p.isCenterPoint);
@@ -1113,7 +1088,7 @@ const MapScreen = ({ navigation }) => {
         pinnedOverflow.push(p);
       }
     }
-    console.log(`📌 Pinned: ${pinned.length} shown, ${pinnedOverflow.length} redistributed`);
+    __DEV__ && console.log(`📌 Pinned: ${pinned.length} shown, ${pinnedOverflow.length} redistributed`);
     
     // Normal places + overflow pinned: subject to grid/distance/maxMarkers filtering
     const normal = [
@@ -1160,7 +1135,7 @@ const MapScreen = ({ navigation }) => {
 
     const pinnedCount = pinned.length;
     const normalCount = gridWinners.length;
-    console.log(`📊 Final: ${result.length} markers (${pinnedCount} pinned + ${normalCount} normal + ${specialMarkers.length} special), ${gridMap.size} grids`);
+    __DEV__ && console.log(`📊 Final: ${result.length} markers (${pinnedCount} pinned + ${normalCount} normal + ${specialMarkers.length} special), ${gridMap.size} grids`);
     return result;
   };
 
@@ -1284,7 +1259,7 @@ const MapScreen = ({ navigation }) => {
       }
 
       // --- Fallback: Open-Meteo API (no nearby place in DB) ---
-      console.log('⊕ No nearby DB place, falling back to Open-Meteo API');
+      __DEV__ && console.log('⊕ No nearby DB place, falling back to Open-Meteo API');
 
       let cityName = 'Neuer Mittelpunkt';
       let countryCode = null;
@@ -1778,7 +1753,7 @@ const MapScreen = ({ navigation }) => {
       <MapView
         ref={mapRef}
         style={styles.map}
-        mapType={mapType}
+        mapType="standard"
         customMapStyle={customMapStyle}
         initialRegion={{
           latitude: location.latitude,
@@ -2546,20 +2521,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
-  zoomLoadingIndicator: {
-    position: 'absolute',
-    top: 80,
-    left: '50%',
-    marginLeft: -15,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-    borderRadius: 15,
-    padding: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
-  },
   loadingBox: {
     padding: 30,
     borderRadius: 20,
@@ -2721,21 +2682,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     letterSpacing: 0.3,
   },
-  radiusShapeButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 6,
-  },
-  radiusShapeIcon: {
-    fontSize: 28,
-  },
   favouritesButton: {
     position: 'absolute',
     top: 84,
@@ -2779,93 +2725,6 @@ const styles = StyleSheet.create({
     lineHeight: 36,
     includeFontPadding: false,
     marginTop: 4,
-  },
-  warningsToggleButton: {
-    position: 'absolute',
-    top: 306, // Below badge toggle (232 + 64 + 10)
-    right: 10,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  warningsToggleIcon: {
-    fontSize: 36,
-    textAlign: 'center',
-    lineHeight: 36,
-    includeFontPadding: false,
-    marginTop: 4,
-  },
-  spacingToggleButton: {
-    position: 'absolute',
-    top: 306, // Below badge toggle (232 + 64 + 10) - moved up since warnings removed
-    right: 10,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  spacingToggleIcon: {
-    fontSize: 36,
-    textAlign: 'center',
-    lineHeight: 36,
-    includeFontPadding: false,
-    marginTop: 4,
-  },
-  warningMarkerContainer: {
-    padding: 8,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    minWidth: 70,
-    minHeight: 70,
-    borderWidth: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.6,
-    shadowRadius: 5,
-    elevation: 8,
-  },
-  warningIcon: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  warningSeverityBadge: {
-    position: 'absolute',
-    top: -8,
-    right: -8,
-    backgroundColor: '#FFD700', // GELB
-    borderRadius: 6, // Etwas eckiger
-    width: 34,
-    height: 34,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    borderColor: '#000', // SCHWARZ
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.8,
-    shadowRadius: 3,
-    elevation: 10,
-  },
-  warningSeverityText: {
-    color: '#000', // SCHWARZES AUSRUFEZEICHEN
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginTop: -2,
   },
   settingsButton: {
     position: 'absolute',
@@ -2911,28 +2770,6 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
     marginTop: 4,
   },
-  searchButton: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  searchIcon: {
-    fontSize: 36,
-    textAlign: 'center',
-    lineHeight: 36,
-    includeFontPadding: false,
-    marginTop: 4,
-  },
   resetCenterButton: {
     position: 'absolute',
     bottom: 140,
@@ -2959,55 +2796,6 @@ const styles = StyleSheet.create({
     color: '#fff',
     marginTop: -2,
   },
-  crosshairMarker: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255, 87, 34, 0.8)',
-    borderWidth: 3,
-    borderColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.4,
-    shadowRadius: 4,
-    elevation: 6,
-  },
-  crosshairText: {
-    fontSize: 32,
-    color: '#fff',
-    fontWeight: 'bold',
-    textAlign: 'center',
-  },
-  favouriteMarkerContainer: {
-    backgroundColor: '#E8732A',
-    borderRadius: 20,
-    borderWidth: 2.5,
-    borderColor: '#C96122',
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 5,
-    maxWidth: 120,
-  },
-  favouriteMarkerStar: {
-    fontSize: 18,
-    color: '#8B6914',
-  },
-  favouriteMarkerName: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#fff',
-    flexShrink: 1,
-  },
   favouriteMarkerBorder: {
     borderColor: '#E8732A',
     borderWidth: 2.5,
@@ -3016,14 +2804,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.35,
     shadowRadius: 3,
     elevation: 4,
-  },
-  favouriteBadgeWrap: {
-    position: 'absolute',
-    top: -14,
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    zIndex: 10,
   },
   emptyStateOverlay: {
     position: 'absolute',

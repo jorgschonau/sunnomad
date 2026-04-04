@@ -172,7 +172,7 @@ export function checkWeatherDeterioration(destination, threshold = 4) {
   const forecast = destination.forecast;
   
   if (!forecast) {
-    console.log(`⚠️ ${destination.name}: No forecast data for deterioration check`);
+    devLog(`⚠️ ${destination.name}: No forecast data for deterioration check`);
     return { isDeteriorating: false, avgTempDrop: 0 };
   }
   
@@ -186,7 +186,7 @@ export function checkWeatherDeterioration(destination, threshold = 4) {
   const futureTemps = [tomorrowTemp, day2Temp, day3Temp].filter(t => t !== null);
   
   if (futureTemps.length === 0) {
-    console.log(`⚠️ ${destination.name}: No future temps in forecast`);
+    devLog(`⚠️ ${destination.name}: No future temps in forecast`);
     return { isDeteriorating: false, avgTempDrop: 0 };
   }
   
@@ -942,7 +942,7 @@ export function calculateWeatherCurse(destination) {
     const reason = !isWarmToday ? `TOO COLD (${todayTemp} °C ≤ ${MIN_TODAY_TEMP} °C)` :
                    badDayCount < 2 ? `NOT ENOUGH BAD DAYS (${badDayCount}/3)` :
                    tempLoss < MIN_TEMP_LOSS ? `NOT ENOUGH TEMP LOSS (${tempLoss} °C < ${MIN_TEMP_LOSS} °C)` : 'OK';
-    console.log(`🔮 ${destination.name}: Weather Curse candidate! ` +
+    devLog(`🔮 ${destination.name}: Weather Curse candidate! ` +
       `Today: ${todayCondition} ${todayTemp} °C, ` +
       `Future: ${badDayCount}/3 bad days, ` +
       `Tomorrow: ${forecast.tomorrow?.condition || 'N/A'} ${tomorrowTemp} °C, ` +

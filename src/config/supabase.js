@@ -7,8 +7,10 @@ import Constants from 'expo-constants';
 const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl ?? '';
 const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey ?? '';
 
-console.log('Supabase URL:', supabaseUrl || '(missing)');
-console.log('Supabase Key:', supabaseAnonKey ? 'Found' : 'Missing');
+if (__DEV__) {
+  console.log('Supabase URL:', supabaseUrl || '(missing)');
+  console.log('Supabase Key:', supabaseAnonKey ? 'Found' : 'Missing');
+}
 
 if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase credentials not configured. Auth features will be disabled.');
