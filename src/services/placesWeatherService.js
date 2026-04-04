@@ -436,61 +436,6 @@ export const getPlaceDetail = async (placeId, locale = 'en') => {
  * @param {string} locale - Locale for translations (e.g. 'de', 'en')
  * @returns {Promise<{places, error}>}
  */
-export const searchPlacesByName = async (searchTerm, limit = 20, locale = 'en') => {
-  try {
-    const { data, error } = await supabase
-      .from('places')
-      .select(`
-        id, name_en, name_de, name_fr, latitude, longitude, country_code,
-        place_type, population, attractiveness_score,
-        weather_forecast(
-          forecast_date, temp_min, temp_max,
-          weather_main, weather_description, weather_icon,
-          wind_speed, rain_volume, snow_volume
-        )
-      `)
-      .eq('is_active', true)
-      .ilike('name_en', `%${searchTerm}%`)
-      .eq('weather_forecast.forecast_date', new Date().toISOString().split('T')[0])
-      .limit(limit);
-
-    if (error) throw error;
-
-    // Transform nested data
-    const places = (data || []).map(place => {
-      const weather = place.weather_forecast?.[0] || {};
-      return {
-        id: place.id,
-        name_en: place.name_en,
-        name_de: place.name_de,
-        name_fr: place.name_fr,
-        latitude: place.latitude,
-        longitude: place.longitude,
-        country_code: place.country_code,
-        place_type: place.place_type,
-        population: place.population,
-        attractiveness_score: place.attractiveness_score,
-        temperature: weather.temp_max != null ? Math.round(weather.temp_max) : null,
-        temp_min: weather.temp_min,
-        temp_max: weather.temp_max,
-        weather_main: weather.weather_main,
-        weather_description: weather.weather_description,
-        weather_icon: weather.weather_icon,
-        wind_speed: weather.wind_speed,
-        rain_1h: weather.rain_volume,
-        snow_1h: weather.snow_volume,
-      };
-    });
-
-    const adaptedPlaces = places.map(place => adaptPlaceToDestination(place, locale));
-
-    return { places: adaptedPlaces, error: null };
-  } catch (error) {
-    console.error('Search places error:', error);
-    return { places: [], error };
-  }
-};
-
 // ==================== UTILITY FUNCTIONS ====================
 
 /**
@@ -643,6 +588,5 @@ function adaptForecastEntry(entry) {
 export default {
   getPlacesWithWeather,
   getPlaceDetail,
-  searchPlacesByName,
 };
 

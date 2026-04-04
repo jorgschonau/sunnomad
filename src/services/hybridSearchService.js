@@ -172,34 +172,54 @@ async function searchGoogle(query, language, bounds = BOUNDS_EUROPE) {
 }
 
 /**
- * Deduplicate Google results against DB. If a Google result matches a DB place
- * by coordinates but wasn't found by the name search, promote it to DB results.
+ * Deduplicate Google results against DB. Single batch query instead of N sequential ones.
+ * If a Google result matches a DB place by coordinates but wasn't found by the name search, promote it.
  */
 async function deduplicateAndPromote(googlePlaces, existingDbIds, center, language) {
+  if (!googlePlaces.length) return { unique: [], promoted: [] };
+
+  const MARGIN = 0.05;
+  const lats = googlePlaces.map(p => p.latitude);
+  const lons = googlePlaces.map(p => p.longitude);
+
+  const { data: nearbyPlaces } = await supabase
+    .from('places')
+    .select('id, name_en, name_de, name_fr, latitude, longitude, place_type, country_code')
+    .gte('latitude', Math.min(...lats) - MARGIN)
+    .lte('latitude', Math.max(...lats) + MARGIN)
+    .gte('longitude', Math.min(...lons) - MARGIN)
+    .lte('longitude', Math.max(...lons) + MARGIN)
+    .eq('is_active', true);
+
+  const dbPlaces = nearbyPlaces || [];
   const unique = [];
   const promoted = [];
+
   for (const gp of googlePlaces) {
-    const existing = await findExistingPlace(gp.latitude, gp.longitude);
-    if (existing) {
-      if (!existingDbIds.has(existing.id)) {
-        const lat = parseFloat(existing.latitude);
-        const lng = parseFloat(existing.longitude);
+    const match = dbPlaces.find(db =>
+      Math.abs(db.latitude - gp.latitude) < MARGIN &&
+      Math.abs(db.longitude - gp.longitude) < MARGIN
+    );
+    if (match) {
+      if (!existingDbIds.has(match.id)) {
+        const lat = parseFloat(match.latitude);
+        const lng = parseFloat(match.longitude);
         const dist = center ? haversineKm(center.latitude, center.longitude, lat, lng) : 0;
-        const countryName = getCountryName(existing.country_code, language);
-        const localName = getPlaceName(existing, language);
+        const countryName = getCountryName(match.country_code, language);
+        const localName = getPlaceName(match, language);
         promoted.push({
-          id: existing.id,
+          id: match.id,
           name: localName,
           description: countryName ? `${localName}, ${countryName}` : localName,
           latitude: lat,
           longitude: lng,
-          place_type: existing.place_type || null,
-          country_code: existing.country_code,
+          place_type: match.place_type || null,
+          country_code: match.country_code,
           distLabel: dist > 0 ? `${Math.round(dist)} km` : '',
           _dist: dist,
           source: 'db',
         });
-        existingDbIds.add(existing.id);
+        existingDbIds.add(match.id);
       }
     } else {
       unique.push(gp);
@@ -211,7 +231,7 @@ async function deduplicateAndPromote(googlePlaces, existingDbIds, center, langua
 /**
  * Check if a place already exists in DB at given coordinates (±0.05° ≈ 5.5km).
  */
-export const findExistingPlace = async (lat, lon) => {
+const findExistingPlace = async (lat, lon) => {
   try {
     const { data } = await supabase
       .from('places')

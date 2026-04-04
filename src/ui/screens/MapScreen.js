@@ -197,7 +197,6 @@ const MapScreen = ({ navigation }) => {
   const [radiusShape, setRadiusShape] = useState('circle'); // 'circle', 'half', 'semi' - radius shape
   const [currentRegion, setCurrentRegion] = useState(null); // Track current map region
   const [favouriteDestinations, setFavouriteDestinations] = useState([]);
-  const [cachedData, setCachedData] = useState(null); // Cache for destinations
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [googleResults, setGoogleResults] = useState([]);
@@ -317,7 +316,6 @@ const MapScreen = ({ navigation }) => {
           && Array.isArray(cacheData.data) && cacheData.data.length > 0
           && cacheData.data.some(d => d.image_region !== undefined);
         if (cacheValid) {
-          setCachedData(cacheData.data);
           setDestinations(cacheData.data);
         }
       } catch (e) { /* corrupted JSON */ }
@@ -699,14 +697,6 @@ const MapScreen = ({ navigation }) => {
         timestamp: Date.now(),
         data: allDestinations,
       })).catch((cacheError) => console.warn('Failed to cache destinations:', cacheError));
-      
-      // Generate warnings from destinations (independent of filter) - DISABLED
-      // const generatedWarnings = generateWeatherWarnings(
-      //   allDestinations,
-      //   location.latitude,
-      //   location.longitude
-      // );
-      // setWarnings(generatedWarnings);
     } catch (error) {
       showToast(t('map.failedToLoadWeather') || 'Failed to load weather data', 'error');
       console.error(error);
@@ -715,60 +705,57 @@ const MapScreen = ({ navigation }) => {
     }
   };
 
-  /**
-   * Fetch weather for current location (always show, independent of DB)
-   */
+  const buildWeatherFromDB = async (lat, lon, prefix, extraProps = {}) => {
+    const { data: rpcData, error: rpcError } = await supabase.rpc('nearest_place', {
+      user_lat: lat, user_lon: lon, max_distance_km: 50,
+    });
+    if (rpcError || !rpcData?.length) return null;
+    const place = rpcData[0];
+    const { place: detail, forecast: forecastData } = await getPlaceDetail(place.id);
+    if (!detail || !forecastData?.length) return null;
+
+    const forecastDaysArr = forecastData.map(f => ({
+      condition: f.condition,
+      temperature: f.tempMax ?? f.tempMin,
+      temp_max: f.tempMax,
+      temp_min: f.tempMin,
+      windSpeed: f.windSpeed || 0,
+      precipitation: f.precipitation || 0,
+      sunshine_duration: 0,
+    }));
+
+    console.log(`${prefix} Weather from DB: ${detail.name} (${forecastData.length} days)`);
+    return {
+      id: place.id,
+      lat, lon,
+      name: `${prefix} ${detail.name || getPlaceName(place, i18n.language)}`,
+      condition: detail.condition || 'cloudy',
+      temperature: detail.temperature,
+      temp_max: detail.temp_max ?? detail.temperature,
+      temp_min: detail.temp_min ?? detail.temperature,
+      humidity: detail.humidity || null,
+      windSpeed: detail.windSpeed || 0,
+      precipitation: detail.precipitation || 0,
+      cloudCover: detail.cloudCover || null,
+      stability: calculateStability(detail.cloudCover, detail.windSpeed),
+      badges: [],
+      forecastDays: forecastDaysArr,
+      country_code: detail.countryCode || detail.country_code || place.country_code,
+      countryCode: detail.countryCode || detail.country_code || place.country_code,
+      place_type: detail.place_type || null,
+      image_region: detail.image_region || null,
+      ...extraProps,
+    };
+  };
+
   const getCurrentLocationWeather = async () => {
     if (!location) return null;
     try {
-      // --- Try Supabase DB first ---
-      const { data: rpcData, error: rpcError } = await supabase.rpc('nearest_place', {
-        user_lat: location.latitude,
-        user_lon: location.longitude,
-        max_distance_km: 50,
-      });
-
-      if (!rpcError && rpcData && rpcData.length > 0) {
-        const place = rpcData[0];
-        const { place: detail, forecast: forecastData } = await getPlaceDetail(place.id);
-
-        if (detail && forecastData && forecastData.length >= 1) {
-          const forecastDaysArr = forecastData.map(f => ({
-            condition: f.condition,
-            temperature: f.tempMax ?? f.tempMin,
-            temp_max: f.tempMax,
-            temp_min: f.tempMin,
-            windSpeed: f.windSpeed || 0,
-            precipitation: f.precipitation || 0,
-            sunshine_duration: 0,
-          }));
-
-          console.log(`📍 Location weather from DB: ${detail.name} (${forecastData.length} days)`);
-          return {
-            id: place.id,
-            lat: location.latitude,
-            lon: location.longitude,
-            name: `📍 ${detail.name || getPlaceName(place, i18n.language)}`,
-            condition: detail.condition || 'cloudy',
-            temperature: detail.temperature,
-            temp_max: detail.temp_max ?? detail.temperature,
-            temp_min: detail.temp_min ?? detail.temperature,
-            humidity: detail.humidity || null,
-            windSpeed: detail.windSpeed || 0,
-            precipitation: detail.precipitation || 0,
-            cloudCover: detail.cloudCover || null,
-            stability: calculateStability(detail.cloudCover, detail.windSpeed),
-            distance: 0,
-            isCurrentLocation: true,
-            badges: [],
-            forecastDays: forecastDaysArr,
-            country_code: detail.countryCode || detail.country_code || place.country_code,
-            countryCode: detail.countryCode || detail.country_code || place.country_code,
-            place_type: detail.place_type || null,
-            image_region: detail.image_region || null,
-          };
-        }
-      }
+      const dbResult = await buildWeatherFromDB(
+        location.latitude, location.longitude, '📍',
+        { distance: 0, isCurrentLocation: true }
+      );
+      if (dbResult) return dbResult;
 
       // --- Fallback: Open-Meteo API (no nearby place in DB) ---
       console.log('📍 No nearby DB place for location, falling back to Open-Meteo API');
@@ -1290,55 +1277,10 @@ const MapScreen = ({ navigation }) => {
    */
   const fetchCenterPointWeather = async (lat, lon) => {
     try {
-      // --- Try Supabase DB first ---
-      const { data: rpcData, error: rpcError } = await supabase.rpc('nearest_place', {
-        user_lat: lat,
-        user_lon: lon,
-        max_distance_km: 50,
-      });
-
-      if (!rpcError && rpcData && rpcData.length > 0) {
-        const place = rpcData[0];
-        const { place: detail, forecast: forecastData } = await getPlaceDetail(place.id);
-
-        if (detail && forecastData && forecastData.length >= 1) {
-          const forecastDaysArr = forecastData.map(f => ({
-            condition: f.condition,
-            temperature: f.tempMax ?? f.tempMin,
-            temp_max: f.tempMax,
-            temp_min: f.tempMin,
-            windSpeed: f.windSpeed || 0,
-            precipitation: f.precipitation || 0,
-            sunshine_duration: 0,
-          }));
-
-          const weatherData = {
-            id: place.id,
-            lat,
-            lon,
-            name: `⊕ ${detail.name || getPlaceName(place, i18n.language)}`,
-            condition: detail.condition || 'cloudy',
-            temperature: detail.temperature,
-            temp_max: detail.temp_max ?? detail.temperature,
-            temp_min: detail.temp_min ?? detail.temperature,
-            humidity: detail.humidity || null,
-            windSpeed: detail.windSpeed || 0,
-            precipitation: detail.precipitation || 0,
-            cloudCover: detail.cloudCover || null,
-            stability: calculateStability(detail.cloudCover, detail.windSpeed),
-            isCenterPoint: true,
-            badges: [],
-            forecastDays: forecastDaysArr,
-            country_code: detail.countryCode || detail.country_code || place.country_code,
-            countryCode: detail.countryCode || detail.country_code || place.country_code,
-            place_type: detail.place_type || null,
-            image_region: detail.image_region || null,
-          };
-
-          console.log(`⊕ Center point weather from DB: ${detail.name} (${forecastData.length} days)`);
-          setCenterPointWeather(weatherData);
-          return;
-        }
+      const dbResult = await buildWeatherFromDB(lat, lon, '⊕', { isCenterPoint: true });
+      if (dbResult) {
+        setCenterPointWeather(dbResult);
+        return;
       }
 
       // --- Fallback: Open-Meteo API (no nearby place in DB) ---
