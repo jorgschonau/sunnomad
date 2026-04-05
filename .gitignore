@@ -26,3 +26,43 @@ filtered_pois.txt
 tr_ma_tn_cities.txt
 *.zip
 .git-backup/
+
+# Geodata / shapefiles
+geodata/
+ne_10m_*.shp
+ne_10m_*.shx
+ne_10m_*.dbf
+ne_10m_*.prj
+ne_10m_*.cpg
+ne_10m_*.README.html
+ne_10m_*.VERSION.txt
+
+# Python working files
+__pycache__/
+*.pyc
+check_images.py
+compress.py
+detect_faces.swift
+fetch_city_images.py
+fetch_city_images_pexels.py
+find_missing.py
+map_hero_images.py
+pick_best_images.py
+resize_crop.py
+scripts/wiki_score*.py
+scripts/wiki_progress*.json
+
+# Data/output files
+alternateNamesV2.txt
+alternateNames_filtered.txt
+iso-languagecodes.txt
+blacklist.txt
+blacklist_hashes.txt
+hero_mapping.json
+cities.csv
+results.csv
+missing_images.csv
+pexels_results.csv
+pexels_output/
+unsplash_output/
+image_check_results/
