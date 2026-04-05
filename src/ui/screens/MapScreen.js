@@ -752,73 +752,12 @@ const MapScreen = ({ navigation }) => {
       );
       if (dbResult) return dbResult;
 
-      // --- Fallback: Open-Meteo API (no nearby place in DB) ---
       __DEV__ && console.log('📍 No nearby DB place for location, falling back to Open-Meteo API');
-
-      const params = new URLSearchParams({
-        latitude: location.latitude,
-        longitude: location.longitude,
-        daily: [
-          'temperature_2m_max',
-          'temperature_2m_min',
-          'weather_code',
-          'precipitation_sum',
-          'wind_speed_10m_max',
-          'sunshine_duration',
-        ].join(','),
-        current: ['relative_humidity_2m', 'cloud_cover'].join(','),
-        timezone: 'auto',
-        forecast_days: 16,
+      return await fetchOpenMeteoFallback(location.latitude, location.longitude, {
+        prefix: '📍',
+        defaultName: 'Dein Standort',
+        extraProps: { distance: 0, isCurrentLocation: true },
       });
-      const url = `https://customer-api.open-meteo.com/v1/forecast?${params}&apikey=${process.env.EXPO_PUBLIC_OPEN_METEO_KEY}`;
-      const [geocodeResult, response] = await Promise.all([
-        Location.reverseGeocodeAsync({ latitude: location.latitude, longitude: location.longitude }).catch(() => null),
-        fetch(url),
-      ]);
-      if (!response.ok) return null;
-      const data = await response.json();
-      let cityName = 'Dein Standort';
-      let countryCode = null;
-      if (geocodeResult && geocodeResult[0]) {
-        const g = geocodeResult[0];
-        cityName = g.city || g.district || g.region || 'Dein Standort';
-        countryCode = g.isoCountryCode || null;
-      }
-      const daily = data.daily;
-      const current = data.current || {};
-
-      const forecastDaysArr = daily.weather_code?.map((code, i) => ({
-        condition: mapWeatherCodeToCondition(code),
-        temperature: Math.round(daily.temperature_2m_max?.[i] || 0),
-        temp_max: daily.temperature_2m_max?.[i],
-        temp_min: daily.temperature_2m_min?.[i],
-        windSpeed: Math.round(daily.wind_speed_10m_max?.[i] || 0),
-        precipitation: daily.precipitation_sum?.[i] || 0,
-        sunshine_duration: daily.sunshine_duration?.[i] || 0,
-      })) || [];
-
-      const condition = mapWeatherCodeToCondition(daily.weather_code?.[0]);
-
-      return {
-        lat: location.latitude,
-        lon: location.longitude,
-        name: `📍 ${cityName}`,
-        condition,
-        temperature: Math.round(daily.temperature_2m_max?.[0] || 0),
-        temp_max: daily.temperature_2m_max?.[0],
-        temp_min: daily.temperature_2m_min?.[0],
-        humidity: current.relative_humidity_2m,
-        windSpeed: Math.round(daily.wind_speed_10m_max?.[0] || 0),
-        precipitation: daily.precipitation_sum?.[0] || 0,
-        cloudCover: current.cloud_cover,
-        stability: calculateStability(current.cloud_cover, daily.wind_speed_10m_max?.[0]),
-        distance: 0,
-        isCurrentLocation: true,
-        badges: [],
-        forecastDays: forecastDaysArr,
-        country_code: countryCode,
-        countryCode,
-      };
     } catch (error) {
       console.warn('Failed to fetch current location weather:', error);
       return null;
@@ -828,13 +767,73 @@ const MapScreen = ({ navigation }) => {
   // mapWeatherCode imported from usecases/weatherUsecases (single source of truth)
   const mapWeatherCodeToCondition = mapWeatherCode;
 
-  /**
-   * Calculate stability from cloud cover and wind speed
-   */
   const calculateStability = (cloudCover, windSpeed) => {
     const cloudScore = 100 - (cloudCover || 50);
     const windScore = Math.max(0, 100 - (windSpeed || 5) * 2);
     return Math.round((cloudScore + windScore) / 2);
+  };
+
+  /**
+   * Fetch weather directly from Open-Meteo API (fallback when no nearby DB place).
+   * Shared by getCurrentLocationWeather and fetchCenterPointWeather.
+   */
+  const fetchOpenMeteoFallback = async (lat, lon, { prefix, defaultName, extraProps = {} }) => {
+    let cityName = defaultName;
+    let countryCode = null;
+    try {
+      const geocode = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lon });
+      if (geocode?.[0]) {
+        const g = geocode[0];
+        cityName = g.city || g.district || g.region || defaultName;
+        countryCode = g.isoCountryCode || null;
+      }
+    } catch (_) {}
+
+    const params = new URLSearchParams({
+      latitude: lat,
+      longitude: lon,
+      daily: ['temperature_2m_max', 'temperature_2m_min', 'weather_code', 'precipitation_sum', 'wind_speed_10m_max', 'sunshine_duration'].join(','),
+      current: ['relative_humidity_2m', 'cloud_cover'].join(','),
+      timezone: 'auto',
+      forecast_days: 16,
+    });
+    const url = `https://customer-api.open-meteo.com/v1/forecast?${params}&apikey=${process.env.EXPO_PUBLIC_OPEN_METEO_KEY}`;
+    const response = await fetch(url);
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const daily = data.daily;
+    const current = data.current || {};
+
+    const forecastDaysArr = daily.weather_code?.map((code, i) => ({
+      condition: mapWeatherCodeToCondition(code),
+      temperature: Math.round(daily.temperature_2m_max?.[i] || 0),
+      temp_max: daily.temperature_2m_max?.[i],
+      temp_min: daily.temperature_2m_min?.[i],
+      windSpeed: Math.round(daily.wind_speed_10m_max?.[i] || 0),
+      precipitation: daily.precipitation_sum?.[i] || 0,
+      sunshine_duration: daily.sunshine_duration?.[i] || 0,
+    })) || [];
+
+    return {
+      lat,
+      lon,
+      name: `${prefix} ${cityName}`,
+      condition: mapWeatherCodeToCondition(daily.weather_code?.[0]),
+      temperature: Math.round(daily.temperature_2m_max?.[0] || 0),
+      temp_max: daily.temperature_2m_max?.[0],
+      temp_min: daily.temperature_2m_min?.[0],
+      humidity: current.relative_humidity_2m,
+      windSpeed: Math.round(daily.wind_speed_10m_max?.[0] || 0),
+      precipitation: daily.precipitation_sum?.[0] || 0,
+      cloudCover: current.cloud_cover,
+      stability: calculateStability(current.cloud_cover, daily.wind_speed_10m_max?.[0]),
+      badges: [],
+      forecastDays: forecastDaysArr,
+      country_code: countryCode,
+      countryCode,
+      ...extraProps,
+    };
   };
 
   const handleMarkerPress = (destination) => {
@@ -1258,85 +1257,12 @@ const MapScreen = ({ navigation }) => {
         return;
       }
 
-      // --- Fallback: Open-Meteo API (no nearby place in DB) ---
       __DEV__ && console.log('⊕ No nearby DB place, falling back to Open-Meteo API');
-
-      let cityName = 'Neuer Mittelpunkt';
-      let countryCode = null;
-      try {
-        const geocode = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lon });
-        if (geocode && geocode[0]) {
-          const g = geocode[0];
-          cityName = g.city || g.district || g.region || 'Neuer Mittelpunkt';
-          countryCode = g.isoCountryCode || null;
-        }
-      } catch (geoError) {
-        console.warn('Reverse geocoding failed:', geoError);
-      }
-
-      const params = new URLSearchParams({
-        latitude: lat,
-        longitude: lon,
-        daily: [
-          'temperature_2m_max',
-          'temperature_2m_min',
-          'weather_code',
-          'precipitation_sum',
-          'wind_speed_10m_max',
-          'sunshine_duration',
-        ].join(','),
-        current: [
-          'relative_humidity_2m',
-          'cloud_cover',
-        ].join(','),
-        timezone: 'auto',
-        forecast_days: 16,
+      const weatherData = await fetchOpenMeteoFallback(lat, lon, {
+        prefix: '⊕',
+        defaultName: 'Neuer Mittelpunkt',
+        extraProps: { isCenterPoint: true },
       });
-
-      const url = `https://customer-api.open-meteo.com/v1/forecast?${params}&apikey=${process.env.EXPO_PUBLIC_OPEN_METEO_KEY}`;
-      const response = await fetch(url);
-
-      if (!response.ok) {
-        setCenterPointWeather(null);
-        return;
-      }
-
-      const data = await response.json();
-      const daily = data.daily;
-      const current = data.current || {};
-
-      const forecastDaysArr = daily.weather_code?.map((code, i) => ({
-        condition: mapWeatherCodeToCondition(code),
-        temperature: Math.round(daily.temperature_2m_max?.[i] || 0),
-        temp_max: daily.temperature_2m_max?.[i],
-        temp_min: daily.temperature_2m_min?.[i],
-        windSpeed: Math.round(daily.wind_speed_10m_max?.[i] || 0),
-        precipitation: daily.precipitation_sum?.[i] || 0,
-        sunshine_duration: daily.sunshine_duration?.[i] || 0,
-      })) || [];
-
-      const condition = mapWeatherCodeToCondition(daily.weather_code?.[0]);
-
-      const weatherData = {
-        lat,
-        lon,
-        name: `⊕ ${cityName}`,
-        condition,
-        temperature: Math.round(daily.temperature_2m_max?.[0] || 0),
-        temp_max: daily.temperature_2m_max?.[0],
-        temp_min: daily.temperature_2m_min?.[0],
-        humidity: current.relative_humidity_2m,
-        windSpeed: Math.round(daily.wind_speed_10m_max?.[0] || 0),
-        precipitation: daily.precipitation_sum?.[0] || 0,
-        cloudCover: current.cloud_cover,
-        stability: calculateStability(current.cloud_cover, daily.wind_speed_10m_max?.[0]),
-        isCenterPoint: true,
-        badges: [],
-        forecastDays: forecastDaysArr,
-        country_code: countryCode,
-        countryCode,
-      };
-
       setCenterPointWeather(weatherData);
     } catch (error) {
       console.warn('Failed to fetch center point weather:', error);
