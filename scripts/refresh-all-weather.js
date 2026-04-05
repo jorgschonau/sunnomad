@@ -141,15 +141,13 @@ async function fetchWeather(place) {
 }
 
 /**
- * Save current weather (stored as today in weather_forecast)
+ * Build all 16 forecast records (today + 15 days) for one place.
+ * Today uses current weather data, future days use daily forecast.
  */
-async function saveWeatherData(placeId, current, daily) {
-  const today = new Date().toISOString().split('T')[0];
-  const fetchedAt = new Date().toISOString();
-  
-  const record = {
+function buildForecastRecords(placeId, current, daily, fetchedAt) {
+  const today = {
     place_id: placeId,
-    forecast_date: today,
+    forecast_date: daily.time[0],
     fetched_at: fetchedAt,
     temp_min: daily.temperature_2m_min[0],
     temp_max: daily.temperature_2m_max[0],
@@ -168,49 +166,31 @@ async function saveWeatherData(placeId, current, daily) {
     data_source: 'open-meteo',
   };
 
-  const { error } = await supabase
-    .from('weather_forecast')
-    .upsert(record, { onConflict: 'place_id,forecast_date' }); // FIXED: kein fetched_at!
-
-  if (error) throw error;
-}
-
-/**
- * Save forecast (tomorrow onwards, excluding today)
- */
-async function saveForecast(placeId, daily) {
-  const fetchedAt = new Date().toISOString();
-  
-  const records = daily.time.slice(1).map((time, i) => {
-    const actualIndex = i + 1;
+  const future = daily.time.slice(1).map((time, i) => {
+    const idx = i + 1;
     return {
       place_id: placeId,
       forecast_date: time,
       fetched_at: fetchedAt,
-      temp_min: daily.temperature_2m_min[actualIndex],
-      temp_max: daily.temperature_2m_max[actualIndex],
-      weather_main: getWeatherMain(daily.weather_code[actualIndex]),
-      weather_description: getWeatherDescription(daily.weather_code[actualIndex]),
-      weather_icon: getWeatherIcon(daily.weather_code[actualIndex]),
-      wind_speed: daily.wind_speed_10m_max[actualIndex],
-      precipitation_sum: daily.precipitation_sum[actualIndex],
-      precipitation_probability: daily.precipitation_probability_max[actualIndex] / 100,
-      // rain_probability ENTFERNT (Duplikat von precipitation_probability)
-      rain_volume: daily.rain_sum[actualIndex],
-      snow_volume: daily.snowfall_sum[actualIndex],
-      humidity: daily.relative_humidity_2m_mean?.[actualIndex] ?? null,
-      sunrise: daily.sunrise?.[actualIndex] ? new Date(daily.sunrise[actualIndex]).toISOString() : null,
-      sunset: daily.sunset?.[actualIndex] ? new Date(daily.sunset[actualIndex]).toISOString() : null,
-      sunshine_duration: daily.sunshine_duration?.[actualIndex] || null,
+      temp_min: daily.temperature_2m_min[idx],
+      temp_max: daily.temperature_2m_max[idx],
+      weather_main: getWeatherMain(daily.weather_code[idx]),
+      weather_description: getWeatherDescription(daily.weather_code[idx]),
+      weather_icon: getWeatherIcon(daily.weather_code[idx]),
+      wind_speed: daily.wind_speed_10m_max[idx],
+      precipitation_sum: daily.precipitation_sum[idx],
+      precipitation_probability: daily.precipitation_probability_max[idx] / 100,
+      rain_volume: daily.rain_sum[idx],
+      snow_volume: daily.snowfall_sum[idx],
+      humidity: daily.relative_humidity_2m_mean?.[idx] ?? null,
+      sunrise: daily.sunrise?.[idx] ? new Date(daily.sunrise[idx]).toISOString() : null,
+      sunset: daily.sunset?.[idx] ? new Date(daily.sunset[idx]).toISOString() : null,
+      sunshine_duration: daily.sunshine_duration?.[idx] || null,
       data_source: 'open-meteo',
     };
   });
 
-  const { error } = await supabase
-    .from('weather_forecast')
-    .upsert(records, { onConflict: 'place_id,forecast_date' }); // FIXED: kein fetched_at!
-
-  if (error) throw error;
+  return [today, ...future];
 }
 
 /**
@@ -219,26 +199,42 @@ async function saveForecast(placeId, daily) {
 async function processBatch(places, batchNum, totalBatches) {
   console.log(`📦 Batch ${batchNum}/${totalBatches} (${places.length} places)...`);
 
+  const fetchedAt = new Date().toISOString();
+  let allRecords = [];
+
   const results = await Promise.all(
     places.map(async (place) => {
       try {
         const data = await fetchWeather(place);
-        await saveWeatherData(place.id, data.current, data.daily);
-        await saveForecast(place.id, data.daily);
-        return { success: true, name: place.name_en, temp: data.current.temperature_2m };
+        const records = buildForecastRecords(place.id, data.current, data.daily, fetchedAt);
+        return { success: true, name: place.name_en, temp: data.current.temperature_2m, records };
       } catch (error) {
-        // Log failed places with details for debugging
         console.error(`  ❌ FAILED: ${place.name_en} (ID: ${place.id}) - ${error.message}`);
         return { success: false, name: place.name_en, id: place.id, error: error.message };
       }
     })
   );
 
+  // Collect all records from successful fetches
+  for (const r of results) {
+    if (r.success) allRecords = allRecords.concat(r.records);
+  }
+
+  // Single bulk upsert for entire batch (typically ~480 records)
+  if (allRecords.length > 0) {
+    const { error: upsertError } = await supabase
+      .from('weather_forecast')
+      .upsert(allRecords, { onConflict: 'place_id,forecast_date' });
+
+    if (upsertError) {
+      console.error(`  ❌ Bulk upsert failed: ${upsertError.message}`);
+    }
+  }
+
   const successCount = results.filter(r => r.success).length;
   const failCount = results.filter(r => !r.success).length;
   const failedPlaces = results.filter(r => !r.success);
 
-  // Log sample results
   const samples = results.filter(r => r.success).slice(0, 3);
   samples.forEach(s => {
     console.log(`  ✅ ${s.name}: ${s.temp} °C`);
@@ -246,15 +242,13 @@ async function processBatch(places, batchNum, totalBatches) {
 
   if (failCount > 0) {
     console.log(`  ❌ ${failCount} failed in this batch`);
-    // Log summary of failed places for this batch
     failedPlaces.forEach(f => {
       console.log(`     - ${f.name}: ${f.error}`);
     });
   }
 
-  console.log(`  📊 Success: ${successCount}/${places.length}`);
+  console.log(`  📊 Success: ${successCount}/${places.length} (${allRecords.length} records saved)`);
   
-  // Return failed places for retry
   const failedPlaceObjects = places.filter((p, i) => !results[i].success);
   return { successCount, failCount, failedPlaces: failedPlaceObjects };
 }
