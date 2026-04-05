@@ -36,10 +36,9 @@ SELECT DISTINCT ON (p.id)
   p.longitude,
   p.country_code,
   p.region,
-  p.place_type AS place_category,
+  p.place_type,
   p.attractiveness_score,
   p.population,
-  p.clustering_radius_m,
   
   w.forecast_date,
   w.forecast_timestamp,

@@ -114,7 +114,7 @@ function parseLine(line, fileType) {
     feature_class: fields[6] || null, // P, H, T, L, V
     feature_code: fields[7] || null, // PPL, BAY, MT, PK, etc.
     population: population,
-    elevation: parseInt(fields[15]) || null,
+    dem: parseInt(fields[16]) || null,
     timezone: fields[17] || null,
     attractiveness_score: null, // User will calculate later
     is_active: true,

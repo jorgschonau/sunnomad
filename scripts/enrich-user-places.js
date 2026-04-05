@@ -171,7 +171,6 @@ async function main() {
             .from('places')
             .update({
               population: geo.population,
-              elevation: geo.elevation,
               dem: geo.dem,
               feature_class: geo.feature_class,
               feature_code: geo.feature_code,

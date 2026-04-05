@@ -67,7 +67,6 @@ CREATE TABLE places (
   
   -- Location metadata
   country_code TEXT, -- ISO 3166-1 alpha-2: "DE", "FR", "US", "CA", etc.
-  country_name TEXT, -- "Germany", "France", "United States", "Canada"
   region TEXT DEFAULT 'europe' CHECK (region IN ('europe', 'north_america')),
   place_type TEXT DEFAULT 'city' CHECK (place_type IN ('city', 'town', 'campground', 'beach', 'mountain', 'poi')),
   

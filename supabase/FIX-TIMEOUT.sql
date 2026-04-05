@@ -12,10 +12,9 @@ SELECT
   p.longitude,
   p.country_code,
   p.region,
-  p.place_type AS place_category,
+  p.place_type,
   p.attractiveness_score,
   p.population,
-  p.clustering_radius_m,
   
   -- Weather data (from forecast table)
   w.forecast_date,

@@ -99,7 +99,6 @@ SELECT
   p.place_type,
   p.attractiveness_score,
   p.population,
-  p.clustering_radius_m,
   
   -- Latest weather data
   w.weather_timestamp,
@@ -198,36 +197,9 @@ $$ LANGUAGE plpgsql;
 ALTER TABLE places
   ADD COLUMN IF NOT EXISTS attractiveness_score INTEGER DEFAULT 50 CHECK (attractiveness_score >= 0 AND attractiveness_score <= 100),
   ADD COLUMN IF NOT EXISTS population INTEGER DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS place_category TEXT DEFAULT 'city' CHECK (place_category IN ('city', 'town', 'village', 'resort', 'mountain', 'beach', 'poi'));
+  ADD COLUMN IF NOT EXISTS dem INTEGER;
 
--- Migrate place_type to place_category if needed
-UPDATE places 
-SET place_category = place_type 
-WHERE place_category IS NULL AND place_type IS NOT NULL;
-
--- ============================================================================
--- STEP 8: Add clustering_radius_m for smart geographic filtering
--- ============================================================================
--- This defines the minimum distance between places of similar quality
--- Higher attractiveness/population = larger exclusion radius (shows everywhere)
--- Lower attractiveness/population = smaller exclusion radius (only when zoomed in)
-
-ALTER TABLE places
-  ADD COLUMN IF NOT EXISTS clustering_radius_m INTEGER DEFAULT 50000; -- 50km default
-
--- Update clustering radius based on attractiveness/population
--- Major cities (score > 75 OR pop > 500k): 20km radius (always show, high priority)
--- Good places (score > 60 OR pop > 200k): 50km radius
--- Medium places (score > 50 OR pop > 50k): 80km radius
--- Small places: 100km radius (only show when zoomed in or no better options)
-
-UPDATE places
-SET clustering_radius_m = CASE
-  WHEN (attractiveness_score > 75 OR population > 500000) THEN 20000
-  WHEN (attractiveness_score > 60 OR population > 200000) THEN 50000
-  WHEN (attractiveness_score > 50 OR population > 50000) THEN 80000
-  ELSE 100000
-END;
+-- (clustering_radius_m removed - no longer used)
 
 -- ============================================================================
 -- DONE! Schema is now optimized for Open-Meteo

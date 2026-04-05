@@ -109,7 +109,6 @@ SELECT
   p.place_type,
   p.attractiveness_score,
   p.population,
-  p.clustering_radius_m,
   
   -- Weather data (from forecast table)
   w.forecast_date,
@@ -170,7 +169,6 @@ RETURNS TABLE (
   place_type TEXT,
   attractiveness_score INTEGER,
   population INTEGER,
-  clustering_radius_m INTEGER,
   forecast_date DATE,
   temp_min DECIMAL,
   temp_max DECIMAL,
@@ -199,7 +197,6 @@ BEGIN
     p.place_type,
     p.attractiveness_score,
     p.population,
-    p.clustering_radius_m,
     
     w.forecast_date,
     w.temp_min,
