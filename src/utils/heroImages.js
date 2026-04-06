@@ -11,7 +11,7 @@ const GENERIC = {
   // find sth better later for natural_feature
   natural_feature:      require('../../assets/destinations/generic/picos_de_europa.webp'),
   // find sth better later for scenic_drive
-  scenic_drive:         require('../../assets/destinations/generic/scenicdrive.webp'),
+  scenic_drive:         require('../../assets/destinations/generic/eu_scenic_drive.webp'),
 
   small_town_eu_south:  require('../../assets/destinations/generic/eu_south_smalltown.webp'),
   small_town_eu_north:  require('../../assets/destinations/generic/eu_north_smalltown.webp'),
