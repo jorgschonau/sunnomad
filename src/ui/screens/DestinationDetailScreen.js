@@ -692,6 +692,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     return '6-8';
   };
 
+  const dateLocale = i18n.language === 'de' ? 'de-DE' : i18n.language === 'fr' ? 'fr-FR' : 'en-US';
+
   /**
    * Generate date label for a forecast row
    * dayIndex 0 = selected day, 1 = selected+1, etc.
@@ -702,7 +704,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     if (totalOffset === 1) return t('destination.tomorrow');
     const date = new Date();
     date.setDate(date.getDate() + totalOffset);
-    return date.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' });
+    return date.toLocaleDateString(dateLocale, { weekday: 'short', day: 'numeric', month: 'short' });
   };
 
   // Build the 5 forecast rows with labels (used by UI + findBestDay)
@@ -784,11 +786,11 @@ const DestinationDetailScreen = ({ route, navigation }) => {
 
   // Date label for hero card (always shown so the pill is tappable)
   const formatDateLabel = (offset) => {
-    if (offset === 0) return 'Heute';
-    if (offset === 1) return 'Morgen';
+    if (offset === 0) return t('destination.today');
+    if (offset === 1) return t('destination.tomorrow');
     const d = new Date();
     d.setDate(d.getDate() + offset);
-    return d.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' });
+    return d.toLocaleDateString(dateLocale, { weekday: 'short', day: 'numeric', month: 'short' });
   };
   const heroDateLabel = formatDateLabel(dateOffset);
 
@@ -920,7 +922,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     {datePickerVisible && (
       <View style={styles.dateDropdown}>
         {[
-          { label: 'Heute', offset: 0 },
+          { label: t('destination.today'), offset: 0 },
           { label: '+1', offset: 1 },
           { label: '+2', offset: 2 },
           { label: '+5', offset: 5 },
@@ -1770,6 +1772,9 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   dateDropdown: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
     flexDirection: 'row',
     marginTop: 4,
     gap: 4,
