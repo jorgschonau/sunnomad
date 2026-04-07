@@ -1200,7 +1200,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isWarmAndDry && warmDryData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ {t('badges.temperature')}: {fmtTemp(warmDryData.temp)} ({t('badges.rank')} #{warmDryData.tempRank})
+                            🌡️ {t('badges.temperature')}: {fmtTemp(warmDryData.temp)}{warmDryData.tempRank && warmDryData.tempRank < 999 ? ` (${t('badges.rank')} #${warmDryData.tempRank})` : ''}
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
                             ☀️ {t('badges.conditions')}: {translateCondition(warmDryData.condition)}
