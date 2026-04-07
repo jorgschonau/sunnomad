@@ -1235,6 +1235,7 @@ const MapScreen = ({ navigation }) => {
     const { zoom: currentZoom, bounds: currentBounds } = mapViewport;
     const effectiveCenter = centerPoint || location;
     let candidates = displayDestinations.filter(d => {
+      if (d.isCurrentLocation || d.isCenterPoint) return true;
       const lat = d.lat ?? d.latitude;
       const lon = d.lon ?? d.longitude;
       if (!lat || !lon) return false;
