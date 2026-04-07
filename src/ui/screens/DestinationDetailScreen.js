@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
   Animated,
+  InteractionManager,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeProvider';
@@ -18,7 +19,7 @@ import { openInMaps, NavigationProvider } from '../../usecases/navigationUsecase
 import { getPlaceDetail } from '../../services/placesWeatherService';
 import { supabase } from '../../config/supabase';
 import { toggleFavourite, isDestinationFavourite } from '../../usecases/favouritesUsecases';
-import { BadgeMetadata } from '../../domain/destinationBadge';
+import { BadgeMetadata, calculateBadges } from '../../domain/destinationBadge';
 import { getCountryName } from '../../utils/countryNames';
 import { useUnits } from '../../contexts/UnitContext';
 import { formatTemperature, formatDistance, getTemperatureSymbol, getDistanceSymbol } from '../../utils/unitConversion';
@@ -186,8 +187,11 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const [expandedBadges, setExpandedBadges] = useState({});
   const [favToast, setFavToast] = useState(null);
   const [uiFocused, setUiFocused] = useState(false);
+  const [localBadges, setLocalBadges] = useState(destination?.badges || []);
+  const [badgeSource, setBadgeSource] = useState(destination);
   const [firstLineW, setFirstLineW] = useState(null);
   const [heroHintVisible, setHeroHintVisible] = useState(false);
+  const [readyForDetails, setReadyForDetails] = useState(false);
   const favOpacityAnim = React.useRef(new Animated.Value(1)).current;
   const favStarColor = favOpacityAnim.interpolate({
     inputRange: [0, 1],
@@ -243,8 +247,47 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     try {
       setIsRefreshing(true);
       setError(null);
+
+      // FAST PATH: Map already provides forecastArray with 16 days — use it directly
+      if (destination.forecastArray && destination.forecastArray.length > dateOffset) {
+        const startIdx = dateOffset;
+        const keys = ['today', 'tomorrow', 'day3', 'day4', 'day5'];
+        const slots = {};
+        keys.forEach((key, i) => {
+          const entry = destination.forecastArray[startIdx + i];
+          if (entry) {
+            slots[key] = {
+              condition: entry.condition,
+              temp: entry.high ?? entry.temp,
+              high: entry.high,
+              low: entry.low,
+              description: entry.description,
+            };
+          }
+        });
+        if (Object.keys(slots).length >= 2) {
+          const day0 = destination.forecastArray[startIdx];
+          const fastForecast = {
+            ...destination,
+            id: effectivePlaceId,
+            description: destination.description || destination.weatherDescription || destination.condition || '',
+            countryCode: destination.countryCode || destination.country_code,
+            country_code: destination.country_code || destination.countryCode,
+            country: destination.country,
+            state_name: destination.state_name || null,
+            elevation: destination.elevation ?? destination.dem ?? null,
+            temperature: day0?.high ?? day0?.temp ?? destination.temperature,
+            condition: day0?.condition ?? destination.condition,
+            forecast: slots,
+          };
+          setForecast(fastForecast);
+          setIsLoading(false);
+          setIsRefreshing(false);
+          return;
+        }
+      }
       
-      // PRIORITY 0: No UUID? Try to resolve from DB by coordinates or name
+      // SLOW PATH: No forecastArray — resolve UUID and fetch from DB
       let resolvedId = effectivePlaceId;
       const isValidUUID = resolvedId && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(resolvedId);
       if (!isValidUUID) {
@@ -252,7 +295,6 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           const lat = destination.lat ?? destination.latitude;
           const lon = destination.lon ?? destination.longitude;
           __DEV__ && console.log('[resolvePlace] no UUID, trying lookup. lat:', lat, 'lon:', lon, 'name:', destination.name);
-          // Try by coordinates (±0.05° ≈ 5.5km)
           if (lat != null && lon != null) {
             const { data, error } = await supabase
               .from('places')
@@ -265,7 +307,6 @@ const DestinationDetailScreen = ({ route, navigation }) => {
             __DEV__ && console.log('[resolvePlace] coord result:', data, 'error:', error);
             if (data?.[0]?.id) resolvedId = data[0].id;
           }
-          // Fallback: try by name (partial, case-insensitive)
           if (!(/^[0-9a-f]{8}-/i.test(resolvedId))) {
             const cleanName = (destination.name || '').replace(/^[📍⊕★]\s?/g, '').trim();
             __DEV__ && console.log('[resolvePlace] coord miss, trying name:', cleanName);
@@ -294,7 +335,6 @@ const DestinationDetailScreen = ({ route, navigation }) => {
             throw new Error(fetchError || 'Insufficient forecast data from Supabase');
           }
           
-          // Build 5 forecast slots starting from dateOffset
           const forecastSlots = buildForecastSlots(forecastData, place);
           
           const convertedForecast = {
@@ -327,7 +367,6 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           return;
         } catch (fetchError) {
           console.warn(`⚠️ Supabase fetch failed for ${destination.name}, using inline forecast fallback:`, fetchError);
-          // Fall through to destination.forecast or generated fallback
         }
       }
       
@@ -341,37 +380,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         country: destination.country,
       };
 
-      // PRIORITY 2a: Build from forecastArray if forecast is incomplete (e.g. date offset > 5)
-      if (destination.forecastArray && destination.forecastArray.length > dateOffset) {
-        const startIdx = dateOffset;
-        const keys = ['today', 'tomorrow', 'day3', 'day4', 'day5'];
-        const slots = {};
-        keys.forEach((key, i) => {
-          const entry = destination.forecastArray[startIdx + i];
-          if (entry) {
-            slots[key] = {
-              condition: entry.condition,
-              temp: entry.high ?? entry.temp,
-              high: entry.high,
-              low: entry.low,
-              description: entry.description,
-            };
-          }
-        });
-        if (Object.keys(slots).length >= 2) {
-          const day0 = destination.forecastArray[startIdx];
-          setForecast({
-            ...fallbackBase,
-            temperature: day0?.high ?? day0?.temp ?? destination.temperature,
-            condition: day0?.condition ?? destination.condition,
-            forecast: slots,
-          });
-          setIsLoading(false);
-          return;
-        }
-      }
-
-      // PRIORITY 2b: Use inline forecast data from map
+      // PRIORITY 2: Use inline forecast data from map
       // Map data forecast is already relative to the selected date (targetDate)
       if (destination.forecast) {
         const normalizedForecast = {
@@ -431,9 +440,68 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   };
 
   useEffect(() => {
-    loadForecast();
-    checkFavouriteStatus();
-  }, [destination.lat, destination.lon, dateOffset]);
+    const task = InteractionManager.runAfterInteractions(() => {
+      setReadyForDetails(true);
+      loadForecast();
+      checkFavouriteStatus();
+    });
+    return () => task.cancel();
+  }, [destination.lat, destination.lon]);
+
+  // Date offset change: rebuild forecast slots + badges locally (no DB call needed)
+  useEffect(() => {
+    if (dateOffset === 0) {
+      setForecast(initialForecast);
+      setLocalBadges(destination.badges || []);
+      setBadgeSource(destination);
+      return;
+    }
+    if (destination.forecastArray && destination.forecastArray.length > dateOffset) {
+      const startIdx = dateOffset;
+      const keys = ['today', 'tomorrow', 'day3', 'day4', 'day5'];
+      const slots = {};
+      keys.forEach((key, i) => {
+        const entry = destination.forecastArray[startIdx + i];
+        if (entry) {
+          slots[key] = {
+            condition: entry.condition,
+            temp: entry.high ?? entry.temp,
+            high: entry.high,
+            low: entry.low,
+            description: entry.description,
+            precipitation: entry.precipitation ?? 0,
+            windSpeed: entry.windSpeed ?? 0,
+            sunshine_duration: entry.sunshine_duration ?? 0,
+          };
+        }
+      });
+      const day0 = destination.forecastArray[startIdx];
+      const shiftedDest = {
+        ...destination,
+        temperature: day0?.high ?? day0?.temp ?? destination.temperature,
+        condition: day0?.condition ?? destination.condition,
+        windSpeed: day0?.windSpeed ?? destination.windSpeed,
+        forecast: slots,
+        forecastArray: destination.forecastArray.slice(startIdx),
+      };
+      const originWeather = {
+        temperature: destination.temperature,
+        condition: destination.condition,
+        lat: destination.lat,
+        lon: destination.lon,
+        name: 'Origin',
+        isCurrentLocation: true,
+      };
+      const newBadges = calculateBadges(shiftedDest, originWeather, destination.distance || 0, new Map(), reverseMode);
+      setLocalBadges(newBadges);
+      setBadgeSource(shiftedDest);
+      setForecast(prev => ({
+        ...prev,
+        ...shiftedDest,
+        forecast: slots,
+      }));
+    }
+  }, [dateOffset]);
 
   const checkFavouriteStatus = async () => {
     const placeId = forecast?.id || effectivePlaceId;
@@ -924,9 +992,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         {[
           { label: t('destination.today'), offset: 0 },
           { label: '+1', offset: 1 },
-          { label: '+2', offset: 2 },
+          { label: '+3', offset: 3 },
           { label: '+5', offset: 5 },
           { label: '+7', offset: 7 },
+          { label: '+10', offset: 10 },
         ].map((opt) => (
           <TouchableOpacity
             key={opt.offset}
@@ -980,29 +1049,31 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         </View>
         </Animated.View>
 
-        {/* Badge Section */}
+        {/* Badge + Forecast — deferred until after navigation transition */}
+        {readyForDetails && (
+        <View>
         <Animated.View style={{ opacity: uiOpacityAnim }} pointerEvents={uiFocused ? 'none' : 'auto'}>
-        {destination.badges && destination.badges.length > 0 && (
+        {localBadges && localBadges.length > 0 && (
           <View style={[styles.badgeSection, {
             backgroundColor: theme.surface,
             shadowColor: theme.shadow
           }]}>
             <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('badges.awards')}</Text>
-            {destination.badges
-              .sort((a, b) => (BadgeMetadata[a]?.priority || 99) - (BadgeMetadata[b]?.priority || 99)) // Sort by priority
+            {localBadges
+              .sort((a, b) => (BadgeMetadata[a]?.priority || 99) - (BadgeMetadata[b]?.priority || 99))
               .map((badge, index) => {
               const metadata = BadgeMetadata[badge];
-              const worthData = destination._worthTheDriveData;
-              const worthBudgetData = destination._worthTheDriveBudgetData;
-              const warmDryData = destination._warmAndDryData;
-              const beachData = destination._beachParadiseData;
-              const sunnyStreakData = destination._sunnyStreakData;
-              const miracleData = destination._weatherMiracleData;
-              const heatwaveData = destination._heatwaveData;
-              const snowKingData = destination._snowKingData;
-              const rainyDaysData = destination._rainyDaysData;
-              const weatherCurseData = destination._weatherCurseData;
-              const springAwakeningData = destination._springAwakeningData;
+              const worthData = badgeSource._worthTheDriveData;
+              const worthBudgetData = badgeSource._worthTheDriveBudgetData;
+              const warmDryData = badgeSource._warmAndDryData;
+              const beachData = badgeSource._beachParadiseData;
+              const sunnyStreakData = badgeSource._sunnyStreakData;
+              const miracleData = badgeSource._weatherMiracleData;
+              const heatwaveData = badgeSource._heatwaveData;
+              const snowKingData = badgeSource._snowKingData;
+              const rainyDaysData = badgeSource._rainyDaysData;
+              const weatherCurseData = badgeSource._weatherCurseData;
+              const springAwakeningData = badgeSource._springAwakeningData;
               
               // Determine which badge type
               const isWorthTheDrive = badge === 'WORTH_THE_DRIVE';
@@ -1052,7 +1123,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                   return t('badges.weathercurseSummary', { tempLoss: fmtTempDelta(-Math.abs(weatherCurseData.tempLoss)) });
                 }
                 if (isSpringAwakening && springAwakeningData) {
-                  return t('badges.springawakeningSummary', { tempDelta: fmtTempDelta(springAwakeningData.tempDelta), distance: fmtDist(springAwakeningData.roadDistanceKm ?? springAwakeningData.distance) });
+                  return t('badges.springawakeningSummary', { temp: fmtTemp(springAwakeningData.tempDest), condition: translateCondition('sunny') });
                 }
                 return t('badges.tapForDetails');
               };
@@ -1234,10 +1305,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                       {isSpringAwakening && springAwakeningData && (
                         <View style={styles.badgeStats}>
                           <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ {t('badges.temperature')}: {fmtTemp(springAwakeningData.tempOrigin)} → {fmtTemp(springAwakeningData.tempDest)} ({fmtTempDelta(springAwakeningData.tempDelta)})
+                            🌡️ {t('badges.temperature')}: {fmtTemp(springAwakeningData.tempDest)}
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            💨 ETA: {formatETA(springAwakeningData.eta)} ({fmtDist(springAwakeningData.roadDistanceKm ?? springAwakeningData.distance)})
+                            ☀️ {translateCondition('sunny')} · 💨 ≤ 20 km/h
                           </Text>
                         </View>
                       )}
@@ -1328,6 +1399,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
             )}
           </TouchableOpacity>
         </View>
+      </View>
+        )}
       </View>
       </View>
     </ScrollView>

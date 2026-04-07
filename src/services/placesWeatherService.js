@@ -268,6 +268,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
           elevation: place.dem ?? null,
           attractiveness_score: place.attractiveness_score,
           attractivenessScore: place.attractiveness_score,
+          state_name: place.state_name || null,
           
           // Weather data - guaranteed to exist! Always show MAX temp
           temperature: Math.round(place.temp_max),

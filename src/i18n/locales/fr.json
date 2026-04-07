@@ -210,10 +210,12 @@
   },
   "onboarding": {
     "welcome": "Bienvenue!",
+    "tagline": "Votre chasseur de soleil personnel.",
     "howItWorks": "Comment ça marche:",
-    "step1": "Sélectionnez votre rayon et la météo souhaitée",
-    "step2": "Appuyez sur un lieu sur la carte pour les détails",
-    "step3": "Utilisez la navigation pour vous y rendre",
+    "step1": "Définissez votre rayon et préférence météo",
+    "step2": "Utilisez le trophée pour trouver les meilleurs spots",
+    "step3": "Appuyez sur un marqueur pour découvrir un lieu",
+    "step4": "Naviguez directement depuis l'appli",
     "letsGo": "C'est parti!"
   },
   "favourites": {
@@ -264,7 +266,7 @@
     "snowkingSummary": "{{snowDays}} jours ❄️ | {{snowfall}} cm",
     "rainydaysSummary": "{{rainyDays}} jours de pluie",
     "weathercurseSummary": "⚠️ Baisse de {{tempLoss}} bientôt",
-    "springawakeningSummary": "{{tempDelta}} | {{distance}}",
+    "springawakeningSummary": "{{temp}} | {{condition}}",
     "tapForDetails": "Appuyez pour détails",
     "awards": "Distinctions",
     "temperature": "Température",
@@ -361,6 +363,10 @@
     "editProfile": "Modifier le profil",
     "changeEmail": "Changer l'email",
     "changePassword": "Changer le mot de passe"
+  },
+  "dateFilter": {
+    "weatherFor": "Météo pour",
+    "days": "jours"
   }
 }
 

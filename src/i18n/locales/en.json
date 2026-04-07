@@ -210,11 +210,13 @@
   },
   "onboarding": {
     "welcome": "Welcome!",
+    "tagline": "Your personal sun chaser.",
     "howItWorks": "How it works:",
-    "step1": "Select your desired radius and weather conditions",
-    "step2": "Tap on a location on the map for details",
-    "step3": "Use navigation to drive there",
-    "letsGo": "Let's Go!"
+    "step1": "Set your radius and weather preference",
+    "step2": "Use the trophy to find top spots",
+    "step3": "Tap any marker to explore a destination",
+    "step4": "Navigate directly from the app",
+    "letsGo": "Start Exploring"
   },
   "favourites": {
     "title": "Favourites",
@@ -264,7 +266,7 @@
     "snowkingSummary": "{{snowDays}} days ❄️ | {{snowfall}} cm",
     "rainydaysSummary": "{{rainyDays}} rainy days",
     "weathercurseSummary": "⚠️ Drops {{tempLoss}} soon",
-    "springawakeningSummary": "{{tempDelta}} | {{distance}}",
+    "springawakeningSummary": "{{temp}} | {{condition}}",
     "tapForDetails": "Tap for details",
     "awards": "Awards",
     "temperature": "Temperature",
@@ -361,6 +363,10 @@
     "editProfile": "Edit Profile",
     "changeEmail": "Change email",
     "changePassword": "Change password"
+  },
+  "dateFilter": {
+    "weatherFor": "Weather for",
+    "days": "days"
   }
 }
 

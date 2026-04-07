@@ -210,10 +210,12 @@
   },
   "onboarding": {
     "welcome": "Willkommen!",
+    "tagline": "Dein persönlicher Sonnenjäger.",
     "howItWorks": "So funktioniert's:",
-    "step1": "Wählen Sie Ihren Wunsch-Radius und das gewünschte Wetter aus",
-    "step2": "Tippen Sie auf einen Ort auf der Karte für Details",
-    "step3": "Nutzen Sie die Navigation um dorthin zu fahren",
+    "step1": "Radius und Wetterpräferenz einstellen",
+    "step2": "Mit dem Pokal die besten Orte finden",
+    "step3": "Tippe auf einen Marker um einen Ort zu entdecken",
+    "step4": "Direkt aus der App navigieren",
     "letsGo": "Los geht's!"
   },
   "favourites": {
@@ -264,7 +266,7 @@
     "snowkingSummary": "{{snowDays}} Tage ❄️ | {{snowfall}} cm",
     "rainydaysSummary": "{{rainyDays}} Regentage",
     "weathercurseSummary": "⚠️ Fällt bald um {{tempLoss}}",
-    "springawakeningSummary": "{{tempDelta}} | {{distance}}",
+    "springawakeningSummary": "{{temp}} | {{condition}}",
     "tapForDetails": "Tap für Details",
     "awards": "Auszeichnungen",
     "temperature": "Temperatur",
@@ -361,6 +363,10 @@
     "editProfile": "Profil bearbeiten",
     "changeEmail": "E-Mail ändern",
     "changePassword": "Passwort ändern"
+  },
+  "dateFilter": {
+    "weatherFor": "Wetter für",
+    "days": "Tage"
   }
 }
 

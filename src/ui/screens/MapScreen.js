@@ -500,129 +500,121 @@ const MapScreen = ({ navigation }) => {
       return;
     }
     if (selectedDateOffset === 0) {
-      setDisplayDestinations(destinations);
+      const origin = destinations.find(d => d.isCenterPoint) || destinations.find(d => d.isCurrentLocation);
+      if (origin) applyBadgesToDestinations(destinations, origin, origin.lat, origin.lon, reverseMode, radius);
+      setDisplayDestinations([...destinations]);
       return;
     }
-    // Don't set state here – keeps button update instant. Map content updates when async work finishes.
-    const cancelled = { current: false };
-    const handle = InteractionManager.runAfterInteractions(() => {
-      if (cancelled.current) return;
-      const offset = selectedDateOffset;
-      const normalizeForecastEntry = (entry) => {
-        if (!entry) return null;
-        const temp = entry.temp ?? entry.temperature ?? entry.high ?? null;
-        const high = entry.high ?? entry.temp_max ?? entry.temperature ?? null;
-        const low = entry.low ?? entry.temp_min ?? (high != null ? high - 3 : null);
-        return {
-          ...entry,
-          condition: entry.condition,
-          temp,
-          tempMax: high,
-          high,
-          low,
-          precipitation: entry.precipitation ?? 0,
-          windSpeed: entry.windSpeed ?? 0,
-          humidity: entry.humidity ?? null,
-          description: entry.description ?? entry.weather_description ?? '',
-          sunshine_duration: entry.sunshine_duration ?? 0,
-        };
+    const offset = selectedDateOffset;
+    const normalizeForecastEntry = (entry) => {
+      if (!entry) return null;
+      const temp = entry.temp ?? entry.temperature ?? entry.high ?? null;
+      const high = entry.high ?? entry.temp_max ?? entry.temperature ?? null;
+      const low = entry.low ?? entry.temp_min ?? (high != null ? high - 3 : null);
+      return {
+        ...entry,
+        condition: entry.condition,
+        temp,
+        tempMax: high,
+        high,
+        low,
+        precipitation: entry.precipitation ?? 0,
+        windSpeed: entry.windSpeed ?? 0,
+        humidity: entry.humidity ?? null,
+        description: entry.description ?? entry.weather_description ?? '',
+        sunshine_duration: entry.sunshine_duration ?? 0,
       };
-      // 5 slots to match DestinationDetailScreen (today, tomorrow, day3, day4, day5)
-      const buildShiftedForecast = (arr, off) => {
-        const keys = ['today', 'tomorrow', 'day3', 'day4', 'day5'];
-        const result = {};
-        keys.forEach((key, i) => {
-          const entry = arr[off + i];
-          if (entry) result[key] = normalizeForecastEntry(entry);
-        });
-        return result;
-      };
-      const buildShiftedKeyedForecast = (forecastObj, off) => {
-        const inputKeys = ['today', 'tomorrow', 'day2', 'day3', 'day4', 'day5', 'day6', 'day7', 'day8', 'day9', 'day10', 'day11', 'day12', 'day13', 'day14', 'day15'];
-        const outputKeys = ['today', 'tomorrow', 'day3', 'day4', 'day5'];
-        const result = {};
-        outputKeys.forEach((outKey, i) => {
-          const sourceKey = inputKeys[off + i];
-          if (sourceKey && forecastObj?.[sourceKey]) result[outKey] = normalizeForecastEntry(forecastObj[sourceKey]);
-        });
-        return result;
-      };
-      const shifted = destinations.map(dest => {
-        if (dest.forecastDays && dest.forecastDays[offset]) {
-          const dayData = dest.forecastDays[offset];
-          const shiftedForecast = {};
-          ['today', 'tomorrow', 'day3', 'day4', 'day5'].forEach((key, i) => {
-            const fd = dest.forecastDays[offset + i];
-            if (fd) {
-              shiftedForecast[key] = normalizeForecastEntry({
-                condition: fd.condition,
-                temp: fd.temperature,
-                high: Math.round(fd.temp_max || fd.temperature),
-                low: Math.round(fd.temp_min || fd.temperature - 3),
-                precipitation: fd.precipitation,
-                windSpeed: fd.windSpeed,
-                humidity: fd.humidity,
-                description: fd.description ?? fd.weather_description ?? '',
-                sunshine_duration: fd.sunshine_duration || 0,
-              });
-            }
-          });
-          return {
-            ...dest,
-            temperature: dayData.temperature,
-            condition: dayData.condition,
-            temp_max: dayData.temp_max,
-            temp_min: dayData.temp_min,
-            windSpeed: dayData.windSpeed,
-            precipitation: dayData.precipitation,
-            humidity: dayData.humidity ?? dest.humidity,
-            description: dayData.description ?? dest.description,
-            weather_description: dayData.description ?? dest.weather_description,
-            sunshine_duration: dayData.sunshine_duration || 0,
-            forecast: shiftedForecast,
-          };
-        }
-        if (dest.forecastArray && dest.forecastArray.length > offset) {
-          const dayData = dest.forecastArray[offset];
-          return {
-            ...dest,
-            temperature: dayData.high ?? dayData.temp ?? dest.temperature,
-            condition: dayData.condition ?? dest.condition,
-            windSpeed: dayData.windSpeed ?? dest.windSpeed,
-            precipitation: dayData.precipitation ?? dest.precipitation,
-            sunshine_duration: dayData.sunshine_duration ?? dest.sunshine_duration,
-            humidity: dayData.humidity ?? dest.humidity,
-            description: dayData.description ?? dest.description,
-            weather_description: dayData.description ?? dest.weather_description,
-            forecast: buildShiftedForecast(dest.forecastArray, offset),
-          };
-        }
-        const FORECAST_KEY_MAP = { 1: 'tomorrow', 2: 'day2', 3: 'day3', 4: 'day4', 5: 'day5', 6: 'day6', 7: 'day7', 8: 'day8', 9: 'day9', 10: 'day10' };
-        const forecastKey = FORECAST_KEY_MAP[offset];
-        if (dest.forecast && forecastKey && dest.forecast[forecastKey]) {
-          const dayData = dest.forecast[forecastKey];
-          return {
-            ...dest,
-            temperature: dayData.high ?? dayData.temp ?? dest.temperature,
-            condition: dayData.condition ?? dest.condition,
-            windSpeed: dayData.windSpeed ?? dest.windSpeed,
-            precipitation: dayData.precipitation ?? dest.precipitation,
-            humidity: dayData.humidity ?? dest.humidity,
-            description: dayData.description ?? dest.description,
-            weather_description: dayData.description ?? dest.weather_description,
-            forecast: buildShiftedKeyedForecast(dest.forecast, offset),
-          };
-        }
-        return dest;
-      });
-      const origin = shifted.find(d => d.isCenterPoint) || shifted.find(d => d.isCurrentLocation);
-      if (origin) applyBadgesToDestinations(shifted, origin, origin.lat, origin.lon, reverseMode, radius);
-      if (!cancelled.current) setDisplayDestinations(shifted);
-    });
-    return () => {
-      cancelled.current = true;
-      if (handle?.cancel) handle.cancel();
     };
+    const buildShiftedForecast = (arr, off) => {
+      const keys = ['today', 'tomorrow', 'day3', 'day4', 'day5'];
+      const result = {};
+      keys.forEach((key, i) => {
+        const entry = arr[off + i];
+        if (entry) result[key] = normalizeForecastEntry(entry);
+      });
+      return result;
+    };
+    const buildShiftedKeyedForecast = (forecastObj, off) => {
+      const inputKeys = ['today', 'tomorrow', 'day2', 'day3', 'day4', 'day5', 'day6', 'day7', 'day8', 'day9', 'day10', 'day11', 'day12', 'day13', 'day14', 'day15'];
+      const outputKeys = ['today', 'tomorrow', 'day3', 'day4', 'day5'];
+      const result = {};
+      outputKeys.forEach((outKey, i) => {
+        const sourceKey = inputKeys[off + i];
+        if (sourceKey && forecastObj?.[sourceKey]) result[outKey] = normalizeForecastEntry(forecastObj[sourceKey]);
+      });
+      return result;
+    };
+    const shifted = destinations.map(dest => {
+      if (dest.forecastDays && dest.forecastDays[offset]) {
+        const dayData = dest.forecastDays[offset];
+        const shiftedForecast = {};
+        ['today', 'tomorrow', 'day3', 'day4', 'day5'].forEach((key, i) => {
+          const fd = dest.forecastDays[offset + i];
+          if (fd) {
+            shiftedForecast[key] = normalizeForecastEntry({
+              condition: fd.condition,
+              temp: fd.temperature,
+              high: Math.round(fd.temp_max || fd.temperature),
+              low: Math.round(fd.temp_min || fd.temperature - 3),
+              precipitation: fd.precipitation,
+              windSpeed: fd.windSpeed,
+              humidity: fd.humidity,
+              description: fd.description ?? fd.weather_description ?? '',
+              sunshine_duration: fd.sunshine_duration || 0,
+            });
+          }
+        });
+        return {
+          ...dest,
+          temperature: dayData.temperature,
+          condition: dayData.condition,
+          temp_max: dayData.temp_max,
+          temp_min: dayData.temp_min,
+          windSpeed: dayData.windSpeed,
+          precipitation: dayData.precipitation,
+          humidity: dayData.humidity ?? dest.humidity,
+          description: dayData.description ?? dest.description,
+          weather_description: dayData.description ?? dest.weather_description,
+          sunshine_duration: dayData.sunshine_duration || 0,
+          forecast: shiftedForecast,
+        };
+      }
+      if (dest.forecastArray && dest.forecastArray.length > offset) {
+        const dayData = dest.forecastArray[offset];
+        return {
+          ...dest,
+          temperature: dayData.high ?? dayData.temp ?? dest.temperature,
+          condition: dayData.condition ?? dest.condition,
+          windSpeed: dayData.windSpeed ?? dest.windSpeed,
+          precipitation: dayData.precipitation ?? dest.precipitation,
+          sunshine_duration: dayData.sunshine_duration ?? dest.sunshine_duration,
+          humidity: dayData.humidity ?? dest.humidity,
+          description: dayData.description ?? dest.description,
+          weather_description: dayData.description ?? dest.weather_description,
+          forecast: buildShiftedForecast(dest.forecastArray, offset),
+        };
+      }
+      const FORECAST_KEY_MAP = { 1: 'tomorrow', 2: 'day2', 3: 'day3', 4: 'day4', 5: 'day5', 6: 'day6', 7: 'day7', 8: 'day8', 9: 'day9', 10: 'day10' };
+      const forecastKey = FORECAST_KEY_MAP[offset];
+      if (dest.forecast && forecastKey && dest.forecast[forecastKey]) {
+        const dayData = dest.forecast[forecastKey];
+        return {
+          ...dest,
+          temperature: dayData.high ?? dayData.temp ?? dest.temperature,
+          condition: dayData.condition ?? dest.condition,
+          windSpeed: dayData.windSpeed ?? dest.windSpeed,
+          precipitation: dayData.precipitation ?? dest.precipitation,
+          humidity: dayData.humidity ?? dest.humidity,
+          description: dayData.description ?? dest.description,
+          weather_description: dayData.description ?? dest.weather_description,
+          forecast: buildShiftedKeyedForecast(dest.forecast, offset),
+        };
+      }
+      return dest;
+    });
+    const origin = shifted.find(d => d.isCenterPoint) || shifted.find(d => d.isCurrentLocation);
+    if (origin) applyBadgesToDestinations(shifted, origin, origin.lat, origin.lon, reverseMode, radius);
+    setDisplayDestinations(shifted);
   }, [destinations, selectedDateOffset, reverseMode, radius]);
 
   // Derive shifted center point weather from displayDestinations (respects date offset)
@@ -1725,6 +1717,7 @@ const MapScreen = ({ navigation }) => {
         {/* Custom Center Point Marker - Shows weather for SELECTED DATE */}
         {centerPoint && (
           <Marker
+            key={`centerpoint-${selectedDateOffset}`}
             coordinate={{ latitude: centerPoint.latitude, longitude: centerPoint.longitude }}
             anchor={{ x: 0.5, y: 0.5 }}
             tracksViewChanges={false}
@@ -1770,7 +1763,7 @@ const MapScreen = ({ navigation }) => {
           })
           .map((dest, index) => (
           <DestinationMarker
-            key={`${dest.lat}-${dest.lon}-${index}`}
+            key={`${dest.lat}-${dest.lon}-${selectedDateOffset}-${index}`}
             dest={dest}
             index={index}
             onPress={() => handleMarkerPress(dest)}

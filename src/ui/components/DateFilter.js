@@ -1,25 +1,23 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, Animated, StyleSheet } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
-const DATE_PRESETS = [
-  { value: 0, line1: 'Heute', line2: null },
-  { value: 1, line1: 'Morgen', line2: null },
-  { value: 3, line1: '+3', line2: 'Tage' },
-  { value: 5, line1: '+5', line2: 'Tage' },
-  { value: 7, line1: '+7', line2: 'Tage' },
-  { value: 10, line1: '+10', line2: 'Tage' },
+const getDatePresets = (t) => [
+  { value: 0, line1: t('destination.today'), line2: null },
+  { value: 1, line1: t('destination.tomorrow'), line2: null },
+  { value: 3, line1: '+3', line2: t('dateFilter.days') },
+  { value: 5, line1: '+5', line2: t('dateFilter.days') },
+  { value: 7, line1: '+7', line2: t('dateFilter.days') },
+  { value: 10, line1: '+10', line2: t('dateFilter.days') },
 ];
 
-/**
- * Format a date offset into a readable label
- * 0 → "Heute", 1 → "Morgen", 3+ → "Fr, 9. Feb"
- */
-const formatDateLabel = (offset) => {
-  if (offset === 0) return 'Heute';
-  if (offset === 1) return 'Morgen';
+const formatDateLabel = (offset, t, i18n) => {
+  if (offset === 0) return t('destination.today');
+  if (offset === 1) return t('destination.tomorrow');
+  const dateLocale = i18n.language === 'de' ? 'de-DE' : i18n.language === 'fr' ? 'fr-FR' : 'en-US';
   const date = new Date();
   date.setDate(date.getDate() + offset);
-  return date.toLocaleDateString('de-DE', { weekday: 'short', day: 'numeric', month: 'short' });
+  return date.toLocaleDateString(dateLocale, { weekday: 'short', day: 'numeric', month: 'short' });
 };
 
 /**
@@ -34,6 +32,8 @@ export const getTargetDate = (offset) => {
 const SCROLL_THRESHOLD = 4;
 
 const DateFilter = ({ selectedDateOffset, onDateOffsetChange }) => {
+  const { t, i18n } = useTranslation();
+  const DATE_PRESETS = getDatePresets(t);
   const [localOffset, setLocalOffset] = useState(selectedDateOffset);
   const callbackRef = useRef(null);
   const fadeLeft = useRef(new Animated.Value(0)).current;
@@ -90,7 +90,7 @@ const DateFilter = ({ selectedDateOffset, onDateOffsetChange }) => {
   return (
     <View style={styles.container}>
       <Text style={styles.label}>
-        Wetter für {formatDateLabel(localOffset)}
+        {t('dateFilter.weatherFor')} {formatDateLabel(localOffset, t, i18n)}
       </Text>
       <View style={styles.optionsWrapper}>
         <ScrollView
