@@ -835,18 +835,26 @@ const MapScreen = ({ navigation }) => {
     navigation.navigate('DestinationDetail', { destination, dateOffset: selectedDateOffset, reverseMode });
   };
 
+  const getRadiusStep = (r) => {
+    if (r < 200) return 25;
+    if (r < 500) return 50;
+    if (r < 1000) return 100;
+    return 200;
+  };
+
   const handleRadiusIncrease = async () => {
-    const newRadius = Math.min(radius + 50, 5000); // Max 5000 km
+    const step = getRadiusStep(radius);
+    const newRadius = Math.min(Math.round((radius + step) / step) * step, 5000);
     setRadius(newRadius);
     playTickSound();
-    // Note: loadDestinations is debounced in useEffect (500ms delay)
   };
 
   const handleRadiusDecrease = async () => {
-    const newRadius = Math.max(radius - 50, 50); // Min 50 km
+    const step = getRadiusStep(radius - 1);
+    const snapped = Math.round((radius - step) / step) * step;
+    const newRadius = Math.max(snapped, 50);
     setRadius(newRadius);
     playTickSound();
-    // Note: loadDestinations is debounced in useEffect (500ms delay)
   };
 
   const handleRadiusSelect = async (newRadius) => {
