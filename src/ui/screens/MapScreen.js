@@ -818,8 +818,16 @@ const MapScreen = ({ navigation }) => {
     const params = new URLSearchParams({
       latitude: lat,
       longitude: lon,
-      daily: ['temperature_2m_max', 'temperature_2m_min', 'weather_code', 'precipitation_sum', 'wind_speed_10m_max', 'sunshine_duration'].join(','),
-      current: ['relative_humidity_2m', 'cloud_cover'].join(','),
+      daily: [
+        'temperature_2m_max',
+        'temperature_2m_min',
+        'weather_code',
+        'precipitation_sum',
+        'wind_speed_10m_max',
+        'sunshine_duration',
+        'relative_humidity_2m_mean',
+        'cloud_cover_mean',
+      ].join(','),
       timezone: 'auto',
       forecast_days: 16,
     });
@@ -829,7 +837,6 @@ const MapScreen = ({ navigation }) => {
 
     const data = await response.json();
     const daily = data.daily;
-    const current = data.current || {};
 
     const forecastDaysArr = daily.weather_code?.map((code, i) => ({
       condition: mapWeatherCodeToCondition(code),
@@ -849,11 +856,11 @@ const MapScreen = ({ navigation }) => {
       temperature: Math.round(daily.temperature_2m_max?.[0] || 0),
       temp_max: daily.temperature_2m_max?.[0],
       temp_min: daily.temperature_2m_min?.[0],
-      humidity: current.relative_humidity_2m,
+      humidity: daily.relative_humidity_2m_mean?.[0] ?? null,
       windSpeed: Math.round(daily.wind_speed_10m_max?.[0] || 0),
       precipitation: daily.precipitation_sum?.[0] || 0,
-      cloudCover: current.cloud_cover,
-      stability: calculateStability(current.cloud_cover, daily.wind_speed_10m_max?.[0]),
+      cloudCover: daily.cloud_cover_mean?.[0] ?? null,
+      stability: calculateStability(daily.cloud_cover_mean?.[0], daily.wind_speed_10m_max?.[0]),
       badges: [],
       forecastDays: forecastDaysArr,
       country_code: countryCode,

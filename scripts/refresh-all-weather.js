@@ -74,27 +74,12 @@ const getWeatherIcon = (code) => {
 };
 
 /**
- * Fetch weather for one location (current + 14 days forecast)
+ * Fetch weather for one location (16-day daily forecast, no current block)
  */
 async function fetchWeather(place) {
   const params = new URLSearchParams({
     latitude: place.latitude,
     longitude: place.longitude,
-    current: [
-      'temperature_2m',
-      'relative_humidity_2m',
-      'apparent_temperature',
-      'precipitation',
-      'rain',
-      'snowfall',
-      'weather_code',
-      'cloud_cover',
-      'pressure_msl',
-      'surface_pressure',
-      'wind_speed_10m',
-      'wind_direction_10m',
-      'wind_gusts_10m',
-    ].join(','),
     daily: [
       'weather_code',
       'temperature_2m_max',
@@ -104,8 +89,6 @@ async function fetchWeather(place) {
       'snowfall_sum',
       'precipitation_probability_max',
       'wind_speed_10m_max',
-      'wind_gusts_10m_max',
-      'wind_direction_10m_dominant',
       'sunrise',
       'sunset',
       'sunshine_duration',
@@ -141,56 +124,31 @@ async function fetchWeather(place) {
 }
 
 /**
- * Build all 16 forecast records (today + 15 days) for one place.
- * Today uses current weather data, future days use daily forecast.
+ * Build all 16 forecast records from daily data only (fetched once per day).
  */
-function buildForecastRecords(placeId, current, daily, fetchedAt) {
-  const today = {
+function buildForecastRecords(placeId, daily, fetchedAt) {
+  return daily.time.map((time, idx) => ({
     place_id: placeId,
-    forecast_date: daily.time[0],
+    forecast_date: time,
     fetched_at: fetchedAt,
-    temp_min: daily.temperature_2m_min[0],
-    temp_max: daily.temperature_2m_max[0],
-    weather_main: getWeatherMain(current.weather_code),
-    weather_description: getWeatherDescription(current.weather_code),
-    weather_icon: getWeatherIcon(current.weather_code),
-    wind_speed: current.wind_speed_10m,
-    humidity: current.relative_humidity_2m || null,
-    precipitation_sum: current.precipitation || 0,
-    precipitation_probability: daily.precipitation_probability_max?.[0] ? daily.precipitation_probability_max[0] / 100 : null,
-    rain_volume: current.rain || 0,
-    snow_volume: current.snowfall || 0,
-    sunrise: daily.sunrise?.[0] ? new Date(daily.sunrise[0]).toISOString() : null,
-    sunset: daily.sunset?.[0] ? new Date(daily.sunset[0]).toISOString() : null,
-    sunshine_duration: daily.sunshine_duration?.[0] || null,
+    temp_min: daily.temperature_2m_min[idx],
+    temp_max: daily.temperature_2m_max[idx],
+    weather_main: getWeatherMain(daily.weather_code[idx]),
+    weather_description: getWeatherDescription(daily.weather_code[idx]),
+    weather_icon: getWeatherIcon(daily.weather_code[idx]),
+    wind_speed: daily.wind_speed_10m_max[idx],
+    humidity: daily.relative_humidity_2m_mean?.[idx] ?? null,
+    precipitation_sum: daily.precipitation_sum[idx] ?? 0,
+    precipitation_probability: daily.precipitation_probability_max[idx] != null
+      ? daily.precipitation_probability_max[idx] / 100
+      : null,
+    rain_volume: daily.rain_sum[idx] ?? 0,
+    snow_volume: daily.snowfall_sum[idx] ?? 0,
+    sunrise: daily.sunrise?.[idx] ? new Date(daily.sunrise[idx]).toISOString() : null,
+    sunset: daily.sunset?.[idx] ? new Date(daily.sunset[idx]).toISOString() : null,
+    sunshine_duration: daily.sunshine_duration?.[idx] != null ? Math.round(daily.sunshine_duration[idx]) : null,
     data_source: 'open-meteo',
-  };
-
-  const future = daily.time.slice(1).map((time, i) => {
-    const idx = i + 1;
-    return {
-      place_id: placeId,
-      forecast_date: time,
-      fetched_at: fetchedAt,
-      temp_min: daily.temperature_2m_min[idx],
-      temp_max: daily.temperature_2m_max[idx],
-      weather_main: getWeatherMain(daily.weather_code[idx]),
-      weather_description: getWeatherDescription(daily.weather_code[idx]),
-      weather_icon: getWeatherIcon(daily.weather_code[idx]),
-      wind_speed: daily.wind_speed_10m_max[idx],
-      precipitation_sum: daily.precipitation_sum[idx],
-      precipitation_probability: daily.precipitation_probability_max[idx] / 100,
-      rain_volume: daily.rain_sum[idx],
-      snow_volume: daily.snowfall_sum[idx],
-      humidity: daily.relative_humidity_2m_mean?.[idx] ?? null,
-      sunrise: daily.sunrise?.[idx] ? new Date(daily.sunrise[idx]).toISOString() : null,
-      sunset: daily.sunset?.[idx] ? new Date(daily.sunset[idx]).toISOString() : null,
-      sunshine_duration: daily.sunshine_duration?.[idx] || null,
-      data_source: 'open-meteo',
-    };
-  });
-
-  return [today, ...future];
+  }));
 }
 
 /**
@@ -206,8 +164,8 @@ async function processBatch(places, batchNum, totalBatches) {
     places.map(async (place) => {
       try {
         const data = await fetchWeather(place);
-        const records = buildForecastRecords(place.id, data.current, data.daily, fetchedAt);
-        return { success: true, name: place.name_en, temp: data.current.temperature_2m, records };
+        const records = buildForecastRecords(place.id, data.daily, fetchedAt);
+        return { success: true, name: place.name_en, temp: data.daily.temperature_2m_max?.[0], records };
       } catch (error) {
         console.error(`  ❌ FAILED: ${place.name_en} (ID: ${place.id}) - ${error.message}`);
         return { success: false, name: place.name_en, id: place.id, error: error.message };
