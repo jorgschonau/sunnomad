@@ -71,16 +71,22 @@ const getDisplayHotDays = (dest) => {
   if (f?.day5?.high >= 34) n++;
   return n;
 };
-// Must match calculateSunnyStreak: count sunny in first 5 slots (same as UI)
+// Must match calculateSunnyStreak: longest CONSECUTIVE sunny run in first 5 slots
 const getDisplaySunnyStreak = (dest) => {
+  let slots;
   const arr = dest.forecastArray;
   if (arr?.length) {
-    const slots = [arr[0], arr[1], arr[2], arr[3], arr[4]];
-    return slots.filter(s => s?.condition === 'sunny').length;
+    slots = [arr[0], arr[1], arr[2], arr[3], arr[4]];
+  } else {
+    const f = dest.forecast;
+    slots = [f?.today, f?.tomorrow, f?.day2, f?.day3, f?.day4];
   }
-  const f = dest.forecast;
-  const slots = [f?.today, f?.tomorrow, f?.day2, f?.day3, f?.day4];
-  return slots.filter(s => s?.condition === 'sunny').length;
+  let max = 0, cur = 0;
+  for (const s of slots) {
+    if (s?.condition === 'sunny') { cur++; if (cur > max) max = cur; }
+    else { cur = 0; }
+  }
+  return max;
 };
 
 const AnimatedBadgeCard = ({ index, destination, badge, isExpanded, onToggle, theme, children }) => {
@@ -1372,7 +1378,9 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                 <Text style={[styles.forecastDay, { color: isBestDay ? '#7A6B55' : theme.text }]}>
                   {day.label}
                 </Text>
-                <Text style={styles.forecastIcon}>{hasData ? getWeatherIcon(day.data.condition) : '—'}</Text>
+                <View style={styles.forecastIconWrap}>
+                  <Text style={styles.forecastIcon}>{hasData ? getWeatherIcon(day.data.condition) : '—'}</Text>
+                </View>
                 <Text style={[styles.forecastTemp, { color: isBestDay ? '#7A6B55' : theme.textSecondary, fontWeight: isBestDay ? '600' : '500' }]}>
                   {hasData ? `${formatTemperature(day.data.high, temperatureUnit, false)}\u00A0/\u00A0${formatTemperature(day.data.low, temperatureUnit)}` : '—'}
                 </Text>
@@ -1703,33 +1711,35 @@ const styles = StyleSheet.create({
   forecastItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingVertical: 8,
+    paddingHorizontal: 0,
     borderBottomWidth: 1,
   },
   forecastItemSelected: {
     backgroundColor: 'rgba(180, 155, 120, 0.08)',
     borderRadius: 8,
-    paddingHorizontal: 8,
-    marginHorizontal: -8,
     borderLeftWidth: 2,
     borderLeftColor: 'rgba(180, 140, 80, 0.4)',
+    paddingLeft: 6,
   },
   forecastDay: {
     fontSize: 16,
     fontWeight: '600',
     flex: 1,
   },
+  forecastIconWrap: {
+    width: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   forecastIcon: {
     fontSize: 24,
-    width: 40,
-    textAlign: 'center',
-    marginHorizontal: 10,
   },
   forecastTemp: {
     fontSize: 16,
     fontWeight: '500',
-    minWidth: 75,
+    width: 110,
+    textAlign: 'right',
   },
   actionsContainer: {
     gap: 12,

@@ -37,7 +37,8 @@ export const mapWeatherMain = (weatherMain, weatherDescription = '') => {
   const main = weatherMain.toLowerCase();
   const desc = (weatherDescription || '').toLowerCase();
 
-  // Already an app condition → pass through
+  // Already an app condition → pass through (but check for misclassified "mainly clear")
+  if (main === 'cloudy' && (desc.includes('mainly clear') || desc.includes('clear sky'))) return 'sunny';
   if (main === 'sunny' || main === 'cloudy' || main === 'rainy' || main === 'snowy' || main === 'windy') return main;
 
   if (main === 'clear') return 'sunny';

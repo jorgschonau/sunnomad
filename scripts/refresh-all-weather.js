@@ -31,7 +31,7 @@ const FETCH_TIMEOUT = 15000; // 15s timeout per request
  * Weather code mapping
  */
 const getWeatherMain = (code) => {
-  if (code === 0) return 'sunny';
+  if (code <= 1) return 'sunny'; // 0 Clear sky, 1 Mainly clear
   if (code <= 3) return 'cloudy';
   if (code <= 49) return 'cloudy';
   if (code <= 59) return 'rainy';

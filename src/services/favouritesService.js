@@ -1,5 +1,6 @@
 import { supabase } from '../config/supabase';
 import { getPlaceName } from '../utils/localization';
+import { mapWeatherMain } from '../domain/weatherPresentation';
 
 /**
  * Favourites Service
@@ -39,35 +40,49 @@ export const getFavourites = async (locale = 'en') => {
         )
       `)
       .eq('user_id', user.id)
-      .eq('places.weather_forecast.forecast_date', today)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
 
-    const transformed = data.map(fav => {
-      const place = fav.places;
-      const weather = place?.weather_forecast?.[0] || {};
-      return {
-        id: place.id,
-        favouriteId: fav.id,
-        lat: place.latitude,
-        lon: place.longitude,
-        name: getPlaceName(place, locale),
-        country_code: place.country_code,
-        place_type: place.place_type,
-        notes: fav.notes,
-        savedAt: fav.created_at,
-        placeId: place.id,
-        temperature: weather.temp_max != null ? Math.round(weather.temp_max) : null,
-        tempMin: weather.temp_min,
-        tempMax: weather.temp_max,
-        condition: weather.weather_main || null,
-        weatherDescription: weather.weather_description || null,
-        weatherIcon: weather.weather_icon || null,
-        windSpeed: weather.wind_speed != null ? Math.round(weather.wind_speed) : null,
-        humidity: weather.humidity || null,
-      };
-    });
+    const transformed = (data || [])
+      .filter(fav => fav.places != null)
+      .map(fav => {
+        const place = fav.places;
+        const allForecasts = (place.weather_forecast || [])
+          .filter(w => w.forecast_date >= today)
+          .sort((a, b) => a.forecast_date.localeCompare(b.forecast_date));
+        const weather = allForecasts[0] || {};
+        const forecastArray = allForecasts.map(w => ({
+          condition: mapWeatherMain(w.weather_main, w.weather_description),
+          high: w.temp_max != null ? Math.round(w.temp_max) : null,
+          temp: w.temp_max != null ? Math.round(w.temp_max) : null,
+          low: w.temp_min != null ? Math.round(w.temp_min) : null,
+          windSpeed: w.wind_speed != null ? Math.round(w.wind_speed) : 0,
+          description: w.weather_description || '',
+          humidity: w.humidity || null,
+        }));
+        return {
+          id: place.id,
+          favouriteId: fav.id,
+          lat: place.latitude,
+          lon: place.longitude,
+          name: getPlaceName(place, locale),
+          country_code: place.country_code,
+          place_type: place.place_type,
+          notes: fav.notes,
+          savedAt: fav.created_at,
+          placeId: place.id,
+          temperature: weather.temp_max != null ? Math.round(weather.temp_max) : null,
+          tempMin: weather.temp_min,
+          tempMax: weather.temp_max,
+          condition: mapWeatherMain(weather.weather_main, weather.weather_description),
+          weatherDescription: weather.weather_description || null,
+          weatherIcon: weather.weather_icon || null,
+          windSpeed: weather.wind_speed != null ? Math.round(weather.wind_speed) : null,
+          humidity: weather.humidity || null,
+          forecastArray,
+        };
+      });
 
     return { favourites: transformed, error: null };
   } catch (error) {

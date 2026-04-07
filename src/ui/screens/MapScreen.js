@@ -22,7 +22,7 @@ import { BadgeMetadata, DestinationBadge } from '../../domain/destinationBadge';
 import { playTickSound } from '../../utils/soundUtils';
 import { trackMapViews, trackDetailView } from '../../services/placesService';
 import { hybridSearch, ensurePlaceInDB } from '../../services/hybridSearchService';
-import { getPlaceDetail } from '../../services/placesWeatherService';
+import { getPlaceDetail, fetchExtendedForecast } from '../../services/placesWeatherService';
 import { getPlaceName } from '../../utils/localization';
 import { getFavourites } from '../../usecases/favouritesUsecases';
 import WeatherFilter from '../components/WeatherFilter';
@@ -307,7 +307,9 @@ const MapScreen = ({ navigation }) => {
     if (cachedDestinations) {
       try {
         const cacheData = JSON.parse(cachedDestinations);
+        const CACHE_VERSION = 2;
         const cacheValid = Date.now() - cacheData.timestamp < 3600000
+          && cacheData.version === CACHE_VERSION
           && Array.isArray(cacheData.data) && cacheData.data.length > 0
           && cacheData.data.some(d => d.image_region !== undefined);
         if (cacheValid) {
@@ -474,7 +476,8 @@ const MapScreen = ({ navigation }) => {
       if (radiusDebounceTimer.current) clearTimeout(radiusDebounceTimer.current);
     };
     // Intentionally omit centerPointWeather: reload only when center *position* changes to avoid double load after long-press
-  }, [location, radius, selectedCondition, centerPoint, reverseMode]);
+    // selectedCondition is intentionally omitted: weather filter is applied client-side in visibleMarkers
+  }, [location, radius, centerPoint, reverseMode]);
 
   useEffect(() => {
     return () => {
@@ -494,6 +497,81 @@ const MapScreen = ({ navigation }) => {
    * Sync displayDestinations from destinations + date offset.
    * Offset 0: set immediately (no heavy work). Offset !== 0: run shift+badges after interactions so tap stays instant.
    */
+  const normalizeForecastEntry = useCallback((entry) => {
+    if (!entry) return null;
+    const temp = entry.temp ?? entry.temperature ?? entry.high ?? null;
+    const high = entry.high ?? entry.temp_max ?? entry.temperature ?? null;
+    const low = entry.low ?? entry.temp_min ?? (high != null ? high - 3 : null);
+    return {
+      ...entry,
+      condition: entry.condition,
+      temp, tempMax: high, high, low,
+      precipitation: entry.precipitation ?? 0,
+      windSpeed: entry.windSpeed ?? 0,
+      humidity: entry.humidity ?? null,
+      description: entry.description ?? entry.weather_description ?? '',
+      sunshine_duration: entry.sunshine_duration ?? 0,
+    };
+  }, []);
+
+  const buildShiftedForecast = useCallback((arr, off) => {
+    const keys = ['today', 'tomorrow', 'day3', 'day4', 'day5'];
+    const result = {};
+    keys.forEach((key, i) => {
+      const entry = arr[off + i];
+      if (entry) result[key] = normalizeForecastEntry(entry);
+    });
+    return result;
+  }, [normalizeForecastEntry]);
+
+  const shiftDestination = useCallback((dest, offset) => {
+    // Branch 1: forecastDays (current location / center point from buildWeatherFromDB)
+    if (dest.forecastDays && dest.forecastDays[offset]) {
+      const dayData = dest.forecastDays[offset];
+      const shiftedForecast = {};
+      ['today', 'tomorrow', 'day3', 'day4', 'day5'].forEach((key, i) => {
+        const fd = dest.forecastDays[offset + i];
+        if (fd) {
+          shiftedForecast[key] = normalizeForecastEntry({
+            condition: fd.condition, temp: fd.temperature,
+            high: Math.round(fd.temp_max || fd.temperature),
+            low: Math.round(fd.temp_min || fd.temperature - 3),
+            precipitation: fd.precipitation, windSpeed: fd.windSpeed,
+            humidity: fd.humidity,
+            description: fd.description ?? fd.weather_description ?? '',
+            sunshine_duration: fd.sunshine_duration || 0,
+          });
+        }
+      });
+      return {
+        ...dest, temperature: dayData.temperature, condition: dayData.condition,
+        temp_max: dayData.temp_max, temp_min: dayData.temp_min,
+        windSpeed: dayData.windSpeed, precipitation: dayData.precipitation,
+        humidity: dayData.humidity ?? dest.humidity,
+        description: dayData.description ?? dest.description,
+        weather_description: dayData.description ?? dest.weather_description,
+        sunshine_duration: dayData.sunshine_duration || 0, forecast: shiftedForecast,
+      };
+    }
+    // Branch 2: forecastArray (places from getPlacesWithWeather)
+    if (dest.forecastArray && dest.forecastArray.length > offset) {
+      const dayData = dest.forecastArray[offset];
+      return {
+        ...dest,
+        temperature: dayData.high ?? dayData.temp ?? dest.temperature,
+        condition: dayData.condition ?? dest.condition,
+        windSpeed: dayData.windSpeed ?? dest.windSpeed,
+        precipitation: dayData.precipitation ?? dest.precipitation,
+        sunshine_duration: dayData.sunshine_duration ?? dest.sunshine_duration,
+        humidity: dayData.humidity ?? dest.humidity,
+        description: dayData.description ?? dest.description,
+        weather_description: dayData.description ?? dest.weather_description,
+        forecast: buildShiftedForecast(dest.forecastArray, offset),
+      };
+    }
+    return null;
+  }, [normalizeForecastEntry, buildShiftedForecast]);
+
   useEffect(() => {
     if (!destinations.length) {
       setDisplayDestinations([]);
@@ -505,117 +583,60 @@ const MapScreen = ({ navigation }) => {
       setDisplayDestinations([...destinations]);
       return;
     }
+
     const offset = selectedDateOffset;
-    const normalizeForecastEntry = (entry) => {
-      if (!entry) return null;
-      const temp = entry.temp ?? entry.temperature ?? entry.high ?? null;
-      const high = entry.high ?? entry.temp_max ?? entry.temperature ?? null;
-      const low = entry.low ?? entry.temp_min ?? (high != null ? high - 3 : null);
-      return {
-        ...entry,
-        condition: entry.condition,
-        temp,
-        tempMax: high,
-        high,
-        low,
-        precipitation: entry.precipitation ?? 0,
-        windSpeed: entry.windSpeed ?? 0,
-        humidity: entry.humidity ?? null,
-        description: entry.description ?? entry.weather_description ?? '',
-        sunshine_duration: entry.sunshine_duration ?? 0,
-      };
+
+    // Check if destinations have enough forecast data for this offset
+    const needsExtendedData = destinations.some(d =>
+      !d.isCurrentLocation && !d.isCenterPoint &&
+      !d.forecastDays?.[offset] &&
+      !(d.forecastArray && d.forecastArray.length > offset)
+    );
+
+    const applyShift = (dests) => {
+      const shifted = dests.map(dest => shiftDestination(dest, offset) || dest);
+      const origin = shifted.find(d => d.isCenterPoint) || shifted.find(d => d.isCurrentLocation);
+      if (origin) applyBadgesToDestinations(shifted, origin, origin.lat, origin.lon, reverseMode, radius);
+      if (__DEV__) {
+        const ok = shifted.filter((s, i) => s !== dests[i]).length;
+        console.log(`📅 +${offset}: ${ok} shifted, ${shifted.length - ok} unchanged`);
+      }
+      setDisplayDestinations(shifted);
     };
-    const buildShiftedForecast = (arr, off) => {
-      const keys = ['today', 'tomorrow', 'day3', 'day4', 'day5'];
-      const result = {};
-      keys.forEach((key, i) => {
-        const entry = arr[off + i];
-        if (entry) result[key] = normalizeForecastEntry(entry);
+
+    if (!needsExtendedData) {
+      applyShift(destinations);
+      return;
+    }
+
+    // Forecast data too short → fetch extended forecast on-demand
+    const idsToFetch = destinations
+      .filter(d => d.id && !d.isCurrentLocation && !d.isCenterPoint &&
+        !d.forecastDays?.[offset] &&
+        !(d.forecastArray && d.forecastArray.length > offset))
+      .map(d => d.id);
+
+    __DEV__ && console.log(`📅 +${offset}: need extended forecast for ${idsToFetch.length} places...`);
+
+    let cancelled = false;
+    fetchExtendedForecast(idsToFetch).then(extendedMap => {
+      if (cancelled) return;
+      const enriched = destinations.map(d => {
+        if (d.id && extendedMap[d.id]) {
+          return { ...d, forecastArray: extendedMap[d.id] };
+        }
+        return d;
       });
-      return result;
-    };
-    const buildShiftedKeyedForecast = (forecastObj, off) => {
-      const inputKeys = ['today', 'tomorrow', 'day2', 'day3', 'day4', 'day5', 'day6', 'day7', 'day8', 'day9', 'day10', 'day11', 'day12', 'day13', 'day14', 'day15'];
-      const outputKeys = ['today', 'tomorrow', 'day3', 'day4', 'day5'];
-      const result = {};
-      outputKeys.forEach((outKey, i) => {
-        const sourceKey = inputKeys[off + i];
-        if (sourceKey && forecastObj?.[sourceKey]) result[outKey] = normalizeForecastEntry(forecastObj[sourceKey]);
-      });
-      return result;
-    };
-    const shifted = destinations.map(dest => {
-      if (dest.forecastDays && dest.forecastDays[offset]) {
-        const dayData = dest.forecastDays[offset];
-        const shiftedForecast = {};
-        ['today', 'tomorrow', 'day3', 'day4', 'day5'].forEach((key, i) => {
-          const fd = dest.forecastDays[offset + i];
-          if (fd) {
-            shiftedForecast[key] = normalizeForecastEntry({
-              condition: fd.condition,
-              temp: fd.temperature,
-              high: Math.round(fd.temp_max || fd.temperature),
-              low: Math.round(fd.temp_min || fd.temperature - 3),
-              precipitation: fd.precipitation,
-              windSpeed: fd.windSpeed,
-              humidity: fd.humidity,
-              description: fd.description ?? fd.weather_description ?? '',
-              sunshine_duration: fd.sunshine_duration || 0,
-            });
-          }
-        });
-        return {
-          ...dest,
-          temperature: dayData.temperature,
-          condition: dayData.condition,
-          temp_max: dayData.temp_max,
-          temp_min: dayData.temp_min,
-          windSpeed: dayData.windSpeed,
-          precipitation: dayData.precipitation,
-          humidity: dayData.humidity ?? dest.humidity,
-          description: dayData.description ?? dest.description,
-          weather_description: dayData.description ?? dest.weather_description,
-          sunshine_duration: dayData.sunshine_duration || 0,
-          forecast: shiftedForecast,
-        };
-      }
-      if (dest.forecastArray && dest.forecastArray.length > offset) {
-        const dayData = dest.forecastArray[offset];
-        return {
-          ...dest,
-          temperature: dayData.high ?? dayData.temp ?? dest.temperature,
-          condition: dayData.condition ?? dest.condition,
-          windSpeed: dayData.windSpeed ?? dest.windSpeed,
-          precipitation: dayData.precipitation ?? dest.precipitation,
-          sunshine_duration: dayData.sunshine_duration ?? dest.sunshine_duration,
-          humidity: dayData.humidity ?? dest.humidity,
-          description: dayData.description ?? dest.description,
-          weather_description: dayData.description ?? dest.weather_description,
-          forecast: buildShiftedForecast(dest.forecastArray, offset),
-        };
-      }
-      const FORECAST_KEY_MAP = { 1: 'tomorrow', 2: 'day2', 3: 'day3', 4: 'day4', 5: 'day5', 6: 'day6', 7: 'day7', 8: 'day8', 9: 'day9', 10: 'day10' };
-      const forecastKey = FORECAST_KEY_MAP[offset];
-      if (dest.forecast && forecastKey && dest.forecast[forecastKey]) {
-        const dayData = dest.forecast[forecastKey];
-        return {
-          ...dest,
-          temperature: dayData.high ?? dayData.temp ?? dest.temperature,
-          condition: dayData.condition ?? dest.condition,
-          windSpeed: dayData.windSpeed ?? dest.windSpeed,
-          precipitation: dayData.precipitation ?? dest.precipitation,
-          humidity: dayData.humidity ?? dest.humidity,
-          description: dayData.description ?? dest.description,
-          weather_description: dayData.description ?? dest.weather_description,
-          forecast: buildShiftedKeyedForecast(dest.forecast, offset),
-        };
-      }
-      return dest;
+      // Persist enriched forecastArrays back to destinations state
+      setDestinations(enriched);
+      applyShift(enriched);
+    }).catch(err => {
+      __DEV__ && console.warn('Extended forecast fetch failed:', err);
+      applyShift(destinations);
     });
-    const origin = shifted.find(d => d.isCenterPoint) || shifted.find(d => d.isCurrentLocation);
-    if (origin) applyBadgesToDestinations(shifted, origin, origin.lat, origin.lon, reverseMode, radius);
-    setDisplayDestinations(shifted);
-  }, [destinations, selectedDateOffset, reverseMode, radius]);
+
+    return () => { cancelled = true; };
+  }, [destinations, selectedDateOffset, reverseMode, radius, shiftDestination]);
 
   // Derive shifted center point weather from displayDestinations (respects date offset)
   const displayCenterPointWeather = useMemo(() => {
@@ -660,7 +681,7 @@ const MapScreen = ({ navigation }) => {
           effectiveCenter.latitude,
           effectiveCenter.longitude,
           radius,
-          selectedCondition,
+          null,
           originTemp,
           i18n.language,
           reverseMode
@@ -682,6 +703,7 @@ const MapScreen = ({ navigation }) => {
       // Cache in background so we don't block UI
       AsyncStorage.setItem('mapDestinationsCache', JSON.stringify({
         timestamp: Date.now(),
+        version: 2,
         data: allDestinations,
       })).catch((cacheError) => console.warn('Failed to cache destinations:', cacheError));
     } catch (error) {
@@ -986,21 +1008,21 @@ const MapScreen = ({ navigation }) => {
    * Android gets fewer markers (slower map rendering pipeline).
    */
   const getMaxMarkers = (zoom, radiusKm) => {
-    let base = Math.floor(radiusKm / 20);
+    let base = Math.floor(radiusKm / 22);
     
     let zoomFactor;
-    if (zoom <= 3) zoomFactor = 0.5;
-    else if (zoom <= 4) zoomFactor = 0.8;
-    else if (zoom <= 5) zoomFactor = 1.0;
-    else if (zoom <= 6) zoomFactor = 1.2;
-    else if (zoom <= 7) zoomFactor = 3.0;
-    else zoomFactor = 5.0;
+    if (zoom <= 3) zoomFactor = 0.45;
+    else if (zoom <= 4) zoomFactor = 0.7;
+    else if (zoom <= 5) zoomFactor = 0.9;
+    else if (zoom <= 6) zoomFactor = 1.1;
+    else if (zoom <= 7) zoomFactor = 2.5;
+    else zoomFactor = 4.0;
     
-    const maxCap = Platform.OS === 'android' ? 80 : 120;
-    const minFloor = zoom >= 7 ? (Platform.OS === 'android' ? 35 : 60) :
-                     zoom >= 5 ? (Platform.OS === 'android' ? 20 : 40) :
-                     zoom >= 4 ? (Platform.OS === 'android' ? 20 : 40) :
-                     (Platform.OS === 'android' ? 15 : 30);
+    const maxCap = Platform.OS === 'android' ? 70 : 105;
+    const minFloor = zoom >= 7 ? (Platform.OS === 'android' ? 30 : 50) :
+                     zoom >= 5 ? (Platform.OS === 'android' ? 18 : 35) :
+                     zoom >= 4 ? (Platform.OS === 'android' ? 16 : 32) :
+                     (Platform.OS === 'android' ? 12 : 25);
     const total = Math.min(Math.max(base * zoomFactor, minFloor), maxCap);
     return Math.round(total);
   };
@@ -1019,7 +1041,7 @@ const MapScreen = ({ navigation }) => {
       // Primary: Attractiveness score (higher is better)
       const aScore = a.attractivenessScore || a.attractiveness_score || 50;
       const bScore = b.attractivenessScore || b.attractiveness_score || 50;
-      if (Math.abs(aScore - bScore) > 5) return bScore - aScore;
+      if (Math.abs(aScore - bScore) > 2) return bScore - aScore;
       
       // Secondary: Temperature (warmer is better)
       const aTemp = a.temperature || 0;
@@ -1041,6 +1063,8 @@ const MapScreen = ({ navigation }) => {
     });
   };
   
+  const URBAN_PLACE_TYPES = new Set(['city', 'medium_town', 'small_town', 'town', 'village']);
+
   const getVisibleMarkers = (allPlaces, zoom, bounds) => {
     const candidates = allPlaces.filter(p => 
       p.temperature !== null && p.temperature !== undefined
@@ -1051,17 +1075,29 @@ const MapScreen = ({ navigation }) => {
     const userLon = location?.longitude;
     const maxMarkers = getMaxMarkers(zoom, radius);
     
-    const GRID_COLS = zoom <= 4 ? 6 : zoom <= 6 ? 6 : zoom <= 7 ? 8 : 12;
-    const GRID_ROWS = zoom <= 4 ? 8 : zoom <= 6 ? 8 : zoom <= 7 ? 10 : 16;
+    const GRID_COLS = zoom <= 4 ? 5 : zoom <= 6 ? 6 : zoom <= 7 ? 7 : 11;
+    const GRID_ROWS = zoom <= 4 ? 7 : zoom <= 6 ? 7 : zoom <= 7 ? 9 : 14;
+
+    // Urban places (cities/towns) get a coarser grid → wider spacing, fewer markers
+    const URBAN_GRID_COLS = Math.max(3, GRID_COLS - 1);
+    const URBAN_GRID_ROWS = Math.max(4, GRID_ROWS - 1);
 
     // Separate special markers (always shown)
     const specialMarkers = candidates.filter(p => p.isCurrentLocation || p.isCenterPoint);
 
-    const getGridKey = (lat, lon) => {
+    const makeGridKey = (lat, lon, cols, rows) => {
       if (!bounds) return '0_0';
-      const col = Math.floor((lon - bounds.west)  / (bounds.east  - bounds.west)  * GRID_COLS);
-      const row = Math.floor((lat - bounds.south) / (bounds.north - bounds.south) * GRID_ROWS);
-      return `${Math.min(col, GRID_COLS-1)}_${Math.min(row, GRID_ROWS-1)}`;
+      const col = Math.floor((lon - bounds.west)  / (bounds.east  - bounds.west)  * cols);
+      const row = Math.floor((lat - bounds.south) / (bounds.north - bounds.south) * rows);
+      return `${Math.min(col, cols-1)}_${Math.min(row, rows-1)}`;
+    };
+    const getGridKey = (lat, lon) => makeGridKey(lat, lon, GRID_COLS, GRID_ROWS);
+
+    const getPlaceGridKey = (lat, lon, placeType) => {
+      if (URBAN_PLACE_TYPES.has(placeType)) {
+        return 'u_' + makeGridKey(lat, lon, URBAN_GRID_COLS, URBAN_GRID_ROWS);
+      }
+      return 'p_' + makeGridKey(lat, lon, GRID_COLS, GRID_ROWS);
     };
     
     // Pinned badges: always visible, but soft grid limit (max 2 per grid) to avoid clustering
@@ -1107,12 +1143,13 @@ const MapScreen = ({ navigation }) => {
         })
       : normal;
 
-    // Build grid: best place per cell (guaranteed geographic coverage)
+    // Build grid: best place per cell. Urban and non-urban use separate grids
+    // (different prefixes + resolutions) so they don't compete with each other.
     const gridMap = new Map();
     for (const place of viewportPlaces) {
       const lat = place.lat || place.latitude;
       const lon = place.lon || place.longitude;
-      const key = getGridKey(lat, lon);
+      const key = getPlaceGridKey(lat, lon, place.place_type);
       const existing = gridMap.get(key);
       const score = place.attractivenessScore || place.attractiveness_score || 50;
       const existingScore = existing ? (existing.attractivenessScore || existing.attractiveness_score || 50) : -1;
@@ -1133,8 +1170,9 @@ const MapScreen = ({ navigation }) => {
     const result = [...specialMarkers, ...pinned, ...gridWinners];
 
     const pinnedCount = pinned.length;
-    const normalCount = gridWinners.length;
-    __DEV__ && console.log(`📊 Final: ${result.length} markers (${pinnedCount} pinned + ${normalCount} normal + ${specialMarkers.length} special), ${gridMap.size} grids`);
+    const urbanCount = gridWinners.filter(p => URBAN_PLACE_TYPES.has(p.place_type)).length;
+    const poiCount = gridWinners.length - urbanCount;
+    __DEV__ && console.log(`📊 Final: ${result.length} markers (${pinnedCount} pinned + ${urbanCount} urban + ${poiCount} POI + ${specialMarkers.length} special), ${gridMap.size} grids`);
     return result;
   };
 
@@ -1142,14 +1180,21 @@ const MapScreen = ({ navigation }) => {
     if (!displayDestinations.length || !location || !radius) return [];
     const { zoom: currentZoom, bounds: currentBounds } = mapViewport;
     const effectiveCenter = centerPoint || location;
-    const inRadiusDestinations = displayDestinations.filter(d => {
+    let candidates = displayDestinations.filter(d => {
       const lat = d.lat ?? d.latitude;
       const lon = d.lon ?? d.longitude;
       if (!lat || !lon) return false;
       return getDistanceKm(effectiveCenter.latitude, effectiveCenter.longitude, lat, lon) <= radius;
     });
-    return getVisibleMarkers(inRadiusDestinations, currentZoom, currentBounds, favouriteDestinations);
-  }, [mapViewport, displayDestinations, location, radius, favouriteDestinations, centerPoint]);
+    // Client-side weather condition filter (instant, no re-fetch needed)
+    if (selectedCondition) {
+      const cond = selectedCondition.toLowerCase();
+      candidates = candidates.filter(d =>
+        d.isCurrentLocation || d.isCenterPoint || d.condition?.toLowerCase() === cond
+      );
+    }
+    return getVisibleMarkers(candidates, currentZoom, currentBounds, favouriteDestinations);
+  }, [mapViewport, displayDestinations, location, radius, favouriteDestinations, centerPoint, selectedCondition]);
 
   // Track map_view_count as a side-effect of visibleMarkers changing
   useEffect(() => {
@@ -1794,20 +1839,34 @@ const MapScreen = ({ navigation }) => {
             );
             if (distToCenter > radius) return null;
 
-            const withWeather = displayDestinations.find(d => 
-              Math.abs((d.lat ?? d.latitude) - fav.lat) < 0.05 &&
-              Math.abs((d.lon ?? d.longitude) - fav.lon) < 0.05
+            const withWeather = displayDestinations.find(d =>
+              (d.id && fav.placeId && d.id === fav.placeId) ||
+              (d.id && fav.id && d.id === fav.id) ||
+              (Math.abs((d.lat ?? d.latitude) - fav.lat) < 0.01 &&
+               Math.abs((d.lon ?? d.longitude) - fav.lon) < 0.01)
             );
+
+            let temp = withWeather?.temperature ?? null;
+            let cond = withWeather?.condition ?? null;
+            if (temp == null && fav.forecastArray?.length > selectedDateOffset) {
+              const shifted = fav.forecastArray[selectedDateOffset];
+              temp = shifted?.high ?? shifted?.temp ?? fav.temperature ?? null;
+              cond = shifted?.condition ?? fav.condition ?? 'cloudy';
+            } else if (temp == null) {
+              temp = fav.temperature ?? null;
+              cond = cond ?? fav.condition ?? 'cloudy';
+            }
+            cond = cond ?? 'cloudy';
             
-            const temp = withWeather?.temperature ?? fav.temperature ?? null;
-            const cond = withWeather?.condition ?? fav.condition ?? 'cloudy';
-            
+            const favBadges = getMapBadges(withWeather?.badges || fav.badges || []);
+            const hasFavBadges = favBadges.length > 0;
+
             return (
           <Marker
             key={`sep-fav-${fav.placeId || fav.id || `${fav.lat}-${fav.lon}`}-${selectedDateOffset}-${mapViewport.zoom}`}
             coordinate={{ latitude: Number(fav.lat), longitude: Number(fav.lon) }}
             anchor={{ x: 0.5, y: 0.5 }}
-            zIndex={10000}
+            zIndex={hasFavBadges ? 10000 : 500}
             tracksViewChanges={false}
             onPress={() => handleMarkerPress(withWeather || fav)}
           >
@@ -1823,6 +1882,29 @@ const MapScreen = ({ navigation }) => {
                 <Text style={styles.markerTemp}>
                   {temp != null ? formatTemperature(temp, temperatureUnit, false) : '?°'}
                 </Text>
+                {hasFavBadges && (() => {
+                  const sorted = favBadges
+                    .sort((a, b) => (BadgeMetadata[a]?.priority || 99) - (BadgeMetadata[b]?.priority || 99))
+                    .slice(0, 6);
+                  const right = sorted.slice(0, 3);
+                  const left = sorted.slice(3);
+                  return (
+                    <>
+                      <View style={styles.badgeOverlayContainer}>
+                        {right.map((badge, i) => (
+                          <AnimatedBadge key={i} icon={BadgeMetadata[badge].icon} color={BadgeMetadata[badge].color} delay={i * 100} />
+                        ))}
+                      </View>
+                      {left.length > 0 && (
+                        <View style={styles.badgeOverlayContainerLeft}>
+                          {left.map((badge, i) => (
+                            <AnimatedBadge key={i} icon={BadgeMetadata[badge].icon} color={BadgeMetadata[badge].color} delay={(i + 3) * 100} />
+                          ))}
+                        </View>
+                      )}
+                    </>
+                  );
+                })()}
               </View>
             </View>
           </Marker>
@@ -1851,38 +1933,50 @@ const MapScreen = ({ navigation }) => {
       }).length === 0 && favouriteDestinations.filter(fav => {
         if (!fav || fav.lat == null || fav.lon == null) return false;
         const withWeather = displayDestinations.find(d =>
-          Math.abs((d.lat ?? d.latitude) - fav.lat) < 0.05 &&
-          Math.abs((d.lon ?? d.longitude) - fav.lon) < 0.05
+          (d.id && fav.placeId && d.id === fav.placeId) ||
+          (d.id && fav.id && d.id === fav.id) ||
+          (Math.abs((d.lat ?? d.latitude) - fav.lat) < 0.01 &&
+           Math.abs((d.lon ?? d.longitude) - fav.lon) < 0.01)
         );
         const badges = withWeather?.badges || fav.badges || [];
         return getMapBadges(badges).some(b => !BadgeMetadata[b]?.excludeFromTrophy);
       }).length === 0 && (
-        <View style={[styles.emptyStateOverlay, { backgroundColor: 'rgba(0, 0, 0, 0.5)' }]} pointerEvents="box-none">
-          <View style={[styles.emptyStateBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <Text style={styles.emptyStateIcon}>🏆</Text>
-            <Text style={[styles.emptyStateTitle, { color: theme.text }]}>Keine Highlights</Text>
-            <Text style={[styles.emptyStateMessage, { color: theme.textSecondary }]}>
-              in {formatDistance(radius, distanceUnit, 0)} Radius
-            </Text>
-            <TouchableOpacity
-              style={styles.emptyStatePrimaryButton}
-              onPress={() => {
-                const newRadius = Math.min(radius * 2, 5000);
-                setRadius(newRadius);
-                playTickSound();
-              }}
-            >
-              <Text style={styles.emptyStatePrimaryButtonText}>Radius erweitern</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={styles.emptyStateSecondaryButton}
-              onPress={() => {
-                setShowOnlyBadges(false);
-                playTickSound();
-              }}
-            >
-              <Text style={[styles.emptyStateSecondaryButtonText, { color: theme.textSecondary }]}>Alle Orte anzeigen</Text>
-            </TouchableOpacity>
+        <View style={styles.emptyStateOverlay} pointerEvents="box-none">
+          <View style={styles.emptyStateBox}>
+            <View style={styles.emptyStateTopRow}>
+              <View style={styles.emptyStateIconBox}>
+                <Text style={styles.emptyStateIcon}>🏆</Text>
+              </View>
+              <View style={styles.emptyStateTextCol}>
+                <Text style={styles.emptyStateTitle}>Keine Highlights</Text>
+                <Text style={styles.emptyStateMessage}>
+                  Keine Top-Orte in {formatDistance(radius, distanceUnit, 0)} Radius
+                </Text>
+              </View>
+            </View>
+            <View style={styles.emptyStateButtons}>
+              <TouchableOpacity
+                style={styles.emptyStatePrimaryButton}
+                activeOpacity={0.8}
+                onPress={() => {
+                  const newRadius = Math.min(radius * 2, 5000);
+                  setRadius(newRadius);
+                  playTickSound();
+                }}
+              >
+                <Text style={styles.emptyStatePrimaryButtonText}>Radius erweitern</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.emptyStateSecondaryButton}
+                activeOpacity={0.6}
+                onPress={() => {
+                  setShowOnlyBadges(false);
+                  playTickSound();
+                }}
+              >
+                <Text style={styles.emptyStateSecondaryButtonText}>Alle Orte anzeigen</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       )}
@@ -2021,72 +2115,56 @@ const MapScreen = ({ navigation }) => {
 
       <View style={styles.radiusControlsWrapper}>
         {showRadiusMenu && (
-          <View style={[styles.radiusPresetMenu, {
-            backgroundColor: theme.surface,
-            borderColor: theme.border,
-            shadowColor: theme.shadow
-          }]}>
-            {[200, 500, 1000, 2000].map((radiusOption) => (
-              <TouchableOpacity
-                key={radiusOption}
-                style={[styles.radiusPresetItem, radiusOption === radius && styles.radiusPresetItemActive]}
-                onPress={() => handleRadiusSelect(radiusOption)}
-              >
-                <Text style={[
-                  styles.radiusPresetText,
-                  { color: radiusOption === radius ? theme.primary : theme.text }
-                ]}>
-                  {formatDistance(radiusOption, distanceUnit, 0)}
-                </Text>
-              </TouchableOpacity>
-            ))}
+          <View style={styles.radiusPresetMenu}>
+            {[200, 500, 1000, 2000].map((radiusOption, index) => {
+              const isSelected = radiusOption === radius;
+              return (
+                <TouchableOpacity
+                  key={radiusOption}
+                  style={[
+                    styles.rpRow,
+                    isSelected && styles.rpRowSelected,
+                    index < 3 && styles.rpRowBorder,
+                  ]}
+                  onPress={() => handleRadiusSelect(radiusOption)}
+                  activeOpacity={0.6}
+                >
+                  <Text style={[styles.rpText, isSelected && styles.rpTextSelected]}>
+                    {formatDistance(radiusOption, distanceUnit, 0)}
+                  </Text>
+                  {isSelected && <Text style={styles.rpCheck}>✓</Text>}
+                </TouchableOpacity>
+              );
+            })}
           </View>
         )}
         
         <TouchableOpacity 
-          style={[styles.radiusDisplay, {
-            backgroundColor: theme.surface,
-            borderColor: showRadiusMenu ? theme.primary : theme.border,
-            shadowColor: theme.shadow
-          }]}
+          style={styles.radiusDisplay}
           onPress={() => setShowRadiusMenu(!showRadiusMenu)}
           accessibilityLabel={t('radius.title')}
           accessibilityRole="button"
         >
-          <Text style={[styles.radiusLabel, { color: theme.textTertiary }]}>{t('radius.title')}</Text>
-          <Text style={[styles.radiusDisplayText, { color: theme.text }]}>{formatDistance(radius, distanceUnit, 0)}</Text>
+          <Text style={styles.radiusLabel}>{t('radius.title').toUpperCase()}</Text>
+          <Text style={styles.radiusDisplayText}>{formatDistance(radius, distanceUnit, 0)}</Text>
         </TouchableOpacity>
-        <View style={[styles.radiusControls, {
-          backgroundColor: theme.surface,
-          borderColor: theme.border,
-          shadowColor: theme.shadow
-        }]}>
-          {/* + Button */}
+        <View style={styles.radiusControls}>
           <TouchableOpacity
-            style={[styles.radiusButton, styles.radiusButtonTop, {
-              backgroundColor: theme.background
-            }]}
+            style={styles.radiusButtonLeft}
             onPress={handleRadiusIncrease}
             accessibilityLabel={t('radius.more')}
-            accessibilityRole="button"
-            accessibilityHint={`Increase search radius from ${formatDistance(radius, distanceUnit, 0)}`}
+            activeOpacity={0.6}
           >
-            <Text style={[styles.radiusButtonText, { color: theme.text }]}>+</Text>
-            <Text style={[styles.radiusButtonLabel, { color: theme.textSecondary }]}>{t('radius.more')}</Text>
+            <Text style={styles.radiusPlusText}>+</Text>
           </TouchableOpacity>
-          
-          {/* - Button */}
+          <View style={styles.radiusDivider} />
           <TouchableOpacity
-            style={[styles.radiusButton, styles.radiusButtonBottom, {
-              backgroundColor: theme.background
-            }]}
+            style={styles.radiusButtonRight}
             onPress={handleRadiusDecrease}
             accessibilityLabel={t('radius.less')}
-            accessibilityRole="button"
-            accessibilityHint={`Decrease search radius from ${formatDistance(radius, distanceUnit, 0)}`}
+            activeOpacity={0.6}
           >
-            <Text style={[styles.radiusButtonText, { color: theme.text }]}>−</Text>
-            <Text style={[styles.radiusButtonLabel, { color: theme.textSecondary }]}>{t('radius.less')}</Text>
+            <Text style={styles.radiusMinusText}>−</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -2471,100 +2549,111 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   radiusDisplay: {
-    paddingHorizontal: 16,
+    paddingHorizontal: 20,
     paddingVertical: 10,
-    borderRadius: 8,
-    borderWidth: 3,
+    borderRadius: 14,
+    backgroundColor: '#F4F6F8',
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.10)',
     marginBottom: 8,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3,
-    elevation: 5,
     alignItems: 'center',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.14,
+    shadowRadius: 5,
+    elevation: 4,
   },
   radiusLabel: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 11,
+    fontWeight: '400',
+    color: '#6B7280',
     textAlign: 'center',
-    marginBottom: 2,
+    letterSpacing: 0.5,
+    marginBottom: 1,
   },
   radiusDisplayText: {
-    fontSize: 20,
-    fontWeight: '700',
+    fontSize: 22,
+    fontWeight: '500',
+    color: '#1F2933',
     textAlign: 'center',
   },
   radiusControls: {
     flexDirection: 'row',
-    borderRadius: 10,
-    borderWidth: 3,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
+    borderRadius: 14,
+    backgroundColor: '#F4F6F8',
     overflow: 'hidden',
   },
-  radiusButton: {
-    width: 70,
-    height: 70,
+  radiusButtonLeft: {
+    width: 44,
+    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#BDBDBD',
   },
-  radiusButtonTop: {
-    borderTopLeftRadius: 8,
-    borderBottomLeftRadius: 8,
-    borderTopWidth: 0,
-    borderBottomWidth: 0,
-    borderLeftWidth: 0,
-    borderRightWidth: 1,
-    borderRightColor: '#E0E0E0',
+  radiusButtonRight: {
+    width: 44,
+    height: 40,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  radiusButtonBottom: {
-    borderTopWidth: 0,
-    borderBottomWidth: 0,
-    borderRightWidth: 0,
-    borderLeftWidth: 0,
-    borderTopRightRadius: 8,
-    borderBottomRightRadius: 8,
+  radiusDivider: {
+    width: 1,
+    backgroundColor: '#DDE1E6',
+    marginVertical: 10,
   },
-  radiusButtonText: {
-    fontSize: 28,
-    fontWeight: '600',
-    lineHeight: 28,
+  radiusPlusText: {
+    fontSize: 23,
+    fontWeight: '300',
+    color: '#374151',
   },
-  radiusButtonLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    marginTop: 2,
+  radiusMinusText: {
+    fontSize: 23,
+    fontWeight: '300',
+    color: '#374151',
   },
   radiusPresetMenu: {
     position: 'absolute',
-    bottom: 160,
+    bottom: 100,
     right: 0,
-    borderWidth: 2,
-    borderRadius: 16,
-    paddingVertical: 8,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 6,
-    elevation: 8,
-    minWidth: 140,
+    backgroundColor: '#F4F6F8',
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.06)',
+    paddingVertical: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.10,
+    shadowRadius: 4,
+    shadowColor: '#000',
+    elevation: 4,
+    minWidth: 120,
     zIndex: 1000,
   },
-  radiusPresetItem: {
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: 'rgba(0,0,0,0.05)',
+  rpRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 18,
   },
-  radiusPresetItemActive: {
-    backgroundColor: 'rgba(0,0,0,0.08)',
+  rpRowSelected: {
+    backgroundColor: 'rgba(44, 111, 191, 0.08)',
   },
-  radiusPresetText: {
-    fontSize: 18,
-    fontWeight: '700',
-    textAlign: 'center',
+  rpRowBorder: {
+    borderBottomWidth: 0.5,
+    borderBottomColor: 'rgba(0,0,0,0.06)',
+  },
+  rpText: {
+    fontSize: 17,
+    fontWeight: '400',
+    color: '#1A2E8A',
+  },
+  rpTextSelected: {
+    fontWeight: '600',
+    color: '#3B4FBF',
+  },
+  rpCheck: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#3B4FBF',
+    marginLeft: 8,
   },
   zoomIndicator: {
     position: 'absolute',
@@ -2742,42 +2831,53 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyStateBox: {
-    padding: 32,
-    paddingHorizontal: 40,
+    backgroundColor: '#FFFFFF',
     borderRadius: 20,
-    borderWidth: 1,
+    borderWidth: 0.5,
+    borderColor: '#C5D0F5',
+    padding: 24,
+    maxWidth: '85%',
+  },
+  emptyStateTopRow: {
+    flexDirection: 'row',
     alignItems: 'center',
-    maxWidth: '75%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 12,
-    elevation: 10,
+    gap: 14,
+    marginBottom: 22,
+  },
+  emptyStateIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#FFF4CC',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   emptyStateIcon: {
-    fontSize: 36,
-    marginBottom: 16,
+    fontSize: 24,
+  },
+  emptyStateTextCol: {
+    flex: 1,
   },
   emptyStateTitle: {
-    fontSize: 20,
-    fontWeight: '700',
-    marginBottom: 6,
-    textAlign: 'center',
+    fontSize: 17,
+    fontWeight: '600',
+    color: '#1A2E8A',
+    marginBottom: 4,
   },
   emptyStateMessage: {
-    fontSize: 15,
-    textAlign: 'center',
-    lineHeight: 20,
-    marginBottom: 24,
+    fontSize: 14,
+    color: '#8E8E93',
+    lineHeight: 19,
+  },
+  emptyStateButtons: {
+    gap: 10,
   },
   emptyStatePrimaryButton: {
-    backgroundColor: '#007AFF',
-    paddingVertical: 14,
-    paddingHorizontal: 32,
+    backgroundColor: '#3B4FBF',
+    paddingVertical: 13,
+    paddingHorizontal: 28,
     borderRadius: 12,
-    width: '100%',
     alignItems: 'center',
-    marginBottom: 12,
   },
   emptyStatePrimaryButtonText: {
     color: '#fff',
@@ -2785,11 +2885,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   emptyStateSecondaryButton: {
-    paddingVertical: 8,
+    backgroundColor: '#EEF3FF',
+    paddingVertical: 11,
+    paddingHorizontal: 28,
+    borderRadius: 12,
+    alignItems: 'center',
   },
   emptyStateSecondaryButtonText: {
-    fontSize: 14,
-    textDecorationLine: 'underline',
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#3B4FBF',
   },
 });
 

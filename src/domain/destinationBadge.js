@@ -45,6 +45,7 @@ export const BadgeMetadata = {
     icon: '🌊',
     color: '#00BCD4', // Cyan/Turquoise
     priority: 3,
+    excludeFromTrophy: true,
   },
   [DestinationBadge.HEATWAVE]: {
     icon: require('../../assets/heatwave.png'),
@@ -1075,24 +1076,20 @@ export function calculateBadges(destination, userLocation, distanceKm, tempRankM
   destination._weatherCurseData = weatherCurseResult;
   const hasWeatherCurse = weatherCurseResult.shouldAward;
   
-  // Check weather deterioration (>4 °C drop in next 2 days average)
-  const deteriorationResult = checkWeatherDeterioration(destination, 4);
+  // Check weather deterioration (≥7°C avg drop = severe, not normal spring fluctuations)
+  const deteriorationResult = checkWeatherDeterioration(destination, 7);
   destination._weatherDeteriorationData = deteriorationResult;
-  const isDeterioritating = deteriorationResult.isDeteriorating;
+  const isSevereDeterioration = deteriorationResult.isDeteriorating;
   
-  // Flag: Skip Worth the Drive badges if weather is getting worse
-  // In cold mode, deterioration (getting colder) is actually GOOD, so don't skip
-  // Deterioration is only a problem if future temp drops below origin + 4°C
-  // (e.g. 32→27 is fine if origin is 20°C, because 27 > 20+4)
+  // Skip WTD for Weather Curse OR severe deterioration where future temp drops below origin
   const originTemp = userLocation?.temperature ?? 0;
-  const futureStillWarm = deteriorationResult.avgFutureTemp >= (originTemp + 4);
-  const skipWorthTheDrive = reverseMode === 'cold' ? false : (hasWeatherCurse || (isDeterioritating && !futureStillWarm));
+  const futureDropsBelowOrigin = deteriorationResult.avgFutureTemp < originTemp;
+  const skipWorthTheDrive = reverseMode === 'cold' ? false :
+    (hasWeatherCurse || (isSevereDeterioration && futureDropsBelowOrigin));
   
   if (skipWorthTheDrive) {
     devLog(`⚠️ ${destination.name}: Skipping Worth the Drive - ` +
-      `${hasWeatherCurse ? 'Weather Curse' : ''} ` +
-      `${isDeterioritating ? `Deteriorating (${deteriorationResult.avgTempDrop} °C drop)` : ''}`
-    );
+      `${hasWeatherCurse ? 'Weather Curse' : `Severe deterioration (${deteriorationResult.avgTempDrop} °C drop, future ${Math.round(deteriorationResult.avgFutureTemp)} °C < origin ${Math.round(originTemp)} °C)`}`);
   }
 
   // 1. Worth the Drive Budget - RANKING SYSTEM (PRIORITY 1!)
