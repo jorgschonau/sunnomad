@@ -48,7 +48,7 @@ export const fahrenheitToCelsius = (fahrenheit) => {
 export const formatDistance = (distanceKm, unit = 'km', decimals = 0) => {
   if (unit === 'miles') {
     const miles = kmToMiles(distanceKm);
-    return `${miles.toFixed(decimals)} mi`;
+    return `${Math.round(miles)} mi`;
   }
   return `${distanceKm.toFixed(decimals)} km`;
 };

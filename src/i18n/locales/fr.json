@@ -42,7 +42,7 @@
     "centeredOnLocation": "📍 Centré sur votre position",
     "waitSeconds": "Veuillez patienter {{seconds}}s",
     "noHighlights": "Aucun point fort",
-    "inRadiusKm": "dans un rayon de {{radius}} km",
+    "inRadiusKm": "dans un rayon de {{radius}}",
     "expandRadius": "Élargir le rayon",
     "showAllPlaces": "Afficher tous les lieux",
     "filtersShow": "▶ Filtres",

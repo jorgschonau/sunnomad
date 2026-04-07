@@ -30,7 +30,7 @@ import DateFilter from '../components/DateFilter';
 import OnboardingOverlay from '../components/OnboardingOverlay';
 import AnimatedBadge from '../components/AnimatedBadge';
 import { useUnits } from '../../contexts/UnitContext';
-import { formatTemperature, formatDistance } from '../../utils/unitConversion';
+import { formatTemperature, formatDistance, milesToKm, kmToMiles } from '../../utils/unitConversion';
 import { hasDedicatedHeroImage } from '../../utils/heroImages';
 import { supabase } from '../../config/supabase';
 
@@ -43,6 +43,9 @@ const customMapStyle = [
   { featureType: 'landscape.man_made', stylers: [{ visibility: 'off' }] },
   { featureType: 'water', elementType: 'labels', stylers: [{ visibility: 'off' }] },
 ];
+
+const TROPHY_BADGES = new Set([DestinationBadge.WORTH_THE_DRIVE, DestinationBadge.WORTH_THE_DRIVE_BUDGET]);
+const isTrophyWorthy = (badges) => badges.some(b => TROPHY_BADGES.has(b));
 
 const DestinationMarker = ({
   dest,
@@ -167,6 +170,7 @@ const MapScreen = ({ navigation }) => {
   const radiusDebounceTimer = useRef(null);
 
   const regionChangeDebounceTimer = useRef(null);
+  const loadRequestIdRef = useRef(0);
   const hasLoadedForLocationRef = useRef(false);
   const skipNextLocationAnimRef = useRef(false);
   const markerJustPressedRef = useRef(false);
@@ -668,14 +672,14 @@ const MapScreen = ({ navigation }) => {
 
   const loadDestinations = async () => {
     if (!location) return;
+    const requestId = ++loadRequestIdRef.current;
     setLoadingDestinations(true);
     try {
       const effectiveCenter = centerPoint || location;
       const originTemp = centerPointWeather?.temperature || null;
       if (__DEV__) {
-        console.log(`🔄 Loading destinations for center: ${effectiveCenter.latitude.toFixed(2)}, ${effectiveCenter.longitude.toFixed(2)}, radius: ${radius}km`);
+        console.log(`🔄 Loading destinations for center: ${effectiveCenter.latitude.toFixed(2)}, ${effectiveCenter.longitude.toFixed(2)}, radius: ${radius}km (req#${requestId})`);
       }
-      // Run radius fetch and current-location weather in parallel (was sequential = double wait)
       const [weatherData, currentLocationWeather] = await Promise.all([
         getWeatherForRadius(
           effectiveCenter.latitude,
@@ -688,6 +692,11 @@ const MapScreen = ({ navigation }) => {
         ),
         getCurrentLocationWeather(),
       ]);
+      // Discard stale response if a newer request was fired while we were fetching
+      if (requestId !== loadRequestIdRef.current) {
+        __DEV__ && console.log(`🗑️ Discarding stale response req#${requestId} (current: req#${loadRequestIdRef.current})`);
+        return;
+      }
       let allDestinations = [];
       if (currentLocationWeather) allDestinations.push(currentLocationWeather);
       if (centerPointWeather) allDestinations.push(centerPointWeather);
@@ -700,17 +709,19 @@ const MapScreen = ({ navigation }) => {
         if (sample) console.log('[DEBUG MapScreen] sample dest:', sample.name, '| place_type:', sample.place_type, '| image_region:', sample.image_region);
       }
       setDestinations(allDestinations);
-      // Cache in background so we don't block UI
       AsyncStorage.setItem('mapDestinationsCache', JSON.stringify({
         timestamp: Date.now(),
         version: 2,
         data: allDestinations,
       })).catch((cacheError) => console.warn('Failed to cache destinations:', cacheError));
     } catch (error) {
+      if (requestId !== loadRequestIdRef.current) return;
       showToast(t('map.failedToLoadWeather') || 'Failed to load weather data', 'error');
       console.error(error);
     } finally {
-      setLoadingDestinations(false);
+      if (requestId === loadRequestIdRef.current) {
+        setLoadingDestinations(false);
+      }
     }
   };
 
@@ -857,7 +868,16 @@ const MapScreen = ({ navigation }) => {
     navigation.navigate('DestinationDetail', { destination, dateOffset: selectedDateOffset, reverseMode });
   };
 
+  const isMiles = distanceUnit === 'miles';
+
   const getRadiusStep = (r) => {
+    if (isMiles) {
+      const mi = kmToMiles(r);
+      if (mi < 100) return milesToKm(25);
+      if (mi < 250) return milesToKm(50);
+      if (mi < 500) return milesToKm(50);
+      return milesToKm(100);
+    }
     if (r < 200) return 25;
     if (r < 500) return 50;
     if (r < 1000) return 100;
@@ -874,7 +894,7 @@ const MapScreen = ({ navigation }) => {
   const handleRadiusDecrease = async () => {
     const step = getRadiusStep(radius - 1);
     const snapped = Math.round((radius - step) / step) * step;
-    const newRadius = Math.max(snapped, 50);
+    const newRadius = Math.max(snapped, isMiles ? milesToKm(25) : 50);
     setRadius(newRadius);
     playTickSound();
   };
@@ -1078,9 +1098,9 @@ const MapScreen = ({ navigation }) => {
     const GRID_COLS = zoom <= 4 ? 5 : zoom <= 6 ? 6 : zoom <= 7 ? 7 : 11;
     const GRID_ROWS = zoom <= 4 ? 7 : zoom <= 6 ? 7 : zoom <= 7 ? 9 : 14;
 
-    // Urban places (cities/towns) get a coarser grid → wider spacing, fewer markers
-    const URBAN_GRID_COLS = Math.max(3, GRID_COLS - 1);
-    const URBAN_GRID_ROWS = Math.max(4, GRID_ROWS - 1);
+    // Urban places (cities/towns) get a much coarser grid → wider spacing, fewer markers
+    const URBAN_GRID_COLS = Math.max(3, Math.floor(GRID_COLS * 0.6));
+    const URBAN_GRID_ROWS = Math.max(3, Math.floor(GRID_ROWS * 0.6));
 
     // Separate special markers (always shown)
     const specialMarkers = candidates.filter(p => p.isCurrentLocation || p.isCenterPoint);
@@ -1145,27 +1165,54 @@ const MapScreen = ({ navigation }) => {
 
     // Build grid: best place per cell. Urban and non-urban use separate grids
     // (different prefixes + resolutions) so they don't compete with each other.
+    const POSITIVE_BADGES = new Set([
+      DestinationBadge.WORTH_THE_DRIVE, DestinationBadge.WORTH_THE_DRIVE_BUDGET,
+      DestinationBadge.SUNNY_STREAK, DestinationBadge.BEACH_PARADISE,
+      DestinationBadge.WARM_AND_DRY, DestinationBadge.SPRING_AWAKENING,
+    ]);
+    const gridRank = (p) => {
+      const attr = p.attractivenessScore || p.attractiveness_score || 50;
+      const hasBadge = Array.isArray(p.badges) && p.badges.some(b => POSITIVE_BADGES.has(b)) ? 1 : 0;
+      const temp = p.temperature ?? 0;
+      return attr * 1000 + hasBadge * 100 + temp;
+    };
     const gridMap = new Map();
     for (const place of viewportPlaces) {
       const lat = place.lat || place.latitude;
       const lon = place.lon || place.longitude;
       const key = getPlaceGridKey(lat, lon, place.place_type);
       const existing = gridMap.get(key);
-      const score = place.attractivenessScore || place.attractiveness_score || 50;
-      const existingScore = existing ? (existing.attractivenessScore || existing.attractiveness_score || 50) : -1;
-      if (!existing || score > existingScore) {
+      if (!existing || gridRank(place) > gridRank(existing)) {
         gridMap.set(key, place);
       }
     }
 
-    // Take best-per-grid, sort those by score, cap at maxMarkers
-    const gridWinners = Array.from(gridMap.values())
+    // Take best-per-grid, sort by score, then enforce min distance for urban places
+    const MIN_URBAN_DISTANCE_KM = 30;
+    const sorted = Array.from(gridMap.values())
       .sort((a, b) => {
         const aScore = a.attractivenessScore || a.attractiveness_score || 50;
         const bScore = b.attractivenessScore || b.attractiveness_score || 50;
         return bScore - aScore;
-      })
-      .slice(0, maxMarkers - pinned.length);
+      });
+    
+    const gridWinners = [];
+    const selectedUrbanCoords = [];
+    for (const place of sorted) {
+      if (gridWinners.length >= maxMarkers - pinned.length) break;
+      if (URBAN_PLACE_TYPES.has(place.place_type) && selectedUrbanCoords.length > 0) {
+        const pLat = place.lat || place.latitude;
+        const pLon = place.lon || place.longitude;
+        const tooClose = selectedUrbanCoords.some(([sLat, sLon]) =>
+          getDistanceKm(pLat, pLon, sLat, sLon) < MIN_URBAN_DISTANCE_KM
+        );
+        if (tooClose) continue;
+      }
+      gridWinners.push(place);
+      if (URBAN_PLACE_TYPES.has(place.place_type)) {
+        selectedUrbanCoords.push([place.lat || place.latitude, place.lon || place.longitude]);
+      }
+    }
 
     const result = [...specialMarkers, ...pinned, ...gridWinners];
 
@@ -1810,9 +1857,7 @@ const MapScreen = ({ navigation }) => {
             // Always show current location and center point
             if (dest.isCurrentLocation || dest.isCenterPoint) return true;
             if (!showOnlyBadges) return true;
-            // When trophy filter active, only show badges that count for trophy
-            const trophyBadges = getMapBadges(dest.badges).filter(b => !BadgeMetadata[b]?.excludeFromTrophy);
-            return trophyBadges.length > 0;
+            return isTrophyWorthy(getMapBadges(dest.badges));
           })
           .map((dest, index) => (
           <DestinationMarker
@@ -1928,8 +1973,7 @@ const MapScreen = ({ navigation }) => {
 
       {/* Empty state when trophy filter is active but no trophy-worthy places visible */}
       {showOnlyBadges && !loadingDestinations && visibleMarkers.filter(dest => {
-        const trophyBadges = getMapBadges(dest.badges).filter(b => !BadgeMetadata[b]?.excludeFromTrophy);
-        return trophyBadges.length > 0;
+        return isTrophyWorthy(getMapBadges(dest.badges));
       }).length === 0 && favouriteDestinations.filter(fav => {
         if (!fav || fav.lat == null || fav.lon == null) return false;
         const withWeather = displayDestinations.find(d =>
@@ -1939,7 +1983,7 @@ const MapScreen = ({ navigation }) => {
            Math.abs((d.lon ?? d.longitude) - fav.lon) < 0.01)
         );
         const badges = withWeather?.badges || fav.badges || [];
-        return getMapBadges(badges).some(b => !BadgeMetadata[b]?.excludeFromTrophy);
+        return isTrophyWorthy(getMapBadges(badges));
       }).length === 0 && (
         <View style={styles.emptyStateOverlay} pointerEvents="box-none">
           <View style={styles.emptyStateBox}>
@@ -1947,12 +1991,10 @@ const MapScreen = ({ navigation }) => {
               <View style={styles.emptyStateIconBox}>
                 <Text style={styles.emptyStateIcon}>🏆</Text>
               </View>
-              <View style={styles.emptyStateTextCol}>
-                <Text style={styles.emptyStateTitle}>Keine Highlights</Text>
-                <Text style={styles.emptyStateMessage}>
-                  Keine Top-Orte in {formatDistance(radius, distanceUnit, 0)} Radius
-                </Text>
-              </View>
+              <Text style={styles.emptyStateTitle} numberOfLines={1}>{t('map.noHighlights')}</Text>
+              <Text style={styles.emptyStateMessage} numberOfLines={1}>
+                {t('map.inRadiusKm', { radius: formatDistance(radius, distanceUnit, 0) })}
+              </Text>
             </View>
             <View style={styles.emptyStateButtons}>
               <TouchableOpacity
@@ -1964,7 +2006,7 @@ const MapScreen = ({ navigation }) => {
                   playTickSound();
                 }}
               >
-                <Text style={styles.emptyStatePrimaryButtonText}>Radius erweitern</Text>
+                <Text style={styles.emptyStatePrimaryButtonText}>{t('map.expandRadius')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.emptyStateSecondaryButton}
@@ -1974,7 +2016,7 @@ const MapScreen = ({ navigation }) => {
                   playTickSound();
                 }}
               >
-                <Text style={styles.emptyStateSecondaryButtonText}>Alle Orte anzeigen</Text>
+                <Text style={styles.emptyStateSecondaryButtonText}>{t('map.showAllPlaces')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -2116,8 +2158,13 @@ const MapScreen = ({ navigation }) => {
       <View style={styles.radiusControlsWrapper}>
         {showRadiusMenu && (
           <View style={styles.radiusPresetMenu}>
-            {[200, 500, 1000, 2000].map((radiusOption, index) => {
-              const isSelected = radiusOption === radius;
+            {(isMiles
+              ? [100, 300, 750, 1500].map(mi => Math.round(milesToKm(mi)))
+              : [200, 500, 1000, 2000]
+            ).map((radiusOption, index) => {
+              const isSelected = isMiles
+                ? Math.abs(kmToMiles(radius) - kmToMiles(radiusOption)) < 5
+                : radiusOption === radius;
               return (
                 <TouchableOpacity
                   key={radiusOption}
@@ -2841,33 +2888,28 @@ const styles = StyleSheet.create({
   emptyStateTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
-    marginBottom: 22,
+    gap: 10,
+    marginBottom: 18,
   },
   emptyStateIconBox: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: 36,
+    height: 36,
+    borderRadius: 10,
     backgroundColor: '#FFF4CC',
     alignItems: 'center',
     justifyContent: 'center',
   },
   emptyStateIcon: {
-    fontSize: 24,
-  },
-  emptyStateTextCol: {
-    flex: 1,
+    fontSize: 18,
   },
   emptyStateTitle: {
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: '600',
     color: '#1A2E8A',
-    marginBottom: 4,
   },
   emptyStateMessage: {
-    fontSize: 14,
+    fontSize: 13,
     color: '#8E8E93',
-    lineHeight: 19,
   },
   emptyStateButtons: {
     gap: 10,

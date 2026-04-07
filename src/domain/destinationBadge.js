@@ -45,7 +45,6 @@ export const BadgeMetadata = {
     icon: '🌊',
     color: '#00BCD4', // Cyan/Turquoise
     priority: 3,
-    excludeFromTrophy: true,
   },
   [DestinationBadge.HEATWAVE]: {
     icon: require('../../assets/heatwave.png'),
@@ -282,14 +281,17 @@ export function calculateWorthTheDrive(destination, origin, distanceKm, reverseM
     );
   } else {
     // Warm mode (default): reward places that are WARMER
-    // Sunny destinations get slightly relaxed thresholds (leichte Bias)
     const isSunny = destination.condition === 'sunny';
-    const MIN_TEMP_ABSOLUTE = 4; // Destination must be at least 4 °C (not freezing!)
+    const MIN_TEMP_ABSOLUTE = 4;
+    // When dest is significantly warmer AND sunny, the weather score delta is
+    // misleading (score formula peaks at 22°C, penalizing hotter destinations).
+    // Skip the delta/value checks and rely on tempDelta alone.
+    const strongTempGain = isSunny && tempDelta >= 6;
     shouldAward = (
       distanceKm >= MIN_DISTANCE_KM &&
       boostedWeatherDest >= MIN_WEATHER_SCORE &&
-      delta >= (isSunny ? Math.min(2, MIN_DELTA) : MIN_DELTA) &&
-      value >= (isSunny ? Math.min(1.2, MIN_VALUE) : MIN_VALUE) &&
+      (strongTempGain || delta >= (isSunny ? Math.min(2, MIN_DELTA) : MIN_DELTA)) &&
+      (strongTempGain || value >= (isSunny ? Math.min(1.2, MIN_VALUE) : MIN_VALUE)) &&
       tempDest >= MIN_TEMP_ABSOLUTE &&
       tempDelta >= (isSunny ? MIN_TEMP_DELTA : MIN_TEMP_DELTA + 1)
     );

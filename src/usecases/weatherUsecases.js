@@ -104,6 +104,7 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
   // Limit certain badges to prevent overcrowding
   const MAX_WORTH_THE_DRIVE_BADGES = 5;
   const MAX_BUDGET_BADGES = 2;
+  const MAX_WTD_PER_COUNTRY = 2; // Country diversity: max 2 WTD badges per country
   const MIN_BADGE_DISTANCE_KM = 60;
   const MIN_BUDGET_BADGE_DISTANCE_KM = 100; // Second budget badge must be ≥100km from first (geographic diversity)
   
@@ -152,16 +153,17 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
     const distanceFromOrigin = candidate.distance ?? getDistanceKm(originLat, originLon, candidate.lat || candidate.latitude, candidate.lon || candidate.longitude);
     if (distanceFromOrigin < minDistFromOrigin) continue;
     
-    const minDistanceFromOtherBadges = slotIndex === 0 ? 0 : MIN_BUDGET_BADGE_DISTANCE_KM;
-    const tooClose = selectedBudgetBadges.some(selected => {
+    const minDistFromBudget = slotIndex === 0 ? 0 : MIN_BUDGET_BADGE_DISTANCE_KM;
+    const tooCloseBudget = selectedBudgetBadges.some(selected => {
       const dist = getDistanceKm(
         candidate.lat || candidate.latitude,
         candidate.lon || candidate.longitude,
         selected.lat || selected.latitude,
         selected.lon || selected.longitude
       );
-      return dist < minDistanceFromOtherBadges;
+      return dist < minDistFromBudget;
     });
+    const tooClose = tooCloseBudget;
     
     if (!tooClose) {
       // Don't steal the last Worth the Drive candidate
@@ -218,13 +220,23 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
     __DEV__ && console.log(`  ${i+1}. ${c.name}: temp=${data?.tempDest} °C, delta=+${data?.tempDelta} °C, value=${data?.value}, dist=${c.distance?.toFixed(0)}km`);
   });
   
-  // Greedy selection: pick top candidates that are at least 20km apart
+  // Greedy selection: top candidates, min distance apart, max per country
   const selectedWorthBadges = [];
+  const wtdCountryCounts = {};
   for (const candidate of worthTheDriveCandidates) {
     if (selectedWorthBadges.length >= MAX_WORTH_THE_DRIVE_BADGES) break;
     
-    // Check distance to already selected badges
-    const tooClose = selectedWorthBadges.some(selected => {
+    const candidateCc = (candidate.country_code || candidate.countryCode || '').toUpperCase();
+    
+    // Country diversity cap
+    if (candidateCc && (wtdCountryCounts[candidateCc] || 0) >= MAX_WTD_PER_COUNTRY) {
+      __DEV__ && console.log(`  ❌ Skipped (${candidateCc} has ${MAX_WTD_PER_COUNTRY} WTD): ${candidate.name}`);
+      continue;
+    }
+    
+    // Check distance to ALL selected badges (WTD + Budget)
+    const allSelectedBadges = [...selectedWorthBadges, ...selectedBudgetBadges];
+    const tooClose = allSelectedBadges.some(selected => {
       const dist = getDistanceKm(
         candidate.lat || candidate.latitude,
         candidate.lon || candidate.longitude,
@@ -236,7 +248,8 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
     
     if (!tooClose) {
       selectedWorthBadges.push(candidate);
-      __DEV__ && console.log(`  ✅ Selected: ${candidate.name}`);
+      if (candidateCc) wtdCountryCounts[candidateCc] = (wtdCountryCounts[candidateCc] || 0) + 1;
+      __DEV__ && console.log(`  ✅ Selected: ${candidate.name} (${candidateCc} ${wtdCountryCounts[candidateCc]}/${MAX_WTD_PER_COUNTRY})`);
     } else {
       __DEV__ && console.log(`  ❌ Skipped (too close): ${candidate.name}`);
     }
