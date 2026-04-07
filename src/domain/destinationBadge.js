@@ -433,7 +433,7 @@ export function calculateWarmAndDry(destination, tempRankMap) {
   // Check today's conditions
   const isWarm = temp >= MIN_TEMP;
   const isPrecipitationLow = precipitation < MAX_PRECIPITATION;
-  const isTodayDry = !BAD_CONDITIONS.includes(condition);
+  const isTodayDry = !BAD_CONDITIONS.includes(condition) && isPrecipitationLow;
   const isCalm = windSpeed <= MAX_WIND;
   
   // Helper to check if a day is rainy

@@ -246,6 +246,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
         humidity: today.humidity,
         forecast_date: today.forecast_date,
         sunshine_duration: today.sunshine_duration,
+        precipitation_sum: today.precipitation_sum ?? 0,
         forecast, // Keyed multi-day forecast (6 days)
         forecastArray, // Raw array (up to 16 days) for date-offset shift + badge recalculation
       };
