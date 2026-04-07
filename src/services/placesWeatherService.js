@@ -390,7 +390,7 @@ export const getPlaceDetail = async (placeId, locale = 'en') => {
     const today = new Date().toISOString().split('T')[0];
     const { data: rawWeather, error: weatherError } = await supabase
       .from('weather_forecast')
-      .select('forecast_date, temp_min, temp_max, weather_main, weather_description, weather_icon, wind_speed, precipitation_sum, precipitation_probability, humidity, sunshine_duration')
+      .select('forecast_date, temp_min, temp_max, weather_main, weather_description, weather_icon, wind_speed, precipitation_sum, precipitation_probability, humidity, sunshine_duration, snow_volume')
       .eq('place_id', placeId)
       .gte('forecast_date', today)
       .order('forecast_date', { ascending: true })
@@ -430,6 +430,7 @@ export const getPlaceDetail = async (placeId, locale = 'en') => {
       humidity: weather.humidity,
       sunshine_duration: weather.sunshine_duration,
       precipitation_sum: weather.precipitation_sum,
+      snow_volume: weather.snow_volume,
     };
 
     const forecast = allWeather || [];
@@ -518,9 +519,9 @@ function adaptPlaceToDestination(place, locale = 'en') {
     windSpeed: place.wind_speed ? Math.round(place.wind_speed) : null,
     windGust: place.wind_gust ? Math.round(place.wind_gust) : null,
       precipitation: place.precipitation_sum || 0,
-      snowfall1h: 0,
-    snowfall3h: place.snow_3h || 0, // mm Schnee letzte 3h
-    snowfall24h: place.snow_24h || 0, // mm Schnee letzte 24h
+      snowfall1h: place.snow_volume || 0,
+      snowfall3h: place.snow_volume || 0,
+      snowfall24h: place.snow_volume || 0,
     cloudCover: place.cloud_cover, // View aliases clouds as cloud_cover
     
     // Calculated stability (simple version)
