@@ -137,9 +137,10 @@ export const getPlacesWithWeather = async (filters = {}) => {
         .select('place_id, forecast_date, temp_min, temp_max, weather_main, weather_description, weather_icon, wind_speed, sunshine_duration, fetched_at, humidity, precipitation_sum')
         .in('place_id', chunk)
         .gte('forecast_date', targetDate)
-        .lte('forecast_date', fallbackDate)  // 16 days for forecast + badge recalc at any offset
+        .lte('forecast_date', fallbackDate)
         .gte('fetched_at', sevenDaysAgo)
-        .order('forecast_date', { ascending: true });
+        .order('forecast_date', { ascending: true })
+        .limit(chunk.length * 17);
       
       if (!chunkError && chunkWeather) {
         allWeather.push(...chunkWeather);
@@ -239,7 +240,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
         forecast_date: today.forecast_date,
         sunshine_duration: today.sunshine_duration,
         forecast, // Keyed multi-day forecast (6 days)
-        forecastArray, // Raw array (up to 9 days) for badge recalculation
+        forecastArray, // Raw array (up to 16 days) for date-offset shift + badge recalculation
       };
     });
     

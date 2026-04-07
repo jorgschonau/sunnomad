@@ -442,8 +442,8 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
 
 /**
  * Use-case: get destinations for a radius, optionally filtered by desiredCondition.
- * NOW USES REAL DATA FROM SUPABASE via placesWeatherService!
- * @param originTemp - Optional: temperature at origin for badge calculation
+ * Badges are NOT applied here - MapScreen's displayDestinations useEffect handles that
+ * with the correct date offset.
  * @param locale - Locale for translations (e.g. 'de', 'en')
  */
 export const getWeatherForRadius = async (userLat, userLon, radiusKm, desiredCondition = null, originTemp = null, locale = 'en', reverseMode = 'warm') => {
@@ -533,43 +533,9 @@ export const getWeatherForRadius = async (userLat, userLon, radiusKm, desiredCon
     filteredPlaces = filteredPlaces.slice(0, MAX_PLACES_ON_MAP);
   }
 
-  // Find user's current location weather for badge calculation
-  // Look for center point or current location marker
-  let currentLocationWeather = filteredPlaces.find(p => 
-    p.distance === 0 || p.isCurrentLocation || p.isCenterPoint
-  );
-  
-  // If not found, create fallback with passed originTemp or average
-  if (!currentLocationWeather) {
-    const fallbackTemp = originTemp !== null 
-      ? originTemp 
-      : (filteredPlaces.length > 0 
-          ? Math.round(filteredPlaces.reduce((sum, p) => sum + (p.temperature || 15), 0) / filteredPlaces.length)
-          : 15);
-    // Use closest place's country for UK/IE badge logic (Budget/Drive blocked when dest in GB/IE, origin outside)
-    const closest = filteredPlaces.length > 0
-      ? filteredPlaces.reduce((a, b) => ((a.distance ?? 999999) < (b.distance ?? 999999) ? a : b))
-      : null;
-    const originCountry = closest?.country_code || closest?.countryCode || null;
-    currentLocationWeather = {
-      lat: userLat,
-      lon: userLon,
-      temperature: fallbackTemp,
-      condition: 'cloudy',
-      stability: 50,
-      windSpeed: 10,
-      humidity: 50,
-      name: 'Your Location',
-      isCurrentLocation: true,
-      country_code: originCountry,
-      countryCode: originCountry,
-    };
-  }
-  
-  __DEV__ && console.log(`🎯 Badge origin: ${currentLocationWeather.name} at ${currentLocationWeather.temperature} °C`);
-
-  // Apply badges to all destinations
-  applyBadgesToDestinations(filteredPlaces, currentLocationWeather, userLat, userLon, reverseMode, radiusKm);
+  // Badges are applied in MapScreen's displayDestinations useEffect
+  // (with correct date offset and shifted weather data).
+  // No need to pre-calculate here - it would be overwritten anyway.
 
   return filteredPlaces;
 };

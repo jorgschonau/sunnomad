@@ -1100,7 +1100,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                   return t('badges.warmanddrySummary', { temp: fmtTemp(warmDryData.temp), condition: translateCondition(warmDryData.condition) });
                 }
                 if (isBeachParadise && beachData) {
-                  return t('badges.beachparadiseSummary', { temp: fmtTemp(beachData.temp), sunnyDays: beachData.sunnyDays });
+                  return t('badges.beachparadiseSummary', { temp: fmtTemp(beachData.temp), condition: translateCondition(beachData.condition) });
                 }
                 if (isSunnyStreak) {
                   const days = sunnyStreakData?.streakLength ?? getDisplaySunnyStreak(destination);
@@ -1218,7 +1218,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                             🌡️ {t('badges.temperature')}: {fmtTemp(beachData.temp)}
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            ☀️ {t('badges.sunnyDaysCount', { count: beachData.sunnyDays })}
+                            ☀️ {translateCondition(beachData.condition)}
                           </Text>
                           <Text style={[styles.badgeStat, { color: theme.primary }]}>
                             💨 {t(getWindDescriptionKey(beachData.windSpeed))}
