@@ -35,7 +35,7 @@ export const getFavourites = async (locale = 'en') => {
           weather_forecast (
             forecast_date, temp_min, temp_max,
             weather_main, weather_description, weather_icon,
-            wind_speed, humidity, rain_volume, snow_volume
+            wind_speed, humidity, precipitation_sum
           )
         )
       `)
