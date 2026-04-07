@@ -26,8 +26,8 @@ const THEMES = [
 ];
 
 const UNIT_OPTIONS = [
-  { id: 'metric', label: 'km / °C', icon: '🌡️' },
-  { id: 'imperial', label: 'mi / °F', icon: '🌡️' },
+  { id: 'metric', label: 'km / °C' },
+  { id: 'imperial', label: 'mi / °F' },
 ];
 
 const SettingsScreen = ({ navigation }) => {
@@ -106,7 +106,13 @@ const SettingsScreen = ({ navigation }) => {
               ]}
               onPress={() => setUseImperial(option.id === 'imperial')}
             >
-              <Text style={styles.settingItemFlag}>{option.icon}</Text>
+              <View style={styles.unitIcons}>
+                <View style={styles.rulerBadge}>
+                  <Text style={styles.unitIcon}>📏</Text>
+                </View>
+                <Text style={styles.unitSep}>/</Text>
+                <Text style={styles.unitIcon}>🌡️</Text>
+              </View>
               <Text style={[
                 styles.settingItemText,
                 { color: theme.textSecondary },
@@ -242,6 +248,25 @@ const styles = StyleSheet.create({
   placeholderText: {
     fontSize: 18,
     fontStyle: 'italic',
+  },
+  unitIcons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  rulerBadge: {
+    backgroundColor: '#C8B560',
+    borderRadius: 6,
+    paddingHorizontal: 3,
+    paddingVertical: 1,
+  },
+  unitIcon: {
+    fontSize: 22,
+  },
+  unitSep: {
+    fontSize: 16,
+    color: '#999',
+    marginHorizontal: 4,
   },
   initialsCircle: {
     width: 40,
