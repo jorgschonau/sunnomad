@@ -52,6 +52,11 @@ resize_crop.py
 scripts/wiki_score*.py
 scripts/wiki_progress*.json
 
+# Cursor/AI agent internal files
+.agents/
+.augment/
+skills-lock.json
+
 # Data/output files
 alternateNamesV2.txt
 alternateNames_filtered.txt
