@@ -1286,7 +1286,7 @@ const MapScreen = ({ navigation }) => {
       console.warn('Failed to save center point:', error)
     );
     
-    showToast('📍 Neuer Mittelpunkt gesetzt', 'info');
+    showToast(t('map.centerPointSet'), 'info');
   };
 
   const handleMapTap = async (event) => {
@@ -1374,7 +1374,7 @@ const MapScreen = ({ navigation }) => {
       console.warn('Failed to remove center point:', error);
     }
     playTickSound();
-    showToast('📍 Mittelpunkt zurückgesetzt', 'info');
+    showToast(t('map.centerPointReset'), 'info');
     
     // Note: useEffect with centerPoint dependency will automatically reload destinations
   };
@@ -1388,7 +1388,7 @@ const MapScreen = ({ navigation }) => {
     const now = Date.now();
     if (now < recenterCooldownUntilRef.current) {
       const secondsLeft = Math.ceil((recenterCooldownUntilRef.current - now) / 1000);
-      showToast(`Bitte warte noch ${secondsLeft}s`, 'info');
+      showToast(t('map.recenterCooldown', { seconds: secondsLeft }), 'info');
       return;
     }
     setIsRecentering(true);
@@ -1443,19 +1443,39 @@ const MapScreen = ({ navigation }) => {
         console.warn('Failed to remove center point while recentering:', err)
       );
 
-      const latitudeDelta = currentRegion?.latitudeDelta ?? (radius * 2) / 111;
-      const longitudeDelta = currentRegion?.longitudeDelta
-        ?? (radius * 2) / (111 * Math.cos(position.coords.latitude * Math.PI / 180));
+      const lat = position.coords.latitude;
+      const lon = position.coords.longitude;
+      const targetLatDelta = (radius * 2) / 111;
+      const targetLonDelta = (radius * 2) / (111 * Math.cos(lat * Math.PI / 180));
+      const targetRegion = { latitude: lat, longitude: lon, latitudeDelta: targetLatDelta, longitudeDelta: targetLonDelta };
 
-      mapRef.current?.animateToRegion({
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude,
-        latitudeDelta,
-        longitudeDelta,
-      }, 500);
+      skipNextLocationAnimRef.current = true;
+
+      const curLat = currentRegion?.latitude ?? lat;
+      const curLon = currentRegion?.longitude ?? lon;
+      const distKm = getDistanceKm(curLat, curLon, lat, lon);
+
+      if (distKm > 500 && mapRef.current) {
+        const midLat = (curLat + lat) / 2;
+        const midLon = (curLon + lon) / 2;
+        const spanLat = Math.abs(curLat - lat) * 1.8;
+        const spanLon = Math.abs(curLon - lon) * 1.8;
+        const zoomOutDelta = Math.max(spanLat, spanLon, 30);
+        mapRef.current.animateToRegion({
+          latitude: midLat,
+          longitude: midLon,
+          latitudeDelta: zoomOutDelta,
+          longitudeDelta: zoomOutDelta,
+        }, 600);
+        setTimeout(() => {
+          mapRef.current?.animateToRegion(targetRegion, 900);
+        }, 650);
+      } else {
+        mapRef.current?.animateToRegion(targetRegion, 800);
+      }
 
       playTickSound();
-      showToast('📍 Auf deinen Standort zentriert', 'success');
+      showToast(t('map.recentered'), 'success');
     } finally {
       setIsRecentering(false);
     }
@@ -1522,10 +1542,31 @@ const MapScreen = ({ navigation }) => {
 
       skipNextLocationAnimRef.current = true;
       InteractionManager.runAfterInteractions(() => {
-        mapRef.current?.animateToRegion(newCenter, 800);
+        const curLat = currentRegion?.latitude ?? lat;
+        const curLon = currentRegion?.longitude ?? lng;
+        const distKm = getDistanceKm(curLat, curLon, lat, lng);
+
+        if (distKm > 500 && mapRef.current) {
+          const midLat = (curLat + lat) / 2;
+          const midLon = (curLon + lng) / 2;
+          const spanLat = Math.abs(curLat - lat) * 1.8;
+          const spanLon = Math.abs(curLon - lng) * 1.8;
+          const zoomOutDelta = Math.max(spanLat, spanLon, 30);
+          mapRef.current.animateToRegion({
+            latitude: midLat,
+            longitude: midLon,
+            latitudeDelta: zoomOutDelta,
+            longitudeDelta: zoomOutDelta,
+          }, 600);
+          setTimeout(() => {
+            mapRef.current?.animateToRegion(newCenter, 900);
+          }, 650);
+        } else {
+          mapRef.current?.animateToRegion(newCenter, 800);
+        }
       });
     }
-  }, [radius]);
+  }, [radius, currentRegion]);
 
   const clearSearch = useCallback(() => {
     setSearchQuery('');

@@ -18,10 +18,10 @@ const LANGUAGES = [
 ];
 
 const THEMES = [
-  { id: 'standard', name: 'Standard', icon: '🌱' },
-  { id: 'dark', name: 'Dunkel', icon: '🌙' },
-  { id: 'blue', name: 'Blau', icon: '🌊' },
-  { id: 'amber', name: 'Gold', icon: '✨' },
+  { id: 'standard', nameKey: 'settings.themeStandard', icon: '🌱' },
+  { id: 'dark', nameKey: 'settings.themeDark', icon: '🌙' },
+  { id: 'blue', nameKey: 'settings.themeBlue', icon: '🌊' },
+  { id: 'amber', nameKey: 'settings.themeAmber', icon: '✨' },
 ];
 
 const UNIT_OPTIONS = [
@@ -72,7 +72,7 @@ const SettingsScreen = ({ navigation }) => {
               { color: theme.textSecondary },
               currentTheme === themeOption.id && { fontWeight: '700', color: theme.primary }
             ]}>
-              {themeOption.name}
+              {t(themeOption.nameKey)}
             </Text>
             {currentTheme === themeOption.id && (
               <Text style={[styles.checkmark, { color: theme.primary }]}>✓</Text>
