@@ -727,13 +727,11 @@ export function calculateSnowKing(destination) {
     };
   }
   
-  // Snowfall amount (mm)
-  const snowfall1h = destination.snowfall1h || 0;
-  const snowfall3h = destination.snowfall3h || 0;
-  const snowfall24h = destination.snowfall24h || 0;
-  
+  // Snowfall amount (mm, daily total from Open-Meteo snowfall_sum)
+  const snowfall_daily = destination.snowfall_daily || 0;
+
   // Calculate total snowfall from forecast
-  let totalSnowfall = snowfall24h;
+  let totalSnowfall = snowfall_daily;
   
   // Check forecast if available
   const forecast = destination.forecast;
@@ -793,8 +791,8 @@ export function calculateSnowKing(destination) {
   
   // === WINTER PATHS (Nov-Mar) ===
   
-  // Path 1 (Heavy Snow): ≥20mm snow/24h, avg ≤2 °C
-  const path1 = snowfall24h >= 20 && avgTemp <= 2;
+  // Path 1 (Heavy Snow): ≥20mm snow/day, avg ≤2 °C
+  const path1 = snowfall_daily >= 20 && avgTemp <= 2;
   
   // Path 2 (Consistent Snow): ≥3 snow days, ≥10mm total, avg ≤0 °C
   const path2 = snowDays >= 3 && totalSnowfall >= 10 && avgTemp <= 0;
@@ -811,7 +809,7 @@ export function calculateSnowKing(destination) {
   const score = Math.round((snowScore + coldScore) * 10) / 10;
   
   let reason = '';
-  if (path1) reason = `Heavy: ${snowfall24h.toFixed(0)}mm/24h, Ø${avgTemp.toFixed(1)} °C`;
+  if (path1) reason = `Heavy: ${snowfall_daily.toFixed(0)}mm/day, Ø${avgTemp.toFixed(1)} °C`;
   else if (path2) reason = `Consistent: ${snowDays} Tage, ${totalSnowfall.toFixed(0)}mm, Ø${avgTemp.toFixed(1)} °C`;
   else if (path3) reason = `Freezing: Ø${avgTemp.toFixed(1)} °C, Max ${maxTemp.toFixed(0)} °C`;
   

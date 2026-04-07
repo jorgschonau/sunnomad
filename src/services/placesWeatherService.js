@@ -294,16 +294,10 @@ export const getPlacesWithWeather = async (filters = {}) => {
           precipitation_probability: null,
           sunrise: null,
           sunset: null,
-          rain_1h: null,
-          snow_1h: null,
           weather_timestamp: null,
-          
           feels_like: null,
           humidity: place.humidity || null,
           cloud_cover: null,
-          rain_3h: null,
-          snow_3h: null,
-          snow_24h: null,
           wind_gust: null,
           stability_score: null,
           weather_trend: null
@@ -519,9 +513,7 @@ function adaptPlaceToDestination(place, locale = 'en') {
     windSpeed: place.wind_speed ? Math.round(place.wind_speed) : null,
     windGust: place.wind_gust ? Math.round(place.wind_gust) : null,
       precipitation: place.precipitation_sum || 0,
-      snowfall1h: place.snow_volume || 0,
-      snowfall3h: place.snow_volume || 0,
-      snowfall24h: place.snow_volume || 0,
+      snowfall_daily: place.snow_volume || 0,
     cloudCover: place.cloud_cover, // View aliases clouds as cloud_cover
     
     // Calculated stability (simple version)

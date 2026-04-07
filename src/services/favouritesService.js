@@ -35,7 +35,7 @@ export const getFavourites = async (locale = 'en') => {
           weather_forecast (
             forecast_date, temp_min, temp_max,
             weather_main, weather_description, weather_icon,
-            wind_speed, humidity, precipitation_sum
+            wind_speed, humidity, precipitation_sum, snow_volume
           )
         )
       `)
@@ -80,6 +80,8 @@ export const getFavourites = async (locale = 'en') => {
           weatherIcon: weather.weather_icon || null,
           windSpeed: weather.wind_speed != null ? Math.round(weather.wind_speed) : null,
           humidity: weather.humidity || null,
+          precipitation: weather.precipitation_sum || 0,
+          snowfall_daily: weather.snow_volume || 0,
           forecastArray,
         };
       });
