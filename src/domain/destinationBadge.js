@@ -426,8 +426,8 @@ export function calculateWarmAndDry(destination, tempRankMap) {
   if (month >= 6 && month <= 8) MIN_TEMP = 28;      // Jun–Aug: >= 28 °C
   else if (month === 5 || month === 9) MIN_TEMP = 22; // May, Sep: >= 22 °C
   else MIN_TEMP = 20;                                 // All other months: >= 20 °C
-  const MAX_WIND = 30; // Max wind speed in km/h
-  const MAX_PRECIPITATION = 2; // Max 2mm precipitation
+  const MAX_WIND = 40; // Max daily wind peak in km/h (daily max, not instantaneous)
+  const MAX_PRECIPITATION = 5; // Max 5mm/day (daily total, not instantaneous)
   const BAD_CONDITIONS = ['rainy', 'snowy']; // Conditions that disqualify
   
   // Check today's conditions
@@ -507,7 +507,7 @@ export function calculateBeachParadise(destination) {
   const MIN_TEMP = 20;
   const MAX_TEMP = 35;
   const GOOD_CONDITIONS = ['sunny', 'cloudy'];
-  const MAX_WIND = 25;
+  const MAX_WIND = 35; // Daily wind max (was 25 with instantaneous current value)
   
   const shouldAward = (
     isBeach && // MUST be place_type = 'beach'!
@@ -1037,8 +1037,8 @@ export function calculateSpringAwakening(destination, origin, distanceKm) {
   // Condition: Sunny only
   const isGoodCondition = condition === 'sunny';
 
-  // Wind: ≤20 km/h
-  const MAX_WIND = 20;
+  // Wind: ≤28 km/h daily max (was 20 with instantaneous current value)
+  const MAX_WIND = 28;
   const isLightWind = windSpeed <= MAX_WIND;
 
   // All criteria must be met
