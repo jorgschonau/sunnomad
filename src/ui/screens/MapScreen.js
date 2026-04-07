@@ -173,6 +173,7 @@ const MapScreen = ({ navigation }) => {
   const loadRequestIdRef = useRef(0);
   const hasLoadedForLocationRef = useRef(false);
   const skipNextLocationAnimRef = useRef(false);
+  const flyOverActiveRef = useRef(false);
   const markerJustPressedRef = useRef(false);
   const lastMapTapRef = useRef(0);
   const [radius, setRadius] = useState(500); // Default 500km
@@ -1379,6 +1380,17 @@ const MapScreen = ({ navigation }) => {
     // Note: useEffect with centerPoint dependency will automatically reload destinations
   };
 
+  const flyToRegion = (fromLat, fromLon, targetRegion) => {
+    if (!mapRef.current) return;
+    const distKm = getDistanceKm(fromLat, fromLon, targetRegion.latitude, targetRegion.longitude);
+    const duration = distKm > 2000 ? 2500 : distKm > 500 ? 1800 : 800;
+    if (distKm > 500) {
+      flyOverActiveRef.current = true;
+      setTimeout(() => { flyOverActiveRef.current = false; }, duration + 200);
+    }
+    mapRef.current.animateToRegion(targetRegion, duration);
+  };
+
   /**
    * On-demand recenter: request one fresh location update and move map.
    * Avoids keeping the native user-location layer active all the time.
@@ -1450,34 +1462,12 @@ const MapScreen = ({ navigation }) => {
       const targetRegion = { latitude: lat, longitude: lon, latitudeDelta: targetLatDelta, longitudeDelta: targetLonDelta };
 
       skipNextLocationAnimRef.current = true;
-
-      const curLat = currentRegion?.latitude ?? lat;
-      const curLon = currentRegion?.longitude ?? lon;
-      const distKm = getDistanceKm(curLat, curLon, lat, lon);
-
-      if (distKm > 500 && mapRef.current) {
-        const midLat = (curLat + lat) / 2;
-        const midLon = (curLon + lon) / 2;
-        const spanLat = Math.abs(curLat - lat) * 1.8;
-        const spanLon = Math.abs(curLon - lon) * 1.8;
-        const zoomOutDelta = Math.max(spanLat, spanLon, 30);
-        mapRef.current.animateToRegion({
-          latitude: midLat,
-          longitude: midLon,
-          latitudeDelta: zoomOutDelta,
-          longitudeDelta: zoomOutDelta,
-        }, 600);
-        setTimeout(() => {
-          mapRef.current?.animateToRegion(targetRegion, 900);
-        }, 650);
-      } else {
-        mapRef.current?.animateToRegion(targetRegion, 800);
-      }
+      flyToRegion(currentRegion?.latitude ?? lat, currentRegion?.longitude ?? lon, targetRegion);
 
       playTickSound();
       showToast(t('map.recentered'), 'success');
     } finally {
-      setIsRecentering(false);
+      setTimeout(() => setIsRecentering(false), 1200);
     }
   };
 
@@ -1544,26 +1534,7 @@ const MapScreen = ({ navigation }) => {
       InteractionManager.runAfterInteractions(() => {
         const curLat = currentRegion?.latitude ?? lat;
         const curLon = currentRegion?.longitude ?? lng;
-        const distKm = getDistanceKm(curLat, curLon, lat, lng);
-
-        if (distKm > 500 && mapRef.current) {
-          const midLat = (curLat + lat) / 2;
-          const midLon = (curLon + lng) / 2;
-          const spanLat = Math.abs(curLat - lat) * 1.8;
-          const spanLon = Math.abs(curLon - lng) * 1.8;
-          const zoomOutDelta = Math.max(spanLat, spanLon, 30);
-          mapRef.current.animateToRegion({
-            latitude: midLat,
-            longitude: midLon,
-            latitudeDelta: zoomOutDelta,
-            longitudeDelta: zoomOutDelta,
-          }, 600);
-          setTimeout(() => {
-            mapRef.current?.animateToRegion(newCenter, 900);
-          }, 650);
-        } else {
-          mapRef.current?.animateToRegion(newCenter, 800);
-        }
+        flyToRegion(curLat, curLon, newCenter);
       });
     }
   }, [radius, currentRegion]);
@@ -1585,6 +1556,7 @@ const MapScreen = ({ navigation }) => {
     }
     regionChangeDebounceTimer.current = setTimeout(() => {
       regionChangeDebounceTimer.current = null;
+      if (flyOverActiveRef.current) return;
       const zoom = Math.max(1, Math.min(20, Math.round(Math.log2(360 / region.latitudeDelta))));
       currentZoomRef.current = zoom;
       const { latitude, longitude, latitudeDelta, longitudeDelta } = region;
@@ -1849,9 +1821,9 @@ const MapScreen = ({ navigation }) => {
               longitude: (centerPoint || location).longitude,
             }}
             radius={radius * 1000}
-            strokeWidth={4}
-            strokeColor={centerPoint ? "#FF5722" : "#424242"}
-            fillColor={centerPoint ? "rgba(255, 87, 34, 0.2)" : "rgba(66, 66, 66, 0.2)"}
+            strokeWidth={3}
+            strokeColor={centerPoint ? "rgba(198, 80, 50, 0.7)" : "rgba(90, 90, 90, 0.5)"}
+            fillColor={centerPoint ? "rgba(198, 80, 50, 0.12)" : "rgba(90, 90, 90, 0.10)"}
           />
         )}
 
