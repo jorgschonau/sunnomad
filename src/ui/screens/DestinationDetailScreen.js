@@ -25,8 +25,10 @@ import { useUnits } from '../../contexts/UnitContext';
 import { formatTemperature, formatDistance, getTemperatureSymbol, getDistanceSymbol } from '../../utils/unitConversion';
 
 import { LinearGradient } from 'expo-linear-gradient';
+import { getHeroImage as getDedicatedHeroImage, DEFAULT_HERO_IMAGE_URL } from '../../services/placeHeroImageService';
 import { getHeroImage } from '../../utils/heroImages';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import StopStayCard from '../components/StopStayCard';
 
 const getWindDescriptionKey = (windSpeed) => {
   const speed = windSpeed || 0;
@@ -196,7 +198,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const [localBadges, setLocalBadges] = useState(destination?.badges || []);
   const [badgeSource, setBadgeSource] = useState(destination);
   const [firstLineW, setFirstLineW] = useState(null);
+  const [heroUrl, setHeroUrl] = useState(null);
   const [heroHintVisible, setHeroHintVisible] = useState(false);
+  const scrollViewRef = React.useRef(null);
+  const stopStayCardY = React.useRef(0);
   const [readyForDetails, setReadyForDetails] = useState(false);
   const favOpacityAnim = React.useRef(new Animated.Value(1)).current;
   const favStarColor = favOpacityAnim.interpolate({
@@ -219,6 +224,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       high: entry.tempMax,
       low: entry.tempMin,
       description: entry.weatherDescription,
+      precipitation: entry.precipitation ?? 0,
+      sunshine_duration: entry.sunshine_duration ?? 0,
     };
   };
 
@@ -268,6 +275,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
               high: entry.high,
               low: entry.low,
               description: entry.description,
+              precipitation: entry.precipitation ?? 0,
+              sunshine_duration: entry.sunshine_duration ?? 0,
             };
           }
         });
@@ -453,6 +462,11 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     });
     return () => task.cancel();
   }, [destination.lat, destination.lon]);
+
+  useEffect(() => {
+    const placeObj = { id: effectivePlaceId, generic_key: destination.generic_key, name_en: destination.name_en };
+    getDedicatedHeroImage(placeObj).then(url => setHeroUrl(url)).catch(() => {});
+  }, [effectivePlaceId]);
 
   // Date offset change: rebuild forecast slots + badges locally (no DB call needed)
   useEffect(() => {
@@ -791,35 +805,37 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   ];
 
   /**
-   * Find the best day from the visible forecast rows
-   * Scoring: temperature and condition; temp has higher weight so that
-   * a clearly warmer day (e.g. 16°C windy) can beat a cooler one (e.g. 12°C cloudy).
+   * Find the best day from the visible forecast rows.
+   * Scoring: sunshine (40%) + temperature (35%) + precipitation penalty (25%).
+   *
+   * TODO: heat-wave mode — during extreme heat, the "best" day is the coolest,
+   * not the coldest overall (reverseMode='cold'). Would need a separate scoring
+   * path that rewards temps below a threshold (e.g. <28°C) rather than just
+   * inverting the scale. Skipped for now, revisit when heat-wave detection lands.
    */
   const findBestDay = () => {
     if (!forecast?.forecast) return null;
     const isColdMode = reverseMode === 'cold';
-
-    const conditionScore = (condition) => {
-      if (!condition) return 0;
-      const c = condition.toLowerCase();
-      if (c === 'sunny' || c.includes('clear')) return 100;
-      if (c === 'cloudy' || c.includes('partly')) return 60;
-      if (c.includes('overcast')) return 40;
-      if (c.includes('wind')) return 50;
-      if (c.includes('rain') || c.includes('snow')) return 10;
-      return 50;
-    };
 
     const days = forecastRows.filter(d => d.data);
     if (days.length === 0) return null;
 
     const scored = days.map(day => {
       const temp = day.data.high ?? day.data.temp ?? 0;
-      const cond = conditionScore(day.data.condition);
+      const precipMm = day.data.precipitation ?? 0;
+      const sunshine = day.data.sunshine_duration ?? 0; // seconds from Open-Meteo
+
       const tempNormalized = isColdMode
         ? Math.max(0, Math.min(100, ((35 - temp) / 55) * 100))
         : Math.max(0, Math.min(100, ((temp + 20) / 55) * 100));
-      const score = tempNormalized * 0.6 + cond * 0.4;
+
+      // Normalize sunshine: 0–14h (50400s) → 0–100
+      const sunScore = Math.min(100, (sunshine / 50400) * 100);
+
+      // Precipitation penalty: 0mm=100, 10mm=50, 20mm=0
+      const precipScore = Math.max(0, 100 - precipMm * 5);
+
+      const score = sunScore * 0.40 + tempNormalized * 0.35 + precipScore * 0.25;
       return { ...day, score, temp, condition: day.data.condition };
     });
 
@@ -852,7 +868,9 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     return false;
   };
 
-  const heroSource = getHeroImage(destination) || getHeroImage({ ...destination, place_type: forecast?.place_type, image_region: forecast?.image_region });
+  const heroSource = heroUrl && heroUrl !== DEFAULT_HERO_IMAGE_URL
+    ? { uri: heroUrl }
+    : getHeroImage(destination);
   const hasHero = !!heroSource;
   const useDarkText = !hasHero && needsDarkText();
   const textColor = useDarkText ? '#2b3e50' : '#fff';
@@ -874,6 +892,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       style={[styles.container, { backgroundColor: theme.background }]}
       showsVerticalScrollIndicator={false}
       showsHorizontalScrollIndicator={false}
+      ref={scrollViewRef}
     >
       <View style={{ position: 'relative' }}>
       {heroSource && (
@@ -982,9 +1001,15 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   </View>
   
   <View style={styles.headerPillRow}>
-    <TouchableOpacity style={styles.stopStayPill} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={styles.stopStayPill}
+      activeOpacity={0.7}
+      onPress={() => scrollViewRef.current?.scrollTo({ y: stopStayCardY.current, animated: true })}
+    >
       <Text style={styles.stopStayText}>{t('destination.stopStay')}</Text>
     </TouchableOpacity>
+  </View>
+  <View style={[styles.headerPillRow, { marginTop: 0 }]}>
     <View style={styles.dateDropdownAnchor}>
       <TouchableOpacity
         style={styles.heroDateBadge}
@@ -1027,7 +1052,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     )}
     </View>
   </View>
-  
+
 
 </View>
 
@@ -1389,6 +1414,14 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           })}
         </View>
 
+        {/* Stop & Stay Card */}
+        <View onLayout={(e) => { stopStayCardY.current = e.nativeEvent.layout.y; }}>
+          <StopStayCard 
+            destination={destination} 
+            lang={i18n.language} 
+          />
+        </View>
+
         <View style={styles.actionsContainer}>
           <TouchableOpacity
             style={[styles.favouriteButton, {
@@ -1511,7 +1544,7 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 28,
     fontWeight: '700',
-    lineHeight: 30,
+    lineHeight: 34,
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 6,
@@ -1794,7 +1827,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   stopStayPill: {
     backgroundColor: 'rgba(195, 115, 55, 0.80)',

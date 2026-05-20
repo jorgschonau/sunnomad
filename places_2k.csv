@@ -1,0 +1,1902 @@
+ort,cc,place_type,attractiveness_score,state_name
+Plitvička Jezera,HR,national_park,100,Lika-Senj County
+Tallinn,EE,city,100,Harju County
+Plitvice Lakes,HR,national_park,100,Lika-Senj County
+Reykjavík,IS,medium_town,100,null
+Venice,IT,medium_town,100,Veneto
+Stockholm,SE,city,100,Stockholm County
+Riga,LV,city,100,null
+Hvar,HR,village,98,null
+Andorra la Vella,AD,medium_town,98,null
+Grand Canyon,US,nature_reserve,98,Arizona
+Koper,SI,medium_town,98,null
+Hallstätter See,AT,nature_reserve,97,Upper Austria
+Lago di Braies,IT,nature_reserve,97,Trentino – Alto Adige/Südtirol
+Lake Garda,IT,nature_reserve,97,Veneto
+Königssee,DE,nature_reserve,97,Bayern
+Crater Lake,US,nature_reserve,97,Oregon
+Eibsee,DE,nature_reserve,97,Bavaria
+Visby,SE,medium_town,96,Gotland County
+Charlottetown,CA,medium_town,96,Prince Edward Island
+Oeschinen Lake,CH,natural_park,95,Bern
+Podgorica,ME,city,95,Podgorica Capital City
+Peyto Lake,CA,natural_park,95,Alberta
+Moraine Lake,CA,natural_park,95,Alberta
+Telluride,US,village,95,Colorado
+Bratislava,SK,city,95,Bratislava
+Garibaldi Lake,CA,natural_park,95,British Columbia
+Vilnius,LT,city,95,Vilnius County
+Oslo,NO,city,95,Oslo
+Rabat,MA,city,95,Rabat-Salé-Kénitra
+London,GB,city,95,England
+Lake Louise,CA,natural_park,95,Alberta
+Tunis,TN,city,95,Tunis
+Sintra,PT,medium_town,95,Lisbon
+Budapest,HU,city,95,Budapest
+Lisbon,PT,city,95,Lisbon
+Helsinki,FI,city,95,Uusimaa
+Washington,US,city,95,District of Columbia
+Maligne Lake,CA,natural_park,95,Alberta
+Dune du Pilat,FR,beach,95,Nouvelle-Aquitaine
+Belgrade,RS,city,95,Central Serbia
+Paris,FR,city,95,Ile-de-France
+Amsterdam,NL,city,95,North Holland
+Ölüdeniz,TR,beach,95,Muğla
+Kyiv,UA,city,95,null
+Ottawa,CA,city,95,Ontario
+Brussels,BE,city,95,Brussels-Capital
+Reynisfjara,IS,beach,95,null
+Colmar,FR,medium_town,95,Grand Est
+Dublin,IE,city,95,County Dublin
+Chisinau,MD,city,95,Chișinău
+Tirana,AL,city,95,Tirana County
+Ankara,TR,city,95,Ankara
+Warsaw,PL,city,95,Masovian Voivodeship
+Copenhagen,DK,city,95,Capital
+Bucharest,RO,city,95,Bucharest
+Lake Lucerne,CH,nature_reserve,94,Lucerne
+Chiemsee,DE,nature_reserve,94,Bavaria
+Tegernsee,DE,nature_reserve,94,Bavaria
+Wolfgangsee,AT,nature_reserve,94,Salzburg
+Abraham Lake,CA,nature_reserve,94,Alberta
+Achensee,AT,nature_reserve,94,Tyrol
+Lake Como,IT,nature_reserve,94,Lombardy
+Zell am See,AT,nature_reserve,94,Salzburg
+Deadwood,US,village,93,South Dakota
+Bad Gastein,AT,village,93,Salzburg
+Teruel,ES,medium_town,93,Aragon
+Le Locle,CH,small_town,93,Neuenburg
+Tavira,PT,small_town,93,Faro
+Riomaggiore,IT,village,93,Liguria
+Kuressaare,EE,small_town,93,Saare County
+Soria,ES,medium_town,93,Castile and León
+Positano,IT,village,93,Campania
+León,ES,medium_town,93,Castile and León
+Cernier,CH,village,93,Neuenburg
+Plage de Saleccia,FR,beach,93,Corsica
+Plage d'Essaouira,MA,beach,93,Marrakesh-Safi
+Calanques de Cassis,FR,beach,93,Provence-Alpes-Côte d'Azur
+Burgos,ES,medium_town,93,Castile and León
+Segovia,ES,medium_town,93,Castile and León
+Trogir,HR,small_town,93,Split-Dalmatia County
+Ávila,ES,medium_town,93,Castile and León
+Südstrand Fehmarn,DE,beach,93,Schleswig-Holstein
+La Chaux-de-Fonds,CH,medium_town,93,Neuenburg
+Moab,US,small_town,93,Utah
+Skagen Beach,DK,beach,93,Nordjylland
+Uttakleiv,NO,beach,93,Nordland
+Cuenca,ES,medium_town,93,Castile-La Mancha
+Vernazza,IT,village,93,Liguria
+Salamanca,ES,medium_town,93,Castile and León
+Jackson Lake,US,natural_park,92,Wyoming
+Maroon Lake,US,natural_park,92,Colorado
+Jenny Lake,US,natural_park,92,Wyoming
+Waterton Lake,CA,natural_park,92,Alberta
+Lake McDonald,US,natural_park,92,Montana
+Lake O'Hara,CA,natural_park,92,British Columbia
+Lago di Fusine,IT,natural_park,92,Friuli-Venezia Giulia
+Diablo Lake,US,natural_park,92,Washington
+Emerald Lake,CA,natural_park,92,British Columbia
+Bow Lake,CA,natural_park,92,Alberta
+Lago di Dobbiaco,IT,natural_park,92,South Tyrol
+Lake Bohinj,SI,natural_park,92,Upper Carniola
+Świnoujście,PL,medium_town,91,West Pomeranian Voivodeship
+Bamburgh Beach,GB,beach,91,Northumberland
+Sitka,US,small_town,91,Alaska
+St Ives Beach,GB,beach,91,Cornwall
+Haukland Beach,NO,beach,91,Nordland
+Lefkáda,GR,small_town,91,Ioanian Islands
+Bisbee,US,small_town,91,Arizona
+Rømø Beach,DK,beach,91,Syddanmark
+Sinemorets Beach,BG,beach,91,Burgas
+Hilo,US,medium_town,91,Hawaii
+Plage de Legzira,MA,beach,91,Souss-Massa
+Roswell,US,medium_town,91,New Mexico
+Newport,GB,medium_town,91,Wales
+Patara Plajı,TR,beach,91,Antalya
+Memphis,US,city,91,Tennessee
+Oskarshamn,SE,small_town,91,Kalmar County
+Crikvenica,HR,small_town,91,Primorje-Gorski Kotar County
+Marfa,US,village,91,Texas
+Kaputaş Plajı,TR,beach,91,Antalya
+Møns Klint,DK,beach,91,Sjælland
+Kodiak,US,small_town,91,Alaska
+Djúpalónssandur,IS,beach,91,null
+Forggensee,DE,nature_reserve,90,Bavaria
+Turquoise Lake,US,nature_reserve,90,Colorado
+Lake Maggiore,IT,nature_reserve,90,Piedmont
+İztuzu Plajı,TR,beach,90,Muğla
+Mondsee,AT,nature_reserve,90,Upper Austria
+Vienna,AT,city,90,Wien
+Einsiedeln,CH,small_town,90,Schwyz
+Plage de Quiberon,FR,beach,90,Bretagne
+Plage du Cap Ferret,FR,beach,90,Nouvelle-Aquitaine
+Haarlem,NL,medium_town,90,North Holland
+Cabo San Lucas,MX,city,90,Baja California Sur
+L'Aquila,IT,medium_town,90,Abruzzo
+Lake Chelan,US,nature_reserve,90,Washington
+Lake Superior,US,nature_reserve,90,Michigan
+Prague,CZ,city,90,Prague
+Rome,IT,city,90,Lazio
+Okanagan Lake,CA,nature_reserve,90,British Columbia
+Athens,GR,city,90,Attica
+Annecy,FR,medium_town,90,Auvergne-Rhône-Alpes
+Bern,CH,medium_town,90,Bern
+Madrid,ES,city,90,Community of Madrid
+Gent,BE,city,90,Gent
+Lac de Sainte-Croix,FR,nature_reserve,90,Provence-Alpes-Côte d'Azur
+Bari,IT,city,90,Apulia
+Ljubljana,SI,city,90,null
+Çıralı Plajı,TR,beach,90,Antalya
+Berlin,DE,city,90,Berlin
+Zermatt,CH,small_town,90,Wallis
+Weißensee,AT,nature_reserve,90,Carinthia
+Lake Lugano,CH,nature_reserve,90,Ticino
+Porto,PT,city,90,Porto
+Interlaken,CH,small_town,90,Bern
+Skopje,MK,city,90,City of Skopje
+Flathead Lake,US,nature_reserve,90,Montana
+Lago d'Orta,IT,nature_reserve,90,Piedmont
+Plage d'Agadir,MA,beach,90,Souss-Massa
+Zürich,CH,city,90,Zürich
+Braga,PT,medium_town,90,Braga
+Starnberger See,DE,nature_reserve,90,Bavaria
+Casablanca,MA,city,90,Grand Casablanca-Settat
+Sarajevo,BA,city,90,City of Sarajevo
+Attersee,AT,nature_reserve,90,Upper Austria
+Dresden,DE,city,90,Sachsen
+Mexico City,MX,city,90,Mexico City
+Lake Balaton,HU,nature_reserve,90,Somogy
+Lake Geneva,CH,nature_reserve,90,Vaud
+Sofia,BG,city,90,Sofia-City
+Cabo de Gata,ES,natural_park,90,Andalusia
+Twin Lakes,US,nature_reserve,89,Colorado
+Lago di Iseo,IT,nature_reserve,89,Lombardy
+Woolacombe Beach,GB,beach,88,Devon
+Annapolis,US,medium_town,88,Maryland
+Iqaluit,CA,small_town,88,Nunavut
+Rize,TR,medium_town,88,Rize
+Dyuni Beach,BG,beach,88,Burgas
+Ermoúpolis,GR,small_town,88,South Aegean
+Molde,NO,medium_town,88,Møre og Romsdal
+Kristiansand,NO,medium_town,88,Agder
+Matera,IT,medium_town,88,Basilicata
+Rijeka,HR,medium_town,88,Primorje-Gorski Kotar County
+Dueodde Beach,DK,beach,88,Hovedstaden
+İzmit,TR,medium_town,88,Kocaeli
+Viana do Castelo,PT,medium_town,88,Viana do Castelo
+Loch Lomond,GB,natural_park,88,Scotland
+Boundary Waters,US,natural_park,88,Minnesota
+Selfoss,IS,small_town,88,Sveitarfélagið Árborg
+Bar,ME,small_town,88,Bar Municipality
+Arendal,NO,medium_town,88,Agder
+Makarska,HR,small_town,88,Split-Dalmatia County
+Härnösand,SE,medium_town,88,Västernorrland County
+Çanakkale,TR,medium_town,88,Canakkale
+Dunnet Bay,GB,beach,88,Highland
+Providence,US,medium_town,88,Rhode Island
+Halmstad,SE,medium_town,88,Halland County
+Neuschwanstein,DE,mountain,88,Bayern
+Faro,PT,medium_town,88,Faro
+Plage d'Antibes,FR,beach,88,Provence-Alpes-Côte d'Azur
+Vejle,DK,medium_town,88,Syddanmark
+Karlskrona,SE,medium_town,88,Blekinge County
+Trapani,IT,medium_town,88,Sicily
+Kokkola,FI,medium_town,88,Central Ostrobothnia
+Puebla de Sanabria,ES,village,88,Castile and León
+Aalborg,DK,medium_town,88,North
+Tenby Beach,GB,beach,88,Pembrokeshire
+Bodø,NO,medium_town,88,Nordland
+Tekirdağ,TR,medium_town,88,Tekirdağ
+Sopot,PL,medium_town,88,Pomeranian Voivodeship
+Lake Minnewanka,CA,natural_park,88,Alberta
+Gabès,TN,medium_town,88,Gabès
+Monastir,TN,medium_town,88,Monastir
+Aspen,US,small_town,88,Colorado
+Black Lake Durmitor,ME,natural_park,88,Žabljak
+Pátra,GR,medium_town,88,Western Greece
+Ross Lake,US,natural_park,88,Washington
+Nyköping,SE,medium_town,88,Södermanland County
+Whitby Beach,GB,beach,88,North Yorkshire
+Vaasa,FI,medium_town,88,Ostrobothnia
+Ancona,IT,medium_town,88,Marche
+Akureyri,IS,small_town,88,Akureyrarbær
+Stavanger,NO,medium_town,88,Rogaland
+Tivat,ME,small_town,88,Tivat Municipality
+Two Jack Lake,CA,natural_park,88,Alberta
+Kalmar,SE,medium_town,88,Kalmar County
+Yalova,TR,medium_town,88,Yalova
+Ceuta,ES,medium_town,88,Ceuta
+Aveiro,PT,medium_town,88,Aveiro
+Liepāja,LV,medium_town,88,null
+Drammen,NO,medium_town,88,Buskerud
+Luleå,SE,medium_town,88,Norrbotten County
+Albena Beach,BG,beach,88,Varna
+Zonguldak,TR,medium_town,88,Zonguldak
+Siena,IT,medium_town,88,Tuscany
+Lake Ohrid,MK,natural_park,88,Southwest
+Mahdia,TN,medium_town,88,Mahdia
+Honolulu,US,city,88,Hawaii
+Kluane Lake,CA,natural_park,88,Yukon
+Herceg Novi,ME,small_town,88,Herceg Novi Municipality
+Santander,ES,medium_town,88,Cantabria
+Tromsø,NO,medium_town,88,Troms
+Plage de Carnac,FR,beach,88,Bretagne
+Zadar,HR,medium_town,88,Zadar County
+Melilla,ES,medium_town,88,Melilla
+Jūrmala,LV,medium_town,88,null
+Pärnu,EE,medium_town,88,Pärnu County
+Gävle,SE,medium_town,88,Gävleborg County
+Budva,ME,small_town,88,Budva Municipality
+Haapsalu,EE,small_town,88,Lääne County
+Šibenik,HR,medium_town,88,Šibenik-Knin County
+Tønsberg,NO,medium_town,88,Vestfold
+Lagos,PT,medium_town,88,Faro
+South Beach,US,beach,88,Florida
+Taos,US,small_town,88,New Mexico
+Nabeul,TN,medium_town,88,Nabeul
+Galway,IE,medium_town,88,County Galway
+Ventspils,LV,medium_town,88,null
+Nantucket,US,small_town,88,Massachusetts
+Bizerta,TN,medium_town,88,Bizerte
+Split,HR,medium_town,88,Split-Dalmatia County
+Olympia,US,medium_town,88,Washington
+Giresun,TR,medium_town,88,Giresun
+Fanø Beach,DK,beach,88,Syddanmark
+Dubrovnik,HR,medium_town,88,Dubrovnik-Neretva County
+Redfish Lake,US,natural_park,88,Idaho
+Zakynthos,GR,small_town,88,Ioanian Islands
+Siracusa,IT,medium_town,88,Sicily
+Klaipėda,LT,medium_town,88,Klaipėda County
+Sandwood Bay,GB,beach,88,Highland
+Vlorë,AL,medium_town,88,Vlorë County
+Leigh Lake,US,natural_park,88,Wyoming
+Izola,SI,small_town,88,null
+Mali Lošinj,HR,small_town,88,Primorje-Gorski Kotar County
+Lezhë,AL,small_town,88,Lezhë County
+Sinop,TR,medium_town,88,Sinop
+Blåvand Beach,DK,beach,88,Syddanmark
+Durrës,AL,medium_town,88,Durrës County
+Collado-Villalba,ES,medium_town,88,Community of Madrid
+Klitmøller Beach,DK,beach,88,Midtjylland
+Ulcinj,ME,small_town,88,Ulcinj Municipality
+Gorges du Verdon,FR,nature_reserve,87,Provence-Alpes-Côte d'Azur
+Playa de los Muertos,ES,beach,87,Andalusia
+Enna,IT,medium_town,87,Sicily
+Lake Tenaya,US,natural_park,87,California
+Pearl City,US,medium_town,86,Hawaii
+Glendale,US,city,86,Arizona
+Kahului,US,medium_town,86,Hawaii
+Playa de Monsul,ES,beach,86,Andalucía
+Zambujeira do Mar,PT,beach,86,Beja
+Rakitovo,BG,small_town,86,Pazardzhik
+Dospat,BG,village,86,Smolyan
+Sarnitsa,BG,village,86,Pazardzhik
+Kinbasket Lake,CA,nature_reserve,86,British Columbia
+Penedono,PT,village,86,Viseu
+Mesa,US,city,86,Arizona
+Guelmim,MA,medium_town,86,Guelmim-Oued Noun
+Tozeur,TN,medium_town,86,Tozeur
+Ruby Beach,US,beach,86,Washington
+Karpenísi,GR,small_town,86,Central Greece
+Ersekë,AL,small_town,86,Korçë County
+Cagliari,IT,medium_town,86,Sardinia
+Cozumel,MX,medium_town,86,Quintana Roo
+Ajaccio,FR,medium_town,86,Corsica
+Praia do Barril,PT,beach,86,Faro
+St. John's,CA,medium_town,86,Newfoundland and Labrador
+Cumberland Island Beach,US,beach,86,Georgia
+Cannon Beach,US,beach,86,Oregon
+Labunista,MK,small_town,86,Southwestern
+Batak,BG,village,86,Pazardzhik
+Schwangau,DE,village,86,Bayern
+Biarritz Grande Plage,FR,beach,86,Nouvelle-Aquitaine
+Kailua,US,medium_town,86,Hawaii
+Trolltunga,NO,nature_reserve,86,Vestland
+Borino,BG,village,86,Smolyan
+Snoqualmie Falls,US,nature_reserve,86,Washington
+Tataouine,TN,medium_town,86,Tataouine
+Vila Nova de Paiva,PT,small_town,86,Viseu
+Banff,CA,small_town,86,Alberta
+Gafsa,TN,medium_town,86,Gafsa
+Corfu,GR,medium_town,86,Ioanian Islands
+Kebili,TN,medium_town,86,Kébili
+Playa de Torimbia,ES,beach,85,Asturias
+Kuopio,FI,medium_town,85,North Savo
+Yellowknife,CA,medium_town,85,Northwest Territories
+Mono Lake,US,nature_reserve,85,California
+Plage de Pampelonne,FR,beach,85,Provence-Alpes-Côte d'Azur
+Lake Plastiras,GR,nature_reserve,85,Thessaly
+Vänern,SE,nature_reserve,85,Västra Götaland
+Jyväskylä,FI,medium_town,85,Central Finland
+Lac du Bourget,FR,nature_reserve,85,Auvergne-Rhône-Alpes
+Linköping,SE,medium_town,85,Östergötland County
+Plazhi i Gjirit,AL,beach,85,Vlorë County
+Bregenz,AT,medium_town,85,Vorarlberg
+Tampere,FI,city,85,Pirkanmaa
+Mikkeli,FI,medium_town,85,South Savo
+Lake Champlain,US,nature_reserve,85,Vermont
+Steinkjer,NO,small_town,85,Trøndelag
+Vättern,SE,nature_reserve,85,Östergötland
+Moosehead Lake,US,nature_reserve,85,Maine
+Rügen Strand,DE,beach,85,Mecklenburg-Vorpommern
+Loch Ness,GB,nature_reserve,85,Scotland
+Lillehammer,NO,medium_town,85,Innlandet
+Karlstad,SE,medium_town,85,Värmland County
+Lausanne,CH,medium_town,85,Waadt
+Ohrid,MK,medium_town,85,Southwestern
+Lake Placid,US,nature_reserve,85,New York
+Voss,NO,small_town,85,Vestland
+Toronto,CA,city,85,Ontario
+Kajaani,FI,medium_town,85,Kainuu
+Digne-les-Bains,FR,small_town,85,Provence-Alpes-Côte d'Azur
+Hel Peninsula Beach,PL,beach,85,Puck County
+Wildcat Beach,US,beach,85,California
+Lahti,FI,medium_town,85,Päijät-Häme
+Pogradec,AL,medium_town,85,Korçë County
+Jönköping,SE,medium_town,85,Jönköping County
+Moutier,CH,small_town,85,Jura
+Lacul Rosu,RO,nature_reserve,85,Harghita
+Cambridge,GB,medium_town,85,Cambridgeshire
+Genève,CH,city,85,Genf
+Going-to-the-Sun Road,US,scenic_drive,85,Montana
+Sawtooth Lake,US,nature_reserve,85,Idaho
+Bologna,IT,city,85,Emilia-Romagna
+Windsor,CA,city,85,Ontario
+Praia da Cordoama,PT,beach,85,Faro
+Loch Katrine,GB,nature_reserve,85,Scotland
+Transfagarasan,RO,scenic_drive,85,Sibiu
+Lake Mead,US,nature_reserve,85,Nevada
+Lake Michigan,US,nature_reserve,85,Michigan
+Sarpsborg,NO,medium_town,85,Østfold
+Atlantic Road,NO,scenic_drive,85,Møre og Romsdal
+Convict Lake,US,nature_reserve,85,California
+Lofoten Road E10,NO,scenic_drive,85,Nordland
+Blue Mesa Reservoir,US,nature_reserve,85,Colorado
+Kazimierz Dolny,PL,village,85,Lublin Voivodeship
+St. Peter-Ording Strand,DE,beach,85,Schleswig-Holstein
+Pyramid Lake,US,nature_reserve,85,Nevada
+Lake Siljan,SE,nature_reserve,85,Dalarna
+Västerås,SE,medium_town,85,Västmanland County
+Lake Winnipeg,CA,nature_reserve,85,Manitoba
+Schwarzsee,CH,nature_reserve,85,Valais
+Laguna Beach,US,beach,85,California
+Schwerin,DE,medium_town,85,Mecklenburg-Vorpommern
+Palermo,IT,city,85,Sicily
+Kamenovo Beach,ME,beach,85,Budva Municipality
+Mjøsa,NO,nature_reserve,85,Innlandet
+Donner Lake,US,nature_reserve,85,California
+Örebro,SE,medium_town,85,Örebro County
+Route 66,US,scenic_drive,85,Arizona
+Stelvio Pass,IT,scenic_drive,85,South Tyrol
+Lake Winnipesaukee,US,nature_reserve,85,New Hampshire
+Joensuu,FI,medium_town,85,North Karelia
+Perpignan,FR,medium_town,85,Occitania
+Östersund,SE,medium_town,85,Jämtland County
+Pacific Coast Highway,US,scenic_drive,85,California
+Struga,MK,medium_town,85,Southwestern
+Lake Powell,US,nature_reserve,85,Arizona
+Amalfi Coast Drive,IT,scenic_drive,85,Campania
+Hamar,NO,medium_town,85,Innlandet
+Dijon,FR,medium_town,85,Bourgogne – Franche-Comté
+Thun,CH,medium_town,85,Bern
+Lake George,US,nature_reserve,85,New York
+Lake Trasimeno,IT,nature_reserve,85,Umbria
+Shkodër,AL,medium_town,85,Shkodër County
+Potsdam,DE,medium_town,85,Brandenburg
+Hämeenlinna,FI,medium_town,85,Kanta-Häme
+Avram Iancu,RO,village,84,Alba
+Ciocănești,RO,village,84,Suceava
+Nevesinje,BA,small_town,84,Republika Srpska
+Predeal,RO,small_town,84,Brașov
+Fundu Moldovei,RO,village,84,Suceava
+Jina,RO,village,84,Sibiu
+Carova Beach,US,beach,84,Virginia
+Cetăţeni,RO,village,84,Argeș
+Bisoca,RO,village,84,Buzău
+Izvoarele Sucevei,RO,village,84,Suceava
+Borsec,RO,village,84,Harghita
+Arieşeni,RO,village,84,Alba
+Azuga,RO,village,84,Prahova
+Cârlibaba,RO,village,84,Suceava
+Bicaz-Chei,RO,village,84,Neamț
+Comandău,RO,village,84,Covasna
+Zemeş,RO,small_town,84,Bacău
+Cliffs of Moher,IE,nature_reserve,84,County Clare
+Moldova Suliţa,RO,village,84,Suceava
+Breaza,RO,village,84,Prahova
+Vlăhiţa,RO,small_town,84,Harghita
+Coșna,RO,village,84,Suceava
+Dealu,RO,village,84,Harghita
+Bălan,RO,small_town,84,Harghita
+Sinaia,RO,small_town,84,Prahova
+Bilbor,RO,village,84,Harghita
+Poiana Sibiului,RO,village,84,Sibiu
+Čajniče,BA,village,84,Republika Srpska
+Tulgheş,RO,village,84,Harghita
+Han Pijesak,BA,village,84,Republika Srpska
+Ghimeş-Făget,RO,small_town,84,Bacău
+Dorna Cândrenilor,RO,village,84,Suceava
+Panaci,RO,village,84,Suceava
+Chichen Itza,MX,nature_reserve,84,Yucatán
+Cavnic,RO,small_town,84,Maramureș
+Vărşag,RO,village,84,Harghita
+Voineasa,RO,village,84,Vâlcea
+Borca,RO,small_town,84,Neamț
+Iacobeni,RO,village,84,Suceava
+Sopot Beach,PL,beach,84,Pomeranian Voivodeship
+Kalinovik,BA,village,84,Republika Srpska
+Poiana Stampei,RO,village,84,Suceava
+Gheorgheni,RO,small_town,84,Harghita
+Kneževo,BA,small_town,84,Republika Srpska
+Valea Ierii,RO,village,84,Cluj
+Clearwater Beach,US,beach,84,Florida
+Lunca de Jos,RO,small_town,84,Harghita
+Étretat Beach,FR,beach,84,Normandy
+Tomislavgrad,BA,small_town,84,Herzeg-Bosnia County
+Usedom Strand,DE,beach,84,Mecklenburg-Vorpommern
+Şaru Dornei,RO,village,84,Suceava
+Poiana Vadului,RO,village,84,Alba
+Plage de la Baule,FR,beach,84,Pays de la Loire
+Dâmbovicioara,RO,village,84,Argeș
+Gacko,BA,village,84,Republika Srpska
+Vatra Dornei,RO,small_town,84,Suceava
+Scărişoara,RO,village,84,Alba
+Voșlăbeni,RO,village,84,Harghita
+Warnemünde Strand,DE,beach,84,Mecklenburg-Vorpommern
+Beliş,RO,village,84,Cluj
+Gârda de Sus,RO,village,84,Alba
+Mărgău,RO,village,84,Cluj
+Pismo Beach,US,beach,84,California
+Alcalá la Real,ES,medium_town,83,Andalusia
+Cimarron,US,village,83,Kansas
+Alhama de Granada,ES,small_town,83,Andalusia
+Des Moines,US,city,83,Iowa
+Chadron,US,small_town,83,Nebraska
+Cork,IE,medium_town,83,County Cork
+Cualedro,ES,village,83,Galicia
+Béjar,ES,small_town,83,Castile and León
+Hoxie,US,village,83,Kansas
+Ipswich,GB,medium_town,83,Suffolk
+Andrews,US,small_town,83,Texas
+Albaladejo,ES,village,83,Castile-La Mancha
+Imperia,IT,medium_town,83,Liguria
+Salvaterra de Magos,PT,small_town,83,Santarém
+Elizabeth City,US,small_town,83,North Carolina
+Lansing,US,medium_town,83,Michigan
+Custer,US,village,83,South Dakota
+Fatsa,TR,medium_town,83,Ordu
+Hochfilzen,AT,village,83,Tirol
+Hugo,US,village,83,Colorado
+Timrå,SE,small_town,83,Västernorrland County
+Imst,AT,small_town,83,Tirol
+Columbus,US,village,83,Montana
+Valdevimbre,ES,village,83,Castile and León
+Ischgl,AT,village,83,Tirol
+Buitrago del Lozoya,ES,village,83,Community of Madrid
+Kühlungsborn Strand,DE,beach,83,Mecklenburg-Vorpommern
+Chalkída,GR,medium_town,83,Central Greece
+Aguilar de Campoo,ES,small_town,83,Castile and León
+Lakeview,US,village,83,Oregon
+Mira,ES,village,83,Castile-La Mancha
+Bozkurt,TR,small_town,83,Kastamonu
+Barcelonnette,FR,village,83,Provence-Alpes-Côte d'Azur
+Mariahof,AT,village,83,Steiermark
+Castle Dale,US,village,83,Utah
+La Spezia,IT,medium_town,83,Liguria
+Balchik,BG,small_town,83,Dobrich
+Kermit,US,small_town,83,Texas
+Foujes,TR,small_town,83,Aegean Region
+Wenns,AT,village,83,Tirol
+Boulder,US,village,83,Montana
+Labin,HR,small_town,83,Istria County
+Big Lake,US,village,83,Texas
+Enterprise,US,village,83,Oregon
+Burley,US,small_town,83,Idaho
+Covaleda,ES,village,83,Castile and León
+Lermoos,AT,village,83,Tirol
+Egersund,NO,small_town,83,Rogaland
+Akçakoca,TR,medium_town,83,Düzce
+Haugesund,NO,medium_town,83,Rogaland
+Newtownards,GB,medium_town,83,County Down
+Borkum Strand,DE,beach,83,Niedersachsen
+Buffalo,US,village,83,Wyoming
+La Grande,US,small_town,83,Oregon
+Henichesk,UA,small_town,83,Kherson Oblast
+Albarracín,ES,village,83,Aragon
+Glenwood Springs,US,small_town,83,Colorado
+Aurora,US,city,83,Illinois
+Førde,NO,small_town,83,Vestland
+Alturas,US,village,83,California
+Altenmarkt im Pongau,AT,village,83,Salzburg
+Cut Bank,US,village,83,Montana
+Canove di Roana,IT,village,83,Veneto
+Cabot Trail,CA,scenic_drive,83,Nova Scotia
+Alliance,US,small_town,83,Nebraska
+Great Falls,US,medium_town,83,Montana
+České Budějovice,CZ,medium_town,83,South Bohemian Region
+Gor,ES,village,83,Andalusia
+Gelibolu,TR,medium_town,83,Canakkale
+Chetumal,MX,medium_town,83,Quintana Roo
+Easton,US,small_town,83,Maryland
+Guadix,ES,small_town,83,Andalusia
+Figueira da Foz,PT,medium_town,83,Coimbra
+Berdyansk,UA,medium_town,83,Zaporizhia Oblast
+Livinallongo del Col di Lana,IT,village,83,Veneto
+Altdorf,CH,small_town,83,Uri
+Clovis,US,medium_town,83,New Mexico
+Frederiksværk,DK,small_town,83,Capital
+Chapala,MX,medium_town,83,Jalisco
+Boise City,US,village,83,Oklahoma
+Alhambra,ES,village,83,Castile-La Mancha
+Kappl,AT,village,83,Tirol
+Gaschurn,AT,village,83,Vorarlberg
+Baza,ES,medium_town,83,Andalusia
+Lac de Moiry,CH,natural_park,83,Valais
+Bender Eregli,TR,medium_town,83,Zonguldak
+Farmington,US,medium_town,83,Utah
+Flensburg,DE,medium_town,83,Schleswig-Holstein
+La Concha Beach,ES,beach,83,Basque Country
+Flekkefjord,NO,small_town,83,Agder
+Huelva,ES,medium_town,83,Andalusia
+Atlanta,US,city,83,Georgia
+Las Animas,US,village,83,Colorado
+Kungsbacka,SE,small_town,83,Halland County
+Demre,TR,small_town,83,Antalya
+Nerpio,ES,village,83,Castile-La Mancha
+Astorga,ES,small_town,83,Castile and León
+Brownfield,US,small_town,83,Texas
+Ayllón,ES,village,83,Castile and León
+Porvoo,FI,medium_town,83,Uusimaa
+Bridgeport,US,village,83,Nebraska
+Tekkeköy,TR,small_town,83,Samsun
+Gillette,US,medium_town,83,Wyoming
+Billings,US,medium_town,83,Montana
+Burhaniye,TR,medium_town,83,Balıkesir
+Fallon,US,small_town,83,Nevada
+Galera,ES,village,83,Andalusia
+Åkersberga,SE,medium_town,83,Stockholm County
+Helsingør,DK,medium_town,83,Capital
+Fontana Lake,US,natural_park,83,North Carolina
+Benavides,ES,village,83,Castile and León
+Akçaabat,TR,medium_town,83,Trabzon
+Ehrwald,AT,village,83,Tirol
+Horten,NO,medium_town,83,Vestfold
+Greeley,US,medium_town,83,Colorado
+Fairfield,US,village,83,Idaho
+Bustarviejo,ES,village,83,Community of Madrid
+Dillon,US,village,83,Montana
+Gries am Brenner,AT,village,83,Tirol
+Guymon,US,small_town,83,Oklahoma
+Arsuz,TR,medium_town,83,Hatay
+Umhausen,AT,village,83,Tirol
+Lander,US,small_town,83,Wyoming
+Hopewell,US,medium_town,83,Virginia
+Cantimpalos,ES,village,83,Castile and León
+Kerteminde,DK,small_town,83,Southern
+Grimstad,NO,medium_town,83,Agder
+Almazán,ES,small_town,83,Castile and León
+Beaufort,US,small_town,83,South Carolina
+Casper,US,medium_town,83,Wyoming
+Amasra,TR,small_town,83,Bartın
+Klamath Falls,US,medium_town,83,Oregon
+Ketchikan,US,small_town,83,Alaska
+Plaža Pasjača,HR,beach,83,Dubrovnik-Neretva County
+Lüsen,IT,village,83,Trentino – Alto Adige/Südtirol
+Fuente-Álamo,ES,village,83,Castile-La Mancha
+Noordwijk Beach,NL,beach,83,South Holland
+Heiligenblut,AT,village,83,Kärnten
+Alexandroupoli,GR,medium_town,83,Eastern Macedonia and Thrace
+Guarda,PT,medium_town,83,Guarda
+Aztec,US,small_town,83,New Mexico
+Halden,NO,medium_town,83,Østfold
+Brindisi,IT,medium_town,83,Apulia
+Downpatrick,GB,small_town,83,County Down
+Costa Brava,ES,beach,83,Catalonia
+Dumas,US,small_town,83,Texas
+Berovo,MK,small_town,83,Northeastern
+Cabra del Santo Cristo,ES,village,83,Andalusia
+Costa del Sol,ES,beach,83,Andalusia
+Agrigento,IT,medium_town,83,Sicily
+Herrera de Pisuerga,ES,village,83,Castile and León
+Tuxcueca,MX,village,83,Jalisco
+Fredrikstad,NO,medium_town,83,Østfold
+Colby,US,small_town,83,Kansas
+Hobro,DK,small_town,83,North
+Crotone,IT,medium_town,83,Calabria
+Bellingham,US,medium_town,83,Washington
+Los Lunas,US,small_town,83,New Mexico
+Jochberg,AT,village,83,Tirol
+Arenas del Rey,ES,village,83,Andalusia
+Pozo Alcón,ES,small_town,83,Andalusia
+Dubois,US,village,83,Idaho
+Guadarrama,ES,small_town,83,Community of Madrid
+Guadalix de la Sierra,ES,small_town,83,Community of Madrid
+Fiñana,ES,village,83,Andalusia
+Littlefield,US,small_town,83,Texas
+Clearwater,US,medium_town,83,Florida
+Bulancak,TR,medium_town,83,Giresun
+Araklı,TR,medium_town,83,Trabzon
+Kavarna,BG,small_town,83,Dobrich
+Båstad,SE,small_town,83,Skåne County
+Dragør,DK,small_town,83,Capital
+Crescent City,US,small_town,83,California
+Battle Mountain,US,village,83,Nevada
+Castril,ES,village,83,Andalusia
+Hoek van Holland Beach,NL,beach,83,South Holland
+Conrad,US,village,83,Montana
+Kolašin,ME,village,83,Kolašin Municipality
+Mojkovac,ME,village,83,Mojkovac Municipality
+Indianapolis,US,city,83,Indiana
+Igüeña,ES,village,83,Castile and León
+Llamas de la Ribera,ES,village,83,Castile and León
+Alba de Tormes,ES,village,83,Castile and León
+Aivali,TR,medium_town,83,Marmara Region
+Finike,TR,small_town,83,Antalya
+Valle di Casies - Gsies,IT,village,83,Trentino – Alto Adige/Südtirol
+Biograd na Moru,HR,small_town,83,Zadar County
+Kalix,SE,small_town,83,Norrbotten County
+Bodrum,TR,medium_town,83,Muğla
+Panhandle,US,village,83,Texas
+Holyoke,US,village,83,Colorado
+Greenock,GB,medium_town,83,Inverclyde
+Cifuentes,ES,village,83,Castile-La Mancha
+Bramberg am Wildkogel,AT,village,83,Salzburg
+Lewistown,US,small_town,83,Montana
+Hanauma Bay,US,beach,83,Hawaii
+Nassereith,AT,village,83,Tirol
+Baia delle Zagare,IT,beach,83,Apulia
+Barnstable,US,medium_town,83,Massachusetts
+Kansas City,US,city,83,Missouri
+Lemvig,DK,small_town,83,Central
+Atwood,US,village,83,Kansas
+Bangor,GB,medium_town,83,County Down
+Elkton,US,small_town,83,Maryland
+Kopervik,NO,small_town,83,Rogaland
+Hot Springs,US,village,83,South Dakota
+Torquay,GB,medium_town,83,Torbay
+Castrocontrigo,ES,village,83,Castile and León
+Alar del Rey,ES,village,83,Castile and León
+Camprodon,ES,village,83,Catalonia
+Castrocalbón,ES,village,83,Castile and León
+Hudiksvall,SE,small_town,83,Gävleborg County
+Greve,DK,medium_town,83,Zealand
+Volos,GR,medium_town,83,Thessaly
+Görele,TR,medium_town,83,Giresun
+Barlovento,ES,village,83,Canary Islands
+Carrizosa,ES,village,83,Castile-La Mancha
+Linz,AT,city,83,Oberösterreich
+Au,AT,village,83,Vorarlberg
+Carrickfergus,GB,medium_town,83,County Antrim
+Bonete,ES,village,83,Castile-La Mancha
+Livingston,US,small_town,83,Montana
+Alaplı,TR,medium_town,83,Zonguldak
+Gerze,TR,small_town,83,Sinop
+Alloa,GB,medium_town,83,Clackmannanshire
+Ardeşen,TR,medium_town,83,Rize
+Delta,US,small_town,83,Colorado
+Brennero - Brenner,IT,village,83,Trentino – Alto Adige/Südtirol
+Kalispell,US,medium_town,83,Montana
+Hugoton,US,village,83,Kansas
+Castellar de Santiago,ES,village,83,Castile-La Mancha
+Heiligendamm Strand,DE,beach,83,Mecklenburg-Vorpommern
+Bend,US,medium_town,83,Oregon
+Blackpool,GB,medium_town,83,Borough of Blackpool
+Holbrook,US,small_town,83,Arizona
+Butte,US,medium_town,83,Montana
+Grazalema,ES,village,83,Andalusia
+Burgohondo,ES,village,83,Castile and León
+Kalamata,GR,medium_town,83,Peloponnese Region
+Höganäs,SE,small_town,83,Skåne County
+Karlshamn,SE,medium_town,83,Blekinge County
+Fort Morgan,US,small_town,83,Colorado
+Kimball,US,village,83,Nebraska
+Levanger,NO,medium_town,83,Trøndelag
+Leoti,US,village,83,Kansas
+Jurilovca,RO,small_town,83,Tulcea
+Globe,US,small_town,83,Arizona
+Lakin,US,village,83,Kansas
+Roskilde,DK,medium_town,83,Zealand
+Big Timber,US,village,83,Montana
+Damp Strand,DE,beach,83,Schleswig-Holstein
+Lincoln,US,city,83,Nebraska
+Gazipaşa,TR,small_town,83,Antalya
+Brigham City,US,small_town,83,Utah
+Guadahortuna,ES,village,83,Andalusia
+Grimsby,GB,medium_town,83,North East Lincolnshire
+Frederikshavn,DK,medium_town,83,North
+Esbjerg,DK,medium_town,83,Southern
+Ängelholm,SE,medium_town,83,Skåne County
+Ironville,US,city,83,Kentucky
+Huelma,ES,small_town,83,Andalusia
+Trosa,SE,small_town,83,Södermanland County
+Murtosa,PT,small_town,83,Aveiro
+Jadraque,ES,village,83,Castile-La Mancha
+Madison,US,city,83,Wisconsin
+Frederikssund,DK,small_town,83,Capital
+Korçë,AL,medium_town,83,Korçë County
+Honrubia,ES,village,83,Castile-La Mancha
+Andretta,IT,village,83,Campania
+Gooding,US,village,83,Idaho
+Gusinje,ME,village,83,Gusinje Municipality
+Fernandina Beach,US,small_town,83,Florida
+Titusville,US,medium_town,83,Florida
+Lamesa,US,small_town,83,Texas
+Bustillo del Páramo,ES,village,83,Castile and León
+Køge,DK,medium_town,83,Zealand
+Hamilton,US,village,83,Montana
+Key Largo,US,small_town,83,Florida
+Jaca,ES,small_town,83,Aragon
+Larne,GB,small_town,83,County Antrim
+Yeste,ES,village,83,Castile-La Mancha
+Kragerø,NO,small_town,83,Telemark
+Västervik,SE,medium_town,83,Kalmar County
+Lillesand,NO,small_town,83,Agder
+Galende,ES,village,83,Castile and León
+Alcañices,ES,village,83,Castile and León
+Alta,NO,small_town,83,Finnmark
+Caernarfon,GB,small_town,83,Gwynedd
+Greensboro,US,city,83,North Carolina
+Chirivel,ES,village,83,Andalusia
+Karamürsel,TR,medium_town,83,Kocaeli
+Brihuega,ES,village,83,Castile-La Mancha
+Boone,US,small_town,83,North Carolina
+Cercedilla,ES,small_town,83,Community of Madrid
+Bozeman,US,medium_town,83,Montana
+Degaña,ES,village,83,Asturias
+Sundance,US,village,83,Wyoming
+Horche,ES,village,83,Castile-La Mancha
+Asker,NO,medium_town,83,Akershus
+Harstad,NO,medium_town,83,Troms
+Deer Lodge,US,village,83,Montana
+Utrillas,ES,village,83,Aragon
+Gürgentepe,TR,small_town,83,Ordu
+Blackfoot,US,small_town,83,Idaho
+Bay Saint Louis,US,small_town,83,Mississippi
+Driftwood Beach,US,beach,83,Georgia
+Igoumenítsa,GR,small_town,83,Epirus
+Larvik,NO,medium_town,83,Vestfold
+Holmestrand,NO,small_town,83,Vestfold
+Baker City,US,small_town,83,Oregon
+Lamar,US,small_town,83,Colorado
+Cantalejo,ES,village,83,Castile and León
+Bowman,US,village,83,North Dakota
+Cambridge,US,small_town,83,Maryland
+Arcos de Jalón,ES,village,83,Castile and León
+Kramfors,SE,small_town,83,Västernorrland County
+Burlington,US,village,83,Colorado
+Floydada,US,village,83,Texas
+İnebolu,TR,small_town,83,Kastamonu
+Florø,NO,small_town,83,Vestland
+Cinque Terre Beaches,IT,beach,83,Liguria
+Barletta,IT,medium_town,83,Apulia
+Eben im Pongau,AT,village,83,Salzburg
+Lake Windermere,GB,natural_park,83,England
+Anaconda,US,small_town,83,Montana
+Elkhart,US,village,83,Kansas
+Columbus,US,city,83,Ohio
+Cadaqués,ES,village,83,Catalonia
+Claude,US,village,83,Texas
+Linares de Riofrío,ES,village,83,Castile and León
+Jamay,MX,small_town,83,Jalisco
+Fethiye,TR,medium_town,83,Muğla
+Landskrona,SE,medium_town,83,Skåne County
+Bélmez de la Moraleda,ES,village,83,Andalusia
+Benalúa de las Villas,ES,village,83,Andalusia
+Lake Prespa,MK,natural_park,83,Pelagonia
+Liberal,US,medium_town,83,Kansas
+Erdemli,TR,medium_town,83,Mersin
+Choteau,US,village,83,Montana
+Guijuelo,ES,small_town,83,Castile and León
+Fillmore,US,village,83,Utah
+Kavála,GR,medium_town,83,Eastern Macedonia and Thrace
+Twin Falls,US,medium_town,83,Idaho
+Achenkirch,AT,village,83,Tirol
+Hettinger,US,village,83,North Dakota
+Lihue,US,small_town,83,Hawaii
+Dolný Kubín,SK,small_town,83,Žilina
+Garrafe de Torío,ES,village,83,Castile and León
+Erekli,TR,small_town,83,Tekirdağ
+Krusevo,MK,small_town,83,Pelagonia
+Çeşme,TR,medium_town,83,Aegean Region
+Colomera,ES,village,83,Andalusia
+Ayr,GB,medium_town,83,South Ayrshire
+Haverfordwest,GB,small_town,83,Pembrokeshire
+Beach,US,village,83,North Dakota
+Cide,TR,small_town,83,Kastamonu
+Corbu,RO,small_town,83,Constanța
+Ágreda,ES,village,83,Castile and León
+Ezcaray,ES,village,83,Rioja
+Astoria,US,small_town,83,Oregon
+Kanab,US,village,83,Utah
+Espinho,PT,medium_town,83,Aveiro
+Escucha,ES,village,83,Aragon
+American Falls,US,village,83,Idaho
+Arévalo,ES,small_town,83,Castile and León
+La Rochelle,FR,medium_town,83,Nouvelle-Aquitaine
+Bournemouth,GB,medium_town,83,"Bournemouth, Christchurch and Poole"
+Santa Marina del Rey,ES,village,83,Castile and León
+Belle Fourche,US,small_town,83,South Dakota
+Kórinthos,GR,medium_town,83,Peloponnese Region
+Fort Collins,US,medium_town,83,Colorado
+Aranda de Duero,ES,medium_town,83,Castile and León
+La Junta,US,small_town,83,Colorado
+Plainview,US,medium_town,83,Texas
+Benasque,ES,village,83,Aragon
+Vodice,HR,small_town,83,Šibenik-Knin County
+Leirvik,NO,small_town,83,Vestland
+İyidere,TR,small_town,83,Rize
+Jerome,US,small_town,83,Idaho
+Ålesund,NO,medium_town,83,Møre og Romsdal
+Eisenerz,AT,village,83,Steiermark
+Cózar,ES,village,83,Castile-La Mancha
+Heringsdorf Strand,DE,beach,83,Mecklenburg-Vorpommern
+Zug,CH,medium_town,83,Zug
+Dalhart,US,small_town,83,Texas
+Çınarcık,TR,small_town,83,Yalova
+Horsens,DK,medium_town,83,Central
+Canyon,US,small_town,83,Texas
+Akron,US,village,83,Colorado
+Campillo de Altobuey,ES,village,83,Castile-La Mancha
+Cojumatlán de Régules,MX,small_town,83,Michoacán
+Hilton Head,US,beach,83,South Carolina
+Levelland,US,small_town,83,Texas
+Fort Benton,US,village,83,Montana
+Carrión de los Condes,ES,village,83,Castile and León
+Huete,ES,village,83,Castile-La Mancha
+Charleston,US,medium_town,83,South Carolina
+Holbæk,DK,medium_town,83,Zealand
+Kaanapali Beach,US,beach,83,Hawaii
+Hawthorne,US,village,83,Nevada
+Espiye,TR,small_town,83,Giresun
+Oahu,US,beach,83,Hawaii
+Brønnøysund,NO,small_town,83,Nordland
+Alpbach,AT,village,83,Tirol
+Elko,US,medium_town,83,Nevada
+Olang,IT,village,83,Trentino – Alto Adige/Südtirol
+Fort Pierce,US,medium_town,83,Florida
+Greifswald,DE,medium_town,83,Mecklenburg-Vorpommern
+Cervera de Pisuerga,ES,village,83,Castile and León
+Akranes,IS,small_town,83,null
+Mansilla de las Mulas,ES,village,83,Castile and León
+Lake Päijänne,FI,natural_park,83,Central Finland
+Dundalk,IE,medium_town,83,County Louth
+Brighton,US,medium_town,83,Colorado
+Dundee,GB,medium_town,83,Dundee City
+Fonfría,ES,village,83,Castile and León
+Freila,ES,village,83,Andalusia
+Esposende,PT,medium_town,83,Braga
+Carrizozo,US,village,83,New Mexico
+Kuşadası,TR,medium_town,83,Aydın
+Préveza,GR,small_town,83,Epirus
+Grangeville,US,village,83,Idaho
+Coalville,US,village,83,Utah
+Carbonero el Mayor,ES,village,83,Castile and León
+Villarejo de Órbigo,ES,village,83,Castile and León
+Arco,US,village,83,Idaho
+Irvine,GB,medium_town,83,North Ayrshire
+Fredericia,DK,medium_town,83,Southern
+Darro,ES,village,83,Andalusia
+Ivano-Frankivsk,UA,city,83,Ivano-Frankivsk Oblast
+Drøbak,NO,small_town,83,Akershus
+Alfarnate,ES,village,83,Andalusia
+Bradenton,US,medium_town,83,Florida
+Hospital de Órbigo,ES,village,83,Castile and León
+Briançon,FR,small_town,83,Provence-Alpes-Côte d'Azur
+Challis,US,village,83,Idaho
+Burns,US,village,83,Oregon
+Azambuja,PT,medium_town,83,Lisbon
+Brunswick,US,small_town,83,Georgia
+Cuéllar,ES,small_town,83,Castile and León
+Clayton,US,village,83,New Mexico
+Sundsvall,SE,medium_town,83,Västernorrland County
+Frailes,ES,village,83,Andalusia
+Lake Inari,FI,natural_park,83,Lapland
+Praia da Amoreira,PT,beach,83,Faro
+Carmel Beach,US,beach,83,California
+Ayas,IT,village,83,Aosta Valley
+Belfast,US,small_town,83,Maine
+Guardo,ES,small_town,83,Castile and León
+Kirchberg in Tirol,AT,small_town,83,Tirol
+Seminole,US,small_town,83,Texas
+Jocotepec,MX,small_town,83,Jalisco
+Lovington,US,small_town,83,New Mexico
+Jeres del Marquesado,ES,village,83,Andalusia
+Cody,US,small_town,83,Wyoming
+Riaza,ES,village,83,Castile and León
+Jayena,ES,village,83,Andalusia
+Hammerfest,NO,small_town,83,Finnmark
+North Coast 500,GB,scenic_drive,83,Scotland
+Imperial,US,village,83,Nebraska
+Póvoa de Varzim,PT,medium_town,83,Porto
+Berlanga de Duero,ES,village,83,Castile and León
+Inverness,GB,medium_town,83,Highland
+Baker,US,village,83,Montana
+Kerrville,US,medium_town,83,Texas
+La Valle - Wengen,IT,village,83,Trentino – Alto Adige/Südtirol
+Cazorla,ES,small_town,83,Andalusia
+Trani,IT,medium_town,83,Apulia
+Camporrobles,ES,village,83,Valencian Community
+Lovelock,US,village,83,Nevada
+Bromölla,SE,small_town,83,Skåne County
+Georgetown,US,small_town,83,South Carolina
+Amarillo,US,medium_town,83,Texas
+Garafía,ES,village,83,Canary Islands
+Alpera,ES,village,83,Castile-La Mancha
+Benassal,ES,village,83,Valencian Community
+Farwell,US,village,83,Texas
+Campotéjar,ES,village,83,Andalusia
+Lourinhã,PT,small_town,83,Lisbon
+Nynäshamn,SE,small_town,83,Stockholm County
+Kingman,US,medium_town,83,Arizona
+Funes - Villnoess,IT,village,83,Trentino – Alto Adige/Südtirol
+Çayeli,TR,medium_town,83,Rize
+Bad Hofgastein,AT,village,83,Salzburg
+Fauske,NO,small_town,83,Nordland
+Garden City,US,medium_town,83,Kansas
+Grand Junction,US,medium_town,83,Colorado
+Fiss,AT,village,83,Tirol
+Hommelvik,NO,small_town,83,Trøndelag
+Gemlik,TR,medium_town,83,Bursa
+Douglas,US,small_town,83,Wyoming
+Falkenberg,SE,medium_town,83,Halland County
+Cala Rossa,IT,beach,83,Sicily
+Colmenar Viejo,ES,medium_town,83,Community of Madrid
+Fort Lauderdale,US,medium_town,83,Florida
+San Lorenzo de El Escorial,ES,small_town,83,Community of Madrid
+Campaspero,ES,village,83,Castile and León
+Hørsholm,DK,medium_town,83,Capital
+Julesburg,US,village,83,Colorado
+Cuevas del Campo,ES,village,83,Andalusia
+Aabenraa,DK,small_town,83,Syddanmark
+Dimmitt,US,village,83,Texas
+Fuentesaúco,ES,village,83,Castile and León
+Titisee,DE,beach,83,Baden-Württemberg
+Khmelnytskyi,UA,city,83,Khmelnytskyi Oblast
+Volda,NO,small_town,83,Møre og Romsdal
+Vils,AT,village,83,Tirol
+Kristiansund,NO,medium_town,83,Møre og Romsdal
+Steinach am Brenner,AT,village,83,Tirol
+Navalmanzano,ES,village,83,Castile and León
+Aliağa,TR,medium_town,83,Aegean Region
+Grenaa,DK,small_town,83,Central
+Kranjska Gora,SI,village,83,null
+Livorno,IT,medium_town,83,Tuscany
+Hailey,US,small_town,83,Idaho
+Goodland,US,village,83,Kansas
+Chiclana de Segura,ES,village,83,Andalusia
+Erdek,TR,medium_town,83,Balıkesir
+Goldfield,US,village,83,Nevada
+Brandenberg,AT,village,83,Tirol
+Calamocha,ES,village,83,Aragon
+Kalundborg,DK,small_town,83,Zealand
+Alcaraz,ES,village,83,Castile-La Mancha
+Catanzaro,IT,medium_town,83,Calabria
+Landete,ES,village,83,Castile-La Mancha
+Lezuza,ES,village,83,Castile-La Mancha
+Baltar,ES,village,83,Galicia
+Cádiar,ES,village,83,Andalusia
+Cistierna,ES,village,83,Castile and León
+Burnsville,US,village,83,North Carolina
+Helsingborg,SE,medium_town,83,Skåne County
+Lake Tahoe,US,natural_park,83,California
+Jefferson,US,village,83,North Carolina
+Duchesne,US,village,83,Utah
+Cantalpino,ES,village,83,Castile and León
+Ayancık,TR,small_town,83,Sinop
+Lech,AT,village,83,Vorarlberg
+Hereford,US,small_town,83,Texas
+Beypazarı,TR,medium_town,83,Ankara
+Lake Skadar,ME,natural_park,83,Bar
+Anamur,TR,medium_town,83,Mersin
+Donostia / San Sebastián,ES,medium_town,83,Basque Country
+Basin,US,village,83,Wyoming
+Cabeza la Vaca,ES,village,83,Extremadura
+Vordingborg,DK,small_town,83,Zealand
+Assens,DK,small_town,83,Syddanmark
+Everett,US,medium_town,83,Washington
+Galveston,US,medium_town,83,Texas
+Calgary,CA,city,83,Alberta
+Eureka,US,medium_town,83,California
+Duruelo de la Sierra,ES,village,83,Castile and León
+Vilminore di Scalve,IT,village,83,Lombardy
+Kolding,DK,medium_town,83,Syddanmark
+Hardin,US,village,83,Montana
+Ünye,TR,medium_town,83,Ordu
+Idaho Falls,US,medium_town,83,Idaho
+Logan,US,medium_town,83,Utah
+Dikili,TR,small_town,83,Aegean Region
+Cella,ES,village,83,Aragon
+Vordernberg,AT,village,83,Steiermark
+Priego,ES,village,83,Castile-La Mancha
+Barruelo de Santullán,ES,village,83,Castile and León
+Solosancho,ES,village,83,Castile and León
+Boltenhagen Strand,DE,beach,83,Mecklenburg-Vorpommern
+Sautens,AT,village,83,Tirol
+Lerma,ES,village,83,Castile and León
+Saint Johns,US,village,83,Arizona
+Clarendon,US,village,83,Texas
+Vinuesa,ES,village,83,Castile and León
+Crosbyton,US,village,83,Texas
+Boulder,US,medium_town,83,Colorado
+Grant,US,village,83,Nebraska
+Huéneja,ES,village,83,Andalusia
+Boñar,ES,village,83,Castile and León
+Cadiz,ES,medium_town,83,Andalusia
+Ragusa,IT,medium_town,82,Sicily
+Caltanissetta,IT,medium_town,82,Sicily
+Las Vegas,US,city,81,Nevada
+Fort Davis,US,village,81,Texas
+Nationalpark Hardangervidda,NO,national_park,81,Vestland
+Zakopane,PL,medium_town,81,Lesser Poland Voivodeship
+El Paso,US,city,81,Texas
+Stralsund,DE,medium_town,81,Mecklenburg-Vorpommern
+Alpine,US,small_town,81,Texas
+Cranston,CA,medium_town,81,Alberta
+Chestermere,CA,medium_town,81,Alberta
+Cerva,IT,village,80,Calabria
+Ungheni,MD,medium_town,80,Ungheni
+Cardiff,GB,city,80,Cardiff
+Yreka,US,small_town,80,California
+Rapla,EE,small_town,80,Rapla County
+Magdeburg,DE,city,80,Sachsen-Anhalt
+Soroca,MD,medium_town,80,Soroca
+Monghidoro,IT,village,80,Emilia-Romagna
+Lamía,GR,medium_town,80,Central Greece
+Çorum,TR,city,80,Çorum
+Paide,EE,small_town,80,Järva County
+Brčko,BA,medium_town,80,Brčko District
+Slatina,RO,medium_town,80,Olt
+Tatvan,TR,medium_town,80,Bitlis
+Bauska,LV,small_town,80,null
+Zwettl Stadt,AT,village,80,Niederösterreich
+Sacedón,ES,village,80,Castile-La Mancha
+Sfax,TN,city,80,Sfax
+Verbania,IT,medium_town,80,Piedmont
+Bordeaux,FR,city,80,Nouvelle-Aquitaine
+Middelburg,NL,medium_town,80,Zeeland
+Pescopagano,IT,village,80,Basilicata
+Põlva,EE,small_town,80,Põlva County
+Bursa,TR,city,80,Bursa
+Sidi Bouzid,TN,medium_town,80,Sidi Bouzid
+Gdynia,PL,city,80,Pommern
+Daugavpils,LV,medium_town,80,null
+Bålsta,SE,small_town,80,Uppsala County
+Murcia,ES,city,80,Murcia
+Pleyne,IT,village,80,Piedmont
+Konya,TR,city,80,Konya
+Bogdanci,MK,small_town,80,Southeastern
+Buzău,RO,medium_town,80,Buzău
+Barisciano,IT,village,80,L'Aquila
+Tulcea,RO,medium_town,80,Tulcea
+Verkhovyna,UA,small_town,80,Ivano-Frankivsk Oblast
+Lillestrøm,NO,medium_town,80,Akershus
+Bilecik,TR,medium_town,80,Bilecik
+Havre,US,small_town,80,Montana
+Enköping,SE,medium_town,80,Uppsala County
+Muğla,TR,medium_town,80,Muğla
+Marrakesh,MA,city,80,Marrakech-Safi
+Sursee,CH,small_town,80,Luzern
+Bolu,TR,medium_town,80,Bolu
+Rodez,FR,medium_town,80,Occitania
+Vukovar,HR,medium_town,80,Vukovar-Srijem County
+Vipiteno,IT,small_town,80,Trentino – Alto Adige/Südtirol
+Haskovo,BG,medium_town,80,Haskovo
+Aprica,IT,village,80,Lombardy
+Sierre,CH,small_town,80,Wallis
+Roncone,IT,village,80,Trentino – Alto Adige/Südtirol
+Abbadia San Salvatore,IT,small_town,80,Tuscany
+Watford City,US,small_town,80,North Dakota
+Somerset,US,small_town,80,Pennsylvania
+Vigo di Fassa,IT,village,80,Trentino – Alto Adige/Südtirol
+Bersezio,IT,village,80,Piedmont
+Gap,FR,medium_town,80,Provence-Alpes-Côte d'Azur
+Santa Fe,US,medium_town,80,New Mexico
+Oujda,MA,city,80,Oriental
+Hall in Tirol,AT,small_town,80,Tirol
+Weiser,US,small_town,80,Idaho
+Sauze d'Oulx,IT,village,80,Piedmont
+Serina,IT,village,80,Lombardy
+Aydin,TR,medium_town,80,Aydın
+Berriozábal,MX,medium_town,79,Chiapas
+Sayula,MX,medium_town,79,Jalisco
+Xichú,MX,village,79,Guanajuato
+Miahuatlán de Porfirio Díaz,MX,medium_town,79,Oaxaca
+Teocaltiche,MX,medium_town,79,Jalisco
+Unión Juárez,MX,village,79,Chiapas
+Santo Domingo Huehuetlán,MX,village,79,Puebla
+Guachinango,MX,village,79,Jalisco
+Las Margaritas,MX,medium_town,79,Chiapas
+Malinalco,MX,small_town,79,Mexico
+Bella Vista,MX,village,79,Chiapas
+Cualác,MX,village,79,Guerrero
+Ixtapa,MX,small_town,79,Chiapas
+Santiago Tangamandapio,MX,small_town,79,Michoacán
+San Bartolo Tutotepec,MX,village,79,Hidalgo
+Hueytamalco,MX,small_town,79,Puebla
+Zitlala,MX,small_town,79,Guerrero
+Ahuacatlán,MX,small_town,79,Nayarit
+San Juan Guelavía,MX,village,79,Oaxaca
+Tanhuato de Guerrero,MX,small_town,79,Michoacán
+Victoria,MX,village,79,Guanajuato
+Atotonilco el Alto,MX,medium_town,79,Jalisco
+El Bosque,MX,small_town,79,Chiapas
+Rayón,MX,small_town,79,San Luis Potosí
+Montecristo,MX,village,79,Chiapas
+Tototlán,MX,small_town,79,Jalisco
+Colotlán,MX,small_town,79,Jalisco
+Pilcaya,MX,small_town,79,Guerrero
+Chilón,MX,small_town,79,Chiapas
+Cedral,MX,small_town,79,San Luis Potosí
+Viesca,MX,village,79,Coahuila
+Buenaventura,MX,small_town,79,Chihuahua
+San Bartolomé Loxicha,MX,village,79,Oaxaca
+San Martín Tilcajete,MX,village,79,Oaxaca
+Santa María Zoquitlán,MX,village,79,Oaxaca
+Zapotitlán,MX,village,79,Puebla
+San Jerónimo Xayacatlán,MX,village,79,Puebla
+Tecalitlán,MX,small_town,79,Jalisco
+Richmond,US,medium_town,78,Indiana
+Shoreline,US,medium_town,78,Washington
+Portage,US,small_town,78,Wisconsin
+Frankfort,US,small_town,78,Indiana
+Vilanova i la Geltrú,ES,medium_town,78,Catalonia
+Peterlee,GB,medium_town,78,County Durham
+Krasyliv,UA,small_town,78,Khmelnytskyi Oblast
+Mafra,PT,small_town,78,Lisbon
+Hartford City,US,small_town,78,Indiana
+Pontiac,US,medium_town,78,Michigan
+Barrow in Furness,GB,medium_town,78,Westmorland and Furness
+Auburn,US,small_town,78,Indiana
+Morgantown,US,medium_town,78,West Virginia
+Decatur,US,small_town,78,Texas
+Covington,US,small_town,78,Georgia
+South Bend,US,medium_town,78,Indiana
+Hammamet,TN,medium_town,78,Nabeul
+Harrodsburg,US,small_town,78,Kentucky
+New Castle,US,medium_town,78,Pennsylvania
+Starokostyantyniv,UA,medium_town,78,Khmelnytskyi Oblast
+Venice,US,medium_town,78,California
+Ionia,US,small_town,78,Michigan
+Indianola,US,small_town,78,Iowa
+Saguenay,CA,medium_town,78,Quebec
+Volochysk,UA,small_town,78,Khmelnytskyi Oblast
+Fermo,IT,small_town,78,Marche
+Chortkiv,UA,medium_town,78,null
+Goes,NL,medium_town,78,Zeeland
+Thief River Falls,US,small_town,78,Minnesota
+Mankato,US,medium_town,78,Minnesota
+Concord,US,medium_town,78,North Carolina
+Sondrio,IT,small_town,78,Lombardy
+Hillsboro,US,small_town,78,Ohio
+Meadville,US,small_town,78,Pennsylvania
+Denton,US,medium_town,78,Texas
+Adrian,US,medium_town,78,Michigan
+Atamaría,ES,medium_town,78,Murcia
+Tulum,MX,small_town,78,Quintana Roo
+Waterloo,US,medium_town,78,Iowa
+Dunfermline,GB,medium_town,78,Fife
+Belluno,IT,medium_town,78,Veneto
+Redmond,US,medium_town,78,Oregon
+Valley City,US,small_town,78,North Dakota
+Raseborg,FI,medium_town,78,Uusimaa
+Troy,US,medium_town,78,Ohio
+Comonfort,MX,medium_town,78,Guanajuato
+Lebanon,US,small_town,78,Kentucky
+Saint Cloud,US,medium_town,78,Minnesota
+Painesville,US,small_town,78,Ohio
+Cutler Bay,US,medium_town,78,Florida
+Marina di Ardea-Tor San Lorenzo,IT,medium_town,78,Lazio
+Cambridge,US,small_town,78,Minnesota
+Maryville,US,small_town,78,Missouri
+Noblesville,US,medium_town,78,Indiana
+Nationalpark Sächsische Schweiz,DE,national_park,78,Sachsen
+Pendleton,US,small_town,78,Oregon
+Brainerd,US,small_town,78,Minnesota
+Spartanburg,US,medium_town,78,South Carolina
+Findlay,US,medium_town,78,Ohio
+Chickasha,US,small_town,78,Oklahoma
+Bartlesville,US,medium_town,78,Oklahoma
+Richland Center,US,small_town,78,Wisconsin
+Atlantic,US,small_town,78,Iowa
+Lincolnton,US,small_town,78,North Carolina
+Penn Yan,US,small_town,78,New York
+St Austell,GB,medium_town,78,Cornwall
+Versailles,US,small_town,78,Kentucky
+Paola,US,small_town,78,Kansas
+Bergen op Zoom,NL,medium_town,78,North Brabant
+Berezhany,UA,small_town,78,Ternopil Oblast
+Antibes,FR,medium_town,78,Provence-Alpes-Côte d'Azur
+Geneseo,US,small_town,78,New York
+Jackson,US,small_town,78,Ohio
+Burnham-on-Sea,GB,medium_town,78,Somerset
+Chebba,TN,medium_town,78,Mahdia
+Hyères,FR,medium_town,78,Provence-Alpes-Côte d'Azur
+Didim,TR,medium_town,78,Aydın
+Columbus,US,medium_town,78,Nebraska
+Tulchyn,UA,small_town,78,Vinnytsia Oblast
+Ellensburg,US,small_town,78,Washington
+Moknine,TN,medium_town,78,Monastir
+Ephrata,US,small_town,78,Washington
+Torrance,US,medium_town,78,California
+Antigo,US,small_town,78,Wisconsin
+Mistretta,IT,village,77,Sicily
+Heroica Caborca,MX,medium_town,76,Sonora
+Metlaoui,TN,medium_town,76,Gafsa
+Mapimí,MX,small_town,76,Durango
+Desert Hot Springs,US,medium_town,76,California
+Monclova,MX,city,76,Coahuila
+Görisried,DE,village,76,Bayern
+Kolbingen,DE,village,76,Baden-Württemberg
+San Buenaventura,MX,medium_town,76,Coahuila
+Maricopa,US,medium_town,76,Arizona
+Janos,MX,village,76,Chihuahua
+Aquiles Serdán,MX,small_town,76,Chihuahua
+San Luis,US,medium_town,76,Arizona
+Wildsteig,DE,village,76,Bayern
+Palm Desert,US,medium_town,76,California
+San Luis del Cordero,MX,village,76,Durango
+Bismil,TR,medium_town,75,Diyarbakır
+Szerencs,HU,small_town,75,North Hungary
+Dungannon,GB,small_town,75,County Tyrone
+Bedonia,IT,village,75,Emilia-Romagna
+Alba Iulia,RO,medium_town,75,Alba
+Pásztó,HU,small_town,75,North Hungary
+Alingsås,SE,medium_town,75,Västra Götaland County
+Sfântu Gheorghe,RO,medium_town,75,Covasna
+Sânsimion,RO,village,75,Harghita
+Oyonnax,FR,medium_town,75,Auvergne-Rhône-Alpes
+Carmarthen,GB,small_town,75,Carmarthenshire
+Sheffield,GB,city,75,South Yorkshire
+Pullman,US,medium_town,75,Washington
+Subcetate,RO,village,75,Harghita
+Akseki,TR,small_town,75,Antalya
+Carlow,IE,medium_town,75,County Carlow
+Międzychód,PL,small_town,75,Greater Poland Voivodeship
+Cărpiniş,RO,small_town,75,Timiș
+Stenløse,DK,small_town,75,Capital
+Pułtusk,PL,small_town,75,Masovian Voivodeship
+Târgu Cărbuneşti,RO,small_town,75,Gorj
+Slough,GB,medium_town,75,England
+Saint Leonhard in Passeier,IT,village,75,Trentino – Alto Adige/Südtirol
+Mezőtúr,HU,small_town,75,North Great Plain
+Postojna,SI,small_town,75,null
+Ioánnina,GR,medium_town,75,Epirus
+Kragujevac,RS,medium_town,75,Central Serbia
+Sturno,IT,village,75,Campania
+Cardeña,ES,village,75,Andalusia
+Đakovo,HR,small_town,75,Osijek-Baranja County
+Ruthin,GB,small_town,75,Denbighshire
+Preston,GB,city,75,Lancashire
+Selendi,TR,small_town,75,Manisa
+Katowice,PL,city,75,Silesian Voivodeship
+Konče,MK,village,75,null
+Vătava,RO,village,75,Mureș
+Atkaracalar,TR,small_town,75,Çankırı
+Bitola,MK,medium_town,75,null
+Lipkovo,MK,medium_town,75,null
+Livadeiá,GR,medium_town,75,Central Greece
+Leeds,GB,city,75,West Yorkshire
+Acerenza,IT,village,75,Basilicata
+Skyline Drive,US,scenic_drive,75,Virginia
+Zimnicea,RO,small_town,75,Teleorman
+Århus,DK,city,75,Central
+Zalău,RO,medium_town,75,Sălaj
+Agăş,RO,small_town,75,Bacău
+Mormanno,IT,village,75,Calabria
+Cernavodă,RO,small_town,75,Constanța
+Elva,EE,small_town,75,Tartu County
+Falkirk,GB,medium_town,75,Falkirk
+Gradiška,BA,small_town,75,Town of Gradiška
+Brno,CZ,city,75,South Moravian Region
+Żnin,PL,small_town,75,Kuyavian-Pomeranian Voivodeship
+Roccamonfina,IT,village,75,Campania
+Radovis,MK,medium_town,75,null
+Drăgăneşti-Olt,RO,small_town,75,Olt
+Tamási,HU,small_town,75,Southern Transdanubia
+Corleto Perticara,IT,village,75,Basilicata
+Angoulême,FR,medium_town,75,Nouvelle-Aquitaine
+Hedemora,SE,small_town,75,Dalarna County
+Črna na Koroškem,SI,village,75,null
+Tétouan,MA,city,75,Tangier-Tetouan-Al Hoceima
+Konotop,UA,medium_town,75,Sumy Oblast
+Mustafakemalpaşa,TR,medium_town,75,Bursa
+Kınık,TR,small_town,75,Izmir
+Fehérgyarmat,HU,small_town,75,North Great Plain
+Edelény,HU,small_town,75,North Hungary
+Foiano di Val Fortore,IT,village,75,Campania
+Szczecin,PL,city,75,West Pomeranian Voivodeship
+Worcester,GB,medium_town,75,Worcestershire
+Tavşanlı,TR,medium_town,75,Aegean Region
+Albidona,IT,village,75,Calabria
+Harderwijk,NL,medium_town,75,Gelderland
+Pavullo nel Frignano,IT,small_town,75,Emilia-Romagna
+Blois,FR,medium_town,75,Centre-Val de Loire
+Soma,TR,medium_town,75,Manisa
+Pontelandolfo,IT,village,75,Campania
+Rio Maior,PT,small_town,75,Santarém
+Grumento Nova,IT,village,75,Basilicata
+Drachten,NL,medium_town,75,Frisia
+Malonno,IT,village,75,Lombardy
+Kazan,TR,medium_town,75,Ankara
+Gandino,IT,small_town,75,Lombardy
+Bulanık,TR,medium_town,75,Muş
+Ljusdal,SE,small_town,75,Gävleborg County
+Montese,IT,village,75,Emilia-Romagna
+Saskatoon,CA,city,75,Saskatchewan
+Comana,RO,small_town,75,Giurgiu
+Skalica,SK,small_town,75,Trnava
+Trifeşti,RO,small_town,75,Iași
+Porto de Mós,PT,small_town,75,Leiria
+Castel Giorgio,IT,village,75,Umbria
+Dolneni,MK,small_town,75,null
+Orhangazi,TR,medium_town,75,Bursa
+Sault Ste. Marie,CA,medium_town,75,Ontario
+Little Rock,US,city,75,Arkansas
+Charleville-Mézières,FR,medium_town,75,Grand Est
+Portalegre,PT,medium_town,75,Portalegre
+Celldömölk,HU,small_town,75,Western Transdanubia
+Ostróda,PL,medium_town,75,Warmian-Masurian Voivodeship
+Kadirli,TR,medium_town,75,Osmaniye
+Monzuno,IT,village,75,Emilia-Romagna
+Vinga,RO,small_town,75,Arad
+Elverum,NO,small_town,75,Innlandet
+Matlock,GB,small_town,75,Derbyshire
+Bozkır,TR,small_town,75,Konya
+Lamon,IT,village,75,Veneto
+Banca,RO,small_town,75,Vaslui
+Doboj,BA,medium_town,75,City of Doboj
+Joiţa,RO,small_town,75,Giurgiu
+Castelluccio Valmaggiore,IT,village,75,Apulia
+Sankt Gallen,CH,medium_town,75,St. Gallen
+Krosno Odrzańskie,PL,small_town,75,Lubusz Voivodeship
+Bezdead,RO,small_town,75,Dâmbovița
+Truro,GB,medium_town,75,Cornwall
+Randers,DK,medium_town,75,Central
+Montefalcone nel Sannio,IT,village,75,Molise
+Sibiu,RO,medium_town,75,Sibiu
+Jesenice,SI,small_town,75,null
+Derecske,HU,small_town,75,North Great Plain
+Akhisar,TR,medium_town,75,Manisa
+Venasca,IT,village,75,Piedmont
+Dragalina,RO,small_town,75,Călărași
+Al Hoceima,MA,city,75,Tangier-Tetouan-Al Hoceima
+Ostrowiec Świętokrzyski,PL,medium_town,75,Holy Cross Voivodeship
+Sălişte,RO,small_town,75,Sibiu
+Pâncota,RO,small_town,75,Arad
+Seelow,DE,small_town,75,Brandenburg
+Tione di Trento,IT,village,75,Trentino – Alto Adige/Südtirol
+Kazimierza Wielka,PL,small_town,75,Holy Cross Voivodeship
+Jonava,LT,medium_town,75,Kaunas County
+İkizce,TR,small_town,75,Ordu
+Moselle Wine Route,DE,scenic_drive,75,Rheinland-Pfalz
+Łódź,PL,city,75,Łódź Voivodeship
+Nisibis,TR,medium_town,75,Mardin
+Ulmeni,RO,small_town,75,Călărași
+Örkelljunga,SE,small_town,75,Skåne County
+Kinna,SE,small_town,75,Västra Götaland County
+Hajdúhadház,HU,small_town,75,North Great Plain
+Mińsk Mazowiecki,PL,medium_town,75,Masovian Voivodeship
+Silkeborg,DK,medium_town,75,Central
+Sala Consilina,IT,small_town,75,Campania
+Sarnia,CA,medium_town,75,Ontario
+Delvinë,AL,small_town,75,Vlorë County
+Bristol,GB,city,75,City of Bristol
+Oleiros,PT,small_town,75,Castelo Branco
+Anina,RO,small_town,75,Caraș-Severin
+Lubin,PL,medium_town,75,Lower Silesian Voivodeship
+Ladik,TR,small_town,75,Samsun
+Soveria Mannelli,IT,village,75,Calabria
+Sunne,SE,small_town,75,Värmland County
+Sernancelhe,PT,small_town,75,Viseu
+Neusiedl am See,AT,small_town,75,Burgenland
+Greci,RO,small_town,75,Tulcea
+Skanderborg,DK,small_town,75,Central
+Ceraşu,RO,small_town,75,Prahova
+Râmnicu Vâlcea,RO,medium_town,75,Vâlcea
+Banská Bystrica,SK,medium_town,75,Banská Bystrica
+Laurenzana,IT,village,75,Basilicata
+Buneşti,RO,village,75,Brașov
+Bocşa,RO,small_town,75,Caraș-Severin
+Okhtyrka,UA,medium_town,75,Sumy Oblast
+Avesta,SE,small_town,75,Dalarna County
+Edremit,TR,medium_town,75,Balıkesir
+Crucea,RO,village,75,Suceava
+Găiseni,RO,small_town,75,Giurgiu
+Miepherkeim,TR,medium_town,75,Diyarbakır
+Mostar,BA,medium_town,75,City of Mostar
+Kępno,PL,small_town,75,Greater Poland Voivodeship
+Türi,EE,small_town,75,Järva County
+Edineţ,MD,medium_town,75,null
+Laval,FR,medium_town,75,Pays de la Loire
+Castelnuovo di Val di Cecina,IT,village,75,Tuscany
+Kruševac,RS,medium_town,75,Central Serbia
+Carcassonne,FR,medium_town,75,Occitania
+Gasteiz / Vitoria,ES,city,75,Basque Country
+Osmancık,TR,medium_town,75,Çorum
+Traunreut,DE,medium_town,75,Bayern
+Đurđevac,HR,small_town,75,Koprivnica-Križevci County
+Murgeni,RO,small_town,75,Vaslui
+Satriano di Lucania,IT,village,75,Basilicata
+Durağan,TR,small_town,75,Sinop
+Orşova,RO,small_town,75,Mehedinți
+Monor,HU,medium_town,75,Central Hungary
+Nicaea,TR,medium_town,75,Bursa
+Camerino,IT,village,75,Marche
+Tulnici,RO,small_town,75,Vrancea
+Potcoava,RO,small_town,75,Olt
+Glasgow,GB,city,75,Glasgow City
+Melun,FR,medium_town,75,Metropolitan France
+Szikszó,HU,small_town,75,North Hungary
+Grassano,IT,small_town,75,Basilicata
+Caldas da Rainha,PT,medium_town,75,Leiria
+Elmadağ,TR,medium_town,75,Ankara
+Borlänge,SE,medium_town,75,Dalarna County
+Ostrów Wielkopolski,PL,medium_town,75,Greater Poland Voivodeship
+Lincoln,GB,medium_town,75,Lincolnshire
+Bobov Dol,BG,small_town,75,Kyustendil
+Ceyhan,TR,medium_town,75,Adana
+Moldova Nouă,RO,small_town,75,Caraș-Severin
+Oltu,TR,medium_town,75,Erzurum
+Kardítsa,GR,medium_town,75,Thessaly
+Kozluk,TR,medium_town,75,Batman
+Radovanu,RO,small_town,75,Călărași
+Tarouca,PT,village,75,Viseu
+Zrenjanin,RS,medium_town,75,Vojvodina
+Gostynin,PL,small_town,75,Masovian Voivodeship
+Vareš,BA,small_town,74,Zenica-Doboj Canton
+Pineto,IT,small_town,73,Abruzzo
+Sidi Ifni,MA,medium_town,73,Guelmim-Oued Noun
+Villa García,MX,small_town,73,Zacatecas
+Suances,ES,small_town,73,Cantabria
+Fairborn,US,medium_town,73,Ohio
+Zarautz,ES,medium_town,73,Basque Country
+Tapalpa,MX,small_town,73,Jalisco
+Midlothian,US,medium_town,73,Texas
+South Fulton,US,medium_town,73,Georgia
+Holyhead,GB,small_town,73,Isle of Anglesey
+Stockbridge,US,medium_town,73,Georgia
+White Bear Lake,US,medium_town,73,Minnesota
+Cañitas de Felipe Pescador,MX,small_town,73,Zacatecas
+La Teste-de-Buch,FR,medium_town,73,Nouvelle-Aquitaine
+Libres,MX,small_town,73,Puebla
+Sant Carles de la Ràpita,ES,small_town,73,Catalonia
+Hornsea,GB,small_town,73,East Riding of Yorkshire
+Águilas,ES,medium_town,73,Murcia
+Praia a Mare,IT,small_town,73,Calabria
+Władysławowo,PL,small_town,73,Puck County
+Santa Barbara,US,small_town,73,California
+Cedar Falls,US,medium_town,73,Iowa
+Saint-Malo,FR,medium_town,73,Brittany
+Cedar Hill,US,medium_town,73,Texas
+Oristano,IT,medium_town,73,Sardinia
+Reisterstown,US,medium_town,73,Maryland
+Ribadeo,ES,small_town,73,Galicia
+Ramsey,US,medium_town,73,Minnesota
+Saginaw,US,medium_town,73,Texas
+Springdale,US,medium_town,73,Arkansas
+Zionsville,US,medium_town,73,Indiana
+Eden Prairie,US,medium_town,73,Minnesota
+Vasto,IT,medium_town,73,Abruzzo
+Tossa de Mar,ES,small_town,73,Catalonia
+Sant Feliu de Guíxols,ES,medium_town,73,Catalonia
+Policoro,IT,small_town,73,Basilicata
+Westfield,US,medium_town,73,Indiana
+Tulancingo,MX,medium_town,73,Hidalgo
+Glenville,US,medium_town,73,New York
+Mondragone,IT,medium_town,73,Campania
+San José Iturbide,MX,medium_town,73,Guanajuato
+Newquay,GB,medium_town,73,Cornwall
+Frýdek-Místek,CZ,medium_town,73,Moravian-Silesian Region
+Villa de Cos,MX,small_town,73,Zacatecas
+Furtwangen,DE,small_town,73,Baden-Württemberg
+Wilhelmshaven,DE,medium_town,73,Niedersachsen
+San Benedetto del Tronto,IT,medium_town,73,Marche
+Mooresville,US,medium_town,73,North Carolina
+Villa de El Carmen Tequexquitla,MX,small_town,73,Tlaxcala
+Stetten am Kalten Markt,DE,small_town,73,Baden-Württemberg
+Huandacareo,MX,small_town,73,Michoacán
+Andover,US,medium_town,73,Minnesota
+Paracho de Verduzco,MX,medium_town,73,Michoacán
+Villanueva,MX,small_town,73,Zacatecas
+Dunkerque,FR,medium_town,73,Hauts-de-France
+Albenga,IT,small_town,73,Liguria
+Mittenwald,DE,small_town,73,Bayern
+Bridlington,GB,medium_town,73,East Riding of Yorkshire
+Villa Madero,MX,small_town,73,Michoacán
+Hamina,FI,small_town,73,Kymenlaakso
+Hanko,FI,small_town,73,Uusimaa
+Acatzingo,MX,medium_town,73,Puebla
+Nieves,MX,small_town,73,Zacatecas
+Brake (Unterweser),DE,small_town,73,Niedersachsen
+Mezzojuso,IT,village,72,Sicily
+Gagliano Castelferrato,IT,village,72,Sicily
+San Giovanni Gemini,IT,small_town,72,Sicily
+Roccapalumba,IT,village,72,Sicily
+Vicari,IT,village,72,Sicily
+Zamora,ES,medium_town,72,Castile and León
+Portsmouth,GB,city,72,England
+Adrano,IT,medium_town,72,Sicily
+Lake Cuitzeo,MX,nature_reserve,72,Michoacán
+Agira,IT,small_town,72,Sicily
+Ostseebad Binz,DE,small_town,71,Mecklenburg-Vorpommern
+Santiago del Teide,ES,small_town,71,Canary Islands
+Paphos,CY,medium_town,71,Cyprus
+Goulmima,MA,small_town,71,Drâa-Tafilalet
+Errachidia,MA,medium_town,71,Drâa-Tafilalet
+Ciudad Constitución,MX,medium_town,70,Baja California Sur
+Cumberland,US,medium_town,70,Maryland
+Burrel,AL,small_town,70,Dibër County
+Detroit,US,city,70,Michigan
+Yunquera,ES,village,70,Andalusia
+Basildon,GB,medium_town,70,Essex
+Emiliano Zapata,MX,medium_town,70,Tabasco
+Front Royal,US,small_town,70,Virginia
+Ciudad Rodrigo,ES,small_town,70,Castile and León
+Adel,US,small_town,70,Georgia
+Uden,NL,medium_town,70,North Brabant
+Iniesta,ES,village,70,Castile-La Mancha
+Rockwall,US,medium_town,70,Texas
+Nava del Rey,ES,village,70,Castile and León
+Yverdon-les-Bains,CH,medium_town,70,Waadt
+Nehoiu,RO,small_town,70,Buzău
+Eatonton,US,small_town,70,Georgia
+El Rosario,MX,small_town,70,Sinaloa
+Leppävirta,FI,small_town,70,North Savo
+Sulphur Springs,US,small_town,70,Texas
+Belorado,ES,village,70,Castile and León
+Effingham,US,small_town,70,Illinois
+Heber Springs,US,small_town,70,Arkansas
+Casas de Juan Núñez,ES,village,70,Castile-La Mancha
+Briviesca,ES,small_town,70,Castile and León
+Hódmezővásárhely,HU,medium_town,70,South Great Plain
+Mayorga,ES,village,70,Castile and León
+Neumarkt am Wallersee,AT,village,70,Salzburg
+Hlukhiv,UA,medium_town,70,Sumy Oblast
+Peñafiel,ES,small_town,70,Castile and León
+Manitowoc,US,medium_town,70,Wisconsin
+Pińczów,PL,small_town,70,Holy Cross Voivodeship
+Weißwasser,DE,medium_town,70,Sachsen
+Bathgate,GB,medium_town,70,West Lothian
+Tomatlán,MX,small_town,70,Jalisco
+Werl,DE,medium_town,70,Nordrhein-Westfalen
+Canton,US,small_town,70,Mississippi
+Haverhill,GB,medium_town,70,Suffolk
+Yecla,ES,medium_town,70,Murcia
+Calpulalpan,MX,medium_town,70,Tlaxcala
+Bembibre,ES,small_town,70,Castile and León
+Al Fqih Ben Çalah,MA,medium_town,70,Béni Mellal-Khénifra
+Wunsiedel,DE,small_town,70,Bayern
+Guadamur,ES,village,70,Castile-La Mancha
+Lisbon,US,small_town,70,Maine
+Przysucha,PL,small_town,70,Masovian Voivodeship
+Villarrobledo,ES,medium_town,70,Castile-La Mancha
+Celanova,ES,small_town,70,Galicia
+Jasper,US,village,70,Tennessee
+Santo Domingo de la Calzada,ES,small_town,70,Rioja
+Stropkov,SK,small_town,70,Prešov
+Patti,IT,small_town,70,Sicily
+Valdeganga,ES,village,70,Castile-La Mancha
+Almedinilla,ES,village,70,Andalusia
+Waycross,US,small_town,70,Georgia
+Sankt Gilgen,AT,village,70,Salzburg
+Roosendaal,NL,medium_town,70,North Brabant
+Corsicana,US,medium_town,70,Texas
+New City,US,medium_town,70,New York
+Sankt Johann in Tirol,AT,small_town,70,Tirol
+Guntersville,US,small_town,70,Alabama
+Florence,US,medium_town,70,Alabama
+Canjáyar,ES,village,70,Andalusia
+Bourg-en-Bresse,FR,medium_town,70,Auvergne-Rhône-Alpes
+Versmold,DE,medium_town,70,Nordrhein-Westfalen
+Ixtepec,MX,medium_town,70,Oaxaca
+Estremera,ES,village,70,Community of Madrid
+Selydove,UA,medium_town,70,Donetsk Oblast
+Yeovil,GB,medium_town,70,Somerset
+Candelaria,MX,small_town,70,Campeche
+Gembloux,BE,medium_town,70,Namur
+Văcăreşti,RO,small_town,70,Dâmbovița
+Noblejas,ES,village,70,Castile-La Mancha
+Las Choapas,MX,medium_town,70,Veracruz
+Miechów,PL,small_town,70,Lesser Poland Voivodeship
+Malagón,ES,small_town,70,Castile-La Mancha
+Chamonix-Mont-Blanc,FR,small_town,70,Auvergne-Rhône-Alpes
+Iznájar,ES,village,70,Andalusia
+Guasave,MX,medium_town,70,Sinaloa
+Quart,IT,village,70,Aosta Valley
+Palma,ES,city,70,Balearic Islands
+Corinth,US,small_town,70,Mississippi
+Villaconejos,ES,village,70,Community of Madrid
+Viso del Marqués,ES,village,70,Castile-La Mancha
+Kingston,US,medium_town,70,New York
+Kirchschlag in der Buckligen Welt,AT,village,70,Niederösterreich
+Rimavská Sobota,SK,medium_town,70,Banská Bystrica
+Wadowice,PL,small_town,70,Lesser Poland Voivodeship
+Pedroche,ES,village,70,Andalusia
+Alpena,US,small_town,70,Michigan
+Hamilton,US,small_town,70,Alabama
+San Marcos,MX,small_town,70,Guerrero
+St. Catharines,CA,medium_town,70,Ontario
+Grudziądz,PL,medium_town,70,Kuyavian-Pomeranian Voivodeship
+Balestrate,IT,small_town,70,Sicily
+Navas de San Juan,ES,small_town,70,Andalusia
+Königs Wusterhausen,DE,medium_town,70,Brandenburg
+Venray,NL,medium_town,70,Limburg
+Saint-Jean-sur-Richelieu,CA,medium_town,70,Quebec
+Gettysburg,US,small_town,70,Pennsylvania
+Rottenmann,AT,village,70,Steiermark
+Edelschrott,AT,village,70,Steiermark
+Pájara,ES,medium_town,70,Canary Islands
+Děčín,CZ,medium_town,70,Ústí nad Labem Region
+Bloomsburg,US,small_town,70,Pennsylvania
+Varshets,BG,small_town,70,Montana
+Brezno,SK,small_town,70,Banská Bystrica
+De Queen,US,small_town,70,Arkansas
+Palestine,US,small_town,70,Texas
+Opelousas,US,small_town,70,Louisiana
+Leuven,BE,medium_town,70,Leuven
+Dillon,US,small_town,70,South Carolina
+Ennis,IE,medium_town,70,County Clare
+Buchholz in der Nordheide,DE,medium_town,70,Niedersachsen
+Rute,ES,small_town,70,Andalusia
+Sankt Stefan ob Leoben,AT,village,70,Steiermark
+Venta de Baños,ES,small_town,70,Castile and León
+Rijssen,NL,medium_town,70,Overijssel
+Fonelas,ES,village,70,Andalusia
+Sankt Veit an der Glan,AT,small_town,70,Kärnten
+Chambersburg,US,medium_town,70,Pennsylvania
+Darlington,US,small_town,70,South Carolina
+Döbeln,DE,medium_town,70,Sachsen
+Villanueva de Alcardete,ES,village,70,Castile-La Mancha
+Białystok,PL,city,70,Podlaskie Voivodeship
+Jasper,US,small_town,70,Alabama
+Colmenar de Oreja,ES,small_town,70,Community of Madrid
+Cervera del Río Alhama,ES,village,70,Rioja
+Nambroca,ES,village,70,Castile-La Mancha
+Canterbury,GB,medium_town,70,Kent
+Telfs,AT,small_town,70,Tirol
+Santiago Ixcuintla,MX,small_town,70,Nayarit
+Villaquejida,ES,village,70,Castile and León
+Ostrzeszów,PL,small_town,70,Greater Poland Voivodeship
+Fairbanks,US,medium_town,70,Alaska
+Albemarle,US,small_town,70,North Carolina
+Fier-Çifçi,AL,medium_town,70,Fier County
+Doetinchem,NL,medium_town,70,Gelderland
+Benton,US,small_town,70,Illinois
+Segurilla,ES,village,70,Castile-La Mancha
+Villarrubia de los Ojos,ES,small_town,70,Castile-La Mancha
+Kennett,US,small_town,70,Missouri
+Stams,AT,village,70,Tirol
+Băicoi,RO,small_town,70,Prahova
+St. Johns,US,medium_town,70,Florida
+Goch,DE,medium_town,70,Nordrhein-Westfalen
+Kuhmo,FI,small_town,70,Kainuu
+Villanueva del Duque,ES,village,70,Andalusia
+Washington,US,small_town,70,Indiana
+Yajalón,MX,small_town,70,Chiapas
+Lexington,US,small_town,70,Tennessee
+Henderson,US,small_town,70,North Carolina
+Myślenice,PL,small_town,70,Lesser Poland Voivodeship
+Helegiu,RO,small_town,70,Bacău
+Lempäälä,FI,medium_town,70,Pirkanmaa
+Fonni,IT,village,70,Sardinia
+Campofelice di Roccella,IT,small_town,70,Sicily
+Zărneşti,RO,small_town,70,Buzău
+Băleni Sârbi,RO,small_town,70,Dâmbovița
+Jalpa de Méndez,MX,small_town,70,Tabasco
+Belleville,US,medium_town,70,Illinois
+Brandon,US,medium_town,70,Mississippi
+Sebeş,RO,medium_town,70,Alba
+Bludesch,AT,village,70,Vorarlberg
+Ben Ahmed,MA,medium_town,70,Casablanca-Settat
+Carini,IT,medium_town,70,Sicily
+Torrecampo,ES,village,70,Andalusia
+Bande,ES,village,70,Galicia
+Świecie,PL,medium_town,70,Kuyavian-Pomeranian Voivodeship
+Bizau,AT,village,70,Vorarlberg
+Antigua,ES,small_town,70,Canary Islands
+Tempoal de Sánchez,MX,small_town,70,Veracruz
+Izmail,UA,medium_town,70,Odesa Oblast
+Rairiz de Veiga,ES,village,70,Galicia
+Boston,GB,medium_town,70,Lincolnshire
+Peterborough,CA,medium_town,70,Ontario
+Huntsville,US,medium_town,70,Texas
+Comalapa,MX,small_town,70,Chiapas
+Castellammare del Golfo,IT,small_town,70,Sicily
+Kontiolahti,FI,small_town,70,North Karelia
+Nurmes,FI,small_town,70,North Karelia
+Sagunto,ES,medium_town,70,Valencian Community
+Caruthersville,US,small_town,70,Missouri
+Arcos de Valdevez,PT,medium_town,70,Viana do Castelo
+Peshtera,BG,small_town,70,Pazardzhik
+Comalcalco,MX,medium_town,70,Tabasco
+Waidring,AT,village,70,Tirol
+Corleone,IT,small_town,70,Sicily
+Scottsboro,US,small_town,70,Alabama
+Lancaster,US,small_town,70,South Carolina
+Hessisch Oldendorf,DE,medium_town,70,Niedersachsen
+Filomeno Mata,MX,small_town,70,Veracruz
+Savonlinna,FI,medium_town,70,South Savo
+Azuaga,ES,small_town,70,Extremadura
+Château-Chinon(Ville),FR,village,70,Bourgogne – Franche-Comté
+Láchar,ES,village,70,Andalusia
+Kindberg,AT,small_town,70,Steiermark
+Saint Albans,US,small_town,70,Vermont
+Princeton,US,small_town,70,Kentucky
+Plaquemine,US,small_town,70,Louisiana
+Platón Sánchez,MX,small_town,70,Veracruz
+Aritzo,IT,village,70,Sardinia
+Brazil,US,small_town,70,Indiana
+Acanceh,MX,small_town,70,Yucatán
+Olmedo,ES,village,70,Castile and León
+Thomasville,US,small_town,70,Georgia
+Villalpardo,ES,village,70,Castile-La Mancha
+Greenville,US,small_town,70,Illinois
+Mezzolombardo,IT,small_town,68,Trentino – Alto Adige/Südtirol
+Ivrea,IT,medium_town,68,Piedmont
+Teziutlan,MX,medium_town,68,Puebla
+Palmi,IT,small_town,68,Calabria
+Oleggio,IT,small_town,68,Piedmont
+Gioia del Colle,IT,medium_town,68,Apulia
+Fabrica di Roma,IT,small_town,68,Lazio
+Spinazzola,IT,small_town,68,Apulia
+Ascoli Satriano,IT,small_town,68,Apulia
+Pisticci,IT,small_town,68,Basilicata
+Westerland,DE,small_town,68,Schleswig-Holstein
+Marino,IT,medium_town,68,Lazio
+Polistena,IT,small_town,68,Calabria
+Corralejo,ES,small_town,68,Canary Islands
+Savigliano,IT,small_town,68,Piedmont
+Velletri,IT,medium_town,68,Lazio
+Taranto,IT,medium_town,68,Apulia
+Rivarolo Canavese,IT,small_town,68,Piedmont
+Maniace,IT,village,67,Sicily
+Scharbeutz,DE,small_town,66,Schleswig-Holstein
+Olds,CA,small_town,66,Alberta
+Puntagorda,ES,village,66,Canary Islands
+Varel,DE,medium_town,66,Niedersachsen
+Cala Mesquida,ES,beach,66,Balearic Islands
+Tammela,FI,small_town,65,Kanta-Häme
+Lemoore,US,medium_town,65,California
+Oborniki,PL,small_town,65,Greater Poland Voivodeship
+Sulejów,PL,small_town,65,Łódź Voivodeship
+Santu Lussurgiu,IT,village,65,Sardinia
+Pottstown,US,medium_town,65,Pennsylvania
+Stolac,BA,small_town,65,Town of Stolac
+Wentzville,US,medium_town,65,Missouri
+Strakonice,CZ,medium_town,65,South Bohemian Region
+Surrey,CA,city,65,British Columbia
+Launceston,GB,small_town,65,Cornwall
+Ulassai,IT,village,65,Sardinia
+Senlis,FR,small_town,65,Hauts-de-France
+Donetsk,UA,city,65,Donetsk Oblast
+Plainfield,US,medium_town,65,Illinois
+Kroměříž,CZ,medium_town,65,Zlín Region
+Santo Domingo Tehuantepec,MX,medium_town,65,Oaxaca
+Lewin Brzeski,PL,small_town,65,Opole Voivodeship
+Dąbrowa Białostocka,PL,small_town,65,Podlaskie Voivodeship
+San Lorenzo Nuovo,IT,village,65,Lazio
+Ballwin,US,medium_town,65,Missouri
+Germantown,US,medium_town,65,Tennessee
+Nivala,FI,small_town,65,North Ostrobothnia
+Ciudad Altamirano,MX,medium_town,65,Guerrero
+Smyrna,US,medium_town,65,Tennessee
+Attleboro,US,medium_town,65,Massachusetts
+Plau am See,DE,small_town,65,Mecklenburg-Vorpommern
+Gelnhausen,DE,medium_town,65,Hessen
+Lidzbark,PL,small_town,65,Warmian-Masurian Voivodeship
+Bayonne,FR,medium_town,65,Nouvelle-Aquitaine
+Holland,US,medium_town,65,Michigan
+Zvolen,SK,medium_town,65,Banská Bystrica
+Santa Coloma de Farners,ES,small_town,65,Catalonia
+Jabłonka,PL,village,65,Lesser Poland Voivodeship
+Porto Tolle,IT,small_town,65,Veneto
+Germersheim,DE,medium_town,65,Rheinland-Pfalz
+Woonsocket,US,medium_town,65,Rhode Island
+Tournai,BE,medium_town,65,Tournai-Mouscron
+Holly Springs,US,medium_town,65,North Carolina
+Bedizzole,IT,small_town,65,Lombardy
+Velika Kladuša,BA,small_town,65,Una-Sana Canton
+Nocera Umbra,IT,village,65,Umbria
+Ribera,IT,small_town,65,Sicily
+Lennestadt,DE,medium_town,65,Nordrhein-Westfalen
+Villanova Monteleone,IT,village,65,Sardinia
+Consett,GB,medium_town,65,County Durham
+Gernika-Lumo,ES,small_town,65,Basque Country
+Düren,DE,medium_town,65,Nordrhein-Westfalen
+Rochester,US,medium_town,65,New Hampshire
+Tui,ES,small_town,65,Galicia
+Westerstede,DE,medium_town,65,Niedersachsen
+Tangermünde,DE,small_town,65,Sachsen-Anhalt
+Urzulei,IT,village,65,Sardinia
+La Flèche,FR,small_town,65,Pays de la Loire
+Río de Teapa,MX,medium_town,65,Tabasco
+Dreux,FR,medium_town,65,Centre-Val de Loire
+Amizmiz,MA,small_town,65,Marrakech-Safi
+Raffadali,IT,small_town,65,Sicily
+Susz,PL,small_town,65,Warmian-Masurian Voivodeship
+Cold Lake,CA,small_town,65,Alberta
+Chojnów,PL,small_town,65,Lower Silesian Voivodeship
+Mynämäki,FI,small_town,65,Southwest Finland
+Demnate,MA,medium_town,65,Béni Mellal-Khénifra
+Badajoz,ES,medium_town,65,Extremadura
+Loches,FR,small_town,65,Centre-Val de Loire
+Łochów,PL,small_town,65,Masovian Voivodeship
+Alabaster,US,medium_town,65,Alabama
+Chodzież,PL,small_town,65,Greater Poland Voivodeship
+Ndroq,AL,small_town,65,Tirana County
+Argos Orestiko,GR,small_town,65,Western Macedonia
+Northeim,DE,medium_town,65,Niedersachsen
+Tahla,MA,medium_town,65,Fez-Meknes
+South Riding,US,medium_town,65,Virginia
+Geislingen an der Steige,DE,medium_town,65,Baden-Württemberg
+Libourne,FR,medium_town,65,Nouvelle-Aquitaine
+Eisenach,DE,medium_town,65,Thüringen
+Reichenbach/Vogtland,DE,medium_town,65,Sachsen
+Sutton,GB,medium_town,65,England
+Leipzig,DE,city,65,Sachsen
+Hobart,US,medium_town,65,Indiana
+Clermont,US,medium_town,65,Florida
+Pattada,IT,village,65,Sardinia
+Comares,ES,village,65,Andalusia
+Kalávryta,GR,village,65,Western Greece
+Pivdennoukrainsk,UA,medium_town,65,Mykolaiv Oblast
+Middletown,US,medium_town,65,New York
+Klatovy,CZ,medium_town,65,Plzeň Region
+Bayeux,FR,small_town,65,Normandy
+Aznalcóllar,ES,small_town,65,Andalusia
+Jorf,MA,small_town,65,Drâa-Tafilalet
+Krnov,CZ,medium_town,65,Moravian-Silesian Region
+Espoo,FI,city,65,Uusimaa
+Harvey,US,medium_town,65,Illinois
+Kuźnia Raciborska,PL,small_town,65,Silesian Voivodeship
+Targuist,MA,small_town,65,Tangier-Tetouan-Al Hoceima
+Berja,ES,small_town,65,Andalusia
+Sondershausen,DE,medium_town,65,Thüringen
+Onda,ES,medium_town,65,Valencian Community
+Barlinek,PL,small_town,65,West Pomeranian Voivodeship
+Crimmitschau,DE,medium_town,65,Sachsen
+Polopos,ES,village,65,Andalusia
+Orneta,PL,small_town,65,Warmian-Masurian Voivodeship
+Santiago Jamiltepec,MX,small_town,65,Oaxaca
+Driffield,GB,small_town,65,East Riding of Yorkshire
+Kurikka,FI,small_town,65,South Ostrobothnia
+Sobótka,PL,small_town,65,Lower Silesian Voivodeship
+Riesi,IT,small_town,65,Sicily
+Imzouren,MA,medium_town,65,Tangier-Tetouan-Al Hoceima
+Tournon-sur-Rhône,FR,small_town,65,Auvergne-Rhône-Alpes
+Saint-Amand-Montrond,FR,small_town,65,Centre-Val de Loire
+Llantrisant,GB,small_town,65,Rhondda Cynon Taf
+El Naranjo,MX,small_town,65,San Luis Potosí
+Saint-Dizier,FR,medium_town,65,Grand Est
+Kladanj,BA,small_town,65,Tuzla Canton
+Aurich,DE,medium_town,65,Niedersachsen
+Gorlice,PL,medium_town,65,Lesser Poland Voivodeship
+Unna,DE,medium_town,65,Nordrhein-Westfalen
+Wieleń,PL,small_town,65,Greater Poland Voivodeship
+Parchim,DE,small_town,65,Mecklenburg-Vorpommern
+Ortueri,IT,village,65,Sardinia
+Newark,US,medium_town,65,Delaware
+Lamezia Terme,IT,medium_town,65,Calabria
+Brive-la-Gaillarde,FR,medium_town,65,Nouvelle-Aquitaine
+Novovolynsk,UA,medium_town,65,Volyn Oblast

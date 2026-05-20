@@ -1,0 +1,23 @@
+---
+description: Always prefer the simplest solution. Check what already exists before building anything new.
+alwaysApply: true
+---
+
+# Simplicity First
+
+## Before writing any code
+
+1. **Check if something already exists** that solves the problem — a util, service, or component already in the codebase.
+2. **Use it directly.** Don't wrap it, don't extend it, don't build a parallel version.
+3. If unsure which approach to take, **ask first. Never build first.**
+
+## When fixing a bug
+
+- Smallest possible change that fixes the issue.
+- Do not refactor, restructure, or "improve" surrounding code unless explicitly asked.
+
+## Red flags — stop and ask the user
+
+- You're about to create a new file/function when one already exists
+- The fix requires changes to more than 2–3 files
+- You're adding a new state variable, async flow, or abstraction to solve something that could be synchronous and direct

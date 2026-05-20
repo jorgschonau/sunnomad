@@ -162,7 +162,7 @@
   "destination": {
     "stability": "Stabilität",
     "sun": "Sonne",
-    "stopStay": "Stopp & Schlafen",
+    "stopStay": "Stop & Stay",
     "hoursShort": "Std",
     "humidity": "Luftfeuchtigkeit",
     "wind": "Wind",
@@ -375,6 +375,11 @@
   "dateFilter": {
     "weatherFor": "Wetter für",
     "days": "Tage"
+  },
+  "stayCard": {
+    "stay": "Schlafen",
+    "facts": "Fakten",
+    "when": "Wann"
   }
 }
 

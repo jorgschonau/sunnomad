@@ -375,6 +375,11 @@
   "dateFilter": {
     "weatherFor": "Weather for",
     "days": "days"
+  },
+  "stayCard": {
+    "stay": "Stay",
+    "facts": "Facts",
+    "when": "When"
   }
 }
 

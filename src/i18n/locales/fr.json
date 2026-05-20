@@ -375,6 +375,11 @@
   "dateFilter": {
     "weatherFor": "Météo pour",
     "days": "jours"
+  },
+  "stayCard": {
+    "stay": "Séjourner",
+    "facts": "Faits",
+    "when": "Quand"
   }
 }
 
