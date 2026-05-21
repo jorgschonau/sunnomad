@@ -243,8 +243,8 @@ const StopStayCard = ({ destination, lang }) => {
               <View key={i} style={styles.blockSeparator}>
                 {block.label && <Text style={styles.blockLabel}>{block.label}</Text>}
                 {link
-                ? <Text style={[styles.blockNameMain, styles.blockNameLink]} numberOfLines={2} onPress={() => Linking.openURL(link)}>{block.name}<Text style={styles.linkArrow}> ↗</Text></Text>
-                : <Text style={styles.blockNameMain} numberOfLines={2}>{block.name}</Text>
+                ? <Text style={[styles.blockNameMain, styles.blockNameLink]} numberOfLines={2} onPress={() => Linking.openURL(link)}>{block.name.replace(' (', '\n(')}<Text style={styles.linkArrow}> ↗</Text></Text>
+                : <Text style={styles.blockNameMain} numberOfLines={2}>{block.name.replace(' (', '\n(')}</Text>
                 }
                 {block.details && <Text style={styles.blockDetails}>{block.details}</Text>}
               </View>
@@ -256,8 +256,8 @@ const StopStayCard = ({ destination, lang }) => {
             <View key={i}>
               {block.label && <Text style={styles.blockLabel}>{block.label}</Text>}
               {link
-                ? <Text style={[styles.blockNameMain, styles.blockNameLink]} numberOfLines={2} onPress={() => Linking.openURL(link)}>{block.name}<Text style={styles.linkArrow}> ↗</Text></Text>
-                : <Text style={styles.blockNameMain} numberOfLines={2}>{block.name}</Text>
+                ? <Text style={[styles.blockNameMain, styles.blockNameLink]} numberOfLines={2} onPress={() => Linking.openURL(link)}>{block.name.replace(' (', '\n(')}<Text style={styles.linkArrow}> ↗</Text></Text>
+                : <Text style={styles.blockNameMain} numberOfLines={2}>{block.name.replace(' (', '\n(')}</Text>
               }
               {block.details && (
                 <Text style={styles.blockDetails}>
