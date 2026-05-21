@@ -10,6 +10,7 @@ import {
   Alert,
   ActivityIndicator,
   Animated,
+  LayoutAnimation,
   InteractionManager,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
@@ -587,6 +588,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
 
   const toggleUiFocus = useCallback(() => {
     const newFocused = !uiFocused;
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setUiFocused(newFocused);
     Animated.timing(uiOpacityAnim, {
       toValue: newFocused ? 0 : 1,
@@ -894,7 +896,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       showsHorizontalScrollIndicator={false}
       ref={scrollViewRef}
     >
-      <View style={{ position: 'relative' }}>
+      <View style={{ position: 'relative', minHeight: 440 }}>
       {heroSource && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 440, overflow: 'hidden' }}>
           <Image
@@ -1000,6 +1002,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     </View>
   </View>
   
+  {!uiFocused && (
   <View style={styles.headerPillRow}>
     <TouchableOpacity
       style={styles.stopStayPill}
@@ -1009,6 +1012,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       <Text style={styles.stopStayText}>{t('destination.stopStay')}</Text>
     </TouchableOpacity>
   </View>
+  )}
+  {!uiFocused && (
   <View style={[styles.headerPillRow, { marginTop: 0 }]}>
     <View style={styles.dateDropdownAnchor}>
       <TouchableOpacity
@@ -1052,13 +1057,14 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     )}
     </View>
   </View>
+  )}
 
 
 </View>
 
 
       <View style={styles.content}>
-        <Animated.View style={{ opacity: uiOpacityAnim }} pointerEvents={uiFocused ? 'none' : 'auto'}>
+        {!uiFocused && (
         <View style={[styles.mainInfo, { 
           backgroundColor: theme.surface,
           shadowColor: theme.shadow
@@ -1078,13 +1084,12 @@ const DestinationDetailScreen = ({ route, navigation }) => {
             </View>
           </View>
         </View>
-        </Animated.View>
+        )}
 
         {/* Badge + Forecast — deferred until after navigation transition */}
         {readyForDetails && (
         <View>
-        <Animated.View style={{ opacity: uiOpacityAnim }} pointerEvents={uiFocused ? 'none' : 'auto'}>
-        {localBadges && localBadges.length > 0 && (
+        {!uiFocused && localBadges && localBadges.length > 0 && (
           <View style={[styles.badgeSection, {
             backgroundColor: theme.surface,
             shadowColor: theme.shadow
@@ -1351,10 +1356,9 @@ const DestinationDetailScreen = ({ route, navigation }) => {
             })}
           </View>
         )}
-        </Animated.View>
 
         {/* Dorthin fahren Button - nach Badges */}
-        <Animated.View style={{ opacity: uiOpacityAnim }} pointerEvents={uiFocused ? 'none' : 'auto'}>
+        {!uiFocused && (
           <TouchableOpacity
             style={[styles.driveButtonTop, {
               backgroundColor: theme.primary,
@@ -1364,8 +1368,14 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           >
             <Text style={styles.driveButtonTopText}>{t('destination.driveThere')}</Text>
           </TouchableOpacity>
-        </Animated.View>
+        )}
+      </View>
+        )}
+      </View>
+      </View>
 
+      {readyForDetails && (
+      <View style={{ padding: 20, paddingTop: 0, marginTop: -22 }}>
         <View style={[styles.forecastSection, {
           backgroundColor: theme.surface,
           shadowColor: theme.shadow
@@ -1441,9 +1451,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           </TouchableOpacity>
         </View>
       </View>
-        )}
-      </View>
-      </View>
+      )}
     </ScrollView>
     {favToast && (
       <Animated.View style={[styles.favToast, { opacity: toastOpacityAnim, transform: [{ scale: toastScaleAnim }] }]} pointerEvents="none">
