@@ -1,10 +1,11 @@
 IMPORT START
 
 === ARTY ===
-Fetched 49 files for arty at offset 0
+Fetched 71 files for arty at offset 0
+NO MATCH: sardinia_beaches_it_arty_1.webp -> sardinia_beaches_it
 
 === GOLDIE ===
-Fetched 60 files for goldie at offset 0
+Fetched 64 files for goldie at offset 0
 NO MATCH: us_iowa_goldie_1.webp -> us_iowa
 NO MATCH: yosemite_national_park_us_goldie_1.webp -> yosemite_national_park_us
 
@@ -14,7 +15,7 @@ NO MATCH: ahrweiler_de_pexels_1.webp -> ahrweiler_de
 Fetched 1000 files for pexels at offset 1000
 NO MATCH: klitmoller_dk_pexels_1.webp -> klitmoller_dk
 SKIP PARSE: merano_it_unsplash_1.webp
-Fetched 442 files for pexels at offset 2000
+Fetched 451 files for pexels at offset 2000
 NO MATCH: stade_de_pexels_1.webp -> stade_de
 SKIP PARSE: unaccented
 NO MATCH: vatnajokull_national_park_is_pexels_1.webp -> vatnajokull_national_park_is
@@ -29,5 +30,5 @@ NO MATCH: graceland_us_chatgpt.webp -> graceland_us
 NO MATCH: kelhsteinhaus_de_chatgpt.webp -> kelhsteinhaus_de
 
 === DONE ===
-SUCCESS: 2615
-FAILED: 14
+SUCCESS: 2649
+FAILED: 15

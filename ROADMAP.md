@@ -123,3 +123,21 @@
 - filter by terrain (beach, mountains etc)
 - filter by type (national park, scenic drive etc)
 
+## Goldie image für Käffer
+- habe 1-2 Goldie images für Käffer (bushaltestelle und Iowa)
+
+## Regional Tips · new table: regional_content
+
+- Länder- und regionsweite Hinweise (Stellplatzrecht, Straßenqualität, Einreiseregeln, Jedermansrecht etc.) 
+- muss nur 1x gepflegt werden und kann auf allen orten erscheinen
+- ungefähre struktur:
+CREATE TABLE regional_content (
+    id              SERIAL PRIMARY KEY,
+    scope_type      TEXT NOT NULL,  -- 'country' | 'region'
+    scope_key       TEXT NOT NULL,  -- 'AL', 'PT', 'SE' | 'PT-08' (Algarve ISO)
+    lang            TEXT NOT NULL,  -- 'en' | 'de' | 'fr'
+    content_type    TEXT NOT NULL,  -- 'stay' | 'fact' | 'avoid' | 'when'
+    text            TEXT NOT NULL,
+    UNIQUE (scope_type, scope_key, lang, content_type)
+);
+
