@@ -47,7 +47,7 @@ function AuthNavigator() {
         },
         headerTintColor: theme.text,
         headerTitleStyle: {
-          fontWeight: 'bold',
+          fontWeight: '600',
         },
       }}
     >
@@ -89,10 +89,15 @@ function MainNavigator() {
       screenOptions={{
         headerStyle: {
           backgroundColor: theme.background,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.1,
+          shadowRadius: 3,
+          elevation: 4,
         },
         headerTintColor: theme.text,
         headerTitleStyle: {
-          fontWeight: 'bold',
+          fontWeight: '600',
         },
       }}
     >

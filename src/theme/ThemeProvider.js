@@ -6,9 +6,9 @@ const ThemeContext = createContext();
 export const themes = {
   standard: {
     id: 'standard',
-    primary: '#2E7D32',
-    primaryDark: '#1B5E20',
-    primaryLight: '#4CAF50',
+    primary: '#4E7AA6',
+    primaryDark: '#3A6080',
+    primaryLight: '#6B97BF',
     background: '#F5F5F5',
     surface: '#FFFFFF',
     text: '#000000',
