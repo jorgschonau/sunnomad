@@ -150,7 +150,7 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '500',
     color: '#1565C0',
     marginBottom: 10,
   },

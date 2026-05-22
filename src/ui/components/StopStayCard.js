@@ -133,6 +133,13 @@ const StopStayCard = ({ destination, lang }) => {
       const label = line.slice(0, colonIdx).trim();
       const content = line.slice(colonIdx + 1).trim();
 
+      // Extract parenthetical from name: "Name (extra)" → name + paren
+      const parenMatch = content.match(/^([^(]+?)\s*(\([^)]+\))\s*(.*)$/);
+      const cleanContent = parenMatch
+        ? `${parenMatch[1].trim()}${parenMatch[3] ? ` ${parenMatch[3].trim()}` : ''}`
+        : content;
+      const parenthetical = parenMatch ? parenMatch[2] : null;
+
       const labelLower = label.toLowerCase();
       const contentLower = content.toLowerCase();
       const isWildcamp =
@@ -146,30 +153,28 @@ const StopStayCard = ({ destination, lang }) => {
         contentLower.includes('geduldet') ||
         contentLower.includes('toleriert');
 
-      // Try splitting name from details:
-      // 1. "Name – details" or "Name - details"
-      // 2. "Name (extra). Details" or "Name. Details" (period before capital letter)
-      let name = content;
+      // Try splitting name from details on cleanContent (parenthetical already extracted)
+      let name = cleanContent;
       let details = null;
 
-      const dashMatch = content.match(/ [–—-] /);
+      const dashMatch = cleanContent.match(/ [–—-] /);
       if (dashMatch) {
-        const i = content.indexOf(dashMatch[0]);
-        name = content.slice(0, i).trim();
-        details = content.slice(i + dashMatch[0].length).trim();
+        const i = cleanContent.indexOf(dashMatch[0]);
+        name = cleanContent.slice(0, i).trim();
+        details = cleanContent.slice(i + dashMatch[0].length).trim();
       } else {
-        // Split at first ". " before a capital letter (not an abbreviation)
-        const periodMatch = content.match(/(\)?)\.\s+(?=[A-ZÜÄÖ][a-zäöüß])/);
+        const periodMatch = cleanContent.match(/(\)?)\.\s+(?=[A-ZÜÄÖ][a-zäöüß])/);
         if (periodMatch) {
-          const i = content.indexOf(periodMatch[0]);
-          name = content.slice(0, i + periodMatch[1].length + 1).trim();
-          details = content.slice(i + periodMatch[0].length).trim();
+          const i = cleanContent.indexOf(periodMatch[0]);
+          name = cleanContent.slice(0, i + periodMatch[1].length + 1).trim();
+          details = cleanContent.slice(i + periodMatch[0].length).trim();
         }
       }
 
       return {
         label,
         name,
+        parenthetical,
         details,
         type: isWildcamp ? 'wildcamp' : index === 0 ? 'main' : 'secondary',
       };
@@ -243,9 +248,10 @@ const StopStayCard = ({ destination, lang }) => {
               <View key={i} style={styles.blockSeparator}>
                 {block.label && <Text style={styles.blockLabel}>{block.label}</Text>}
                 {link
-                ? <Text style={[styles.blockNameMain, styles.blockNameLink]} numberOfLines={2} onPress={() => Linking.openURL(link)}>{block.name.replace(' (', '\n(')}<Text style={styles.linkArrow}> ↗</Text></Text>
-                : <Text style={styles.blockNameMain} numberOfLines={2}>{block.name.replace(' (', '\n(')}</Text>
+                ? <Text style={[styles.blockNameMain, styles.blockNameLink]} numberOfLines={2} onPress={() => Linking.openURL(link)}>{block.name}<Text style={styles.linkArrow}> ↗</Text></Text>
+                : <Text style={styles.blockNameMain} numberOfLines={2}>{block.name}</Text>
                 }
+                {block.parenthetical && <Text style={styles.blockParenthetical}>{block.parenthetical}</Text>}
                 {block.details && <Text style={styles.blockDetails}>{block.details}</Text>}
               </View>
             );
@@ -256,9 +262,10 @@ const StopStayCard = ({ destination, lang }) => {
             <View key={i}>
               {block.label && <Text style={styles.blockLabel}>{block.label}</Text>}
               {link
-                ? <Text style={[styles.blockNameMain, styles.blockNameLink]} numberOfLines={2} onPress={() => Linking.openURL(link)}>{block.name.replace(' (', '\n(')}<Text style={styles.linkArrow}> ↗</Text></Text>
-                : <Text style={styles.blockNameMain} numberOfLines={2}>{block.name.replace(' (', '\n(')}</Text>
+                ? <Text style={[styles.blockNameMain, styles.blockNameLink]} numberOfLines={2} onPress={() => Linking.openURL(link)}>{block.name}<Text style={styles.linkArrow}> ↗</Text></Text>
+                : <Text style={styles.blockNameMain} numberOfLines={2}>{block.name}</Text>
               }
+              {block.parenthetical && <Text style={styles.blockParenthetical}>{block.parenthetical}</Text>}
               {block.details && (
                 <Text style={styles.blockDetails}>
                   {block.details.split(/,\s+|·/).map(s => s.trim()).filter(Boolean).join('\n')}
@@ -279,7 +286,7 @@ const StopStayCard = ({ destination, lang }) => {
     const placeholder = '\x00';
     const protected_ = factText.replace(abbrevPattern, m => m.replace('. ', `.${placeholder}`));
     const lines = protected_
-      .split(/ – |(?<=[a-züöäßA-ZÜÖÄ]\.)\s+(?=[A-ZÜÄÖ][a-züöäß])/)
+      .split(/(?<=[a-züöäßA-ZÜÖÄ]\.)\s+(?=[A-ZÜÄÖ][a-züöäß])/)
       .map(s => s.replace(new RegExp(placeholder, 'g'), ' ').trim())
       .filter(Boolean)
       .map(s => s.charAt(0).toUpperCase() + s.slice(1));
@@ -297,7 +304,7 @@ const StopStayCard = ({ destination, lang }) => {
   if (loading) {
     return (
       <View style={styles.container}>
-        <ActivityIndicator size="small" color="#b5651d" />
+        <ActivityIndicator size="small" color="#A06035" />
       </View>
     );
   }
@@ -317,6 +324,36 @@ const StopStayCard = ({ destination, lang }) => {
   const intro = data[`intro_${langKey}`] || null;
   const vehicleWarning = data[`vehicle_warning_${langKey}`] || null;
   const seasonal = data[`seasonal_${langKey}`] || null;
+
+  // Camping link fallback — prefer stay_en for extraction, fall back to stay (current lang)
+  // Extract campsite name after a keyword up to the next dash separator or newline
+  const extractCampsiteName = (text, ...keywords) => {
+    const lower = text.toLowerCase();
+    for (const kw of keywords) {
+      const idx = lower.indexOf(kw);
+      if (idx !== -1) {
+        const after = text.slice(idx + kw.length).trim();
+        return after.split(/\s[–\-]\s|\n|\s+\(/)[0].trim() || null;
+      }
+    }
+    return null;
+  };
+
+  // Use stay_en for keyword detection; fall back to current-lang stay if stay_en absent
+  const stayForExtraction = data.stay_en || data.stay || '';
+
+  const campsite1Name = extractCampsiteName(stayForExtraction, 'best option:', 'beste option:');
+  const campsite2Name = extractCampsiteName(stayForExtraction, 'alternative:');
+  const townName = destination?.name_en || destination?.name || '';
+
+  const campingUrl1 = data.camping_link_1
+    ?? (campsite1Name
+      ? `https://www.google.com/maps/search/${encodeURIComponent(campsite1Name + (townName ? ' ' + townName : ''))}`
+      : null);
+  const campingUrl2 = data.camping_link_2
+    ?? (campsite2Name
+      ? `https://www.google.com/maps/search/${encodeURIComponent(campsite2Name + (townName ? ' ' + townName : ''))}`
+      : null);
 
   if (tabs.length === 0) {
     return null; // No content to show
@@ -360,7 +397,7 @@ const StopStayCard = ({ destination, lang }) => {
       <View style={styles.contentContainer}>
         {activeTab === 'stay' && (
           <View>
-            {renderStayBlocks(data.stay, data.camping_link_1, data.camping_link_2)}
+            {renderStayBlocks(data.stay, campingUrl1, campingUrl2)}
             {vehicleWarning && (
               <View style={styles.extraFieldBlock}>
                 <Text style={styles.extraFieldLabel}><Text style={styles.extraFieldEmoji}>🚐</Text> {lang === 'fr' ? 'VÉHICULE' : lang === 'de' ? 'FAHRZEUG' : 'VEHICLE'}</Text>
@@ -414,20 +451,20 @@ const StopStayCard = ({ destination, lang }) => {
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 16,
+    backgroundColor: '#FDFAF7',
+    borderRadius: 14,
     padding: 16,
     marginBottom: 20,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 6,
     elevation: 2,
-    shadowColor: '#000000',
+    shadowColor: '#3A2A1A',
   },
   introBox: {
-    backgroundColor: 'rgba(232, 116, 10, 0.08)',
-    borderLeftWidth: 3,
-    borderLeftColor: '#e8740a',
+    backgroundColor: 'rgba(200, 120, 64, 0.07)',
+    borderLeftWidth: 2,
+    borderLeftColor: '#C07840',
     borderRadius: 8,
     padding: 10,
     marginBottom: 12,
@@ -458,8 +495,8 @@ const styles = StyleSheet.create({
     marginBottom: 2,
   },
   tabBar: {
-    backgroundColor: '#f0f0f0',
-    borderRadius: 10,
+    backgroundColor: '#EDE8E2',
+    borderRadius: 9,
     padding: 3,
     flexDirection: 'row',
     gap: 3,
@@ -473,12 +510,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   activeTab: {
-    backgroundColor: '#b5651d',  // muted terracotta instead of bright orange
+    backgroundColor: '#A06035',
   },
   tabText: {
     fontSize: 13,
     fontWeight: '500',
-    color: '#888888',
+    color: '#9A8E82',
   },
   activeTabText: {
     color: '#ffffff',
@@ -503,7 +540,7 @@ const styles = StyleSheet.create({
   },
   fallbackLine2: {
     fontSize: 13,
-    color: '#b5651d',
+    color: '#A06035',
     fontWeight: '400',
     lineHeight: 20,
     marginTop: 4,
@@ -534,14 +571,20 @@ const styles = StyleSheet.create({
     marginBottom: 3,
   },
   blockNameLink: {
-    color: '#9e6030',
+    color: '#8A5428',
     textDecorationLine: 'underline',
   },
   linkArrow: {
     fontSize: 11,
     fontWeight: '400',
     textDecorationLine: 'none',
-    color: '#9e6030',
+    color: '#8A5428',
+  },
+  blockParenthetical: {
+    fontSize: 13,
+    color: '#888888',
+    lineHeight: 18,
+    marginBottom: 2,
   },
   blockDetails: {
     fontSize: 13,
@@ -573,7 +616,7 @@ const styles = StyleSheet.create({
     marginTop: 6,
   },
   linkText: {
-    color: '#9e6030',
+    color: '#8A5428',
     textDecorationLine: 'underline',
   },
   whenLabel: {
@@ -593,22 +636,22 @@ const styles = StyleSheet.create({
     lineHeight: 22,
   },
   entryFeePill: {
-    backgroundColor: 'rgba(181, 101, 29, 0.08)',
+    backgroundColor: 'rgba(160, 96, 53, 0.07)',
     paddingHorizontal: 10,
     paddingVertical: 8,
-    borderRadius: 10,
+    borderRadius: 9,
     alignSelf: 'flex-start',
     marginTop: 10,
   },
   entryFeeLabel: {
     fontSize: 11,
-    color: '#a07840',
+    color: '#9A7040',
     fontWeight: '500',
     marginBottom: 2,
   },
   entryFeeValue: {
     fontSize: 15,
-    color: '#7a4e1e',
+    color: '#6E4220',
     fontWeight: '600',
   },
 });

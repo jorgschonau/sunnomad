@@ -154,7 +154,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const { t, i18n } = useTranslation();
   const { theme } = useTheme();
   const { temperatureUnit, distanceUnit } = useUnits();
-  const { destination, dateOffset: initialDateOffset = 0, reverseMode = 'warm' } = route.params;
+  const { destination, dateOffset: initialDateOffset = 0, reverseMode = 'warm', origin } = route.params;
   const [dateOffset, setDateOffset] = useState(initialDateOffset);
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const tempSym = getTemperatureSymbol(temperatureUnit);
@@ -505,11 +505,12 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         forecast: slots,
         forecastArray: destination.forecastArray.slice(startIdx),
       };
+      const originDay = origin?.forecastArray?.[startIdx];
       const originWeather = {
-        temperature: destination.temperature,
-        condition: destination.condition,
-        lat: destination.lat,
-        lon: destination.lon,
+        temperature: originDay?.high ?? originDay?.temp ?? origin?.temperature ?? destination.temperature,
+        condition: originDay?.condition ?? origin?.condition ?? destination.condition,
+        lat: origin?.lat ?? destination.lat,
+        lon: origin?.lon ?? destination.lon,
         name: 'Origin',
         isCurrentLocation: true,
       };
@@ -1484,7 +1485,7 @@ const styles = StyleSheet.create({
   },
   errorTitle: {
     fontSize: 26,
-    fontWeight: 'bold',
+    fontWeight: '600',
     marginBottom: 12,
   },
   errorMessage: {
@@ -1504,13 +1505,13 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: '#fff',
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '600',
   },
   heroDateBadge: {
-    backgroundColor: 'rgba(210, 130, 60, 1)',
+    backgroundColor: 'rgba(185, 110, 48, 0.92)',
     paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 16,
+    borderRadius: 14,
     height: 27,
     justifyContent: 'center',
   },
@@ -1551,7 +1552,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontSize: 28,
-    fontWeight: '700',
+    fontWeight: '600',
     lineHeight: 34,
     textShadowColor: 'rgba(0,0,0,0.8)',
     textShadowOffset: { width: 0, height: 2 },
@@ -1620,7 +1621,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: '500',
   },
   forecastSection: {
     borderRadius: 14,
@@ -1663,7 +1664,7 @@ const styles = StyleSheet.create({
   },
   badgeName: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '500',
     marginBottom: 4,
   },
   badgeDescription: {
@@ -1675,12 +1676,12 @@ const styles = StyleSheet.create({
   },
   badgeStat: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
     marginTop: 4,
   },
   badgeSummary: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '500',
     marginTop: 2,
   },
   badgeExpandIndicator: {
@@ -1691,7 +1692,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 15,
-    fontWeight: '600',
+    fontWeight: '500',
     marginBottom: 10,
     letterSpacing: 0.3,
     textTransform: 'uppercase',
@@ -1701,14 +1702,14 @@ const styles = StyleSheet.create({
     paddingVertical: 13,
     paddingHorizontal: 32,
     minHeight: 56,
-    borderRadius: 14,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 20,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
-    elevation: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.14,
+    shadowRadius: 6,
+    elevation: 4,
   },
   driveButtonTopText: {
     fontSize: 20,
@@ -1734,14 +1735,14 @@ const styles = StyleSheet.create({
   },
   bestDayLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#8B7355',
     marginBottom: 1,
     letterSpacing: 0.2,
   },
   bestDayValue: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#5D4F45',
   },
   bestDayWeatherIcon: {
@@ -1757,15 +1758,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   forecastItemSelected: {
-    backgroundColor: 'rgba(180, 155, 120, 0.08)',
+    backgroundColor: 'rgba(160, 140, 110, 0.07)',
     borderRadius: 8,
-    borderLeftWidth: 2,
-    borderLeftColor: 'rgba(180, 140, 80, 0.4)',
+    borderLeftWidth: 1.5,
+    borderLeftColor: 'rgba(160, 130, 75, 0.35)',
     paddingLeft: 6,
   },
   forecastDay: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '500',
     flex: 1,
   },
   forecastIconWrap: {
@@ -1838,17 +1839,17 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   stopStayPill: {
-    backgroundColor: 'rgba(195, 115, 55, 0.80)',
+    backgroundColor: 'rgba(172, 100, 44, 0.72)',
     paddingHorizontal: 14,
     paddingVertical: 4,
-    borderRadius: 16,
+    borderRadius: 14,
     height: 27,
     justifyContent: 'center',
-    shadowColor: '#C07337',
+    shadowColor: '#7A4020',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.2,
+    shadowRadius: 3,
+    elevation: 2,
   },
   stopStayText: {
     color: '#fff',
@@ -1882,9 +1883,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.18,
-    shadowRadius: 4,
-    elevation: 5,
+    shadowOpacity: 0.12,
+    shadowRadius: 5,
+    elevation: 3,
   },
   driveButtonText: {
     fontSize: 18,
@@ -1910,7 +1911,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.6)',
   },
   dateDropdownBtnActive: {
-    backgroundColor: 'rgba(210,130,60,1)',
+    backgroundColor: 'rgba(185,110,48,0.92)',
   },
   dateDropdownBtnText: {
     color: 'rgba(255,255,255,0.85)',

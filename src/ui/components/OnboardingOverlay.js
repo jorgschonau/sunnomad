@@ -90,7 +90,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#1A1A1A',
     textAlign: 'center',
   },
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     fontSize: 20,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#fff',
   },
 });

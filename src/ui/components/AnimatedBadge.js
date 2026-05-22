@@ -40,13 +40,13 @@ const AnimatedBadge = ({ icon, color, delay = 0, onImageLoad }) => {
       const pulse = Animated.loop(
         Animated.sequence([
           Animated.timing(pulseAnim, {
-            toValue: 1.3,
-            duration: 800,
+            toValue: 1.1,
+            duration: 1400,
             useNativeDriver: true,
           }),
           Animated.timing(pulseAnim, {
             toValue: 1,
-            duration: 800,
+            duration: 1400,
             useNativeDriver: true,
           }),
         ])
@@ -92,34 +92,34 @@ const AnimatedBadge = ({ icon, color, delay = 0, onImageLoad }) => {
 
 const styles = StyleSheet.create({
   badgeOverlay: {
-    borderRadius: 16,
-    width: 32,
-    height: 32,
+    borderRadius: 14,
+    width: 28,
+    height: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#fff',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255,255,255,0.9)',
     overflow: 'visible',
     ...Platform.select({
       android: {
-        elevation: 8,
+        elevation: 4,
       },
       ios: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.3,
-        shadowRadius: 3,
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.18,
+        shadowRadius: 2,
       },
     }),
   },
   badgeIcon: {
-    fontSize: Platform.OS === 'android' ? 20 : 18,
+    fontSize: Platform.OS === 'android' ? 17 : 15,
   },
   badgeImage: {
-    width: Platform.OS === 'android' ? 30 : 28,
-    height: Platform.OS === 'android' ? 30 : 28,
+    width: Platform.OS === 'android' ? 26 : 24,
+    height: Platform.OS === 'android' ? 26 : 24,
     resizeMode: 'cover',
-    borderRadius: Platform.OS === 'android' ? 15 : 14,
+    borderRadius: Platform.OS === 'android' ? 13 : 12,
   },
 });
 

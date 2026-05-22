@@ -21,10 +21,10 @@ const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const BRAND = {
   cream: '#F5E6D3',
-  orange: '#FF8C42',
+  orange: '#C87840',
   navy: '#1E3A5F',
-  coral: '#FFA07A',
-  pink: '#FF6B9D',
+  coral: '#C9A88C',
+  pink: '#C4A0A0',
   white: '#FFFFFF',
   error: '#D94040',
   textMuted: '#8A7968',
@@ -240,7 +240,7 @@ const styles = StyleSheet.create({
   // ── Title ──
   title: {
     fontSize: 26,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: BRAND.navy,
     textAlign: 'center',
     marginBottom: 8,
@@ -255,22 +255,22 @@ const styles = StyleSheet.create({
   // ── Form Card ──
   formCard: {
     backgroundColor: BRAND.white,
-    borderRadius: 20,
+    borderRadius: 18,
     paddingHorizontal: 24,
     paddingTop: 28,
     paddingBottom: 24,
     shadowColor: BRAND.shadow,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 4,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
+    elevation: 3,
   },
   inputContainer: {
     marginBottom: 24,
   },
   label: {
     fontSize: 14,
-    fontWeight: '700',
+    fontWeight: '500',
     color: BRAND.navy,
     marginBottom: 8,
     letterSpacing: 0.3,
@@ -305,11 +305,11 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
-    shadowColor: BRAND.orange,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+    elevation: 3,
   },
   buttonDisabled: {
     opacity: 0.6,
@@ -317,7 +317,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: BRAND.white,
     fontSize: 17,
-    fontWeight: 'bold',
+    fontWeight: '600',
     letterSpacing: 0.5,
   },
 
@@ -356,11 +356,11 @@ const styles = StyleSheet.create({
   successCheckmark: {
     color: BRAND.white,
     fontSize: 36,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   successTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '600',
     color: BRAND.navy,
     marginBottom: 10,
     textAlign: 'center',

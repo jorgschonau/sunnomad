@@ -192,12 +192,12 @@ const styles = StyleSheet.create({
   },
   locationName: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '600',
     flex: 1,
   },
   temperature: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
     marginLeft: 8,
   },
   cardBody: {
@@ -219,7 +219,7 @@ const styles = StyleSheet.create({
   },
   statValue: {
     fontSize: 15,
-    fontWeight: 'bold',
+    fontWeight: '500',
   },
   cardFooter: {
     flexDirection: 'row',
@@ -255,7 +255,7 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: '600',
     marginBottom: 12,
   },
   emptyDescription: {
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
   backButtonText: {
     color: '#fff',
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
 });
 

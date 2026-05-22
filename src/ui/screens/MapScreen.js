@@ -873,7 +873,8 @@ const MapScreen = ({ navigation }) => {
     markerJustPressedRef.current = true;
     setTimeout(() => { markerJustPressedRef.current = false; }, 500);
     if (destination.id) trackDetailView(destination.id);
-    navigation.navigate('DestinationDetail', { destination, dateOffset: selectedDateOffset, reverseMode });
+    const origin = destinations.find(d => d.isCenterPoint) || destinations.find(d => d.isCurrentLocation);
+    navigation.navigate('DestinationDetail', { destination, dateOffset: selectedDateOffset, reverseMode, origin });
   };
 
   const isMiles = distanceUnit === 'miles';
@@ -1649,7 +1650,7 @@ const MapScreen = ({ navigation }) => {
         {/* Settings button for permission/disabled */}
         {(isPermission || isDisabled) && (
           <TouchableOpacity
-            style={[styles.retryButton, { backgroundColor: '#FF8C42', marginBottom: 12 }]}
+            style={[styles.retryButton, { backgroundColor: '#C87840', marginBottom: 12 }]}
             onPress={openLocationSettings}
             activeOpacity={0.8}
           >
@@ -1828,9 +1829,9 @@ const MapScreen = ({ navigation }) => {
               longitude: (centerPoint || location).longitude,
             }}
             radius={radius * 1000}
-            strokeWidth={3}
-            strokeColor={centerPoint ? "rgba(198, 80, 50, 0.7)" : "rgba(90, 90, 90, 0.5)"}
-            fillColor={centerPoint ? "rgba(198, 80, 50, 0.12)" : "rgba(90, 90, 90, 0.10)"}
+            strokeWidth={1.5}
+            strokeColor={centerPoint ? "rgba(175, 70, 40, 0.45)" : "rgba(90, 90, 90, 0.3)"}
+            fillColor={centerPoint ? "rgba(175, 70, 40, 0.06)" : "rgba(90, 90, 90, 0.05)"}
           />
         )}
 
@@ -2047,8 +2048,8 @@ const MapScreen = ({ navigation }) => {
       <TouchableOpacity
         style={[styles.favouritesButton, { 
           backgroundColor: theme.surface,
-          borderColor: theme.border,
-          shadowColor: theme.shadow
+          borderColor: 'rgba(0,0,0,0.07)',
+          shadowColor: '#000'
         }]}
         onPress={() => navigation.navigate('Favourites')}
         accessibilityLabel={t('app.favourites')}
@@ -2061,10 +2062,10 @@ const MapScreen = ({ navigation }) => {
       {/* Badge Filter Toggle Button */}
       <TouchableOpacity
         style={[styles.badgeToggleButton, { 
-          backgroundColor: showOnlyBadges ? '#FFD700' : theme.surface,
-          borderColor: theme.border,
-          shadowColor: theme.shadow,
-          opacity: 1.0, // Always fully visible
+          backgroundColor: showOnlyBadges ? '#D4B83A' : theme.surface,
+          borderColor: 'rgba(0,0,0,0.07)',
+          shadowColor: '#000',
+          opacity: 1.0,
         }]}
         onPress={() => {
           setShowOnlyBadges(!showOnlyBadges);
@@ -2089,8 +2090,8 @@ const MapScreen = ({ navigation }) => {
       <TouchableOpacity
         style={[styles.settingsButton, { 
           backgroundColor: theme.surface,
-          borderColor: theme.border,
-          shadowColor: theme.shadow
+          borderColor: 'rgba(0,0,0,0.07)',
+          shadowColor: '#000'
         }]}
         onPress={() => navigation.navigate('Settings')}
         accessibilityLabel={t('app.settings')}
@@ -2104,8 +2105,8 @@ const MapScreen = ({ navigation }) => {
       <TouchableOpacity
         style={[styles.myLocationButton, {
           backgroundColor: theme.surface,
-          borderColor: theme.border,
-          shadowColor: theme.shadow,
+          borderColor: 'rgba(0,0,0,0.07)',
+          shadowColor: '#000',
           opacity: isRecentering ? 0.6 : 1,
         }]}
         onPress={recenterToCurrentLocation}
@@ -2121,8 +2122,8 @@ const MapScreen = ({ navigation }) => {
       {centerPoint && (
         <TouchableOpacity
           style={[styles.resetCenterButton, { 
-            backgroundColor: '#FF5722',
-            borderColor: '#fff',
+            backgroundColor: '#C05030',
+            borderColor: 'rgba(255,255,255,0.4)',
             shadowColor: theme.shadow
           }]}
           onPress={resetCenterPoint}
@@ -2246,7 +2247,7 @@ const MapScreen = ({ navigation }) => {
         {/* Reverse Mode Button (Warm/Cold) */}
         <TouchableOpacity
           style={[styles.reverseButton, {
-            backgroundColor: reverseMode === 'warm' ? '#FF8C42' : reverseMode === 'cold' ? '#4A90E2' : '#888',
+            backgroundColor: reverseMode === 'warm' ? '#C87840' : reverseMode === 'cold' ? '#4A82C0' : '#888',
             shadowColor: theme.shadow
           }]}
           onPress={toggleReverseMode}
@@ -2310,13 +2311,13 @@ const styles = StyleSheet.create({
   retryButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   skipButton: {
     paddingVertical: 12,
     paddingHorizontal: 28,
     borderRadius: 12,
-    borderWidth: 1.5,
+    borderWidth: 1,
     marginTop: 12,
   },
   skipButtonText: {
@@ -2340,7 +2341,7 @@ const styles = StyleSheet.create({
     height: 48,
     backgroundColor: '#fff',
     borderRadius: 12,
-    borderWidth: 3,
+    borderWidth: 1.5,
     borderColor: '#E0E0E0',
     paddingHorizontal: 16,
     paddingRight: 40,
@@ -2348,9 +2349,9 @@ const styles = StyleSheet.create({
     color: '#333',
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.15,
+    shadowOpacity: 0.10,
     shadowRadius: 4,
-    elevation: 4,
+    elevation: 3,
   },
   searchClearButton: {
     position: 'absolute',
@@ -2365,7 +2366,7 @@ const styles = StyleSheet.create({
   searchClearText: {
     fontSize: 14,
     color: '#666',
-    fontWeight: '700',
+    fontWeight: '500',
   },
   searchResultsList: {
     backgroundColor: '#fff',
@@ -2419,26 +2420,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 14,
     borderRadius: 12,
-    borderWidth: 3,
+    borderWidth: 1.5,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
   },
   controlsToggleText: {
-    fontSize: 18,
-    fontWeight: '700',
+    fontSize: 16,
+    fontWeight: '500',
     textAlign: 'center',
   },
   controlsContainer: {
     marginTop: 10,
     borderRadius: 12,
     padding: 16,
-    borderWidth: 3,
+    borderWidth: 1.5,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-    elevation: 5,
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 4,
   },
   filterSeparator: {
     height: 1,
@@ -2453,121 +2454,121 @@ const styles = StyleSheet.create({
     overflow: 'visible',
   },
   markerContainer: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(255, 255, 255, 0.9)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(255, 255, 255, 0.85)',
     overflow: 'visible',
     zIndex: 999,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.18,
+    shadowOpacity: 0.14,
     shadowRadius: 3,
-    elevation: 3,
+    elevation: 2,
   },
   currentLocationMarker: {
     borderColor: '#5CA3D9',
-    borderWidth: 2.5,
+    borderWidth: 2,
   },
   markerWeatherIcon: {
-    fontSize: 24,
+    fontSize: 22,
   },
   markerTemp: {
-    fontSize: 14,
+    fontSize: 13,
     fontWeight: '600',
-    color: 'rgba(0, 0, 0, 0.85)',
+    color: 'rgba(0, 0, 0, 0.82)',
     marginTop: 1,
     letterSpacing: -0.3,
-    backgroundColor: 'rgba(255, 255, 255, 0.75)',
-    paddingHorizontal: 6,
-    paddingVertical: 1.5,
-    borderRadius: 6,
+    backgroundColor: 'rgba(255, 255, 255, 0.72)',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 5,
     overflow: 'hidden',
   },
   stabilityBadge: {
     position: 'absolute',
-    bottom: -18,
+    bottom: -16,
     backgroundColor: '#2E7D32',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    borderWidth: 2,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 10,
+    borderWidth: 1.5,
     borderColor: '#fff',
-    minWidth: 32,
+    minWidth: 26,
     alignItems: 'center',
     justifyContent: 'center',
   },
   currentLocationBadge: {
-    backgroundColor: '#2196F3',
+    backgroundColor: '#4A82C0',
   },
   centerPointMarker: {
-    borderColor: '#D96240',
-    borderWidth: 2.5,
+    borderColor: '#C05030',
+    borderWidth: 2,
   },
   dedicatedHeroMarker: {
-    borderColor: '#FFD700',
-    borderWidth: 2.5,
-    shadowColor: '#FFD700',
+    borderColor: '#D4B83A',
+    borderWidth: 1.5,
+    shadowColor: '#C8A830',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.7,
-    shadowRadius: 5,
-    elevation: 6,
+    shadowOpacity: 0.4,
+    shadowRadius: 4,
+    elevation: 4,
   },
   centerPointBadge: {
-    backgroundColor: '#FF5722',
+    backgroundColor: '#C05030',
   },
   centerPointBadgeIndicator: {
     position: 'absolute',
     bottom: -10,
-    backgroundColor: '#FF5722',
+    backgroundColor: '#C05030',
     paddingHorizontal: 8,
     paddingVertical: 3,
     borderRadius: 10,
-    borderWidth: 2,
+    borderWidth: 1.5,
     borderColor: '#fff',
   },
   centerPointBadgeText: {
     fontSize: 14,
     color: '#fff',
-    fontWeight: 'bold',
+    fontWeight: '600',
   },
   centerPointCircleMarker: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: 'rgba(33, 150, 243, 0.3)', // Blau mit Transparenz
-    borderWidth: 4,
-    borderColor: '#2196F3',
+    backgroundColor: 'rgba(74, 130, 192, 0.25)',
+    borderWidth: 3,
+    borderColor: '#4A82C0',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#2196F3',
+    shadowColor: '#4A82C0',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.6,
-    shadowRadius: 8,
-    elevation: 8,
+    shadowOpacity: 0.45,
+    shadowRadius: 7,
+    elevation: 6,
   },
   centerPointCircleInner: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: '#2196F3',
+    backgroundColor: '#4A82C0',
     justifyContent: 'center',
     alignItems: 'center',
   },
   centerPointIcon: {
     fontSize: 28,
     color: '#fff',
-    fontWeight: 'bold',
+    fontWeight: '600',
     textAlign: 'center',
   },
   stabilityText: {
-    fontSize: 18,
+    fontSize: 14,
     color: '#fff',
-    fontWeight: 'bold',
-    lineHeight: 18,
+    fontWeight: '600',
+    lineHeight: 14,
   },
   badgeOverlayContainer: {
     position: 'absolute',
@@ -2595,14 +2596,14 @@ const styles = StyleSheet.create({
   },
   loadingBox: {
     padding: 30,
-    borderRadius: 20,
-    borderWidth: 2,
+    borderRadius: 18,
+    borderWidth: 1,
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.18,
     shadowRadius: 8,
-    elevation: 10,
+    elevation: 8,
   },
   loadingOverlayText: {
     marginTop: 16,
@@ -2701,7 +2702,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
   },
   rpRowSelected: {
-    backgroundColor: 'rgba(44, 111, 191, 0.08)',
+    backgroundColor: 'rgba(80, 100, 140, 0.06)',
   },
   rpRowBorder: {
     borderBottomWidth: 0.5,
@@ -2710,16 +2711,16 @@ const styles = StyleSheet.create({
   rpText: {
     fontSize: 17,
     fontWeight: '400',
-    color: '#1A2E8A',
+    color: '#2C3E6A',
   },
   rpTextSelected: {
     fontWeight: '600',
-    color: '#3B4FBF',
+    color: '#3A5290',
   },
   rpCheck: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#3B4FBF',
+    color: '#3A5290',
     marginLeft: 8,
   },
   zoomIndicator: {
@@ -2746,147 +2747,147 @@ const styles = StyleSheet.create({
   reverseButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 22,
-    gap: 6,
-    borderWidth: 2,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 5,
+    borderWidth: 0,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.14,
+    shadowRadius: 4,
+    elevation: 3,
   },
   reverseIcon: {
-    fontSize: 18,
+    fontSize: 15,
   },
   reverseLabel: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '600',
     color: '#fff',
-    letterSpacing: 0.3,
+    letterSpacing: 0.2,
   },
   favouritesButton: {
     position: 'absolute',
-    top: 84,
+    top: 78,
     right: 10,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
+    borderWidth: 1.5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.14,
+    shadowRadius: 5,
+    elevation: 4,
   },
   favouritesIcon: {
-    fontSize: 36,
+    fontSize: 30,
     textAlign: 'center',
-    lineHeight: 36,
+    lineHeight: 32,
     includeFontPadding: false,
-    marginTop: 4,
+    marginTop: 2,
   },
   badgeToggleButton: {
     position: 'absolute',
-    top: 158, // Below favourites button
+    top: 146,
     right: 10,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
+    borderWidth: 1.5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.14,
+    shadowRadius: 5,
+    elevation: 4,
   },
   badgeToggleIcon: {
-    fontSize: 36,
+    fontSize: 30,
     textAlign: 'center',
-    lineHeight: 36,
+    lineHeight: 32,
     includeFontPadding: false,
-    marginTop: 4,
+    marginTop: 2,
   },
   settingsButton: {
     position: 'absolute',
     top: 10,
     right: 10,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
+    borderWidth: 1.5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.14,
+    shadowRadius: 5,
+    elevation: 4,
   },
   settingsIcon: {
-    fontSize: 36,
-    textAlign: 'center',
-    lineHeight: 36,
-    includeFontPadding: false,
-    marginTop: 4,
-  },
-  myLocationButton: {
-    position: 'absolute',
-    top: 232,
-    right: 10,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 3,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  myLocationIcon: {
     fontSize: 30,
     textAlign: 'center',
     lineHeight: 32,
     includeFontPadding: false,
-    marginTop: 4,
+    marginTop: 2,
+  },
+  myLocationButton: {
+    position: 'absolute',
+    top: 214,
+    right: 10,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.14,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  myLocationIcon: {
+    fontSize: 28,
+    textAlign: 'center',
+    lineHeight: 30,
+    includeFontPadding: false,
+    marginTop: 2,
   },
   resetCenterButton: {
     position: 'absolute',
     bottom: 140,
     left: 20,
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 58,
+    height: 58,
+    borderRadius: 29,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 3,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
+    borderWidth: 1.5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.14,
+    shadowRadius: 5,
+    elevation: 4,
   },
   resetCenterIcon: {
-    fontSize: 24,
+    fontSize: 20,
     textAlign: 'center',
-    marginTop: -4,
+    marginTop: -3,
   },
   resetCenterText: {
-    fontSize: 20,
-    fontWeight: 'bold',
+    fontSize: 17,
+    fontWeight: '600',
     color: '#fff',
     marginTop: -2,
   },
   favouriteMarkerBorder: {
-    borderColor: '#E8732A',
-    borderWidth: 2.5,
-    shadowColor: '#E8732A',
+    borderColor: '#C06030',
+    borderWidth: 2,
+    shadowColor: '#C06030',
     shadowOffset: { width: 0, height: 0 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.25,
     shadowRadius: 3,
-    elevation: 4,
+    elevation: 3,
   },
   emptyStateOverlay: {
     position: 'absolute',
@@ -2898,10 +2899,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   emptyStateBox: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
+    backgroundColor: '#FAFAF8',
+    borderRadius: 18,
     borderWidth: 0.5,
-    borderColor: '#C5D0F5',
+    borderColor: '#D0D8E4',
     padding: 24,
     maxWidth: '85%',
   },
@@ -2915,7 +2916,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 10,
-    backgroundColor: '#FFF4CC',
+    backgroundColor: '#F5EDD8',
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -2925,7 +2926,7 @@ const styles = StyleSheet.create({
   emptyStateTitle: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#1A2E8A',
+    color: '#2C3E6A',
   },
   emptyStateMessage: {
     fontSize: 13,
@@ -2935,7 +2936,7 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   emptyStatePrimaryButton: {
-    backgroundColor: '#3B4FBF',
+    backgroundColor: '#3A5290',
     paddingVertical: 13,
     paddingHorizontal: 28,
     borderRadius: 12,
@@ -2947,7 +2948,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   emptyStateSecondaryButton: {
-    backgroundColor: '#EEF3FF',
+    backgroundColor: '#EEF1F7',
     paddingVertical: 11,
     paddingHorizontal: 28,
     borderRadius: 12,
@@ -2956,7 +2957,7 @@ const styles = StyleSheet.create({
   emptyStateSecondaryButtonText: {
     fontSize: 15,
     fontWeight: '600',
-    color: '#3B4FBF',
+    color: '#3A5290',
   },
 });
 

@@ -75,16 +75,16 @@ export const getWeatherIcon = (condition) => {
 /** App condition → marker/header color */
 export const getWeatherColor = (condition, temperature = null) => {
   const colors = {
-    sunny: '#F0A84D',
-    cloudy: '#90A4AE',
-    rainy: '#64B5F6',
+    sunny: '#E8A045',
+    cloudy: '#8EA2AA',
+    rainy: '#78AED4',
     snowy: '#E8F0F6',
     windy: '#B8C7CE',
   };
 
   if (condition === 'sunny' && temperature !== null) {
-    if (temperature < -10) return '#D6E8F5';
-    if (temperature < 0) return '#E5EEF6';
+    if (temperature < -10) return '#D4E4F0';
+    if (temperature < 0) return '#E2EBF4';
   }
 
   return colors[condition] || '#F0A84D';
