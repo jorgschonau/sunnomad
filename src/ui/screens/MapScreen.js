@@ -1894,17 +1894,18 @@ const MapScreen = ({ navigation }) => {
           />
         ))}
 
-        {/* Favourites - rendered separately; always check radius */}
+        {/* Favourites - rendered separately; only within current radius */}
         {favouriteDestinations
-          .filter(fav => fav && fav.lat != null && fav.lon != null)
-          .map((fav, index) => {
+          .filter(fav => {
+            if (!fav || fav.lat == null || fav.lon == null) return false;
             const effectiveCenter = centerPoint || location;
-            const distToCenter = getDistanceKm(
+            if (!effectiveCenter || !radius) return false;
+            return getDistanceKm(
               effectiveCenter.latitude, effectiveCenter.longitude,
               Number(fav.lat), Number(fav.lon)
-            );
-            if (distToCenter > radius) return null;
-
+            ) <= radius;
+          })
+          .map((fav, index) => {
             const withWeather = displayDestinations.find(d =>
               (d.id && fav.placeId && d.id === fav.placeId) ||
               (d.id && fav.id && d.id === fav.id) ||
