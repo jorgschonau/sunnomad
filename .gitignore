@@ -68,3 +68,4 @@ unsplash_output/
 image_check_results/
 debug_import.mjs
 WEATHERBIT_SETUP.md
+.DS_Store
