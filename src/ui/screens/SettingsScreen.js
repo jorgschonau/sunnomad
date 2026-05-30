@@ -5,6 +5,7 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  Linking,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeProvider';
@@ -171,6 +172,12 @@ const SettingsScreen = ({ navigation }) => {
           </TouchableOpacity>
         ) : null}
       </View>
+
+      <TouchableOpacity onPress={() => Linking.openURL('https://sunnomad.app/privacy')}>
+        <Text style={[styles.attribution, { color: theme.textTertiary }]}>
+          Privacy Policy
+        </Text>
+      </TouchableOpacity>
 
       <Text style={[styles.attribution, { color: theme.textTertiary }]}>
         Weather data by Open-Meteo.com

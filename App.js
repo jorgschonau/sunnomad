@@ -7,12 +7,16 @@ import { createStackNavigator } from '@react-navigation/stack';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, Yellowtail_400Regular } from '@expo-google-fonts/yellowtail';
 import * as Sentry from '@sentry/react-native';
+import { initMixpanel, mixpanel } from './src/services/mixpanel';
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
   tracesSampleRate: 0.2,
   enabled: !!process.env.EXPO_PUBLIC_SENTRY_DSN,
 });
+initMixpanel();
+mixpanel.track('App Opened');
+mixpanel.flush();
 import MapScreen from './src/ui/screens/MapScreen';
 import SettingsScreen from './src/ui/screens/SettingsScreen';
 import CommunityScreen from './src/ui/screens/CommunityScreen';

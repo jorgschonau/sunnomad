@@ -10,9 +10,11 @@ import {
   Alert,
   ActivityIndicator,
   Animated,
+  Easing,
   LayoutAnimation,
   InteractionManager,
 } from 'react-native';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeProvider';
 import { getWeatherIcon, getWeatherColor } from '../../usecases/weatherUsecases';
@@ -30,6 +32,7 @@ import { getHeroImage as getDedicatedHeroImage, DEFAULT_HERO_IMAGE_URL } from '.
 import { getHeroImage } from '../../utils/heroImages';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import StopStayCard from '../components/StopStayCard';
+import { mixpanel } from '../../services/mixpanel';
 
 const getWindDescriptionKey = (windSpeed) => {
   const speed = windSpeed || 0;
@@ -213,6 +216,9 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const toastScaleAnim = React.useRef(new Animated.Value(0.98)).current;
   const uiOpacityAnim = React.useRef(new Animated.Value(1)).current;
   const heroHintAnim = React.useRef(new Animated.Value(0)).current;
+  const heroScaleAnim = React.useRef(new Animated.Value(1)).current;
+  const pulseAnim = React.useRef(new Animated.Value(1)).current;
+  const vignetteAnim = React.useRef(new Animated.Value(0)).current;
 
   /**
    * Helper: Convert a forecastData entry (from Supabase) to the app forecast slot format
@@ -460,6 +466,14 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       setReadyForDetails(true);
       loadForecast();
       checkFavouriteStatus();
+      mixpanel.track('Destination Viewed', {
+        place_id: effectivePlaceId,
+        place_name: destination.name,
+        country_code: destination.countryCode || destination.country_code,
+        condition: destination.condition,
+        temperature: destination.temperature,
+        distance_km: destination.distance,
+      });
     });
     return () => task.cancel();
   }, [destination.lat, destination.lon]);
@@ -575,6 +589,11 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         animateFavourite(result.isFavourite);
         setIsFavourite(result.isFavourite);
         showFavToast(result.isFavourite ? t('favourites.saved') : t('favourites.removed'));
+        mixpanel.track(result.isFavourite ? 'Destination Favourited' : 'Destination Unfavourited', {
+          place_id: effectivePlaceId,
+          place_name: destination.name,
+          country_code: destination.countryCode || destination.country_code,
+        });
       } else {
         if (__DEV__) console.warn('Toggle favourite failed:', result.message);
         showFavToast(result.message || 'Failed to update favourites');
@@ -589,43 +608,85 @@ const DestinationDetailScreen = ({ route, navigation }) => {
 
   const toggleUiFocus = useCallback(() => {
     const newFocused = !uiFocused;
-    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setUiFocused(newFocused);
-    Animated.timing(uiOpacityAnim, {
-      toValue: newFocused ? 0 : 1,
-      duration: 150,
-      useNativeDriver: true,
-    }).start();
-  }, [uiFocused, uiOpacityAnim]);
+    if (newFocused) {
+      mixpanel.track('Hero Image Expanded', {
+        place_id: effectivePlaceId,
+        place_name: destination.name,
+      });
+    }
 
-  // One-time hero hint (shows for 3s on first ever visit, then never again)
+    LayoutAnimation.configureNext({
+      duration: 300,
+      create: { type: LayoutAnimation.Types.easeOut, property: LayoutAnimation.Properties.opacity },
+      update: { type: LayoutAnimation.Types.easeOut },
+      delete: { type: LayoutAnimation.Types.easeOut, property: LayoutAnimation.Properties.opacity },
+    });
+
+    Animated.parallel([
+      Animated.timing(heroScaleAnim, {
+        toValue: newFocused ? 1.025 : 1.0,
+        duration: 320,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(vignetteAnim, {
+        toValue: newFocused ? 1 : 0,
+        duration: 320,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  }, [uiFocused, heroScaleAnim, vignetteAnim]);
+
+  // One-time discovery: pulse button once + show "View photo" tooltip after 1s on first ever visit
   useEffect(() => {
     if (!heroSource) return;
-    let timer;
-    AsyncStorage.getItem('heroHintShown').then(val => {
-      if (!val) {
+    let pulseTimer;
+    let tooltipTimer;
+    AsyncStorage.getItem('heroExpandPulseShown').then(val => {
+      if (val) return;
+      pulseTimer = setTimeout(() => {
+        // Show tooltip
         setHeroHintVisible(true);
-        heroHintAnim.setValue(1);
-        timer = setTimeout(() => {
+        Animated.timing(heroHintAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+
+        // Single pulse on button: scale 1 → 1.18 → 1
+        Animated.sequence([
+          Animated.timing(pulseAnim, { toValue: 1.18, duration: 220, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+          Animated.timing(pulseAnim, { toValue: 1.0, duration: 220, easing: Easing.in(Easing.quad), useNativeDriver: true }),
+        ]).start();
+
+        // Fade tooltip out after 2s
+        tooltipTimer = setTimeout(() => {
           Animated.timing(heroHintAnim, {
             toValue: 0,
             duration: 400,
             useNativeDriver: true,
           }).start(() => {
             setHeroHintVisible(false);
-            AsyncStorage.setItem('heroHintShown', '1').catch(() => {});
+            AsyncStorage.setItem('heroExpandPulseShown', '1').catch(() => {});
           });
-        }, 3000);
-      }
+        }, 2000);
+      }, 1000);
     });
-    return () => { if (timer) clearTimeout(timer); };
+    return () => {
+      if (pulseTimer) clearTimeout(pulseTimer);
+      if (tooltipTimer) clearTimeout(tooltipTimer);
+    };
   }, [heroSource]);
 
   const handleDriveThere = async () => {
     try {
-      // TODO: Add motor sound (real audio, not haptics) when starting navigation
-      // Requires: expo-av Audio.Sound with engine.mp3/wav file
-      
+      mixpanel.track('Drive There Tapped', {
+        place_id: effectivePlaceId,
+        place_name: destination.name,
+        country_code: destination.countryCode || destination.country_code,
+        distance_km: destination.distance,
+      });
       await openInMaps(destination, NavigationProvider.AUTO);
     } catch (error) {
       Alert.alert(
@@ -900,10 +961,17 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       <View style={{ position: 'relative', minHeight: 440 }}>
       {heroSource && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 440, overflow: 'hidden' }}>
-          <Image
+          <Animated.Image
             source={heroSource}
-            style={{ width: '100%', height: '100%', top: 0 }}
+            style={{ width: '100%', height: '100%', top: 0, transform: [{ scale: heroScaleAnim }] }}
             resizeMode="cover"
+          />
+          <LinearGradient
+            colors={['rgba(0,0,0,0.28)', 'transparent']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '40%', zIndex: 1 }}
+            pointerEvents="none"
           />
           <LinearGradient
             colors={['rgba(0,0,0,0.0)', 'rgba(0,0,0,0.08)', 'rgba(0,0,0,0.35)']}
@@ -916,19 +984,39 @@ const DestinationDetailScreen = ({ route, navigation }) => {
             style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 80 }}
             pointerEvents="none"
           />
+          <Animated.View
+            style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.10)', opacity: vignetteAnim }}
+            pointerEvents="none"
+          />
         </View>
       )}
-      {heroSource && !uiFocused && (
-        <Pressable onPress={toggleUiFocus} style={styles.heroHintPill} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
-          <Text style={styles.heroHintText}>↗</Text>
-        </Pressable>
-      )}
-      {heroSource && uiFocused && (
-        <Pressable onPress={toggleUiFocus} style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 440, zIndex: 10 }}>
-          <View style={styles.heroHintPill}>
-            <Text style={styles.heroHintText}>↙</Text>
-          </View>
-        </Pressable>
+      {heroSource && (
+        <>
+          {uiFocused && (
+            <Pressable
+              onPress={toggleUiFocus}
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 440, zIndex: 9 }}
+            />
+          )}
+          {heroHintVisible && (
+            <Animated.View style={[styles.heroExpandTooltip, { opacity: heroHintAnim }]} pointerEvents="none">
+              <Text style={styles.heroExpandTooltipText}>View photo</Text>
+            </Animated.View>
+          )}
+          <Animated.View style={[styles.heroExpandButtonOuter, { transform: [{ scale: pulseAnim }] }]}>
+            <Pressable
+              onPress={toggleUiFocus}
+              style={styles.heroExpandButton}
+              hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
+            >
+              <MaterialIcons
+                name={uiFocused ? 'fullscreen-exit' : 'fullscreen'}
+                size={17}
+                color="rgba(255, 255, 255, 0.95)"
+              />
+            </Pressable>
+          </Animated.View>
+        </>
       )}
       <View style={[styles.header, { backgroundColor: heroSource ? 'transparent' : getWeatherColor(heroCondition, heroTemp) }]}>
   <View style={styles.headerTop}>
@@ -1008,7 +1096,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     <TouchableOpacity
       style={styles.stopStayPill}
       activeOpacity={0.7}
-      onPress={() => scrollViewRef.current?.scrollTo({ y: stopStayCardY.current, animated: true })}
+      onPress={() => {
+        mixpanel.track('Stop Stay Tapped', { place_id: effectivePlaceId, place_name: destination.name });
+        scrollViewRef.current?.scrollTo({ y: stopStayCardY.current, animated: true });
+      }}
     >
       <Text style={styles.stopStayText}>{t('destination.stopStay')}</Text>
     </TouchableOpacity>
@@ -1044,6 +1135,11 @@ const DestinationDetailScreen = ({ route, navigation }) => {
             onPress={() => {
               setDateOffset(opt.offset);
               setDatePickerVisible(false);
+              mixpanel.track('Date Changed', {
+                place_id: effectivePlaceId,
+                place_name: destination.name,
+                date_offset: opt.offset,
+              });
             }}
           >
             <Text style={[
@@ -1174,7 +1270,17 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                   destination={destination}
                   badge={badge}
                   isExpanded={isExpanded}
-                  onToggle={() => setExpandedBadges(prev => ({ ...prev, [badge]: !prev[badge] }))}
+                  onToggle={() => {
+                    const expanding = !expandedBadges[badge];
+                    setExpandedBadges(prev => ({ ...prev, [badge]: expanding }));
+                    if (expanding) {
+                      mixpanel.track('Badge Expanded', {
+                        place_id: effectivePlaceId,
+                        place_name: destination.name,
+                        badge,
+                      });
+                    }
+                  }}
                   theme={theme}
                 >
                       <View style={[styles.badgeIconContainer, { backgroundColor: metadata.color }]}>
@@ -1803,19 +1909,46 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     letterSpacing: 0.1,
   },
-  heroHintPill: {
+  heroExpandButtonOuter: {
     position: 'absolute',
-    top: 12,
+    top: 7,
     right: 12,
     zIndex: 10,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-    paddingHorizontal: 7,
-    paddingVertical: 3,
-    borderRadius: 12,
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  heroHintText: {
-    color: 'rgba(255, 255, 255, 0.6)',
+  heroExpandButton: {
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(0, 0, 0, 0.38)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 0.75,
+    borderColor: 'rgba(255, 255, 255, 0.28)',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+  },
+  heroExpandTooltip: {
+    position: 'absolute',
+    top: 12,
+    right: 50,
+    zIndex: 10,
+    backgroundColor: 'rgba(0, 0, 0, 0.52)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 10,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.18)',
+  },
+  heroExpandTooltipText: {
+    color: 'rgba(255, 255, 255, 0.9)',
     fontSize: 12,
+    fontWeight: '500',
   },
   tapToShowPill: {
     position: 'absolute',

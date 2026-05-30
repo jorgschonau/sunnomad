@@ -21,6 +21,7 @@ import { getWeatherForRadius, getWeatherIcon, getWeatherColor, mapWeatherCode, a
 import { BadgeMetadata, DestinationBadge } from '../../domain/destinationBadge';
 import { playTickSound } from '../../utils/soundUtils';
 import { trackMapViews, trackDetailView } from '../../services/placesService';
+import { mixpanel } from '../../services/mixpanel';
 import { hybridSearch, ensurePlaceInDB } from '../../services/hybridSearchService';
 import { getPlaceDetail, fetchExtendedForecast } from '../../services/placesWeatherService';
 import { getPlaceName } from '../../utils/localization';
@@ -898,6 +899,7 @@ const MapScreen = ({ navigation }) => {
     const newRadius = Math.min(Math.round((radius + step) / step) * step, 5000);
     setRadius(newRadius);
     playTickSound();
+    mixpanel.track('Radius Changed', { radius_km: newRadius, direction: 'increase' });
   };
 
   const handleRadiusDecrease = async () => {
@@ -906,13 +908,14 @@ const MapScreen = ({ navigation }) => {
     const newRadius = Math.max(snapped, isMiles ? milesToKm(25) : 50);
     setRadius(newRadius);
     playTickSound();
+    mixpanel.track('Radius Changed', { radius_km: newRadius, direction: 'decrease' });
   };
 
   const handleRadiusSelect = async (newRadius) => {
     setRadius(newRadius);
     setShowRadiusMenu(false);
     playTickSound();
-    // Note: loadDestinations is debounced in useEffect (500ms delay)
+    mixpanel.track('Radius Changed', { radius_km: newRadius, direction: 'select' });
   };
 
   const handleCloseOnboarding = async () => {
@@ -951,8 +954,10 @@ const MapScreen = ({ navigation }) => {
   // No more dynamic marker scaling - library handles density!
 
   const toggleReverseMode = async () => {
-    setReverseMode(prev => prev === 'warm' ? 'cold' : prev === 'cold' ? 'all' : 'warm');
+    const next = reverseMode === 'warm' ? 'cold' : reverseMode === 'cold' ? 'all' : 'warm';
+    setReverseMode(next);
     await playTickSound();
+    mixpanel.track('Mode Changed', { mode: next });
   };
 
   /**
@@ -1513,6 +1518,7 @@ const MapScreen = ({ navigation }) => {
     setSearchFocused(false);
     Keyboard.dismiss();
     playTickSound();
+    mixpanel.track('Search Used', { query: item.name || item.label, source: item.source || 'local' });
 
     // If Google place, auto-add to DB first (fire-and-forget for the insert, but we need coords)
     if (item.source === 'google') {
@@ -2171,7 +2177,10 @@ const MapScreen = ({ navigation }) => {
             
             <WeatherFilter
               selectedCondition={selectedCondition}
-              onConditionChange={setSelectedCondition}
+              onConditionChange={(condition) => {
+                setSelectedCondition(condition);
+                mixpanel.track('Filter Changed', { filter: condition });
+              }}
             />
           </View>
         )}
