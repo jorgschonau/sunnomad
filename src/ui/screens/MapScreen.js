@@ -1282,6 +1282,7 @@ const MapScreen = ({ navigation }) => {
     const { latitude, longitude } = event.nativeEvent.coordinate;
     
     playTickSound();
+    mixpanel.track('Map Long Press', { latitude, longitude });
     
     const newCenter = {
       latitude,
@@ -1721,7 +1722,7 @@ const MapScreen = ({ navigation }) => {
             placeholderTextColor="#999"
             value={searchQuery}
             onChangeText={handleSearchTextChange}
-            onFocus={() => setSearchFocused(true)}
+            onFocus={() => { setSearchFocused(true); mixpanel.track('Search Field Tapped'); }}
             returnKeyType="search"
             autoCorrect={false}
           />
