@@ -7,7 +7,10 @@ const supabase = createClient(
 )
 
 const BUCKET = 'dedicated'
-const VARIANTS = ['arty', 'goldie', 'pexels', 'chatgpt']
+const VARIANTS = ['arty', 'goldie', 'chatgpt', 'roadtrip', 'cast']
+
+//'pexels',
+
 const LOG_FILE = 'import_log.txt'
 const PAGE_SIZE = 1000
 
@@ -19,41 +22,38 @@ function log(line) {
 function parseFilename(filename) {
   const dotIndex = filename.lastIndexOf('.')
   const basename = dotIndex >= 0 ? filename.slice(0, dotIndex) : filename
-
   const parts = basename.split('_')
-  if (parts.length < 2) {
-    return { ok: false, reason: 'too_few_parts', filename }
+
+  let variantIdx = -1
+  for (let i = parts.length - 1; i >= 0; i--) {
+    if (VARIANTS.includes(parts[i])) {
+      variantIdx = i
+      break
+    }
   }
+  if (variantIdx === -1) return { ok: false, reason: 'bad_variant', filename }
 
-  const lastPart = parts[parts.length - 1]
-  const secondLastPart = parts[parts.length - 2]
+  const variant = parts[variantIdx]
+  const imageSlugParts = parts.slice(0, variantIdx)
+  const afterParts = parts.slice(variantIdx + 1)
 
-  let variant
-  let sortOrder
-  let imageSlugParts
-
-  if (/^\d+$/.test(lastPart)) {
-    sortOrder = Number(lastPart)
-    variant = secondLastPart
-    imageSlugParts = parts.slice(0, -2)
-  } else {
-    sortOrder = 1
-    variant = lastPart
-    imageSlugParts = parts.slice(0, -1)
-  }
+  if (!imageSlugParts.length) return { ok: false, reason: 'missing_slug', filename }
 
   const imageSlug = imageSlugParts.join('_')
 
-  if (!imageSlug) return { ok: false, reason: 'missing_slug', filename }
-  if (!VARIANTS.includes(variant)) return { ok: false, reason: 'bad_variant', filename }
-  if (!Number.isInteger(sortOrder)) return { ok: false, reason: 'bad_sort', filename }
+  let sortOrder = 1
+  for (let i = afterParts.length - 1; i >= 0; i--) {
+    if (/^\d+$/.test(afterParts[i])) {
+      sortOrder = Number(afterParts[i])
+      break
+    }
+  }
 
   return { ok: true, filename, imageSlug, variant, sortOrder }
 }
 
 async function importVariant(variant) {
   log(`\n=== ${variant.toUpperCase()} ===`)
-
   let ok = 0
   let fail = 0
   let offset = 0
@@ -76,17 +76,14 @@ async function importVariant(variant) {
     const batch = files || []
     log(`Fetched ${batch.length} files for ${variant} at offset ${offset}`)
 
-    if (batch.length === 0) {
-      break
-    }
+    if (batch.length === 0) break
 
     for (const file of batch) {
       if (!file.name) continue
 
       const parsed = parseFilename(file.name)
-
       if (!parsed.ok) {
-        log(`SKIP PARSE: ${file.name}`)
+        log(`SKIP PARSE: ${file.name} -> ${parsed.reason}`)
         fail++
         continue
       }
@@ -128,10 +125,7 @@ async function importVariant(variant) {
       ok++
     }
 
-    if (batch.length < PAGE_SIZE) {
-      break
-    }
-
+    if (batch.length < PAGE_SIZE) break
     offset += PAGE_SIZE
   }
 
@@ -140,7 +134,6 @@ async function importVariant(variant) {
 
 async function main() {
   fs.writeFileSync(LOG_FILE, 'IMPORT START\n')
-
   let totalOk = 0
   let totalFail = 0
 
