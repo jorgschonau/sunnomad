@@ -69,3 +69,7 @@ image_check_results/
 debug_import.mjs
 WEATHERBIT_SETUP.md
 .DS_Store
+
+# macOS
+.DS_Store
+.ds_store

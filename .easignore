@@ -1,0 +1,48 @@
+# Output / generated image directories (not used in app)
+pexels_output/
+unsplash_output/
+output/
+canonicals/
+exploit_canonicals/
+image_check_results/
+
+# Large asset subdirectories not referenced in app code
+assets/destinations/dedicated/
+assets/cast/
+assets/cast/old/
+
+# Geodata (shapefiles, not used in build)
+geodata/
+alternateNamesV2.txt
+alternateNamesV2.zip
+alternateNames_filtered.txt
+
+# Python scripts and caches
+*.py
+__pycache__/
+*.orig
+*.rej
+*.patch
+
+# Data files
+*.csv
+*.zip
+*.shp
+*.dbf
+*.prj
+*.cpg
+*.shx
+
+# Docs (not needed for build)
+*.md
+hero_mapping.json
+blacklist.txt
+blacklist_hashes.txt
+enrich_checkpoint.json
+missing_images.csv
+results.csv
+cities.csv
+
+# Misc
+.git-backup/
+analyze_dupes.py
