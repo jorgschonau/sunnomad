@@ -111,11 +111,20 @@ export const searchProfiles = async (query, limit = 10) => {
   }
 };
 
+export const recordAppOpen = async (userId) => {
+  try {
+    await supabase.rpc('increment_app_open', { uid: userId });
+  } catch {
+    // fire-and-forget, non-critical
+  }
+};
+
 export default {
   getProfile,
   updateProfile,
   uploadAvatar,
   searchProfiles,
+  recordAppOpen,
 };
 
 

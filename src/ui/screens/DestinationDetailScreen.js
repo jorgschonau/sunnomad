@@ -480,7 +480,18 @@ const DestinationDetailScreen = ({ route, navigation }) => {
 
   useEffect(() => {
     const placeObj = { id: effectivePlaceId, generic_key: destination.generic_key, name_en: destination.name_en };
-    getDedicatedHeroImage(placeObj).then(url => setHeroUrl(url)).catch(() => {});
+    getDedicatedHeroImage(placeObj).then((hero) => {
+      setHeroUrl(hero.url);
+      if (hero.url !== DEFAULT_HERO_IMAGE_URL) {
+        mixpanel.track('Hero Shown', {
+          place_id: effectivePlaceId,
+          place_name: destination.name,
+          hero_variant: hero.hero_variant,
+          hero_variant_index: hero.hero_variant_index,
+          hero_source: hero.hero_source,
+        });
+      }
+    }).catch(() => {});
   }, [effectivePlaceId]);
 
   // Date offset change: rebuild forecast slots + badges locally (no DB call needed)

@@ -32,6 +32,7 @@ export const AuthProvider = ({ children }) => {
 
       if (session?.user) {
         await loadProfile(session.user.id);
+        profileService.recordAppOpen(session.user.id);
       } else {
         setProfile(null);
       }
@@ -51,6 +52,7 @@ export const AuthProvider = ({ children }) => {
         setSession(session);
         setUser(session.user);
         await loadProfile(session.user.id);
+        profileService.recordAppOpen(session.user.id);
       }
     } catch (error) {
       console.error('Failed to initialize auth:', error);
