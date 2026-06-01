@@ -178,7 +178,7 @@ const MapScreen = ({ navigation }) => {
   const markerJustPressedRef = useRef(false);
   const lastMapTapRef = useRef(0);
   const [radius, setRadius] = useState(500); // Default 500km
-  const [selectedCondition, setSelectedCondition] = useState(null);
+  const [selectedConditions, setSelectedConditions] = useState([]);
   const [selectedDateOffset, setSelectedDateOffset] = useState(0); // 0=today, 1=tomorrow, 3=+3days, 5=+5days
   const [loading, setLoading] = useState(true);
   const [locationError, setLocationError] = useState(null); // Error state for location fetch
@@ -482,7 +482,7 @@ const MapScreen = ({ navigation }) => {
       if (radiusDebounceTimer.current) clearTimeout(radiusDebounceTimer.current);
     };
     // Intentionally omit centerPointWeather: reload only when center *position* changes to avoid double load after long-press
-    // selectedCondition is intentionally omitted: weather filter is applied client-side in visibleMarkers
+    // selectedConditions is intentionally omitted: weather filter is applied client-side in visibleMarkers
   }, [location, radius, centerPoint, reverseMode]);
 
   useEffect(() => {
@@ -1248,14 +1248,14 @@ const MapScreen = ({ navigation }) => {
       return getDistanceKm(effectiveCenter.latitude, effectiveCenter.longitude, lat, lon) <= radius;
     });
     // Client-side weather condition filter (instant, no re-fetch needed)
-    if (selectedCondition) {
-      const cond = selectedCondition.toLowerCase();
+    if (selectedConditions.length > 0) {
+      const normalized = selectedConditions.map((c) => c.toLowerCase());
       candidates = candidates.filter(d =>
-        d.isCurrentLocation || d.isCenterPoint || d.condition?.toLowerCase() === cond
+        d.isCurrentLocation || d.isCenterPoint || normalized.includes(d.condition?.toLowerCase())
       );
     }
     return getVisibleMarkers(candidates, currentZoom, currentBounds, favouriteDestinations);
-  }, [mapViewport, displayDestinations, location, radius, favouriteDestinations, centerPoint, selectedCondition]);
+  }, [mapViewport, displayDestinations, location, radius, favouriteDestinations, centerPoint, selectedConditions]);
 
   // Track map_view_count as a side-effect of visibleMarkers changing
   useEffect(() => {
@@ -2177,10 +2177,10 @@ const MapScreen = ({ navigation }) => {
             <View style={styles.filterSeparator} />
             
             <WeatherFilter
-              selectedCondition={selectedCondition}
-              onConditionChange={(condition) => {
-                setSelectedCondition(condition);
-                mixpanel.track('Filter Changed', { filter: condition });
+              selectedConditions={selectedConditions}
+              onConditionsChange={(conditions) => {
+                setSelectedConditions(conditions);
+                mixpanel.track('Filter Changed', { filter: conditions });
               }}
             />
           </View>

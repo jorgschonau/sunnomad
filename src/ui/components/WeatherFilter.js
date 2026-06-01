@@ -10,20 +10,34 @@ const WEATHER_CONDITIONS = [
   { value: 'snowy', key: 'snowy', icon: 'snow', iconColor: '#1B7A4A', bg: '#D4F5E5', text: '#1B7A4A', activeBg: '#1B7A4A', activeText: '#fff', activeIcon: '#fff' },
 ];
 
-const WeatherFilter = ({ selectedCondition, onConditionChange }) => {
+const WeatherFilter = ({ selectedConditions = [], onConditionsChange }) => {
   const { t } = useTranslation();
+
+  const handlePress = (condition) => {
+    if (condition === null) {
+      onConditionsChange([]);
+      return;
+    }
+    if (selectedConditions.includes(condition)) {
+      onConditionsChange(selectedConditions.filter((c) => c !== condition));
+    } else {
+      onConditionsChange([...selectedConditions, condition]);
+    }
+  };
 
   return (
     <View style={styles.container}>
       <Text style={styles.label}>WEATHER TYPE</Text>
       <View style={styles.grid}>
         {WEATHER_CONDITIONS.map((c) => {
-          const active = selectedCondition === c.value;
+          const active = c.value === null
+            ? selectedConditions.length === 0
+            : selectedConditions.includes(c.value);
           return (
             <TouchableOpacity
               key={c.value || 'all'}
               style={[styles.cell, { backgroundColor: active ? c.activeBg : c.bg }]}
-              onPress={() => onConditionChange(c.value)}
+              onPress={() => handlePress(c.value)}
               activeOpacity={0.7}
             >
               <Ionicons name={c.icon} size={18} color={active ? c.activeIcon : c.iconColor} />
