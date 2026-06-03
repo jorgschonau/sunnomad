@@ -9,6 +9,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, Yellowtail_400Regular } from '@expo-google-fonts/yellowtail';
 import * as Sentry from '@sentry/react-native';
 import { mixpanel, initMixpanel } from './src/services/mixpanel';
+import { useAppLifecycle } from './src/hooks/useAppLifecycle';
 
 Sentry.init({
   dsn: process.env.EXPO_PUBLIC_SENTRY_DSN,
@@ -256,6 +257,7 @@ const splashStyles = StyleSheet.create({
 });
 
 function App() {
+  useAppLifecycle();
   return (
     <ThemeProvider>
       <UnitProvider>

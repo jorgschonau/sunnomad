@@ -20,7 +20,7 @@ const STEPS = [
   { icon: 'navigate-outline', key: 'step4' },
 ];
 
-const OnboardingOverlay = ({ visible, onClose }) => {
+const OnboardingOverlay = ({ visible, onClose, onDismiss }) => {
   const { t } = useTranslation();
 
   return (
@@ -28,7 +28,7 @@ const OnboardingOverlay = ({ visible, onClose }) => {
       visible={visible}
       transparent={true}
       animationType="fade"
-      onRequestClose={onClose}
+      onRequestClose={onDismiss || onClose}
     >
       <View style={styles.overlay}>
         <LinearGradient

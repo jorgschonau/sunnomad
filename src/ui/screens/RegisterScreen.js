@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -15,6 +16,7 @@ import {
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
+import { mixpanel } from '../../services/mixpanel';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -50,6 +52,19 @@ export default function RegisterScreen({ navigation }) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [emailError, setEmailError] = useState('');
+  const signUpCompletedRef = useRef(false);
+
+  useFocusEffect(
+    useCallback(() => {
+      signUpCompletedRef.current = false;
+      mixpanel.track('Register Screen Viewed');
+      return () => {
+        if (!signUpCompletedRef.current) {
+          mixpanel.track('Register Screen Abandoned');
+        }
+      };
+    }, [])
+  );
 
   const validateEmail = (value) => {
     if (!value.trim()) {
@@ -66,27 +81,35 @@ export default function RegisterScreen({ navigation }) {
 
   const handleRegister = async () => {
     if (!email || !password || !confirmPassword || !username) {
+      mixpanel.track('Sign Up Validation Failed', { reason: 'missing_fields' });
       Alert.alert(t('auth.error'), t('auth.fillAllFields'));
       return;
     }
 
-    if (!validateEmail(email)) return;
+    if (!validateEmail(email)) {
+      mixpanel.track('Sign Up Validation Failed', { reason: 'invalid_email' });
+      return;
+    }
 
     if (password !== confirmPassword) {
+      mixpanel.track('Sign Up Validation Failed', { reason: 'passwords_dont_match' });
       Alert.alert(t('auth.error'), t('auth.passwordsDontMatch'));
       return;
     }
 
     if (password.length < 6) {
+      mixpanel.track('Sign Up Validation Failed', { reason: 'password_too_short' });
       Alert.alert(t('auth.error'), t('auth.passwordTooShort'));
       return;
     }
 
     if (username.length < 3) {
+      mixpanel.track('Sign Up Validation Failed', { reason: 'username_too_short' });
       Alert.alert(t('auth.error'), t('auth.usernameTooShort'));
       return;
     }
 
+    mixpanel.track('Sign Up Started');
     setLoading(true);
     const { error } = await signUp(
       email.trim(),
@@ -97,15 +120,20 @@ export default function RegisterScreen({ navigation }) {
     setLoading(false);
 
     if (error) {
+      let reason = 'unknown';
       let errorMessage = error.message || t('auth.tryAgain');
       if (error.message?.includes('already registered')) {
+        reason = 'email_exists';
         errorMessage = t('auth.emailAlreadyExists');
-      }
-      if (error.message?.toLowerCase().includes('rate limit')) {
+      } else if (error.message?.toLowerCase().includes('rate limit')) {
+        reason = 'rate_limit';
         errorMessage = t('auth.emailRateLimitExceeded');
       }
+      mixpanel.track('Sign Up Failed', { reason });
       Alert.alert(t('auth.registrationFailed'), errorMessage);
     } else {
+      signUpCompletedRef.current = true;
+      mixpanel.track('Sign Up Completed');
       Alert.alert(
         t('auth.success'),
         t('auth.accountCreated'),
@@ -204,6 +232,7 @@ export default function RegisterScreen({ navigation }) {
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
                 autoComplete="password"
+                autoCorrect={false}
                 editable={!loading}
               />
               <TouchableOpacity
@@ -232,6 +261,7 @@ export default function RegisterScreen({ navigation }) {
                 onChangeText={setConfirmPassword}
                 secureTextEntry={!showConfirmPassword}
                 autoComplete="password"
+                autoCorrect={false}
                 editable={!loading}
               />
               <TouchableOpacity

@@ -362,6 +362,9 @@
     "resetPasswordFailed": "Could not send email. Please try again.",
     "resendEmail": "Send again"
   },
+  "communityScreen": {
+    "description": "Share your favorite spots, discover recommendations from other travelers, and connect with the community."
+  },
   "profile": {
     "accountInfo": "Account Information",
     "location": "Location",
@@ -370,7 +373,8 @@
     "actions": "Account",
     "editProfile": "Edit Profile",
     "changeEmail": "Change email",
-    "changePassword": "Change password"
+    "changePassword": "Change password",
+    "featureComingSoon": "This feature will be available soon."
   },
   "dateFilter": {
     "weatherFor": "Weather for",

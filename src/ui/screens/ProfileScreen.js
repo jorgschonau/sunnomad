@@ -138,7 +138,7 @@ export default function ProfileScreen({ navigation }) {
 
         <TouchableOpacity
           style={styles.outlineButton}
-          onPress={() => Alert.alert('Coming Soon', 'Change email feature coming soon!')}
+          onPress={() => Alert.alert(t('settings.comingSoon'), t('profile.featureComingSoon'))}
         >
           <Ionicons name="mail-outline" size={20} color={theme.primary} style={styles.actionIcon} />
           <Text style={styles.outlineButtonText}>{t('profile.changeEmail')}</Text>
@@ -147,7 +147,7 @@ export default function ProfileScreen({ navigation }) {
 
         <TouchableOpacity
           style={styles.outlineButton}
-          onPress={() => Alert.alert('Coming Soon', 'Change password feature coming soon!')}
+          onPress={() => Alert.alert(t('settings.comingSoon'), t('profile.featureComingSoon'))}
         >
           <Ionicons name="lock-closed-outline" size={20} color={theme.primary} style={styles.actionIcon} />
           <Text style={styles.outlineButtonText}>{t('profile.changePassword')}</Text>

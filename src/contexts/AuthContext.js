@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import * as authService from '../services/authService';
 import * as profileService from '../services/profileService';
+import { identifyUser, resetMixpanelIdentity } from '../services/mixpanel';
 
 const AuthContext = createContext({});
 
@@ -31,10 +32,14 @@ export const AuthProvider = ({ children }) => {
       setUser(session?.user ?? null);
 
       if (session?.user) {
+        await identifyUser(session.user.id);
         await loadProfile(session.user.id);
         profileService.recordAppOpen(session.user.id);
       } else {
         setProfile(null);
+        if (event === 'SIGNED_OUT') {
+          await resetMixpanelIdentity();
+        }
       }
     });
 
@@ -51,6 +56,7 @@ export const AuthProvider = ({ children }) => {
       if (session?.user) {
         setSession(session);
         setUser(session.user);
+        await identifyUser(session.user.id);
         await loadProfile(session.user.id);
         profileService.recordAppOpen(session.user.id);
       }
@@ -124,6 +130,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setProfile(null);
       setSession(null);
+      await resetMixpanelIdentity();
 
       return { error: null };
     } catch (error) {

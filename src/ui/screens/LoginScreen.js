@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -15,6 +16,7 @@ import {
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
+import { mixpanel } from '../../services/mixpanel';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -47,6 +49,12 @@ export default function LoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [emailError, setEmailError] = useState('');
 
+  useFocusEffect(
+    useCallback(() => {
+      mixpanel.track('Login Screen Viewed');
+    }, [])
+  );
+
   const validateEmail = (value) => {
     if (!value.trim()) {
       setEmailError(t('auth.fillAllFields'));
@@ -61,22 +69,30 @@ export default function LoginScreen({ navigation }) {
   };
 
   const handleLogin = async () => {
-    if (!validateEmail(email)) return;
+    if (!validateEmail(email)) {
+      mixpanel.track('Login Validation Failed', { reason: 'invalid_email' });
+      return;
+    }
 
     if (!password) {
+      mixpanel.track('Login Validation Failed', { reason: 'missing_password' });
       Alert.alert(t('auth.error'), t('auth.fillAllFields'));
       return;
     }
 
+    mixpanel.track('Login Started');
     setLoading(true);
     const { error } = await signIn(email.trim(), password);
     setLoading(false);
 
     if (error) {
+      mixpanel.track('Login Failed', { reason: 'invalid_credentials' });
       Alert.alert(
         t('auth.loginFailed'),
         error.message || t('auth.checkCredentials')
       );
+    } else {
+      mixpanel.track('Login Completed');
     }
   };
 
@@ -142,6 +158,7 @@ export default function LoginScreen({ navigation }) {
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
                 autoComplete="password"
+                autoCorrect={false}
                 editable={!loading}
               />
               <TouchableOpacity
@@ -186,7 +203,10 @@ export default function LoginScreen({ navigation }) {
         <View style={styles.footer}>
           <Text style={styles.footerText}>{t('auth.noAccount')}</Text>
           <TouchableOpacity
-            onPress={() => navigation.navigate('Register')}
+            onPress={() => {
+              mixpanel.track('Sign Up Link Tapped');
+              navigation.navigate('Register');
+            }}
             disabled={loading}
           >
             <Text style={styles.linkText}>{t('auth.signUp')}</Text>

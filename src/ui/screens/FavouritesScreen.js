@@ -12,6 +12,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeProvider';
 import { getFavourites, removeFromFavourites } from '../../usecases/favouritesUsecases';
+import { mixpanel } from '../../services/mixpanel';
 import { getWeatherIcon, getWeatherColor } from '../../usecases/weatherUsecases';
 import { useUnits } from '../../contexts/UnitContext';
 import { formatTemperature, formatWindSpeed } from '../../utils/unitConversion';
@@ -44,6 +45,7 @@ const FavouritesScreen = ({ navigation }) => {
   // Reload favourites when screen comes into focus
   useFocusEffect(
     useCallback(() => {
+      mixpanel.track('Favourites Opened');
       loadFavourites();
     }, [])
   );

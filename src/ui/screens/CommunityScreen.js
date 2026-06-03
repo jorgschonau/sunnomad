@@ -4,18 +4,19 @@ import {
   Text,
   StyleSheet,
 } from 'react-native';
+import { useTranslation } from 'react-i18next';
 
 const CommunityScreen = () => {
+  const { t } = useTranslation();
 
   return (
     <View style={styles.container}>
       <View style={styles.content}>
         <Text style={styles.title}>🌍</Text>
-        <Text style={styles.heading}>Community</Text>
-        <Text style={styles.subtitle}>Coming Soon</Text>
+        <Text style={styles.heading}>{t('app.community')}</Text>
+        <Text style={styles.subtitle}>{t('settings.comingSoon')}</Text>
         <Text style={styles.description}>
-          Teile deine Lieblingsorte, entdecke Empfehlungen von anderen Reisenden
-          und vernetze dich mit der Community.
+          {t('communityScreen.description')}
         </Text>
       </View>
     </View>
@@ -58,7 +59,3 @@ const styles = StyleSheet.create({
 });
 
 export default CommunityScreen;
-
-
-
-

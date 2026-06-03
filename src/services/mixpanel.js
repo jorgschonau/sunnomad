@@ -7,6 +7,15 @@ const STORAGE_KEY = 'mp_distinct_id';
 
 let distinctId = 'anonymous';
 
+async function persistDistinctId(id) {
+  distinctId = id;
+  try {
+    await AsyncStorage.setItem(STORAGE_KEY, id);
+  } catch {
+    /* keep in-memory id */
+  }
+}
+
 export async function initMixpanel() {
   try {
     let id = await AsyncStorage.getItem(STORAGE_KEY);
@@ -18,6 +27,17 @@ export async function initMixpanel() {
   } catch {
     distinctId = 'anonymous';
   }
+}
+
+/** Tie events to Supabase user id after login. */
+export async function identifyUser(userId) {
+  if (!userId) return;
+  await persistDistinctId(String(userId));
+}
+
+/** New anonymous id after logout. */
+export async function resetMixpanelIdentity() {
+  await persistDistinctId(uuidv4());
 }
 
 function send(event, properties = {}) {
@@ -34,5 +54,7 @@ function send(event, properties = {}) {
 
 export const mixpanel = {
   track: send,
+  identify: identifyUser,
+  reset: resetMixpanelIdentity,
   flush: () => {},
 };

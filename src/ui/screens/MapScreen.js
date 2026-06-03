@@ -239,6 +239,7 @@ const MapScreen = ({ navigation }) => {
    * Sets all required state so the map fully initializes without crashing.
    */
   const skipToDefaultLocation = useCallback(() => {
+    mixpanel.track('Location Permission Skipped');
     try {
       setLocation(DEFAULT_LOCATION);
       setLocationError(null);
@@ -295,6 +296,7 @@ const MapScreen = ({ navigation }) => {
 
     if (!hasSeenOnboarding) {
       setShowOnboarding(true);
+      mixpanel.track('Onboarding Shown');
     }
 
     if (savedCenter) {
@@ -405,6 +407,7 @@ const MapScreen = ({ navigation }) => {
   };
 
   useEffect(() => {
+    mixpanel.track('Map Opened');
     initializeLocation();
   }, []);
 
@@ -918,10 +921,14 @@ const MapScreen = ({ navigation }) => {
     mixpanel.track('Radius Changed', { radius_km: newRadius, direction: 'select' });
   };
 
-  const handleCloseOnboarding = async () => {
+  const finishOnboarding = async (event) => {
     await AsyncStorage.setItem('hasSeenOnboarding', 'true');
     setShowOnboarding(false);
+    mixpanel.track(event);
   };
+
+  const handleCloseOnboarding = () => finishOnboarding('Onboarding Completed');
+  const handleDismissOnboarding = () => finishOnboarding('Onboarding Skipped');
 
   const getStabilitySymbol = (destination) => {
     // TREND: Compare TODAY vs TOMORROW from forecast data
@@ -1711,6 +1718,7 @@ const MapScreen = ({ navigation }) => {
       <OnboardingOverlay 
         visible={showOnboarding} 
         onClose={handleCloseOnboarding}
+        onDismiss={handleDismissOnboarding}
       />
       
       {/* Google Places Search Bar */}
@@ -2171,7 +2179,10 @@ const MapScreen = ({ navigation }) => {
           }]}>
             <DateFilter
               selectedDateOffset={selectedDateOffset}
-              onDateOffsetChange={setSelectedDateOffset}
+              onDateOffsetChange={(offset) => {
+                setSelectedDateOffset(offset);
+                mixpanel.track('Date Filter Changed', { date_offset: offset });
+              }}
             />
             
             <View style={styles.filterSeparator} />
