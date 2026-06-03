@@ -38,7 +38,7 @@ const getStateName = async (lat, lon, countryCode) => {
     const url = `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lon}&format=json&addressdetails=1`;
     const res = await fetch(url, {
       headers: {
-        'User-Agent': 'SunNomad/1.0 hola@sunnomad.com',
+        'User-Agent': 'SunNomad/1.0 hola@sunnomad.app',
         'Accept-Language': 'en'
       }
     });

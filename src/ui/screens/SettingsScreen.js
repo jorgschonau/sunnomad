@@ -179,6 +179,12 @@ const SettingsScreen = ({ navigation }) => {
         </Text>
       </TouchableOpacity>
 
+      <TouchableOpacity onPress={() => Linking.openURL('mailto:hola@sunnomad.app')}>
+        <Text style={[styles.attribution, styles.attributionTight, { color: theme.textTertiary }]}>
+          {t('settings.feedback')}
+        </Text>
+      </TouchableOpacity>
+
       <Text style={[styles.attribution, { color: theme.textTertiary }]}>
         Weather data by Open-Meteo.com
       </Text>
@@ -245,6 +251,10 @@ const styles = StyleSheet.create({
     marginTop: 32,
     marginBottom: 24,
     opacity: 0.5,
+  },
+  attributionTight: {
+    marginTop: 8,
+    marginBottom: 0,
   },
 });
 
