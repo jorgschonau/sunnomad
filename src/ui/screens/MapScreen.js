@@ -136,13 +136,22 @@ const DestinationMarker = ({
   );
 };
 
-// Map boundaries - restrict visible area
+// Map boundaries — EU + NA + TR + Maghreb (Americas west of -25° via search split)
 const MAP_BOUNDS = {
   north: 75,   // Spitzbergen + Puffer
   south: 15,   // Südlich von Mexico City + Puffer
   west: -175,  // Alaska + Pazifik-Inseln
   east: 50     // Östlich Ural + Puffer
 };
+
+function isWithinSupportedMapRegion(latitude, longitude) {
+  return (
+    latitude >= MAP_BOUNDS.south &&
+    latitude <= MAP_BOUNDS.north &&
+    longitude >= MAP_BOUNDS.west &&
+    longitude <= MAP_BOUNDS.east
+  );
+}
 
 const LOADING_STATES = [
   { text: 'Suche GPS Signal... 🛰️', duration: 2000 },
@@ -213,14 +222,23 @@ const MapScreen = ({ navigation }) => {
     longitudeDelta: 2,
   };
 
-  const applyLocationFromPosition = useCallback((position) => {
+  const applyLocationFromPosition = useCallback((position, { notifyFallback = false } = {}) => {
     if (!position?.coords) return;
-    const initialRegion = {
-      latitude: position.coords.latitude,
-      longitude: position.coords.longitude,
-      latitudeDelta: 2,
-      longitudeDelta: 2,
-    };
+    const { latitude, longitude } = position.coords;
+    const outsideSupported = !isWithinSupportedMapRegion(latitude, longitude);
+    const initialRegion = outsideSupported
+      ? { ...DEFAULT_LOCATION }
+      : {
+          latitude,
+          longitude,
+          latitudeDelta: 2,
+          longitudeDelta: 2,
+        };
+    if (outsideSupported) {
+      __DEV__ && console.warn(
+        `GPS outside supported map (${latitude}, ${longitude}) → Frankfurt fallback`
+      );
+    }
     setLocation(initialRegion);
     setMapViewport(prev => ({
       ...prev,
@@ -232,7 +250,10 @@ const MapScreen = ({ navigation }) => {
       },
     }));
     setLocationError(null);
-  }, []);
+    if (outsideSupported && notifyFallback) {
+      showToast(t('map.usingDefaultLocation'), 'info');
+    }
+  }, [t]);
 
   /**
    * Skip location → use default (Frankfurt).
@@ -363,7 +384,7 @@ const MapScreen = ({ navigation }) => {
         maxAge: 60000,
       });
       if (lastKnown?.coords) {
-        applyLocationFromPosition(lastKnown);
+        applyLocationFromPosition(lastKnown, { notifyFallback: true });
         setLoading(false);
         hasInstantLocation = true;
       }
@@ -379,7 +400,7 @@ const MapScreen = ({ navigation }) => {
         maximumAge: 10000,
       });
       if (fresh?.coords) {
-        applyLocationFromPosition(fresh);
+        applyLocationFromPosition(fresh, { notifyFallback: true });
         setLoading(false);
         return;
       }
@@ -1468,7 +1489,7 @@ const MapScreen = ({ navigation }) => {
         return;
       }
 
-      applyLocationFromPosition(position);
+      applyLocationFromPosition(position, { notifyFallback: true });
       setCenterPoint(null);
       setCenterPointWeather(null);
       setLocationError(null);
