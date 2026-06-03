@@ -7,6 +7,27 @@ const DEDICATED_BUCKET_URL =
 
 export const DEFAULT_HERO_IMAGE_URL = `${GENERIC_BUCKET_URL}/default/eu_north_smalltown.webp`;
 
+/** TEMP (showcase): Goldie artwork promo — delete block + pickDedicatedRow branch when done. */
+const GOLDIE_ONLY_PLACE_NAMES = new Set(['Dogtown', 'Dublin', 'Dresden']);
+
+function isGoldieOnlyPlace(place) {
+  const name = place?.name_en || place?.name;
+  return !!name && GOLDIE_ONLY_PLACE_NAMES.has(name);
+}
+
+function pickDedicatedRow(dedicated, place) {
+  if (!isGoldieOnlyPlace(place)) {
+    return dedicated[Math.floor(Math.random() * dedicated.length)];
+  }
+  const goldieRows = dedicated
+    .filter(
+      (r) =>
+        r.variant === 'goldie' || String(r.storage_path || '').includes('/goldie/')
+    )
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
+  return goldieRows[0] ?? dedicated[0];
+}
+
 function heroResult(url, { hero_variant = null, hero_variant_index = null, hero_source = 'default' } = {}) {
   return { url, hero_variant, hero_variant_index, hero_source };
 }
@@ -31,7 +52,7 @@ export async function getHeroImage(place) {
     if (error && __DEV__) {
       console.warn('place_hero_images (dedicated):', error.message);
     } else if (dedicated?.length) {
-      const pick = dedicated[Math.floor(Math.random() * dedicated.length)];
+      const pick = pickDedicatedRow(dedicated, place);
       const path = String(pick.storage_path || '').replace(/^\/+/, '');
       if (path) {
         const url = `${DEDICATED_BUCKET_URL}/${path}`;
