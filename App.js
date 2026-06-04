@@ -2,6 +2,7 @@ import 'react-native-gesture-handler';
 import 'react-native-get-random-values';
 import React, { useEffect, useState, useCallback } from 'react';
 import { ActivityIndicator, View, Image, Text, StyleSheet } from 'react-native';
+import Constants from 'expo-constants';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -256,18 +257,56 @@ const splashStyles = StyleSheet.create({
   },
 });
 
+function DevBuildBanner() {
+  if (!__DEV__) return null;
+  const version = Constants.nativeApplicationVersion ?? '?';
+  const build = Constants.nativeBuildVersion ?? '?';
+  return (
+    <View style={devBannerStyles.wrap} pointerEvents="none">
+      <Text style={devBannerStyles.text}>
+        DEV · v{version} ({build})
+        {Constants.expoConfig?.extra?.appVariant === 'development' ? ' · SunNomad Dev' : ''}
+      </Text>
+    </View>
+  );
+}
+
 function App() {
   useAppLifecycle();
   return (
     <ThemeProvider>
       <UnitProvider>
         <AuthProvider>
-          <StatusBar style="dark" backgroundColor="#F5F0EB" />
-          <RootNavigator />
+          <View style={devBannerStyles.root}>
+            <StatusBar style="dark" backgroundColor="#F5F0EB" />
+            <RootNavigator />
+            <DevBuildBanner />
+          </View>
         </AuthProvider>
       </UnitProvider>
     </ThemeProvider>
   );
 }
+
+const devBannerStyles = StyleSheet.create({
+  root: { flex: 1 },
+  wrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    paddingBottom: 10,
+    paddingTop: 4,
+    alignItems: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    zIndex: 9999,
+  },
+  text: {
+    color: '#fff',
+    fontSize: 11,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+  },
+});
 
 export default Sentry.wrap(App);
