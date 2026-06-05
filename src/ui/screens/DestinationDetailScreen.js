@@ -202,7 +202,14 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const [localBadges, setLocalBadges] = useState(destination?.badges || []);
   const [badgeSource, setBadgeSource] = useState(destination);
   const [firstLineW, setFirstLineW] = useState(null);
-  const [heroUrl, setHeroUrl] = useState(null);
+  const [heroMeta, setHeroMeta] = useState(null);
+
+  const getHeroTrackingProps = () => ({
+    hero_image_name: heroMeta?.hero_image_name ?? destination.generic_key ?? null,
+    hero_variant: heroMeta?.hero_variant ?? null,
+    hero_variant_index: heroMeta?.hero_variant_index ?? null,
+    hero_source: heroMeta?.hero_source ?? 'local',
+  });
   const [heroHintVisible, setHeroHintVisible] = useState(false);
   const scrollViewRef = React.useRef(null);
   const stopStayCardY = React.useRef(0);
@@ -481,11 +488,12 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   useEffect(() => {
     const placeObj = { id: effectivePlaceId, generic_key: destination.generic_key, name_en: destination.name_en };
     getDedicatedHeroImage(placeObj).then((hero) => {
-      setHeroUrl(hero.url);
+      setHeroMeta(hero);
       if (hero.url !== DEFAULT_HERO_IMAGE_URL) {
         mixpanel.track('Hero Shown', {
           place_id: effectivePlaceId,
           place_name: destination.name,
+          hero_image_name: hero.hero_image_name,
           hero_variant: hero.hero_variant,
           hero_variant_index: hero.hero_variant_index,
           hero_source: hero.hero_source,
@@ -600,11 +608,13 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         animateFavourite(result.isFavourite);
         setIsFavourite(result.isFavourite);
         showFavToast(result.isFavourite ? t('favourites.saved') : t('favourites.removed'));
-        mixpanel.track(result.isFavourite ? 'Destination Favourited' : 'Destination Unfavourited', {
+        const favProps = {
           place_id: effectivePlaceId,
           place_name: destination.name,
           country_code: destination.countryCode || destination.country_code,
-        });
+          ...getHeroTrackingProps(),
+        };
+        mixpanel.track(result.isFavourite ? 'Destination Favourited' : 'Destination Unfavourited', favProps);
       } else {
         if (__DEV__) console.warn('Toggle favourite failed:', result.message);
         showFavToast(result.message || 'Failed to update favourites');
@@ -624,6 +634,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       place_id: effectivePlaceId,
       place_name: destination.name,
       action: newFocused ? 'expand' : 'collapse',
+      ...getHeroTrackingProps(),
     });
 
     LayoutAnimation.configureNext({
@@ -696,6 +707,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         place_name: destination.name,
         country_code: destination.countryCode || destination.country_code,
         distance_km: destination.distance,
+        ...getHeroTrackingProps(),
       });
       await openInMaps(destination, NavigationProvider.AUTO);
     } catch (error) {
@@ -942,8 +954,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     return false;
   };
 
-  const heroSource = heroUrl && heroUrl !== DEFAULT_HERO_IMAGE_URL
-    ? { uri: heroUrl }
+  const heroSource = heroMeta?.url && heroMeta.url !== DEFAULT_HERO_IMAGE_URL
+    ? { uri: heroMeta.url }
     : getHeroImage(destination);
   const hasHero = !!heroSource;
   const useDarkText = !hasHero && needsDarkText();

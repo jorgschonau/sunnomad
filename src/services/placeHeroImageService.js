@@ -28,8 +28,15 @@ function pickDedicatedRow(dedicated, place) {
   return goldieRows[0] ?? dedicated[0];
 }
 
-function heroResult(url, { hero_variant = null, hero_variant_index = null, hero_source = 'default' } = {}) {
-  return { url, hero_variant, hero_variant_index, hero_source };
+function heroImageNameFromPath(path) {
+  if (!path) return null;
+  const base = String(path).split('/').pop() || path;
+  const dot = base.lastIndexOf('.');
+  return dot >= 0 ? base.slice(0, dot) : base;
+}
+
+function heroResult(url, { hero_variant = null, hero_variant_index = null, hero_source = 'default', hero_image_name = null } = {}) {
+  return { url, hero_variant, hero_variant_index, hero_source, hero_image_name };
 }
 
 /**
@@ -61,6 +68,7 @@ export async function getHeroImage(place) {
           hero_variant: pick.variant ?? null,
           hero_variant_index: pick.sort_order ?? null,
           hero_source: 'dedicated',
+          hero_image_name: heroImageNameFromPath(path),
         });
       }
     }
@@ -85,11 +93,12 @@ export async function getHeroImage(place) {
         return heroResult(url, {
           hero_variant_index: index,
           hero_source: 'generic',
+          hero_image_name: heroImageNameFromPath(path),
         });
       }
     }
   }
 
   if (__DEV__) console.log('[getHeroImage] branch: fallback, url:', DEFAULT_HERO_IMAGE_URL, 'name_en:', place?.name_en);
-  return heroResult(DEFAULT_HERO_IMAGE_URL);
+  return heroResult(DEFAULT_HERO_IMAGE_URL, { hero_image_name: 'default_eu_north_smalltown' });
 }
