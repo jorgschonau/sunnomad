@@ -95,7 +95,7 @@ const getDisplaySunnyStreak = (dest) => {
   return max;
 };
 
-const AnimatedBadgeCard = ({ index, destination, badge, isExpanded, onToggle, theme, children }) => {
+const AnimatedBadgeCard = ({ index, destination, badge, isExpanded, onToggle, theme, overHero, children }) => {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const slideAnim = React.useRef(new Animated.Value(50)).current;
   const scaleAnim = React.useRef(new Animated.Value(0.8)).current;
@@ -134,7 +134,7 @@ const AnimatedBadgeCard = ({ index, destination, badge, isExpanded, onToggle, th
       <Animated.View
         style={[
           styles.badgeCard,
-          { backgroundColor: theme.background },
+          { backgroundColor: overHero ? 'rgba(255,255,255,0.92)' : theme.background },
           {
             opacity: fadeAnim,
             transform: [
@@ -620,12 +620,11 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const toggleUiFocus = useCallback(() => {
     const newFocused = !uiFocused;
     setUiFocused(newFocused);
-    if (newFocused) {
-      mixpanel.track('Hero Image Expanded', {
-        place_id: effectivePlaceId,
-        place_name: destination.name,
-      });
-    }
+    mixpanel.track('Hero Image Toggled', {
+      place_id: effectivePlaceId,
+      place_name: destination.name,
+      action: newFocused ? 'expand' : 'collapse',
+    });
 
     LayoutAnimation.configureNext({
       duration: 300,
@@ -969,9 +968,9 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       showsHorizontalScrollIndicator={false}
       ref={scrollViewRef}
     >
-      <View style={{ position: 'relative', minHeight: 440 }}>
+      <View style={{ position: 'relative', minHeight: 500 }}>
       {heroSource && (
-        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 440, overflow: 'hidden' }}>
+        <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 500, overflow: 'hidden' }}>
           <Animated.Image
             source={heroSource}
             style={{ width: '100%', height: '100%', top: 0, transform: [{ scale: heroScaleAnim }] }}
@@ -1029,6 +1028,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           </Animated.View>
         </>
       )}
+      <View style={styles.heroContent}>
       <View style={[styles.header, { backgroundColor: heroSource ? 'transparent' : getWeatherColor(heroCondition, heroTemp) }]}>
   <View style={styles.headerTop}>
     <View style={styles.headerNameContainer}>
@@ -1167,42 +1167,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   </View>
   )}
 
-
 </View>
 
-
-      <View style={styles.content}>
-        {!uiFocused && (
-        <View style={[styles.mainInfo, { 
-          backgroundColor: theme.surface,
-          shadowColor: theme.shadow
-        }]}>
-          <View style={[styles.statsContainer, { borderTopColor: theme.border }]}>
-            <View style={styles.statItem}>
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('destination.sun')}</Text>
-              <Text style={[styles.statValue, { color: theme.text }]}>{getSunshineHours()} {t('destination.hoursShort')}</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('destination.humidity')}</Text>
-              <Text style={[styles.statValue, { color: theme.text }]}>{forecast.humidity || 0}%</Text>
-            </View>
-            <View style={styles.statItem}>
-              <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('destination.wind')}</Text>
-              <Text style={[styles.statValue, { color: theme.text }]}>{t(getWindDescriptionKey(forecast.windSpeed))}</Text>
-            </View>
-          </View>
-        </View>
-        )}
-
-        {/* Badge + Forecast — deferred until after navigation transition */}
-        {readyForDetails && (
-        <View>
-        {!uiFocused && localBadges && localBadges.length > 0 && (
-          <View style={[styles.badgeSection, {
-            backgroundColor: theme.surface,
-            shadowColor: theme.shadow
-          }]}>
-            <Text style={[styles.sectionTitle, { color: theme.text }]}>{t('badges.awards')}</Text>
+  {!uiFocused && readyForDetails && localBadges && localBadges.length > 0 && (
+        <View style={styles.heroBadges}>
             {localBadges
               .sort((a, b) => (BadgeMetadata[a]?.priority || 99) - (BadgeMetadata[b]?.priority || 99))
               .map((badge, index) => {
@@ -1293,6 +1261,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                     }
                   }}
                   theme={theme}
+                  overHero
                 >
                       <View style={[styles.badgeIconContainer, { backgroundColor: metadata.color }]}>
                         {typeof metadata.icon === 'string' ? (
@@ -1472,11 +1441,31 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                 </AnimatedBadgeCard>
               );
             })}
-          </View>
-        )}
+        </View>
+      )}
 
-        {/* Dorthin fahren Button - nach Badges */}
-        {!uiFocused && (
+      {!uiFocused && (
+        <View style={styles.heroFooter}>
+          <View style={[styles.mainInfo, {
+            backgroundColor: theme.surface,
+            shadowColor: theme.shadow,
+            marginBottom: 10,
+          }]}>
+            <View style={[styles.statsContainer, { borderTopColor: theme.border }]}>
+              <View style={styles.statItem}>
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('destination.sun')}</Text>
+                <Text style={[styles.statValue, { color: theme.text }]}>{getSunshineHours()} {t('destination.hoursShort')}</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('destination.humidity')}</Text>
+                <Text style={[styles.statValue, { color: theme.text }]}>{forecast.humidity || 0}%</Text>
+              </View>
+              <View style={styles.statItem}>
+                <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('destination.wind')}</Text>
+                <Text style={[styles.statValue, { color: theme.text }]}>{t(getWindDescriptionKey(forecast.windSpeed))}</Text>
+              </View>
+            </View>
+          </View>
           <TouchableOpacity
             style={[styles.driveButtonTop, {
               backgroundColor: theme.primary,
@@ -1486,11 +1475,14 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           >
             <Text style={styles.driveButtonTopText}>{t('destination.driveThere')}</Text>
           </TouchableOpacity>
-        )}
+        </View>
+      )}
+
       </View>
-        )}
+
       </View>
-      </View>
+
+
 
       {readyForDetails && (
       <View style={{ padding: 20, paddingTop: 0, marginTop: -22 }}>
@@ -1641,8 +1633,23 @@ const styles = StyleSheet.create({
   header: {
     padding: 20,
     paddingTop: 28,
-    paddingBottom: 14,
+    paddingBottom: 0,
     position: 'relative',
+  },
+  heroContent: {
+    minHeight: 500,
+    flexDirection: 'column',
+    zIndex: 1,
+  },
+  heroBadges: {
+    paddingHorizontal: 20,
+    marginTop: 8,
+  },
+  heroFooter: {
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 16,
+    marginTop: 'auto',
   },
 
   headerTempRow: {
@@ -1707,14 +1714,11 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 4,
   },
-  content: {
-    padding: 20,
-    paddingTop: 30,
-  },
   mainInfo: {
     borderRadius: 14,
     padding: 14,
-    marginBottom: 16,
+    zIndex: 1,
+    marginBottom: 10,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
@@ -1749,20 +1753,11 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
-  badgeSection: {
-    borderRadius: 14,
-    padding: 18,
-    marginBottom: 20,
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
   badgeCard: {
     flexDirection: 'row',
     padding: 14,
     borderRadius: 12,
-    marginBottom: 10,
+    marginBottom: 5,
   },
   badgeIconContainer: {
     width: 44,
