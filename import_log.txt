@@ -1,26 +1,11 @@
 IMPORT START
 
 === ARTY ===
-Fetched 71 files for arty at offset 0
-NO MATCH: sardinia_beaches_it_arty_1.webp -> sardinia_beaches_it
+Fetched 78 files for arty at offset 0
 
 === GOLDIE ===
 Fetched 64 files for goldie at offset 0
 NO MATCH: us_iowa_goldie_1.webp -> us_iowa
-NO MATCH: yosemite_national_park_us_goldie_1.webp -> yosemite_national_park_us
-
-=== PEXELS ===
-Fetched 1000 files for pexels at offset 0
-NO MATCH: ahrweiler_de_pexels_1.webp -> ahrweiler_de
-Fetched 1000 files for pexels at offset 1000
-NO MATCH: klitmoller_dk_pexels_1.webp -> klitmoller_dk
-SKIP PARSE: merano_it_unsplash_1.webp
-Fetched 451 files for pexels at offset 2000
-NO MATCH: stade_de_pexels_1.webp -> stade_de
-SKIP PARSE: unaccented
-NO MATCH: vatnajokull_national_park_is_pexels_1.webp -> vatnajokull_national_park_is
-NO MATCH: yosemite_national_park_us_pexels_1.webp -> yosemite_national_park_us
-NO MATCH: yosemite_national_park_us_pexels_2.webp -> yosemite_national_park_us
 
 === CHATGPT ===
 Fetched 78 files for chatgpt at offset 0
@@ -29,6 +14,16 @@ NO MATCH: goreme_tr_chatgpt.webp -> goreme_tr
 NO MATCH: graceland_us_chatgpt.webp -> graceland_us
 NO MATCH: kelhsteinhaus_de_chatgpt.webp -> kelhsteinhaus_de
 
+=== ROADTRIP ===
+Fetched 8 files for roadtrip at offset 0
+NO MATCH: torshavn_dk_roadtrip_1.webp -> torshavn_dk
+
+=== CAST ===
+Fetched 22 files for cast at offset 0
+NO MATCH: geneva_ch_cast_regina_1.png -> geneva_ch
+NO MATCH: geneva_ch_cast_regina_1.webp -> geneva_ch
+NO MATCH: sun_valley_us_cast_regina_1..png -> sun_valley_us
+
 === DONE ===
-SUCCESS: 2649
-FAILED: 15
+SUCCESS: 241
+FAILED: 9

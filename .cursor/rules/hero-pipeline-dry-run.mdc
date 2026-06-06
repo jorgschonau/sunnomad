@@ -1,0 +1,30 @@
+---
+description: generate_hero_images — always suggest dry-run; never --no-dry-run unless user explicitly requests upload
+alwaysApply: true
+---
+
+# Hero pipeline: dry-run default
+
+## User rule (standing)
+
+- **All suggested `python3 generate_hero_images.py` commands use dry-run** (script default — do not add `--dry-run` or `--no-dry-run`).
+- **Never put `--no-dry-run` in a command** unless the user explicitly asks for upload / Supabase / production / "kein dry-run".
+- User terminal logs that contain `--no-dry-run` are often **their own debug runs** — not permission to copy that flag into suggestions.
+
+## When giving commands
+
+- Omit both `--dry-run` and `--no-dry-run` (default is local save under `~/sunnomad_output/`).
+- Do not bundle "production" flags (`--no-dry-run`, sometimes `--no-review`) just because the task sounds like a batch or top-10 run.
+- Upload / DB / filename behavior for `--no-dry-run` only if the user asks — not proactively.
+
+## EU / US flags (separate from dry-run)
+
+- EU batch: `--safe --eu` only.
+- US batch: `--safe --us`.
+- **Never suggest `--continental`** in batch commands — continental premium is auto-selected by `pick_premium_layer` (or not). Only add `--continental` if the user explicitly asks to force it.
+- Same for other premium flags (`--noir`, `--viper`, `--eclipse`, `--sidewinder`, etc.) — auto or user-request only, not in default batch suggestions.
+- Activities are on by default; use `--no-activities` to skip (do not add `--activity`).
+
+## Before every command block
+
+Ask: *Did the user explicitly request upload this turn?* If no → no `--no-dry-run`.

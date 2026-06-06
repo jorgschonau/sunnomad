@@ -43,6 +43,10 @@ missing_images.csv
 results.csv
 cities.csv
 
+# Native projects: EAS prebuilds from app.config.js (APP_VARIANT → com.sunnomad.app.dev)
+ios/
+android/
+
 # Misc
 .git-backup/
 analyze_dupes.py

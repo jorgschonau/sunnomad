@@ -1,0 +1,7 @@
+{
+  "_readme": "\"Place\": \"char\" = force char. \"Place\": \"*\" = all cast chars active. Empty = auto (most images).",
+  "_no_pexels": ["Tavira"],
+  "Brussels": "regina",
+  "Vienna": "regina",
+  "Wacken": "*"
+}

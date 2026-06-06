@@ -173,15 +173,34 @@ const SettingsScreen = ({ navigation }) => {
         ) : null}
       </View>
 
+      <View style={[styles.section, { backgroundColor: theme.surface }]}>
+        <Text style={[styles.sectionTitle, { backgroundColor: theme.background, color: theme.text }]}>
+          {t('settings.feedback')}
+        </Text>
+
+        <TouchableOpacity
+          style={[
+            styles.settingItem,
+            { backgroundColor: theme.surface, borderBottomColor: theme.background }
+          ]}
+          onPress={() => Linking.openURL('mailto:hola@sunnomad.app')}
+        >
+          <Text style={styles.settingItemFlag}>💬</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.settingItemText, { color: theme.text }]}>
+              {t('settings.feedbackPrompt')}
+            </Text>
+            <Text style={[styles.settingItemSubtext, { color: theme.primary }]}>
+              hola@sunnomad.app
+            </Text>
+          </View>
+          <Text style={[styles.arrow, { color: theme.textSecondary }]}>›</Text>
+        </TouchableOpacity>
+      </View>
+
       <TouchableOpacity onPress={() => Linking.openURL('https://sunnomad.app/privacy')}>
         <Text style={[styles.attribution, { color: theme.textTertiary }]}>
           Privacy Policy
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={() => Linking.openURL('mailto:hola@sunnomad.app')}>
-        <Text style={[styles.attribution, styles.attributionTight, { color: theme.textTertiary }]}>
-          {t('settings.feedback')}
         </Text>
       </TouchableOpacity>
 
@@ -251,10 +270,6 @@ const styles = StyleSheet.create({
     marginTop: 32,
     marginBottom: 24,
     opacity: 0.5,
-  },
-  attributionTight: {
-    marginTop: 8,
-    marginBottom: 0,
   },
 });
 

@@ -215,7 +215,8 @@
     "beaufort": "Beaufort (Bft)",
     "millimeters": "Millimeters (mm)",
     "inches": "Inches (in)",
-    "feedback": "We'd love your feedback — hola@sunnomad.app"
+    "feedback": "Feedback",
+    "feedbackPrompt": "We'd love your feedback"
   },
   "onboarding": {
     "welcome": "Welcome!",
