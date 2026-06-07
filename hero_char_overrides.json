@@ -1,5 +1,7 @@
 {
   "_readme": "\"Place\": \"char\" = force char. \"Place\": \"*\" = all cast chars active. Empty = auto (most images).",
+  "_goldie_only_showcase_readme": "TEMP Goldie artwork promo — sync activates only one goldie image; pipeline generates goldie-only. Remove key when showcase ends.",
+  "_goldie_only_showcase": ["Dublin", "Dresden", "Dogtown"],
   "_no_pexels": ["Tavira"],
   "Brussels": "regina",
   "Vienna": "regina",

@@ -39,6 +39,37 @@ function heroResult(url, { hero_variant = null, hero_variant_index = null, hero_
   return { url, hero_variant, hero_variant_index, hero_source, hero_image_name };
 }
 
+function dedicatedRowToHero(row) {
+  const path = String(row.storage_path || '').replace(/^\/+/, '');
+  if (!path) return null;
+  return heroResult(`${DEDICATED_BUCKET_URL}/${path}`, {
+    hero_variant: row.variant ?? null,
+    hero_variant_index: row.sort_order ?? null,
+    hero_source: 'dedicated',
+    hero_image_name: heroImageNameFromPath(path),
+  });
+}
+
+/** Dev: all active dedicated hero images for a place, sorted by sort_order. */
+export async function listDedicatedHeroImages(place) {
+  const id = place?.id ?? null;
+  if (!id) return [];
+
+  const { data, error } = await supabase
+    .from('place_hero_images')
+    .select('storage_path, variant, sort_order')
+    .eq('place_id', id)
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true });
+
+  if (error) {
+    if (__DEV__) console.warn('place_hero_images (list):', error.message);
+    return [];
+  }
+
+  return (data ?? []).map(dedicatedRowToHero).filter(Boolean);
+}
+
 /**
  * Hero image URL: dedicated rows from `place_hero_images` (`place_id`), else generic rows from
  * `generic_hero_images` (`generic_key`, `storage_path`, `is_active`), else default.
@@ -60,16 +91,10 @@ export async function getHeroImage(place) {
       console.warn('place_hero_images (dedicated):', error.message);
     } else if (dedicated?.length) {
       const pick = pickDedicatedRow(dedicated, place);
-      const path = String(pick.storage_path || '').replace(/^\/+/, '');
-      if (path) {
-        const url = `${DEDICATED_BUCKET_URL}/${path}`;
-        if (__DEV__) console.log('[getHeroImage] branch: dedicated, url:', url, 'name_en:', place?.name_en);
-        return heroResult(url, {
-          hero_variant: pick.variant ?? null,
-          hero_variant_index: pick.sort_order ?? null,
-          hero_source: 'dedicated',
-          hero_image_name: heroImageNameFromPath(path),
-        });
+      const hero = dedicatedRowToHero(pick);
+      if (hero) {
+        if (__DEV__) console.log('[getHeroImage] branch: dedicated, url:', hero.url, 'name_en:', place?.name_en);
+        return hero;
       }
     }
   }

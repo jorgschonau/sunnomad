@@ -6,8 +6,9 @@ Storage: mirrors entire `dedicated` bucket (cast/, pexels/, goldie/, subfolders,
 After upload:  python3 hero_publish.py --sync
 Rules (per place):
   a) Activate all images for the primary cast character (auto = most cast rows, or override).
-  b) Also activate all goldie rows + exactly one pexels row (lowest sort_order / _1 suffix).
-  c) Deactivate everything else; assign sort_order (rotation order in app).
+  b) Also activate ALL goldie rows, ALL arty rows, + exactly one pexels row.
+  c) TEMP showcase places (`_goldie_only_showcase` in hero_char_overrides.json): one goldie only.
+  d) Deactivate everything else; assign sort_order (rotation order in app).
 
 Overrides (hero_char_overrides.json):
   "Rome": "sofia"     — force one char
@@ -55,6 +56,14 @@ SHOT_ORDER = [
     "boost", "dayhike", "other",
 ]
 
+def load_goldie_only_showcase() -> frozenset[str]:
+    """TEMP — Goldie promo showcases; see hero_char_overrides.json `_goldie_only_showcase`."""
+    if not OVERRIDES_PATH.exists():
+        return frozenset()
+    data = json.loads(OVERRIDES_PATH.read_text())
+    return frozenset(str(x) for x in (data.get("_goldie_only_showcase") or []))
+
+
 def get_supabase():
     url = os.environ.get("SUPABASE_URL")
     key = os.environ.get("SUPABASE_SERVICE_ROLE_KEY") or os.environ.get("SUPABASE_ANON_KEY")
@@ -82,15 +91,19 @@ def load_no_pexels() -> set[str]:
 
 
 def classify_row(row: dict) -> tuple[str, str | None]:
-    """Return (kind, character). All paths under cast/ — goldie/pexels from filename."""
+    """Return (kind, character). cast/ goldie/ pexels/ arty/ from path + filename."""
     path = (row.get("storage_path") or "").lower()
     variant = (row.get("variant") or "").lower()
     char = (row.get("character") or "").lower().strip()
-    blob = f"_{path.replace('/', '_')}_"
+    head = path.split("/")[0] if "/" in path else ""
 
+    if head == "arty" or variant == "arty":
+        return "arty", None
+
+    blob = f"_{path.replace('/', '_')}_"
     if char == "goldie" or "_goldie_" in blob:
         return "goldie", "goldie"
-    if char == "pexels" or "_pexels_" in path:
+    if char == "pexels" or "_pexels_" in path or head == "pexels":
         return "pexels", None
 
     if char in KNOWN_CHARACTERS and char != "goldie":
@@ -99,14 +112,29 @@ def classify_row(row: dict) -> tuple[str, str | None]:
     blob = path.replace("/", "_")
     found = [c for c in KNOWN_CHARACTERS if c != "goldie" and f"_{c}_" in f"_{blob}_"]
     if found:
-        # longest name wins (driver_pov before driver)
         found.sort(key=len, reverse=True)
         return "cast", found[0]
 
-    if variant in ("cast", "main", "chatgpt", "arty"):
+    if variant in ("cast", "main"):
         return "cast", char or None
 
     return "other", None
+
+
+def pick_single_goldie_row(rows: list[dict]) -> dict | None:
+    """One goldie per showcase place — prefer goldie/ folder and _goldie_1."""
+    goldies = [r for r in rows if classify_row(r)[0] == "goldie"]
+    if not goldies:
+        return None
+
+    def rank(r: dict) -> tuple:
+        path = (r.get("storage_path") or "").lower()
+        in_goldie_folder = 0 if path.startswith("goldie/") else 1
+        m = re.search(r"_goldie_(\d+)", path)
+        n = int(m.group(1)) if m else 999
+        return (in_goldie_folder, n, path)
+
+    return sorted(goldies, key=rank)[0]
 
 
 def infer_variant(storage_path: str, character: str | None) -> str:
@@ -168,9 +196,19 @@ def pick_pexels_row(rows: list[dict]) -> dict | None:
 
 
 def build_rotation(rows: list[dict]) -> list[dict]:
-    """Interleave cast shots; slot goldie mid-deck; pexels last."""
+    """Interleave cast shots; all arty; all goldie mid-deck; pexels last."""
+    if len(rows) == 1 and classify_row(rows[0])[0] == "goldie":
+        return rows
+
     cast = [r for r in rows if classify_row(r)[0] == "cast"]
-    goldies = [r for r in rows if classify_row(r)[0] == "goldie"]
+    arties = sorted(
+        [r for r in rows if classify_row(r)[0] == "arty"],
+        key=lambda r: r.get("storage_path") or "",
+    )
+    goldies = sorted(
+        [r for r in rows if classify_row(r)[0] == "goldie"],
+        key=lambda r: r.get("storage_path") or "",
+    )
     pexels = [r for r in rows if classify_row(r)[0] == "pexels"]
 
     buckets: dict[str, list[dict]] = defaultdict(list)
@@ -186,8 +224,9 @@ def build_rotation(rows: list[dict]) -> list[dict]:
             if q:
                 merged.append(q.pop(0))
 
+    merged.extend(arties)
+
     if goldies:
-        goldies = sorted(goldies, key=lambda r: r.get("storage_path") or "")
         insert_at = max(1, len(merged) // 2) if merged else 0
         merged[insert_at:insert_at] = goldies
 
@@ -411,6 +450,7 @@ def sync_place(
     no_pexels: set[str],
     char_cli: str | None,
     dry_run: bool,
+    goldie_only_showcase: frozenset[str] | None = None,
 ) -> dict:
     sb = get_supabase()
     pid = place["id"]
@@ -425,21 +465,29 @@ def sync_place(
     if not rows:
         return {"place": name, "skipped": "no rows"}
 
+    if name in (goldie_only_showcase or ()):
+        single = pick_single_goldie_row(rows)
+        active = [single] if single else []
+    else:
+        override = char_cli or overrides.get(name)
+        all_chars = is_all_chars_override(override)
+        primary = pick_primary_char(rows, override)
+
+        active = []
+        for row in rows:
+            kind, char = classify_row(row)
+            if kind == "cast" and char and (all_chars or (primary and char == primary)):
+                active.append(row)
+            elif kind in ("goldie", "arty"):
+                active.append(row)
+
+        pex = pick_pexels_row(rows)
+        if pex and pex not in active and name not in no_pexels:
+            active.append(pex)
+
     override = char_cli or overrides.get(name)
     all_chars = is_all_chars_override(override)
     primary = pick_primary_char(rows, override)
-
-    active: list[dict] = []
-    for row in rows:
-        kind, char = classify_row(row)
-        if kind == "cast" and char and (all_chars or (primary and char == primary)):
-            active.append(row)
-        elif kind == "goldie":
-            active.append(row)
-
-    pex = pick_pexels_row(rows)
-    if pex and pex not in active and name not in no_pexels:
-        active.append(pex)
 
     if not active:
         deactivated = 0
@@ -512,6 +560,7 @@ def main():
 
     overrides = load_overrides()
     no_pexels = load_no_pexels()
+    goldie_only_showcase = load_goldie_only_showcase()
 
     if args.mirror_storage:
         print(f"{'DRY RUN — ' if args.dry_run else ''}Mirror bucket `{STORAGE_BUCKET}/` (recursive) → place_hero_images\n")
@@ -533,7 +582,10 @@ def main():
     synced = skipped = 0
     total = len(places)
     for i, place in enumerate(places, 1):
-        result = sync_place(place, overrides, no_pexels, args.char, dry_run=args.dry_run)
+        result = sync_place(
+            place, overrides, no_pexels, args.char,
+            dry_run=args.dry_run, goldie_only_showcase=goldie_only_showcase,
+        )
         if result.get("skipped"):
             skipped += 1
         else:

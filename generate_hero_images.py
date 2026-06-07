@@ -149,12 +149,19 @@ BATCH_EXCLUDE_PLACE_NAMES: set = {
     "Garibaldi Lake",
 }
 
-# TEMP (showcase): Goldie artwork promo — remove set + is_goldie_only_place() when done
-GOLDIE_ONLY_PLACE_NAMES: frozenset[str] = frozenset({
-    "Dogtown",
-    "Dublin",
-    "Dresden",
-})
+def _load_goldie_only_showcase_names() -> frozenset[str]:
+    """TEMP — list in hero_char_overrides.json `_goldie_only_showcase`; remove when promo ends."""
+    path = Path(__file__).with_name("hero_char_overrides.json")
+    if not path.exists():
+        return frozenset()
+    try:
+        data = json.loads(path.read_text())
+    except (json.JSONDecodeError, OSError):
+        return frozenset()
+    return frozenset(str(x) for x in (data.get("_goldie_only_showcase") or []))
+
+
+GOLDIE_ONLY_PLACE_NAMES: frozenset[str] = _load_goldie_only_showcase_names()
 
 # Exact name_en — non-negotiable location physics / wardrobe
 PLACE_MANDATORY_NOTES: dict[str, str] = {

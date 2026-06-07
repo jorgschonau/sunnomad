@@ -28,7 +28,11 @@ import { useUnits } from '../../contexts/UnitContext';
 import { formatTemperature, formatDistance, getTemperatureSymbol, getDistanceSymbol } from '../../utils/unitConversion';
 
 import { LinearGradient } from 'expo-linear-gradient';
-import { getHeroImage as getDedicatedHeroImage, DEFAULT_HERO_IMAGE_URL } from '../../services/placeHeroImageService';
+import {
+  getHeroImage as getDedicatedHeroImage,
+  listDedicatedHeroImages,
+  DEFAULT_HERO_IMAGE_URL,
+} from '../../services/placeHeroImageService';
 import { getHeroImage } from '../../utils/heroImages';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import StopStayCard from '../components/StopStayCard';
@@ -203,13 +207,21 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const [badgeSource, setBadgeSource] = useState(destination);
   const [firstLineW, setFirstLineW] = useState(null);
   const [heroMeta, setHeroMeta] = useState(null);
+  const [devHeroList, setDevHeroList] = useState([]);
+  const [devHeroIndex, setDevHeroIndex] = useState(0);
+  const [devHeroNavVisible, setDevHeroNavVisible] = useState(true);
 
-  const getHeroTrackingProps = () => ({
-    hero_image_name: heroMeta?.hero_image_name ?? destination.generic_key ?? null,
-    hero_variant: heroMeta?.hero_variant ?? null,
-    hero_variant_index: heroMeta?.hero_variant_index ?? null,
-    hero_source: heroMeta?.hero_source ?? 'local',
-  });
+  const getHeroTrackingProps = (meta = null) => {
+    const h = meta
+      ?? (__DEV__ && devHeroList.length > 0 ? devHeroList[devHeroIndex] : null)
+      ?? heroMeta;
+    return {
+      hero_image_name: h?.hero_image_name ?? destination.generic_key ?? null,
+      hero_variant: h?.hero_variant ?? null,
+      hero_variant_index: h?.hero_variant_index ?? null,
+      hero_source: h?.hero_source ?? 'local',
+    };
+  };
   const [heroHintVisible, setHeroHintVisible] = useState(false);
   const scrollViewRef = React.useRef(null);
   const stopStayCardY = React.useRef(0);
@@ -487,8 +499,16 @@ const DestinationDetailScreen = ({ route, navigation }) => {
 
   useEffect(() => {
     const placeObj = { id: effectivePlaceId, generic_key: destination.generic_key, name_en: destination.name_en };
-    getDedicatedHeroImage(placeObj).then((hero) => {
+    setDevHeroList([]);
+    setDevHeroIndex(0);
+    getDedicatedHeroImage(placeObj).then(async (hero) => {
       setHeroMeta(hero);
+      if (__DEV__) {
+        const list = await listDedicatedHeroImages(placeObj);
+        setDevHeroList(list);
+        const idx = list.findIndex((h) => h.url === hero.url);
+        setDevHeroIndex(idx >= 0 ? idx : 0);
+      }
       if (hero.url !== DEFAULT_HERO_IMAGE_URL) {
         mixpanel.track('Hero Shown', {
           place_id: effectivePlaceId,
@@ -501,6 +521,21 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       }
     }).catch(() => {});
   }, [effectivePlaceId]);
+
+  useEffect(() => {
+    if (!__DEV__) return;
+    AsyncStorage.getItem('devHeroNavVisible').then((v) => {
+      if (v === '0') setDevHeroNavVisible(false);
+    });
+  }, []);
+
+  const toggleDevHeroNav = useCallback(() => {
+    setDevHeroNavVisible((prev) => {
+      const next = !prev;
+      AsyncStorage.setItem('devHeroNavVisible', next ? '1' : '0').catch(() => {});
+      return next;
+    });
+  }, []);
 
   // Date offset change: rebuild forecast slots + badges locally (no DB call needed)
   useEffect(() => {
@@ -954,8 +989,17 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     return false;
   };
 
-  const heroSource = heroMeta?.url && heroMeta.url !== DEFAULT_HERO_IMAGE_URL
-    ? { uri: heroMeta.url }
+  const activeHeroMeta =
+    __DEV__ && devHeroList.length > 0
+      ? (devHeroList[devHeroIndex] ?? heroMeta)
+      : heroMeta;
+
+  const cycleDevHero = (delta) => {
+    setDevHeroIndex((i) => (i + delta + devHeroList.length) % devHeroList.length);
+  };
+
+  const heroSource = activeHeroMeta?.url && activeHeroMeta.url !== DEFAULT_HERO_IMAGE_URL
+    ? { uri: activeHeroMeta.url }
     : getHeroImage(destination);
   const hasHero = !!heroSource;
   const useDarkText = !hasHero && needsDarkText();
@@ -1038,6 +1082,46 @@ const DestinationDetailScreen = ({ route, navigation }) => {
               />
             </Pressable>
           </Animated.View>
+          {__DEV__ && devHeroList.length > 1 && (
+            <>
+              {devHeroNavVisible && (
+                <>
+                  <Pressable
+                    onPress={() => cycleDevHero(-1)}
+                    style={styles.devHeroChevronLeft}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <MaterialIcons name="chevron-left" size={22} color="rgba(255, 255, 255, 0.95)" />
+                  </Pressable>
+                  <Pressable
+                    onPress={() => cycleDevHero(1)}
+                    style={styles.devHeroChevronRight}
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                  >
+                    <MaterialIcons name="chevron-right" size={22} color="rgba(255, 255, 255, 0.95)" />
+                  </Pressable>
+                </>
+              )}
+              <Pressable
+                onPress={toggleDevHeroNav}
+                style={styles.devHeroCounter}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                {devHeroNavVisible ? (
+                  <View style={styles.devHeroCounterPill}>
+                    <Text style={styles.devHeroCounterText}>
+                      {devHeroIndex + 1} / {devHeroList.length}
+                    </Text>
+                    <MaterialIcons name="visibility-off" size={13} color="rgba(255, 255, 255, 0.75)" />
+                  </View>
+                ) : (
+                  <View style={styles.devHeroCounterPill}>
+                    <MaterialIcons name="visibility" size={14} color="rgba(255, 255, 255, 0.92)" />
+                  </View>
+                )}
+              </Pressable>
+            </>
+          )}
         </>
       )}
       <View style={styles.heroContent}>
@@ -1967,6 +2051,59 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.9)',
     fontSize: 12,
     fontWeight: '500',
+  },
+  devHeroChevronLeft: {
+    position: 'absolute',
+    left: 8,
+    top: '50%',
+    marginTop: -15,
+    zIndex: 11,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(0, 0, 0, 0.38)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 0.75,
+    borderColor: 'rgba(255, 255, 255, 0.28)',
+  },
+  devHeroChevronRight: {
+    position: 'absolute',
+    right: 8,
+    top: '50%',
+    marginTop: -15,
+    zIndex: 11,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    backgroundColor: 'rgba(0, 0, 0, 0.38)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 0.75,
+    borderColor: 'rgba(255, 255, 255, 0.28)',
+  },
+  devHeroCounter: {
+    position: 'absolute',
+    top: 138,
+    right: 16,
+    zIndex: 11,
+  },
+  devHeroCounterPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 10,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+  },
+  devHeroCounterText: {
+    color: 'rgba(255, 255, 255, 0.92)',
+    fontSize: 11,
+    fontWeight: '600',
+    fontVariant: ['tabular-nums'],
   },
   tapToShowPill: {
     position: 'absolute',
