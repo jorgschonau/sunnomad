@@ -279,7 +279,26 @@ Jun–Jul 2026          Aug–Sep 2026          Q4 2026
 
 - merge regions etc to blobs
 - can be small like islabd
-- or bigger, like algarve beches
+- or bigger, certain regions, like algarve, or just lgarve beaches etc
 - tap and expand
+
+
+## newsfeed
+-- alerts on weather, disatsers (fires, heatwaves, earth quakes etc)
+-- maybe also price alerts on fuel? 
+-- warning on traffic etc, also school holidays etc
+ -- first not real time, maybe 1x day update
+ -- dynamic, resposive on current radius/ region
+
+ ## neuer trophy / award: escape the heat
+- escape the heat
+ - current loc hotter than x (30 degs)
+ - x cooler than current location
+ - needs to by cooler by x for y days
+ - (prob needs more montains)
+
+## overhaul hot / cool modes
+- wording: instead of best day, coolest or warmest day
+- no heatwave places in cool mode, or only if x degs cooler
 
 

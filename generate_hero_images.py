@@ -26,6 +26,7 @@ claude_client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
 supabase = create_client(os.environ["SUPABASE_URL"], os.environ.get("SUPABASE_SERVICE_ROLE_KEY", os.environ["SUPABASE_ANON_KEY"]))
 
 _CLAUDE_RETRY_DELAYS = (3, 8, 15, 30, 60)
+CLAUDE_MODEL = os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6")
 
 
 def _is_transient_api_error(exc: Exception) -> bool:
@@ -38,6 +39,7 @@ def _is_transient_api_error(exc: Exception) -> bool:
 
 def claude_messages_create(**kwargs):
     """Retry Anthropic calls on transient overload / rate-limit errors."""
+    kwargs["model"] = CLAUDE_MODEL
     last_exc = None
     for attempt, delay in enumerate(_CLAUDE_RETRY_DELAYS):
         try:
@@ -418,6 +420,14 @@ EAT_LOCAL_FOOD_BY_PLACE: dict[str, str] = {
     "Barcelona": "pan con tomate or bocadillo",
     "Hvar": "burek or grilled fish",
     "Budapest": "lángos or kürtőskalács",
+    "Thessaloníki": "koulouri ring bread, bougatsa, or gyros pita — Greek street food",
+    "Belgrade": "pljeskavica, burek, or cevapi from a pekara",
+    "Sarajevo": "ćevapi in somun with kajmak — Bosnian street food",
+    "Tirana": "byrek, tavë kosi corner bite, or grilled këlbasa from a street vendor",
+    "Kotor": "burek or grilled fish from a harbour stall — Montenegrin Adriatic street food",
+    "Mostar": "ćevapi in somun or burek from a pekara — Bosnian street food",
+    "Plovdiv": "banitsa, kebapche, or meshana skara from a grill window",
+    "Split": "soparnik slice, burek, or grilled sardine at the Riva",
     "Vienna": "Semmel, Wurstsemmel, or Melange standing at counter",
 }
 
@@ -430,6 +440,12 @@ EAT_LOCAL_FOOD_BY_COUNTRY: dict[str, str] = {
     "ES": "pan con tomate or bocadillo",
     "HR": "burek or grilled fish at the harbour",
     "HU": "lángos or kürtőskalács",
+    "GR": "koulouri, bougatsa, gyros, or souvlaki pita",
+    "RS": "pljeskavica, burek, or cevapi",
+    "BA": "ćevapi in somun or burek from pekara",
+    "AL": "byrek, tavë kosi, or grilled këlbasa — Albanian street food",
+    "ME": "burek or grilled fish at the Adriatic harbour",
+    "BG": "banitsa, kebapche, or meshana skara",
     "AT": "Semmel, Wurstsemmel, or Melange standing at counter",
     "MX": "taco al pastor or elote",
     "US": "regional street food — NYC slice fold, hot dog with mustard, or deep dish if Midwest",
@@ -1804,7 +1820,7 @@ These two pieces are non-negotiable. They appear in every shot.
 
 THE OUTFIT — always:
 CITY: Fitted pencil skirt — black or charcoal. Knee-length. Rides up on Tube stairs. That is not her problem.
-Sheer black nylons — always. With seam running up the back of the leg. Wolford or nothing.
+Sheer black nylons — always. Back seam ONLY — runs up the center BACK of each leg, never the front. Wolford or nothing.
 Pointed heels — mid-high, black. She walks faster in them than others in trainers.
 Tailored blazer — Savile Row cut, feminine. One button too many open on the silk blouse. Not an accident. Yes it is.
 FINGERNAILS / TOENAILS: dark burgundy or nude — perfect, always.
@@ -3643,6 +3659,50 @@ def get_character_nails_lock(character_key: str) -> str:
     if not note:
         return ""
     return f"FINGERNAILS / TOENAILS (MANDATORY if hands or feet visible): {note}."
+
+
+NYLON_BACK_SEAM_LOCK = """
+NYLON BACK-SEAM GEOMETRY (NON-NEGOTIABLE):
+When sheer stockings or nylons are worn: back-seam hosiery ONLY.
+The vertical seam runs straight up the CENTER BACK of each leg — heel to thigh, on the rear calf only.
+NEVER on the front of the shin. NEVER on the front of the leg. NEVER on the inner thigh facing camera.
+NEVER a front seam, demi-seam, mock seam, or decorative seam on the visible front or side of the leg.
+Front-facing or three-quarter-front shots: NO seam visible — plain sheer nylon on the front of the legs.
+Seam visible ONLY from behind or when the back of the calf faces the camera.
+If the camera sees the front of her legs: render smooth sheer nylon with zero seam lines on the front.
+"""
+
+NYLON_BACK_SEAM_CHARACTERS = frozenset({
+    "charlotte", "valentina", "elena", "naomi", "sigrid", "diana",
+    "quinn", "nina", "katja", "diaz", "regina", "celine",
+})
+
+_NYLON_PROMPT_RE = re.compile(
+    r"back[- ]?seam|nylon|stocking|hosiery|sheer.{0,24}leg",
+    re.I,
+)
+_NYLON_OFF_RE = re.compile(
+    r"nylons?\s+(are\s+)?off|no nylons|without nylons|bare legs only|barefoot|swimwear|bikini|one-piece swimsuit",
+    re.I,
+)
+
+
+def prompt_mentions_nylons(text: str) -> bool:
+    return bool(_NYLON_PROMPT_RE.search(text or ""))
+
+
+def get_nylon_seam_lock(
+    character_key: str,
+    *,
+    prompt_text: str = "",
+    outfit_override: str | None = None,
+) -> str:
+    combined = f"{prompt_text} {outfit_override or ''}"
+    if _NYLON_OFF_RE.search(combined) and not prompt_mentions_nylons(combined):
+        return ""
+    if character_key in NYLON_BACK_SEAM_CHARACTERS or prompt_mentions_nylons(combined):
+        return NYLON_BACK_SEAM_LOCK.strip()
+    return ""
 
 
 # Ear/face and body piercings — see CHARACTER_SPECS. Rosa navel is the only specified navel ring.
@@ -6852,7 +6912,7 @@ def claude_location_brief(place_name: str, country: str) -> str:
 def _claude_location_brief_uncached(place_name: str, country: str) -> str:
     _cost["claude_text"] += 1
     message = claude_messages_create(
-        model="claude-sonnet-4-20250514",
+        model=CLAUDE_MODEL,
         max_tokens=150,
         messages=[{"role": "user", "content": f"""
 You are a travel photography director.
@@ -6905,6 +6965,12 @@ def build_prompt(place: dict, character_key: str, noir_mode: bool = False, prest
         )
         if _luca_prop:
             _nails_lock += "\n" + _luca_prop
+        _nylon = get_nylon_seam_lock(
+            character_key,
+            outfit_override=outfit_override,
+        )
+        if _nylon:
+            _nails_lock += "\n" + _nylon
     char_spec = _apply_vehicle_to_spec(CHARACTER_SPECS.get(character_key, ""), character_key, place.get("country_code", ""))
     name = place["name_en"]
     country = place["country_code"]
@@ -7405,6 +7471,7 @@ AVOID:
 - Anyone looking at a phone screen, scrolling, or texting — phones appear only if held to ear during a call
 - Any other person, man, woman, hand, shoulder, or partial human body in the extreme foreground — no blurred stranger, no foreground passer-by, no second figure blocking the frame edge
 - Nipple piercings — none unless specified. Navel/belly-button piercings only on Rosa (gold navel ring) unless specified
+- Front seam on nylons or stockings — back seam on rear of leg only; front of leg must be plain sheer nylon
 
 ANTI-AI SIGNALS — apply sparingly, only when contextually natural, never forced:
 These are the imperfections that make a photo feel real. One per image maximum. Most images have none.
@@ -7523,9 +7590,15 @@ def _maya_context(place: dict, activity_key: str = None, shot_type: str = None) 
         return "water"
     return "land"
 
-def generate_image(prompt: str, reference_bytes=None) -> bytes:
+PORTRAIT_API_SIZE = "1024x1536"
+LANDSCAPE_API_SIZE = "1536x1024"
+
+
+def generate_image(prompt: str, reference_bytes=None, landscape: bool = False) -> bytes:
     import tempfile
-    if reference_bytes:
+    api_size = LANDSCAPE_API_SIZE if landscape else PORTRAIT_API_SIZE
+    # Portrait canonical on a landscape edit forces portrait output — generate text-only instead.
+    if reference_bytes and not landscape:
         img = Image.open(io.BytesIO(reference_bytes)).convert("RGB")
         tmp = tempfile.NamedTemporaryFile(suffix=".png", delete=False)
         img.save(tmp.name, format="PNG")
@@ -7534,14 +7607,14 @@ def generate_image(prompt: str, reference_bytes=None) -> bytes:
         try:
             with open(tmp.name, "rb") as img_file:
                 response = openai_client.images.edit(
-                    model="gpt-image-2", image=img_file, prompt=prompt, n=1, size="1024x1536",
+                    model="gpt-image-2", image=img_file, prompt=prompt, n=1, size=api_size,
                 )
         finally:
             os.unlink(tmp.name)
     else:
         _cost["img_gen"] += 1  # count attempt, including ones that get blocked
         response = openai_client.images.generate(
-            model="gpt-image-2", prompt=prompt, n=1, size="1024x1536", quality="medium",
+            model="gpt-image-2", prompt=prompt, n=1, size=api_size, quality="medium",
         )
     item = response.data[0]
     if getattr(item, "url", None):
@@ -7559,7 +7632,10 @@ def _soften_prompt_for_moderation(prompt: str) -> str:
         .replace("fitted top visible underneath", "dark top at collar")
         .replace("nothing underneath", "minimal styling")
         .replace("open at chest", "slightly open")
-        .replace("back-seam stockings", "dark stockings")
+        .replace("back-seam stockings", "sheer stockings — rear seam on back of leg only, never front")
+        .replace("back-seam nylons", "sheer nylons — rear seam on back of leg only, never front")
+        .replace("Back-seam stockings", "Sheer stockings — rear seam on back of leg only, never front")
+        .replace("Back-seam nylons", "Sheer nylons — rear seam on back of leg only, never front")
         .replace("thigh-high boots", "tall boots")
         .replace("tight black leather", "fitted black")
         .replace("tight leather", "fitted")
@@ -7583,28 +7659,30 @@ def _soften_prompt_for_moderation(prompt: str) -> str:
     )
 
 
-def generate_image_safety_retry(prompt: str, reference_bytes=None) -> bytes:
+def generate_image_safety_retry(prompt: str, reference_bytes=None, landscape: bool = False) -> bytes:
     try:
-        return generate_image(prompt, reference_bytes=reference_bytes)
+        return generate_image(prompt, reference_bytes=reference_bytes, landscape=landscape)
     except Exception as e1:
         if "safety" not in str(e1).lower() and "moderation" not in str(e1).lower():
             raise
         print("  ⚠️  Safety block — retrying with softened prompt...")
         soft = _soften_prompt_for_moderation(prompt)
+        if prompt_mentions_nylons(prompt):
+            soft += "\n\n" + NYLON_BACK_SEAM_LOCK.strip()
         try:
-            return generate_image(soft, reference_bytes=reference_bytes)
+            return generate_image(soft, reference_bytes=reference_bytes, landscape=landscape)
         except Exception as e2:
             if "safety" not in str(e2).lower() and "moderation" not in str(e2).lower():
                 raise
             print("  ⚠️  Still blocked — retrying without reference...")
-            return generate_image(soft, reference_bytes=None)
+            return generate_image(soft, reference_bytes=None, landscape=landscape)
 
 
 def claude_analyze(image_bytes: bytes) -> str:
     _cost["claude_vision"] += 1
     b64 = base64.standard_b64encode(image_bytes).decode("utf-8")
     message = claude_messages_create(
-        model="claude-sonnet-4-20250514",
+        model=CLAUDE_MODEL,
         max_tokens=200,
         messages=[{"role": "user", "content": [
             {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": b64}},
@@ -7623,7 +7701,7 @@ def claude_score(image_bytes: bytes) -> dict:
     _cost["claude_vision"] += 1
     b64 = base64.standard_b64encode(image_bytes).decode("utf-8")
     message = claude_messages_create(
-        model="claude-sonnet-4-20250514",
+        model=CLAUDE_MODEL,
         max_tokens=300,
         messages=[{"role": "user", "content": [
             {"type": "image", "source": {"type": "base64", "media_type": "image/png", "data": b64}},
@@ -7648,15 +7726,18 @@ one_line: one evocative sentence about the image, internal metadata only"""}
         return {"overall": 7.0, "void_energy": 6, "exploit_potential": 5, "escapism_score": 7, "one_line": ""}
 
 TARGET_W, TARGET_H, TARGET_KB = 800, 1200, 110
+LANDSCAPE_TARGET_W, LANDSCAPE_TARGET_H = 1200, 675  # 16:9
 
-def convert_to_webp(image_bytes: bytes) -> bytes:
+def convert_to_webp(image_bytes: bytes, landscape: bool = False) -> bytes:
     img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    ratio = max(TARGET_W / img.width, TARGET_H / img.height)
+    tw = LANDSCAPE_TARGET_W if landscape else TARGET_W
+    th = LANDSCAPE_TARGET_H if landscape else TARGET_H
+    ratio = max(tw / img.width, th / img.height)
     nw, nh = int(img.width * ratio), int(img.height * ratio)
     img = img.resize((nw, nh), Image.LANCZOS)
-    left = (nw - TARGET_W) // 2
-    top = (nh - TARGET_H) // 2
-    img = img.crop((left, top, left + TARGET_W, top + TARGET_H))
+    left = (nw - tw) // 2
+    top = (nh - th) // 2
+    img = img.crop((left, top, left + tw, top + th))
     img = img.filter(ImageFilter.UnsharpMask(radius=1, percent=80, threshold=3))
 
     max_kb = TARGET_KB * 1.15
@@ -7730,7 +7811,7 @@ GOLDIE_MIN_SCORE = 7.5
 def claude_goldie_score(place_name: str, country: str, terrain: str) -> dict:
     _cost["claude_text"] += 1
     message = claude_messages_create(
-        model="claude-sonnet-4-20250514",
+        model=CLAUDE_MODEL,
         max_tokens=200,
         messages=[{"role": "user", "content": f"Location: {place_name}, {country}. Terrain: {terrain or 'general'}.\n{GOLDIE_SCORE_PROMPT}"}]
     )
@@ -11524,6 +11605,40 @@ def run_pipeline(limit=50, offset=0, dry_run=False, no_review=False, character_o
     print(f"✅ {ok} done  ❌ {failed} failed")
     print(_cost_summary())
 
+
+def run_free_shot(
+    prompt: str,
+    *,
+    character: str | None = None,
+    landscape: bool = False,
+    output_stem: str | None = None,
+) -> Path:
+    """One-off image from raw prompt — no place, no pipeline."""
+    OUTPUT_DIR.mkdir(exist_ok=True)
+    p = prompt.strip()
+    _nylon = get_nylon_seam_lock(character or "", prompt_text=p)
+    if _nylon:
+        p += "\n\n" + _nylon
+    if landscape:
+        p += "\n\nMANDATORY: horizontal 16:9 landscape. Wide cinematic frame. NOT portrait. NOT vertical."
+    if character == "goldie":
+        p += (
+            "\n\nSUBJECT: Goldie — smooth-coated reddish-tan Podenco-Terrier mix, "
+            "rose/folded ears, red collar. Preserve identity exactly."
+        )
+    ref = None
+    if character and not landscape:
+        ref = load_canonical(character)
+    raw = generate_image(p, reference_bytes=ref, landscape=landscape)
+    stem = output_stem or "free_shot"
+    tag = "_16x9" if landscape else ""
+    out = OUTPUT_DIR / f"{stem}{tag}.webp"
+    out.write_bytes(convert_to_webp(raw, landscape=landscape))
+    dims = f"{LANDSCAPE_TARGET_W}x{LANDSCAPE_TARGET_H}" if landscape else f"{TARGET_W}x{TARGET_H}"
+    print(f"  💾 {out} ({dims})")
+    return out
+
+
 if __name__ == "__main__":
     import argparse
     parser = argparse.ArgumentParser()
@@ -11575,7 +11690,19 @@ if __name__ == "__main__":
     parser.add_argument("--cinematic-all", action="store_true", help="Run all cinematic keys available for char")
     parser.add_argument("--activity-all", action="store_true", help="Run all available activity keys for place/char")
     parser.add_argument("--specials-only", action="store_true", help="Run only char-exclusive signature shots (exploit + cinematic + activity)")
+    parser.add_argument("--landscape", action="store_true", help="Horizontal 16:9 (1536x1024 API → 1200x675 webp)")
+    parser.add_argument("--free-prompt", type=str, default=None, help="One-off shot from raw prompt (no place). Use with --output-stem")
+    parser.add_argument("--output-stem", type=str, default=None, help="Output filename stem in ~/sunnomad_output/")
     args = parser.parse_args()
+    if args.free_prompt:
+        run_free_shot(
+            args.free_prompt,
+            character=_norm_key(args.character),
+            landscape=args.landscape,
+            output_stem=args.output_stem,
+        )
+        print(_cost_summary())
+        raise SystemExit(0)
     only_ids = [x.strip() for x in args.only_ids.split(",")] if args.only_ids else None
     exclude_ids = [x.strip() for x in args.exclude_ids.split(",")] if args.exclude_ids else None
     run_pipeline(

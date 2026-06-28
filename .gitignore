@@ -9,6 +9,8 @@ npm-debug.*
 *.key
 *.mobileprovision
 *.orig.*
+*.orig
+*.rej
 web-build/
 .DS_Store
 

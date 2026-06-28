@@ -39,7 +39,7 @@ for gnum, gfiles in sorted(groups.items()):
             img = f.read_bytes()
             b64 = base64.standard_b64encode(img).decode()
             r = client.messages.create(
-                model='claude-sonnet-4-20250514',
+                model=os.environ.get("ANTHROPIC_MODEL", "claude-sonnet-4-6"),
                 max_tokens=80,
                 messages=[{'role': 'user', 'content': [
                     {'type': 'image', 'source': {'type': 'base64', 'media_type': 'image/webp', 'data': b64}},

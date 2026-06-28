@@ -502,12 +502,20 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     setDevHeroList([]);
     setDevHeroIndex(0);
     getDedicatedHeroImage(placeObj).then(async (hero) => {
+      if (hero.url?.startsWith('http')) {
+        try { await Image.prefetch(hero.url); } catch (_) { /* ignore */ }
+      }
       setHeroMeta(hero);
       if (__DEV__) {
         const list = await listDedicatedHeroImages(placeObj);
         setDevHeroList(list);
         const idx = list.findIndex((h) => h.url === hero.url);
         setDevHeroIndex(idx >= 0 ? idx : 0);
+        list.forEach((h) => {
+          if (h.url?.startsWith('http') && h.url !== hero.url) {
+            Image.prefetch(h.url).catch(() => {});
+          }
+        });
       }
       if (hero.url !== DEFAULT_HERO_IMAGE_URL) {
         mixpanel.track('Hero Shown', {
