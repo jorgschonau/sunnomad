@@ -22,7 +22,7 @@ import { openInMaps, NavigationProvider } from '../../usecases/navigationUsecase
 import { getPlaceDetail } from '../../services/placesWeatherService';
 import { supabase } from '../../config/supabase';
 import { toggleFavourite, isDestinationFavourite } from '../../usecases/favouritesUsecases';
-import { BadgeMetadata, calculateBadges } from '../../domain/destinationBadge';
+import { BadgeMetadata, calculateBadges, filterWarmDryIfHeatwave } from '../../domain/destinationBadge';
 import { getCountryName } from '../../utils/countryNames';
 import { useUnits } from '../../contexts/UnitContext';
 import { formatTemperature, formatDistance, getTemperatureSymbol, getDistanceSymbol } from '../../utils/unitConversion';
@@ -1275,7 +1275,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
 
   {!uiFocused && readyForDetails && localBadges && localBadges.length > 0 && (
         <View style={styles.heroBadges}>
-            {localBadges
+            {filterWarmDryIfHeatwave(localBadges, badgeSource._heatwaveData?.shouldAward)
               .sort((a, b) => (BadgeMetadata[a]?.priority || 99) - (BadgeMetadata[b]?.priority || 99))
               .map((badge, index) => {
               const metadata = BadgeMetadata[badge];
@@ -1601,7 +1601,9 @@ const DestinationDetailScreen = ({ route, navigation }) => {
             <View style={[styles.bestDayContainer, { backgroundColor: 'rgba(245, 240, 230, 0.8)', borderColor: 'rgba(180, 160, 120, 0.3)' }]}>
               <Text style={styles.bestDayIcon}>✦</Text>
               <View style={styles.bestDayContent}>
-                <Text style={styles.bestDayLabel}>{t('badges.bestDay')}</Text>
+                <Text style={styles.bestDayLabel}>
+                  {reverseMode === 'cold' ? t('badges.coolestDay') : t('badges.warmestDay')}
+                </Text>
                 <Text style={styles.bestDayValue}>
                   {bestDay.label} ({formatTemperature(bestDay.temp, temperatureUnit)}, {translateCondition(bestDay.condition)})
                 </Text>

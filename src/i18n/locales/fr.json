@@ -10,6 +10,11 @@
   },
   "map": {
     "loadingLocation": "Chargement de votre position...",
+    "loadingCardPhaseLocation": "Localisation en cours…",
+    "loadingCardPhaseNearby": "Recherche de lieux à proximité…",
+    "loadingCardPhaseWeather": "Chargement des données météo…",
+    "loadingCardPhasePlaces": "Chargement des lieux…",
+    "loadingCardPhaseGoldie": "Goldie part en éclaireur…",
     "loadingPhase0": "Recherche du signal GPS...",
     "loadingPhase1": "En attente de la position...",
     "loadingPhase2": "Affinage de la position...",
@@ -292,6 +297,8 @@
     "today": "Aujourd'hui",
     "soon": "Bientôt",
     "bestDay": "Meilleur jour",
+    "warmestDay": "Jour le plus chaud",
+    "coolestDay": "Jour le plus frais",
     "miracleDetail": "🌡️ Aujourd'hui: {{todayTemp}} → Bientôt: {{futureTemp}} ({{gain}})",
     "curseToday": "☀️ Aujourd'hui: {{temp}}, {{condition}}",
     "curseSoon": "⚠️ Bientôt: {{temp}}, {{condition}}"

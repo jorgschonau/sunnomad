@@ -18,7 +18,7 @@ import * as Location from 'expo-location';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeProvider';
 import { getWeatherForRadius, getWeatherIcon, getWeatherColor, mapWeatherCode, applyBadgesToDestinations } from '../../usecases/weatherUsecases';
-import { BadgeMetadata, DestinationBadge } from '../../domain/destinationBadge';
+import { BadgeMetadata, DestinationBadge, filterWarmDryIfHeatwave } from '../../domain/destinationBadge';
 import { playTickSound } from '../../utils/soundUtils';
 import { trackMapViews, trackDetailView } from '../../services/placesService';
 import { mixpanel } from '../../services/mixpanel';
@@ -28,6 +28,7 @@ import { getPlaceName } from '../../utils/localization';
 import { getFavourites } from '../../usecases/favouritesUsecases';
 import WeatherFilter from '../components/WeatherFilter';
 import DateFilter from '../components/DateFilter';
+import LoadingModal from '../components/LoadingModal';
 import OnboardingOverlay from '../components/OnboardingOverlay';
 import AnimatedBadge from '../components/AnimatedBadge';
 import { useUnits } from '../../contexts/UnitContext';
@@ -58,7 +59,7 @@ const DestinationMarker = ({
   styles: markerStyles,
   temperatureUnit,
 }) => {
-  const hasImageBadge = getMapBadges(dest.badges).some(
+  const hasImageBadge = getMapBadges(dest.badges, dest._heatwaveData?.shouldAward).some(
     b => b === DestinationBadge.WARM_AND_DRY || b === DestinationBadge.HEATWAVE
   );
   const [imageLoaded, setImageLoaded] = useState(!hasImageBadge);
@@ -95,8 +96,8 @@ const DestinationMarker = ({
               ? formatTemperature(dest.temperature, temperatureUnit, false)
               : '?°'}
           </Text>
-          {getMapBadges(dest.badges).length > 0 && (() => {
-            const sorted = getMapBadges(dest.badges)
+          {getMapBadges(dest.badges, dest._heatwaveData?.shouldAward).length > 0 && (() => {
+            const sorted = getMapBadges(dest.badges, dest._heatwaveData?.shouldAward)
               .sort((a, b) => (BadgeMetadata[a]?.priority || 99) - (BadgeMetadata[b]?.priority || 99))
               .slice(0, 6);
             const right = sorted.slice(0, 3);
@@ -164,6 +165,21 @@ const LOADING_TIPS = [
   'Tipp: Standort wird im Hintergrund aktualisiert',
 ];
 
+const LOADING_CARD_PHASES = [
+  'loadingCardPhaseLocation',
+  'loadingCardPhaseNearby',
+  'loadingCardPhaseWeather',
+  'loadingCardPhasePlaces',
+];
+
+const buildLoadingCardPhases = () => {
+  const phases = [...LOADING_CARD_PHASES];
+  if (Math.random() < 0.15) {
+    phases.splice(1 + Math.floor(Math.random() * phases.length), 0, 'loadingCardPhaseGoldie');
+  }
+  return phases;
+};
+
 const MapScreen = ({ navigation }) => {
   const { t, i18n } = useTranslation();
   const { theme } = useTheme();
@@ -200,6 +216,8 @@ const MapScreen = ({ navigation }) => {
   const [loadingTipIndex, setLoadingTipIndex] = useState(0);
   const [showSkipLocation, setShowSkipLocation] = useState(false);
   const [loadingDestinations, setLoadingDestinations] = useState(false);
+  const [loadingPhaseKey, setLoadingPhaseKey] = useState(LOADING_CARD_PHASES[0]);
+  const loadingPhaseTimerRef = useRef(null);
   const [controlsExpanded, setControlsExpanded] = useState(true); // Controls einklappbar
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showOnlyBadges, setShowOnlyBadges] = useState(false); // Toggle to show only destinations with badges
@@ -699,6 +717,18 @@ const MapScreen = ({ navigation }) => {
   const loadDestinations = async () => {
     if (!location) return;
     const requestId = ++loadRequestIdRef.current;
+
+    if (loadingPhaseTimerRef.current) {
+      clearInterval(loadingPhaseTimerRef.current);
+    }
+    const phases = buildLoadingCardPhases();
+    let phaseIndex = 0;
+    setLoadingPhaseKey(phases[0]);
+    loadingPhaseTimerRef.current = setInterval(() => {
+      phaseIndex = (phaseIndex + 1) % phases.length;
+      setLoadingPhaseKey(phases[phaseIndex]);
+    }, 2200);
+
     setLoadingDestinations(true);
     try {
       const effectiveCenter = centerPoint || location;
@@ -746,6 +776,10 @@ const MapScreen = ({ navigation }) => {
       console.error(error);
     } finally {
       if (requestId === loadRequestIdRef.current) {
+        if (loadingPhaseTimerRef.current) {
+          clearInterval(loadingPhaseTimerRef.current);
+          loadingPhaseTimerRef.current = null;
+        }
         setLoadingDestinations(false);
       }
     }
@@ -1026,9 +1060,8 @@ const MapScreen = ({ navigation }) => {
   /**
    * Get all badges for map markers (all badges are shown on map now)
    */
-  const getMapBadges = (badges) => {
-    if (!badges || badges.length === 0) return [];
-    return badges;
+  const getMapBadges = (badges, heatwaveShouldAward = false) => {
+    return filterWarmDryIfHeatwave(badges, heatwaveShouldAward);
   };
 
   /**
@@ -1036,7 +1069,7 @@ const MapScreen = ({ navigation }) => {
    */
   const getDisplayScore = (place) => {
     // Orte mit Badges = immer max Score (100)
-    const mapBadges = getMapBadges(place.badges);
+    const mapBadges = getMapBadges(place.badges, place._heatwaveData?.shouldAward);
     if (mapBadges.length > 0) {
       return 100;
     }
@@ -1961,7 +1994,7 @@ const MapScreen = ({ navigation }) => {
             }
             cond = cond ?? 'cloudy';
             
-            const favBadges = getMapBadges(withWeather?.badges || fav.badges || []);
+            const favBadges = getMapBadges(withWeather?.badges || fav.badges || [], withWeather?._heatwaveData?.shouldAward);
             const hasFavBadges = favBadges.length > 0;
 
             return (
@@ -2017,17 +2050,11 @@ const MapScreen = ({ navigation }) => {
         </>}
       </MapView>
 
-      {/* Loading Overlay for destinations */}
-      {loadingDestinations && (
-        <View style={styles.loadingOverlay}>
-          <View style={[styles.loadingBox, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-            <ActivityIndicator size="large" color={theme.primary} />
-            <Text style={[styles.loadingOverlayText, { color: theme.text }]}>
-              {t('map.loadingLocation')}...
-            </Text>
-          </View>
-        </View>
-      )}
+      <LoadingModal
+        visible={loadingDestinations}
+        mode={reverseMode === 'cold' ? 'cooler' : reverseMode === 'all' ? 'all' : 'warmer'}
+        phaseKey={loadingPhaseKey}
+      />
 
       {/* Empty state when trophy filter is active but no trophy-worthy places visible */}
       {showOnlyBadges && !loadingDestinations && visibleMarkers.filter(dest => {
@@ -2637,22 +2664,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
-  loadingBox: {
-    padding: 30,
-    borderRadius: 18,
-    borderWidth: 1,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.18,
-    shadowRadius: 8,
-    elevation: 8,
-  },
-  loadingOverlayText: {
-    marginTop: 16,
-    fontSize: 18,
-    fontWeight: '600',
-  },
   radiusControlsWrapper: {
     position: 'absolute',
     bottom: 50,
@@ -2790,10 +2801,10 @@ const styles = StyleSheet.create({
   reverseButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    gap: 5,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 22,
+    gap: 6,
     borderWidth: 0,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.14,
@@ -2801,10 +2812,10 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   reverseIcon: {
-    fontSize: 15,
+    fontSize: 17,
   },
   reverseLabel: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '600',
     color: '#fff',
     letterSpacing: 0.2,

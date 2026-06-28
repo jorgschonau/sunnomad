@@ -10,6 +10,11 @@
   },
   "map": {
     "loadingLocation": "Loading your location...",
+    "loadingCardPhaseLocation": "Locating you…",
+    "loadingCardPhaseNearby": "Searching nearby places…",
+    "loadingCardPhaseWeather": "Loading weather data…",
+    "loadingCardPhasePlaces": "Loading places…",
+    "loadingCardPhaseGoldie": "Goldie is scouting ahead…",
     "loadingPhase0": "Searching for GPS signal...",
     "loadingPhase1": "Waiting for location...",
     "loadingPhase2": "Refining location...",
@@ -294,6 +299,8 @@
     "today": "Today",
     "soon": "Soon",
     "bestDay": "Best day",
+    "warmestDay": "Warmest day",
+    "coolestDay": "Coolest day",
     "miracleDetail": "🌡️ Today: {{todayTemp}} → Soon: {{futureTemp}} ({{gain}})",
     "curseToday": "☀️ Today: {{temp}}, {{condition}}",
     "curseSoon": "⚠️ Soon: {{temp}}, {{condition}}"

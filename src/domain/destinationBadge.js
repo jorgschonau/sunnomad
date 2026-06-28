@@ -1125,11 +1125,15 @@ export function calculateBadges(destination, userLocation, distanceKm, tempRankM
     devLog(`🚗❌ ${destination.name}: Would qualify for Worth the Drive but skipped due to weather issues`);
   }
 
+  // Pre-calculate heatwave (Warm & Dry is excluded when place qualifies as heatwave)
+  const heatwaveResult = calculateHeatwave(destination);
+  destination._heatwaveData = heatwaveResult;
+
   // 3. Warm & Dry
   const warmDryResult = calculateWarmAndDry(destination, tempRankMap);
   destination._warmAndDryData = warmDryResult;
   
-  if (warmDryResult.shouldAward) {
+  if (warmDryResult.shouldAward && !heatwaveResult.shouldAward) {
     badges.push(DestinationBadge.WARM_AND_DRY);
     devLog(
       `☀️ ${destination.name}: Warm & Dry! ` +
@@ -1137,6 +1141,8 @@ export function calculateBadges(destination, userLocation, distanceKm, tempRankM
       `Condition: ${warmDryResult.condition}, ` +
       `Wind: ${warmDryResult.windSpeed} km/h`
     );
+  } else if (warmDryResult.shouldAward && heatwaveResult.shouldAward) {
+    devLog(`☀️❌ ${destination.name}: Warm & Dry skipped — heatwave place`);
   }
 
   // 4. Beach Paradise
@@ -1178,15 +1184,21 @@ export function calculateBadges(destination, userLocation, distanceKm, tempRankM
     );
   }
 
-  // 7. Heatwave
-  const heatwaveResult = calculateHeatwave(destination);
-  destination._heatwaveData = heatwaveResult;
+  // 7. Heatwave — suppressed in cool mode unless ≥3 °C colder than origin
+  const tempDest = destination.temperature ?? 0;
+  const heatwaveTempDelta = tempDest - originTemp;
+  const allowHeatwaveInColdMode = heatwaveTempDelta <= -3;
   
-  if (heatwaveResult.shouldAward) {
+  if (heatwaveResult.shouldAward && (reverseMode !== 'cold' || allowHeatwaveInColdMode)) {
     badges.push(DestinationBadge.HEATWAVE);
     devLog(
       `🔥 ${destination.name}: Heatwave! ` +
       `${heatwaveResult.hotDays} days >30 °C, Max: ${heatwaveResult.maxTemp} °C`
+    );
+  } else if (heatwaveResult.shouldAward && reverseMode === 'cold') {
+    devLog(
+      `🔥❌ ${destination.name}: Heatwave suppressed in cool mode ` +
+      `(Δ=${heatwaveTempDelta.toFixed(1)} °C vs origin, need ≤-3 °C)`
     );
   }
 
@@ -1240,5 +1252,13 @@ export function calculateBadges(destination, userLocation, distanceKm, tempRankM
     );
   }
 
-  return badges;
+  return filterWarmDryIfHeatwave(badges, heatwaveResult.shouldAward);
+}
+
+/** Warm & Dry and Heatwave are mutually exclusive */
+export function filterWarmDryIfHeatwave(badges, heatwaveShouldAward = false) {
+  if (!badges?.length) return [];
+  const hasHeatwave = badges.includes(DestinationBadge.HEATWAVE) || heatwaveShouldAward;
+  if (!hasHeatwave) return badges;
+  return badges.filter(b => b !== DestinationBadge.WARM_AND_DRY);
 }
