@@ -1,0 +1,15 @@
+---
+description: French locale is on hold — only maintain de + en translations
+alwaysApply: true
+---
+
+# i18n: French on hold
+
+**French (`fr`) is temporarily disabled** in the app (see `SettingsScreen.js` / `LanguageSelector.js` — `fr` commented out).
+
+When adding or updating user-facing strings:
+
+- **Do** update `src/i18n/locales/de.json` and `src/i18n/locales/en.json`
+- **Do not** add or update strings in `src/i18n/locales/fr.json` unless the user explicitly asks for French
+
+No need to delete existing `fr.json` content — just don't maintain it for new work.

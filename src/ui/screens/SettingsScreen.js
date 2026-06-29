@@ -183,7 +183,7 @@ const SettingsScreen = ({ navigation }) => {
             styles.settingItem,
             { backgroundColor: theme.surface, borderBottomColor: theme.background }
           ]}
-          onPress={() => Linking.openURL('mailto:hola@sunnomad.app')}
+          onPress={() => navigation.navigate('Feedback')}
         >
           <Text style={styles.settingItemFlag}>💬</Text>
           <View style={{ flex: 1 }}>

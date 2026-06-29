@@ -14,7 +14,7 @@ export const DestinationBadge = {
   BEACH_PARADISE: 'BEACH_PARADISE', // Coastal location with perfect beach weather
   SUNNY_STREAK: 'SUNNY_STREAK', // 3+ days of sunshine in a row (stable good weather)
   WEATHER_MIRACLE: 'WEATHER_MIRACLE', // Place transforms from bad to great weather (today bad → tomorrow sunny!)
-  HEATWAVE: 'HEATWAVE', // 3+ days >32 °C with no rain
+  HEATWAVE: 'HEATWAVE', // 3+ days >= 34 °C; heavy rain only excludes
   SNOW_KING: 'SNOW_KING', // Reliable snow conditions - perfect for skiing
   RAINY_DAYS: 'RAINY_DAYS', // 3+ rainy days with at least 1 heavy rain
   WEATHER_CURSE: 'WEATHER_CURSE', // Good weather now but will turn bad soon
@@ -616,7 +616,7 @@ export function calculateWeatherMiracle(destination) {
 
 /**
  * Calculate "Heatwave" eligibility
- * 3+ days above 34 °C with no rain
+ * 3+ days >= 34 °C; only heavy rain (rainy/stormy/thunderstorm) excludes the badge
  * 
  * @param {Object} destination - Destination with forecast data
  * @returns {Object} - { shouldAward, hotDays, maxTemp }
@@ -625,23 +625,26 @@ export function calculateHeatwave(destination) {
   const currentTemp = destination.temperature ?? 0;
   const currentCondition = destination.condition ?? 'unknown';
   const forecast = destination.forecast;
-  
-  const MIN_HEATWAVE_TEMP = 34; // Minimum temperature for heatwave
-  
-  // Check for rain conditions
-  const hasRain = currentCondition === 'rainy' || 
-                  forecast?.today?.condition === 'rainy' ||
-                  forecast?.tomorrow?.condition === 'rainy' ||
-                  forecast?.day3?.condition === 'rainy';
-  
+
+  const MIN_HEATWAVE_TEMP = 34;
+  const MIN_HOT_DAYS = 3;
+
+  // Nur echten Starkregen ausschließen, nicht bewölkt/leichter Regen
+  const hasHeavyRain = [
+    currentCondition,
+    forecast?.today?.condition,
+    forecast?.tomorrow?.condition,
+    forecast?.day3?.condition,
+  ].some(c => c === 'rainy' || c === 'stormy' || c === 'thunderstorm');
+
   let hotDays = currentTemp >= MIN_HEATWAVE_TEMP ? 1 : 0;
   let maxTemp = currentTemp;
-  
+
   if (forecast) {
     if (forecast.today?.high >= MIN_HEATWAVE_TEMP) hotDays++;
     if (forecast.tomorrow?.high >= MIN_HEATWAVE_TEMP) hotDays++;
     if (forecast.day3?.high >= MIN_HEATWAVE_TEMP) hotDays++;
-    
+
     maxTemp = Math.max(
       maxTemp,
       forecast.today?.high ?? 0,
@@ -649,18 +652,16 @@ export function calculateHeatwave(destination) {
       forecast.day3?.high ?? 0
     );
   }
-  
-  // Calculate average temp across hot days
+
   const temps = [currentTemp];
   if (forecast?.today?.high != null) temps.push(forecast.today.high);
   if (forecast?.tomorrow?.high != null) temps.push(forecast.tomorrow.high);
   if (forecast?.day3?.high != null) temps.push(forecast.day3.high);
   const avgTemp = temps.length > 0 ? Math.round(temps.reduce((a, b) => a + b, 0) / temps.length) : 0;
 
-  // Badge criteria: 3+ days >= 34 °C AND no rain
-  const MIN_HOT_DAYS = 3;
-  const shouldAward = hotDays >= MIN_HOT_DAYS && !hasRain;
-  
+  // Hitzewelle trotz leichtem Regen möglich — nur bei Starkregen nicht
+  const shouldAward = hotDays >= MIN_HOT_DAYS && !hasHeavyRain;
+
   return {
     shouldAward,
     hotDays,
@@ -1125,7 +1126,7 @@ export function calculateBadges(destination, userLocation, distanceKm, tempRankM
     devLog(`🚗❌ ${destination.name}: Would qualify for Worth the Drive but skipped due to weather issues`);
   }
 
-  // Pre-calculate heatwave (Warm & Dry is excluded when place qualifies as heatwave)
+  // Pre-calculate heatwave (Warm & Dry + Sunny Streak excluded when place qualifies as heatwave)
   const heatwaveResult = calculateHeatwave(destination);
   destination._heatwaveData = heatwaveResult;
 
@@ -1163,12 +1164,14 @@ export function calculateBadges(destination, userLocation, distanceKm, tempRankM
   const sunnyStreakResult = calculateSunnyStreak(destination);
   destination._sunnyStreakData = sunnyStreakResult;
   
-  if (sunnyStreakResult.shouldAward) {
+  if (sunnyStreakResult.shouldAward && !heatwaveResult.shouldAward) {
     badges.push(DestinationBadge.SUNNY_STREAK);
     devLog(
       `☀️ ${destination.name}: Sunny Streak! ` +
       `${sunnyStreakResult.streakLength} days of sunshine, Ø ${sunnyStreakResult.avgTemp} °C`
     );
+  } else if (sunnyStreakResult.shouldAward && heatwaveResult.shouldAward) {
+    devLog(`☀️❌ ${destination.name}: Sunny Streak skipped — heatwave place`);
   }
 
   // 6. Weather Miracle
@@ -1255,10 +1258,12 @@ export function calculateBadges(destination, userLocation, distanceKm, tempRankM
   return filterWarmDryIfHeatwave(badges, heatwaveResult.shouldAward);
 }
 
-/** Warm & Dry and Heatwave are mutually exclusive */
+/** Warm & Dry / Sunny Streak and Heatwave are mutually exclusive */
 export function filterWarmDryIfHeatwave(badges, heatwaveShouldAward = false) {
   if (!badges?.length) return [];
   const hasHeatwave = badges.includes(DestinationBadge.HEATWAVE) || heatwaveShouldAward;
   if (!hasHeatwave) return badges;
-  return badges.filter(b => b !== DestinationBadge.WARM_AND_DRY);
+  return badges.filter(b =>
+    b !== DestinationBadge.WARM_AND_DRY && b !== DestinationBadge.SUNNY_STREAK
+  );
 }

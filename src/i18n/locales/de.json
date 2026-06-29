@@ -79,7 +79,7 @@
     "less": "Weniger"
   },
   "weather": {
-    "type": "Wettertyp",
+    "type": "Wetter",
     "all": "Alle",
     "sunny": "Sonnig",
     "cloudy": "Bewölkt",
@@ -222,6 +222,20 @@
     "inches": "Inches (in)",
     "feedback": "Feedback",
     "feedbackPrompt": "Wir freuen uns über dein Feedback"
+  },
+  "feedbackScreen": {
+    "title": "Feedback",
+    "heading": "Hilf uns, SunNomad besser zu machen",
+    "subtitle": "Fehler, Ideen oder Wünsche – wir lesen jede Nachricht und nutzen dein Feedback, um SunNomad besser zu machen.",
+    "messagePlaceholder": "Bug, Idee oder Wunsch...",
+    "emailLabel": "E-Mail für Rückfragen (optional)",
+    "emailPlaceholder": "deine@email.de",
+    "send": "Senden",
+    "sendFailedTitle": "Senden fehlgeschlagen",
+    "sendFailedMessage": "Bitte versuche es später erneut.",
+    "successTitle": "Vielen Dank für dein Feedback!",
+    "successSubtitle": "Wir lesen jede Nachricht und nutzen dein Feedback, um SunNomad Schritt für Schritt zu verbessern.",
+    "backToMap": "Zurück zur Karte"
   },
   "onboarding": {
     "welcome": "Willkommen!",

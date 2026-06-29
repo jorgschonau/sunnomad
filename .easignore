@@ -1,3 +1,6 @@
+# Git history (not needed for build — saves ~500 MB upload)
+.git
+
 # Output / generated image directories (not used in app)
 pexels_output/
 unsplash_output/

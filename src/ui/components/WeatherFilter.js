@@ -27,7 +27,7 @@ const WeatherFilter = ({ selectedConditions = [], onConditionsChange }) => {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>WEATHER TYPE</Text>
+      <Text style={styles.label}>{t('weather.type')}</Text>
       <View style={styles.grid}>
         {WEATHER_CONDITIONS.map((c) => {
           const active = c.value === null

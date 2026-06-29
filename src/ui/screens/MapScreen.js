@@ -2182,6 +2182,26 @@ const MapScreen = ({ navigation }) => {
         <Text style={styles.myLocationIcon}>{isRecentering ? '…' : '📍'}</Text>
       </TouchableOpacity>
 
+      {/* Feedback Button */}
+      <View style={styles.feedbackButtonWrap}>
+        <TouchableOpacity
+          style={[styles.feedbackButton, {
+            backgroundColor: theme.surface,
+            borderColor: 'rgba(0,0,0,0.07)',
+            shadowColor: '#000',
+          }]}
+          onPress={() => navigation.navigate('Feedback')}
+          accessibilityLabel="Feedback senden"
+          accessibilityRole="button"
+          accessibilityHint="Send feedback to the SunNomad team"
+        >
+          <Text style={styles.feedbackIcon}>✉️</Text>
+        </TouchableOpacity>
+        <View style={styles.feedbackBetaBadge}>
+          <Text style={styles.feedbackBetaText}>Beta</Text>
+        </View>
+      </View>
+
       {/* Reset Center Button (only show if centerPoint is set) */}
       {centerPoint && (
         <TouchableOpacity
@@ -2307,10 +2327,11 @@ const MapScreen = ({ navigation }) => {
         </View>
       </View>
 
-      {/* Zoom Level Indicator */}
+      {__DEV__ && (
       <View style={[styles.zoomIndicator, { backgroundColor: theme.surface, borderColor: theme.border }]}>
         <Text style={[styles.zoomIndicatorText, { color: theme.textSecondary }]}>Z{mapViewport.zoom}</Text>
       </View>
+      )}
 
       {/* Bottom Left Buttons Container */}
       <View style={styles.bottomLeftButtons}>
@@ -2902,6 +2923,49 @@ const styles = StyleSheet.create({
     elevation: 4,
   },
   myLocationIcon: {
+    fontSize: 28,
+    textAlign: 'center',
+    lineHeight: 30,
+    includeFontPadding: false,
+    marginTop: 2,
+  },
+  feedbackButtonWrap: {
+    position: 'absolute',
+    top: 282,
+    right: 10,
+    width: 58,
+    height: 58,
+  },
+  feedbackButton: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.14,
+    shadowRadius: 5,
+    elevation: 4,
+  },
+  feedbackBetaBadge: {
+    position: 'absolute',
+    top: -3,
+    right: -4,
+    backgroundColor: '#E53935',
+    borderRadius: 7,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  feedbackBetaText: {
+    color: '#FFFFFF',
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  feedbackIcon: {
     fontSize: 28,
     textAlign: 'center',
     lineHeight: 30,

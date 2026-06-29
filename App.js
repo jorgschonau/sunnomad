@@ -42,6 +42,7 @@ import LoginScreen from './src/ui/screens/LoginScreen';
 import RegisterScreen from './src/ui/screens/RegisterScreen';
 import ForgotPasswordScreen from './src/ui/screens/ForgotPasswordScreen';
 import ProfileScreen from './src/ui/screens/ProfileScreen';
+import FeedbackScreen from './src/ui/screens/FeedbackScreen';
 
 import { ThemeProvider, useTheme } from './src/theme/ThemeProvider';
 import { AuthProvider, useAuth } from './src/contexts/AuthContext';
@@ -167,6 +168,14 @@ function MainNavigator() {
         component={ProfileScreen}
         options={{
           title: t('profile.title', 'Profile'),
+          headerBackTitle: t('app.back'),
+        }}
+      />
+      <AppStack.Screen
+        name="Feedback"
+        component={FeedbackScreen}
+        options={{
+          title: t('feedbackScreen.title'),
           headerBackTitle: t('app.back'),
         }}
       />

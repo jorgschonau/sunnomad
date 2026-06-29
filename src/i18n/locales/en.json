@@ -79,7 +79,7 @@
     "less": "Less"
   },
   "weather": {
-    "type": "Weather Type",
+    "type": "Weather",
     "all": "All",
     "sunny": "Sunny",
     "cloudy": "Cloudy",
@@ -222,6 +222,20 @@
     "inches": "Inches (in)",
     "feedback": "Feedback",
     "feedbackPrompt": "We'd love your feedback"
+  },
+  "feedbackScreen": {
+    "title": "Feedback",
+    "heading": "Help us improve SunNomad",
+    "subtitle": "Bugs, ideas or wishes – we read every message and use your feedback to make SunNomad better.",
+    "messagePlaceholder": "Bug, idea or wish...",
+    "emailLabel": "Email for follow-up (optional)",
+    "emailPlaceholder": "your@email.com",
+    "send": "Send",
+    "sendFailedTitle": "Could not send",
+    "sendFailedMessage": "Please try again later.",
+    "successTitle": "Thank you for your feedback!",
+    "successSubtitle": "We read every message and use your feedback to improve SunNomad step by step.",
+    "backToMap": "Back to map"
   },
   "onboarding": {
     "welcome": "Welcome!",
