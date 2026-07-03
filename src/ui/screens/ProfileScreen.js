@@ -14,6 +14,7 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { useTranslation } from 'react-i18next';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { getFavourites } from '../../usecases/favouritesUsecases';
+import { mixpanel } from '../../services/mixpanel';
 
 export default function ProfileScreen({ navigation }) {
   const { user, profile, signOut, isAuthenticated } = useAuth();
@@ -23,6 +24,7 @@ export default function ProfileScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
+      mixpanel.track('Profile Opened');
       const loadCount = async () => {
         try {
           const favs = await getFavourites();

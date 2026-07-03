@@ -1192,7 +1192,7 @@ export function calculateBadges(destination, userLocation, distanceKm, tempRankM
   const heatwaveTempDelta = tempDest - originTemp;
   const allowHeatwaveInColdMode = heatwaveTempDelta <= -3;
   
-  if (heatwaveResult.shouldAward && (reverseMode !== 'cold' || allowHeatwaveInColdMode)) {
+  if (heatwaveResult.shouldAward && (destination.isCurrentLocation || reverseMode !== 'cold' || allowHeatwaveInColdMode)) {
     badges.push(DestinationBadge.HEATWAVE);
     devLog(
       `🔥 ${destination.name}: Heatwave! ` +

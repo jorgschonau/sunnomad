@@ -1757,6 +1757,7 @@ Looks like a normal charm. Is not.
 PROP:
 - Vespa — old, scratched, hers for eight years. Greek plates (GR). Parks it everywhere.
   Small Spartan helmet sticker on the rear — lambda crest, worn at the edges. She put it there. She does not explain it.
+  OPTIONAL PROP — do NOT include the Vespa in every shot. Often it is parked somewhere else, out of frame. Only show it when the scene naturally calls for it (arrival, roadside, parking).
 - Cigarette — almost always. Not for the camera. Just because. Occasionally — without warning — a toothpick instead. She doesn't explain it.
 - Dark vintage sunglasses — always on, indoors sometimes too.
 
@@ -1779,7 +1780,7 @@ Everyone else — pending review.
 She says "malaka" quietly. That makes it worse.
 
 CONTRAST:
-Usually: Vespa, sunglasses, cigarette, off-duty. That is her default.
+Usually: sunglasses, cigarette, off-duty. That is her default. Vespa nearby sometimes — not always in frame.
 Rarely — working context (taverna, harbour): same expression, different clothes. Not a performance.
 NEVER default to showing her in work clothes — she is not defined by her job.
 
@@ -3087,7 +3088,7 @@ CHARACTER_VEHICLES = {
     "sigrid":      "BMW 5-series — all black G30. Norwegian plates (NO). No stickers. Architect firm parking card on dash, winter tires in summer sometimes. Immaculate — the car matches the apartment.",
     "diana":       "Jaguar XJ — XJ40, black, long. Romanian plates (RO). No stickers — opera gloves on passenger seat, pale scar energy without showing it. Scratched key line on rear door, deliberate menace, never washed.",
     "terry":       "Volvo V70 — dark blue estate. Belgian or French plates (BE/FR). Yoga studio sticker on rear, faded kid's drawing in back window. Overfull tote on back seat — warm clutter, not messy.",
-    "thea":        "Vespa — old, scratched, eight years on the road. Greek plates (GR). Small Spartan helmet sticker on rear fender — lambda crest, edges worn. Parks wherever. Never a car.",
+    "thea":        "Vespa — old, scratched, eight years on the road. Greek plates (GR). Small Spartan helmet sticker on rear fender — lambda crest, edges worn. Parks wherever. Never a car. USUALLY OUT OF FRAME — she lives here, the Vespa is parked elsewhere. Show it only in arrival/roadside/parking scenes, NOT in every shot.",
     "lyra":        "Citroën DS — pale champagne, patina chrome. Greek plates (GR). Small Naxos wine-country sticker, half-peeled. Pollen on dash, cobblestone scrapes on sills. Wrong for speed, right for her.",
     "quinn":       "Range Rover — black, L322 or Classic, tinted. US plates (IL). No bumper stickers — tactical wear on door edges, sparse interior. Functional, not decorative. Nemesis energy: balanced, not loud.",
     "mila":        "VW Golf Mk2 — dark, loud exhaust. Serbian plates (RS). Festival stickers peeling on rear — EXIT, Glastonbury faded. Wristbands on rearview mirror. Dent on passenger door, leather-jacket scratch on sill.",
@@ -6199,6 +6200,8 @@ FEMALE_FRIENDSHIP_PAIRS = [
 # MULTI-CHARACTER ROTATION
 # ══════════════════════════════════════════════
 
+# MULTI-CHAR BONUS only (get_multi_chars on score ≥90) — NOT primary selection.
+
 MULTI_CHAR_ROTATION = {
     "coastal_med": {"naomi": 0.65, "luca": 0.25, "valentina": 0.10},
     "us_desert":   {"jade": 0.55, "diaz": 0.25, "ana": 0.20},
@@ -6219,6 +6222,7 @@ _EU_NATURE_WERRA_COUNTRIES = {
     "DE", "AT", "CH", "NO", "SE", "FI", "DK", "IS",
     "PL", "CZ", "SK", "HU", "RO", "BG", "RS", "BA", "SI", "ME", "MK", "HR",
 }
+
 
 # ── Home continent + transcontinental guest weighting ──
 # Most chars: home continent only. Transcontinentals: both pools, reduced on guest continent.
@@ -6369,16 +6373,6 @@ def get_rotation_key(country_code, terrain_type, place_type):
             return "eu_nature"
     return None
 
-def pick_primary_character(country_code, terrain_type, place_type):
-    key = get_rotation_key(country_code, terrain_type, place_type)
-    if key:
-        weights = MULTI_CHAR_ROTATION[key]
-        if key in NATURE_ROTATION_KEYS:
-            weights = _nature_rotation_weights(key, country_code, weights)
-        if weights:
-            return weighted_choice(weights)
-    return None
-
 def get_multi_chars(place, primary_char, claude_overall, void_energy):
     db_score = place.get("attractiveness_score", 0)
     if not (db_score >= 90 and claude_overall >= 7.5 and void_energy >= 7):
@@ -6479,21 +6473,6 @@ def is_power_place(place: dict) -> bool:
         return True
     return False
 
-def _valentina_fallback(country_code: str, terrain_type: str, place_type: str) -> str:
-    if country_code == "IT":
-        return weighted_choice({"naomi": 0.42, "carmela": 0.35, "luca": 0.23})
-    if country_code in {"FR", "MC", "CH"}:
-        return weighted_choice({"naomi": 0.45, "charlotte": 0.30, "celine": 0.25})
-    if country_code in {"ES", "PT", "GR", "HR", "ME", "TR"}:
-        return weighted_choice({"naomi": 0.35, "sofia": 0.35, "lyra": 0.30})
-    return weighted_choice({"naomi": 0.40, "charlotte": 0.35, "sofia": 0.25})
-
-def _gate_valentina(char: str, place: dict, country_code: str, terrain_type: str, place_type: str) -> str:
-    if char != "valentina" or valentina_allowed(place):
-        return char
-    return _valentina_fallback(country_code, terrain_type, place_type)
-
-
 REGINA_CITIES = frozenset({
     "Berlin", "Brussels", "Brüssel", "Geneva", "Genf",
     "Washington", "Washington DC", "Vienna", "Wien",
@@ -6530,25 +6509,188 @@ def regina_allowed(place: dict) -> bool:
     return False
 
 
-def _regina_fallback(place: dict) -> str:
-    country = place.get("country_code", "")
-    terrain = guess_terrain(place.get("terrain_type", ""), place.get("place_type", ""))
-    if country == "TR" and (
-        terrain in {"coastal", "beach"}
-        or (place.get("terrain_type") or "").lower() == "beach"
-    ):
-        return weighted_choice({"kelek": 0.48, "yosra": 0.33, "sofia": 0.14, "djordje": 0.05})
-    return _valentina_fallback(country, terrain, place.get("place_type", ""))
+# ══════════════════════════════════════════════
+# CHARACTER SELECTION
+# One forced table + one pool table + one draw. No sequential dice, no re-rolls.
+# ══════════════════════════════════════════════
+
+_SCENIC_DRIVE_POOL = {"driver_pov": 0.75, "driver_van": 0.25}
+_POWER_CITY_POOL = {
+    "charlotte": 0.32, "naomi": 0.23, "regina": 0.11, "werra": 0.11,
+    "valentina": 0.08, "tammy": 0.05, "yosra": 0.05, "diaz": 0.05,
+}
+
+# Place → char (str = always) or weighted pool (dict). Single source for hard place rules.
+FORCED_PLACES = {
+    **{c: "regina" for c in REGINA_CITIES},
+    **{c: _POWER_CITY_POOL for c in (
+        "Capitol Hill", "Zurich", "Frankfurt", "Singapore", "Hong Kong", "Davos",
+        "Luxembourg", "The Hague", "Strasbourg",
+    )},
+    **{c: _SCENIC_DRIVE_POOL for c in (
+        "Pacific Coast Highway", "Transfăgărășan", "Grossglockner", "Atlantic Road",
+        "Stelvio Pass", "Trollstigen", "Amalfi Coast", "Chapman's Peak", "Col du Galibier",
+    )},
+    "Tulum": "chad", "Marrakech": "chad", "Barcelona": "chad", "Plovdiv": "chad",
+    "Tallinn": "chad", "Chemnitz": "chad",  # GPS error. He posts anyway.
+    "Cairo": {"chad": 0.30, "yosra": 0.70},
+    "Roswell": "tammy",
+}
+
+# country → pool group
+_POOL_GROUP = {
+    "BR": "brazil", "MC": "monaco",
+    **{c: "maghreb" for c in ("MA", "TN", "DZ", "EG")},
+    **{c: "nordics" for c in ("NO", "SE", "FI", "IS", "DK")},
+    "GB": "uk", "DE": "germany",
+    **{c: "alps" for c in ("AT", "CH")},
+    "FR": "france",
+    **{c: "iberia" for c in ("ES", "PT")},
+    "IT": "italy", "GR": "greece",
+    **{c: "adriatic" for c in ("HR", "ME", "AL", "MK")},
+    **{c: "balkan" for c in ("RS", "BA", "SI")},
+    **{c: "east_eu" for c in ("PL", "CZ", "SK", "HU", "RO", "BG", "LV", "LT", "EE")},
+    **{c: "ukraine" for c in ("UA", "BY", "MD")},
+    "TR": "turkey",
+    **{c: "us_ca" for c in ("US", "CA")},
+    "MX": "mexico",
+    **{c: "latam" for c in ("CO", "VE", "PE", "EC", "BO", "PY", "AR", "CL", "UY", "GT", "CR", "PA", "HN", "SV", "NI", "BZ")},
+    **{c: "caribbean" for c in ("CU", "JM", "HT", "DO", "PR", "TT", "BB", "LC", "VC", "GD", "AG", "DM", "KN", "BS")},
+    **{c: "gulf" for c in ("AE", "SA", "QA", "BH", "KW", "OM", "JO", "LB", "IL")},
+    **{c: "sea" for c in ("TH", "VN", "ID", "MY", "PH", "SG", "KH", "LA", "MM")},
+    **{c: "south_asia" for c in ("IN", "LK", "NP", "PK", "BD", "MV")},
+}
+
+# (group, terrain_class) → weights. Class lookup: exact → "city" → "*".
+REGION_POOLS = {
+    ("brazil", "*"):        {"ana": 0.69, "sofia": 0.20, "luca": 0.11},
+    ("monaco", "*"):        {"naomi": 0.70, "charlotte": 0.20, "valentina": 0.10},
+    ("maghreb", "coastal"): {"yosra": 0.38, "kelek": 0.38, "katja": 0.14, "sofia": 0.10},
+    ("maghreb", "city"):    {"yosra": 0.48, "kelek": 0.32, "katja": 0.20},
+    ("maghreb", "*"):       {"yosra": 0.58, "kelek": 0.28, "sofia": 0.14},
+    ("nordics", "coastal"): {"ingrid": 0.40, "werra": 0.25, "katja": 0.20, "sigrid": 0.15},
+    ("nordics", "mountain"): {"ingrid": 0.45, "werra": 0.35, "alessandra": 0.20},
+    ("nordics", "city"):    {"sigrid": 0.30, "ingrid": 0.25, "katja": 0.20, "werra": 0.15, "elena": 0.10},
+    ("nordics", "*"):       {"ingrid": 0.35, "werra": 0.30, "katja": 0.20, "sigrid": 0.15},
+    ("uk", "coastal"):      {"werra": 0.35, "katja": 0.25, "charlotte": 0.20, "ingrid": 0.20},
+    ("uk", "mountain"):     {"werra": 0.45, "ingrid": 0.30, "katja": 0.25},
+    ("uk", "city"):         {"charlotte": 0.40, "terry": 0.25, "naomi": 0.20, "katja": 0.15},
+    ("uk", "*"):            {"charlotte": 0.30, "werra": 0.25, "terry": 0.25, "katja": 0.20},
+    ("germany", "coastal"): {"ingrid": 0.30, "werra": 0.30, "katja": 0.25, "elena": 0.15},
+    ("germany", "mountain"): {"alessandra": 0.35, "werra": 0.35, "ingrid": 0.20, "katja": 0.10},
+    ("germany", "city"):    {"elena": 0.25, "werra": 0.20, "katja": 0.20, "charlotte": 0.15, "sigrid": 0.10, "terry": 0.10},
+    ("germany", "*"):       {"werra": 0.30, "elena": 0.25, "katja": 0.20, "sigrid": 0.15, "terry": 0.10},
+    ("alps", "mountain"):   {"alessandra": 0.45, "ingrid": 0.25, "werra": 0.20, "katja": 0.10},
+    ("alps", "*"):          {"alessandra": 0.35, "werra": 0.25, "katja": 0.20, "sigrid": 0.10, "elena": 0.10},
+    ("france", "coastal"):  {"yosra": 0.40, "naomi": 0.35, "sofia": 0.25},
+    ("france", "city"):     {"yosra": 0.35, "celine": 0.28, "naomi": 0.22, "charlotte": 0.15},
+    ("france", "*"):        {"yosra": 0.40, "sofia": 0.25, "celine": 0.20, "werra": 0.15},
+    ("iberia", "coastal"):  {"sofia": 0.38, "ana": 0.28, "lyra": 0.22, "luca": 0.12},
+    ("iberia", "city"):     {"maria": 0.32, "sofia": 0.28, "yosra": 0.22, "stacy": 0.18},
+    ("iberia", "*"):        {"sofia": 0.39, "maria": 0.30, "yosra": 0.20, "luca": 0.11},
+    ("italy", "coastal"):   {"naomi": 0.30, "luca": 0.22, "sofia": 0.22, "alessandra": 0.16, "djordje": 0.05, "valentina": 0.05},
+    ("italy", "mountain"):  {"alessandra": 0.55, "ingrid": 0.28, "luca": 0.12, "valentina": 0.05},
+    ("italy", "city"):      {"carmela": 0.28, "naomi": 0.25, "luca": 0.18, "stacy": 0.18, "valentina": 0.11},
+    ("italy", "*"):         {"luca": 0.28, "alessandra": 0.25, "sofia": 0.25, "naomi": 0.16, "valentina": 0.06},
+    ("greece", "coastal"):  {"lyra": 0.35, "thea": 0.30, "sofia": 0.19, "naomi": 0.13, "djordje": 0.03},
+    ("greece", "*"):        {"thea": 0.45, "lyra": 0.40, "sofia": 0.15},
+    ("adriatic", "coastal"): {"naomi": 0.24, "thea": 0.22, "lyra": 0.20, "kelek": 0.22, "djordje": 0.05, "valentina": 0.07},
+    ("adriatic", "*"):      {"katja": 0.30, "elena": 0.26, "mila": 0.17, "kelek": 0.15, "thea": 0.12},
+    ("balkan", "coastal"):  {"mila": 0.32, "katja": 0.26, "elena": 0.24, "thea": 0.12, "djordje": 0.06},
+    ("balkan", "city"):     {"mila": 0.32, "katja": 0.27, "elena": 0.26, "diaz": 0.08, "tammy": 0.07},
+    ("balkan", "*"):        {"katja": 0.36, "werra": 0.24, "elena": 0.20, "mila": 0.20},
+    ("east_eu", "city"):    {"elena": 0.25, "katja": 0.25, "mila": 0.20, "sigrid": 0.15, "olga": 0.15},
+    ("east_eu", "*"):       {"elena": 0.30, "katja": 0.25, "mila": 0.20, "werra": 0.15, "olga": 0.10},
+    ("ukraine", "city"):    {"olga": 0.35, "elena": 0.25, "mila": 0.25, "katja": 0.15},
+    ("ukraine", "*"):       {"olga": 0.40, "werra": 0.25, "elena": 0.25, "katja": 0.10},
+    ("turkey", "coastal"):  {"kelek": 0.45, "yosra": 0.32, "sofia": 0.18, "djordje": 0.05},
+    ("turkey", "*"):        {"yosra": 0.45, "kelek": 0.30, "katja": 0.15, "naomi": 0.10},
+    ("us_ca", "desert"):    {"jade": 0.40, "amber": 0.35, "maya": 0.25},
+    ("us_ca", "coastal"):   {"kay": 0.34, "ana": 0.22, "maya": 0.18, "zara": 0.26},
+    ("us_ca", "mountain"):  {"ingrid": 0.40, "jade": 0.30, "werra": 0.30},
+    ("us_ca", "city"):      {"diaz": 0.22, "charlotte": 0.17, "tammy": 0.17, "stacy": 0.13, "zara": 0.24, "rosa": 0.07},
+    ("us_ca", "*"):         {"tammy": 0.28, "jade": 0.22, "maya": 0.14, "stacy": 0.14, "zara": 0.22},
+    ("mexico", "coastal"):  {"luca": 0.19, "sofia": 0.28, "ana": 0.28, "diaz": 0.18, "rosa": 0.07},
+    ("mexico", "*"):        {"diaz": 0.43, "tammy": 0.22, "luca": 0.15, "rosa": 0.20},
+    ("latam", "coastal"):   {"ana": 0.35, "sofia": 0.25, "luca": 0.15, "diaz": 0.15, "isabella": 0.10},
+    ("latam", "*"):         {"ana": 0.32, "sofia": 0.24, "luca": 0.14, "diaz": 0.15, "rosa": 0.10, "isabella": 0.05},
+    ("caribbean", "*"):     {"isabella": 0.36, "ana": 0.30, "sofia": 0.20, "naomi": 0.10, "luca": 0.04},
+    ("gulf", "*"):          {"naomi": 0.40, "yosra": 0.35, "charlotte": 0.25},
+    ("sea", "*"):           {"sofia": 0.32, "lyra": 0.27, "naomi": 0.20, "yuki": 0.15, "luca": 0.06},
+    ("south_asia", "*"):    {"sofia": 0.30, "naomi": 0.25, "ana": 0.25, "diaz": 0.20},
+    ("default", "*"):       {"sofia": 0.35, "naomi": 0.30, "ana": 0.20, "luca": 0.15},
+}
+
+# Guest chars — fixed real share, only added where the char is NOT in the base pool.
+# Base pool scales down to the remainder. One draw decides everything.
+_WARM_COASTAL_CC = {"ES", "PT", "IT", "GR", "HR", "ME", "AL", "TR", "MA", "TN", "MX", "BR", "CU", "DO", "TH", "ID", "MY"}
+_DJORDJE_NO_GO_CC = {"SA", "AE", "QA", "KW", "BH", "OM", "LY", "SD", "ML", "NE", "TD"}
+GUEST_WEIGHTS = (
+    ("conrad",     0.050, lambda cc, cls, ctx, nat: cls == "city"),
+    ("quinn",      0.080, lambda cc, cls, ctx, nat: cls in ("coastal", "mountain", "desert")),
+    ("alessandra", 0.030, lambda cc, cls, ctx, nat: cc in ("US", "CA") and (ctx.get("terrain_type") or "") in ("mountain", "lake")),
+    ("katja",      0.030, lambda cc, cls, ctx, nat: cc in ("US", "CA") and cls == "city"),
+    ("djordje",    0.035, lambda cc, cls, ctx, nat: cls in ("coastal", "city", "desert") and not (cls == "desert" and cc in _DJORDJE_NO_GO_CC)),
+    ("diana",      0.030, lambda cc, cls, ctx, nat: cls == "city"),
+    ("terry",      0.040, lambda cc, cls, ctx, nat: cls == "city" and cc not in ("FR", "BE", "LU")),
+    ("charlotte",  0.040, lambda cc, cls, ctx, nat: cls == "city" and cc != "GB"),
+    ("naomi",      0.045, lambda cc, cls, ctx, nat: cls in ("city", "coastal") and cc not in ("MC", "TN", "FR")),
+    ("valentina",  0.010, lambda cc, cls, ctx, nat: not nat and valentina_allowed(ctx)),
+    ("luca",       0.030, lambda cc, cls, ctx, nat: cls == "coastal" and cc not in ("IT", "GR", "HR", "ES", "PT", "FR")),
+    ("amber",      0.030, lambda cc, cls, ctx, nat: cls == "coastal" and cc in _WARM_COASTAL_CC),
+    ("regina",     0.030, lambda cc, cls, ctx, nat: regina_allowed(ctx)),
+    ("diaz",       0.030, lambda cc, cls, ctx, nat: cls == "city" and cc not in ("US", "CA", "MX")),
+    ("zara",       0.035, lambda cc, cls, ctx, nat: cls == "city" and cc not in ("US", "CA")),
+    ("stacy",      0.020, lambda cc, cls, ctx, nat: not nat),
+    ("chad",       0.020, lambda cc, cls, ctx, nat: True),
+    ("kelek",      0.020, lambda cc, cls, ctx, nat: cls in ("city", "coastal") and cc not in ("TR", "MA", "TN", "DZ", "EG")),
+)
+
+_char_select_verbose = True
 
 
-def _gate_regina(char: str, place: dict) -> str:
-    if char != "regina" or regina_allowed(place):
-        return char
-    return _regina_fallback(place)
+def _terrain_class(terrain_type: str, place_type: str) -> str:
+    if terrain_type == "coastal":
+        return "coastal"
+    if terrain_type in ("mountain", "mountains", "high_mountains", "hills"):
+        return "mountain"
+    if terrain_type == "desert":
+        return "desert"
+    if (place_type or "").upper() in ("PPLC", "PPLA", "PPL"):
+        return "city"
+    return "*"
+
+
+def _region_pool(country_code: str, cls: str, is_city: bool) -> tuple[dict, str]:
+    group = _POOL_GROUP.get(country_code, "default")
+    for c in (cls, "city" if is_city else None, "*"):
+        if c and (group, c) in REGION_POOLS:
+            return REGION_POOLS[(group, c)], f"{group}/{c}"
+    return REGION_POOLS[("default", "*")], "default/*"
+
+
+def _draw_from_pool(pool: dict, ctx: dict, label: str) -> str:
+    w = {}
+    for char, weight in pool.items():
+        if char in DISABLED_CHARACTERS or weight <= 0:
+            continue
+        if char == "valentina" and not valentina_allowed(ctx):
+            continue
+        if char == "regina" and not regina_allowed(ctx):
+            continue
+        w[char] = weight
+    if not w:
+        w = {"sofia": 1.0}
+    total = sum(w.values())
+    w = {k: v / total for k, v in w.items()}
+    char = random.choices(list(w), weights=list(w.values()), k=1)[0]
+    if _char_select_verbose:
+        print(f"  🎭 char={char} ({w[char]*100:.0f}%) — pool {label}")
+    return char
 
 
 def select_character(country_code: str, terrain_type: str, place_type: str, place_name: str = "", place: dict | None = None) -> str:
-    _ctx = place or {
+    ctx = place or {
         "name_en": place_name,
         "country_code": country_code,
         "terrain_type": terrain_type or "",
@@ -6556,57 +6698,23 @@ def select_character(country_code: str, terrain_type: str, place_type: str, plac
         "attractiveness_score": 0,
     }
 
-    def _pick(weights: dict) -> str:
-        w = {k: v for k, v in weights.items() if k not in DISABLED_CHARACTERS}
-        if not valentina_allowed(_ctx):
-            w.pop("valentina", None)
-        if not w:
-            w = {k: v for k, v in weights.items() if k != "valentina" and k not in DISABLED_CHARACTERS}
-        return _gate_regina(
-            _gate_valentina(weighted_choice(w), _ctx, country_code, terrain_type, place_type),
-            _ctx,
-        )
-
-    if place_name in REGINA_CITIES:
-        return "regina"
-
-    # Power cities — only power characters
-    POWER_CITIES = [
-        "Capitol Hill", "Zurich", "Frankfurt", "Singapore", "Hong Kong", "Davos",
-        "Luxembourg", "The Hague", "Strasbourg"
-    ]
-    if place_name in POWER_CITIES:
-        return _pick({"charlotte": 0.32, "naomi": 0.23, "regina": 0.11, "werra": 0.11, "valentina": 0.08, "tammy": 0.05, "yosra": 0.05, "diaz": 0.05})
+    # 1. Forced places
+    forced = FORCED_PLACES.get(place_name)
+    if forced is not None:
+        if isinstance(forced, str):
+            if _char_select_verbose:
+                print(f"  🎭 char={forced} — forced place: {place_name}")
+            return forced
+        return _draw_from_pool(dict(forced), ctx, f"forced:{place_name}")
 
     terrain_type = guess_terrain(terrain_type, place_type)
-    PLACE_OVERRIDES = {
-        # Driver — scenic roads
-        "Pacific Coast Highway": "driver_van" if random.random() < 0.25 else "driver_pov",
-        "Transfăgărășan": "driver_van" if random.random() < 0.25 else "driver_pov",
-        "Grossglockner": "driver_van" if random.random() < 0.25 else "driver_pov",
-        "Atlantic Road": "driver_van" if random.random() < 0.25 else "driver_pov",
-        "Stelvio Pass": "driver_van" if random.random() < 0.25 else "driver_pov",
-        "Trollstigen": "driver_van" if random.random() < 0.25 else "driver_pov",
-        "Amalfi Coast": "driver_van" if random.random() < 0.25 else "driver_pov",
-        "Chapman's Peak": "driver_van" if random.random() < 0.25 else "driver_pov",
-        "Col du Galibier": "driver_van" if random.random() < 0.25 else "driver_pov",
-        # Chad hype spots
-        "Tulum": "chad",
-        "Marrakech": "chad",
-        "Cairo": "chad" if random.random() < 0.30 else "yosra",
-        "Barcelona": "chad",
-        "Plovdiv": "chad",
-        "Tallinn": "chad",
-        "Chemnitz": "chad",  # GPS error. He posts anyway.
-        "Roswell": "tammy",
-    }
-    if place_name in PLACE_OVERRIDES:
-        return PLACE_OVERRIDES[place_name]
 
+    # 2. Road POV — separate from cast
     _road_pov = try_road_pov(country_code, terrain_type, place_type, place_name)
     if _road_pov:
         return _road_pov
 
+    # 3. Nature wildcard — 9%: city char out of element (discomfort note in prompt)
     global _nature_wildcard_char
     _nature_wildcard_char = None
     rot_key = get_rotation_key(country_code, terrain_type, place_type)
@@ -6614,264 +6722,27 @@ def select_character(country_code: str, terrain_type: str, place_type: str, plac
         _pool = [c for c in NATURE_WILDCARD_CHARS if c not in DISABLED_CHARACTERS]
         if _pool:
             _nature_wildcard_char = random.choice(_pool)
+            if _char_select_verbose:
+                print(f"  🎭 char={_nature_wildcard_char} — nature wildcard ({rot_key})")
             return _nature_wildcard_char
 
-    # Regina and Valentina don't do wilderness / national parks / canyon/desert landscapes
-    _NATURE_ONLY_CHARS_EXCLUDE = {"regina", "valentina"}
-    _NATURE_PLACE_TYPES = {"PRK", "PRKX", "NPARK", "RESV", "MNTN", "DSRT"}
-    _NATURE_TERRAINS = {"mountain", "desert", "national_park", "wilderness"}
-    _NATURE_NAMES = {
-        "Grand Canyon", "Monument Valley", "Yellowstone", "Yosemite",
-        "Zion", "Bryce Canyon", "Death Valley", "Joshua Tree",
-        "Arches", "Canyonlands", "Mesa Verde", "Sequoia",
-        "Olympic National Park", "Glacier National Park",
-        "Denali", "Everglades", "Rocky Mountain National Park",
-        "Acadia", "Grand Teton", "Crater Lake",
-    }
-    _is_nature_only = (
-        place_name in _NATURE_NAMES
-        or (place_type or "").upper() in _NATURE_PLACE_TYPES
-        or terrain_type in _NATURE_TERRAINS
-    )
+    # 4. Region pool + guest shares → one normalized draw
+    cls = _terrain_class(terrain_type, place_type)
+    is_city = (place_type or "").upper() in ("PPLC", "PPLA", "PPL")
+    nature_only = cls in ("mountain", "desert") or is_nature_place(ctx)
+    base, label = _region_pool(country_code, cls, is_city)
+    guests = {}
+    for char, share, cond in GUEST_WEIGHTS:
+        if char in base or char in DISABLED_CHARACTERS:
+            continue
+        if cond(country_code, cls, ctx, nature_only):
+            guests[char] = share
+    guest_total = sum(guests.values())
+    base_total = sum(base.values()) or 1.0
+    pool = {k: v / base_total * (1.0 - guest_total) for k, v in base.items()}
+    pool.update(guests)
+    return _draw_from_pool(pool, ctx, label)
 
-    weighted = pick_primary_character(country_code, terrain_type, place_type)
-    if weighted:
-        if weighted in _NATURE_ONLY_CHARS_EXCLUDE and _is_nature_only:
-            weighted = pick_primary_character(country_code, terrain_type, place_type)
-            if weighted in _NATURE_ONLY_CHARS_EXCLUDE:
-                weighted = "ingrid"  # solid fallback for outdoors
-        return _gate_regina(
-            _gate_valentina(weighted, _ctx, country_code, terrain_type, place_type),
-            _ctx,
-        )
-
-    # ── Weighted character pools by region/terrain ──
-    # Terrain shortcuts
-    is_coastal  = terrain_type == "coastal"
-    is_mountain = terrain_type in ["mountain", "high_mountains", "hills"]
-    is_desert   = terrain_type == "desert"
-    is_city     = (place_type or "").upper() in ["PPLC", "PPLA", "PPL"]
-
-    # ── Global wildcards — checked before region logic ──
-    # These fire outside home regions at lower rates than within home region.
-    # Ordering matters: each check is independent.
-
-    # Conrad — rare, major cities globally (5%)
-    if is_city and random.random() < 0.05:
-        return "conrad"
-    # Quinn — sporty/outdoor globally (8%)
-    if (is_coastal or is_mountain or is_desert) and random.random() < 0.08:
-        return "quinn"
-    # Alessandra — alpine/outdoor wildcard in US/CA mountain/lake (3%)
-    if (country_code in ["US", "CA"] and terrain_type in ["mountain", "lake"]
-            and random.random() < 0.03):
-        return "alessandra"
-    # Katja — urban wildcard in US/CA cities (3%)
-    if country_code in ["US", "CA"] and is_city and random.random() < 0.03:
-        return "katja"
-    # Djordje — cappuccino lizard: coastal/city anywhere + desert cities outside pure Gulf/Sahara
-    _djordje_no_go = is_desert and country_code in {"SA","AE","QA","KW","BH","OM","LY","SD","ML","NE","TD"}
-    if not _djordje_no_go and (is_coastal or is_city or is_desert) and random.random() < 0.035:
-        return "djordje"
-    # Diana — gothic energy, old cities globally (3%)
-    if is_city and random.random() < 0.03:
-        return "diana"
-    # Terry — cities globally outside FR/BE home (4%)
-    if is_city and country_code not in {"FR","BE","LU"} and random.random() < 0.04:
-        return "terry"
-    # Charlotte — cities globally outside GB home (4%)
-    if is_city and country_code != "GB" and random.random() < 0.04:
-        return "charlotte"
-    # Naomi — prestige/coastal cities globally outside MC/TN/FR home (4%)
-    if (is_city or is_coastal) and country_code not in {"MC","TN","FR"} and random.random() < 0.045:
-        return "naomi"
-    # Valentina — rare: finance/prestige allowlist only, never tourist venues
-    if not _is_nature_only and valentina_allowed(_ctx) and random.random() < 0.01:
-        return "valentina"
-    # Luca — coastal globally outside IT/Med home (3%)
-    if is_coastal and country_code not in {"IT","GR","HR","ES","PT","FR"} and random.random() < 0.03:
-        return "luca"
-    # Amber — warm coastal globally outside US home (3%)
-    _warm_countries = {"ES","PT","IT","GR","HR","ME","AL","TR","MA","TN","MX","BR","CU","DO","TH","ID","MY"}
-    if is_coastal and country_code in _warm_countries and random.random() < 0.03:
-        return "amber"
-    # Regina — rare wildcard: power/urban venues only (not beach/lagoon/nature)
-    if regina_allowed(_ctx) and random.random() < 0.03:
-        return "regina"
-    # Diaz — urban globally outside US home (3%)
-    if is_city and country_code not in {"US","CA","MX"} and random.random() < 0.03:
-        return "diaz"
-    # Zara — city globally outside US home (3%)
-    if is_city and country_code not in {"US","CA"} and random.random() < 0.035:
-        return "zara"
-    # Stacy — global urban tourist, same rate everywhere (2%) — not wilderness/nature
-    if not _is_nature_only and random.random() < 0.02:
-        return "stacy"
-    # Chad — digital nomad wildcard globally (2%)
-    if random.random() < 0.02:
-        return "chad"
-    # Kelek — cartographer, coastal/city outside TR/Maghreb home pools (2%)
-    if (is_city or is_coastal) and country_code not in {"TR", "MA", "TN", "DZ", "EG"} and random.random() < 0.02:
-        return "kelek"
-
-    # Brazil
-    if country_code == "BR":
-        return _pick({"ana": 0.69, "sofia": 0.20, "luca": 0.11})
-
-    # Monaco / Tunisia
-    if country_code == "MC":
-        return _pick({"naomi": 0.70, "charlotte": 0.20, "valentina": 0.10})
-
-    # North Africa — yosra & kelek primary territory
-    if country_code in ["MA","TN","DZ","EG"]:
-        if is_coastal:
-            return _pick({"yosra": 0.38, "kelek": 0.38, "katja": 0.14, "sofia": 0.10})
-        if is_city:
-            return _pick({"yosra": 0.48, "kelek": 0.32, "katja": 0.20})
-        return _pick({"yosra": 0.58, "kelek": 0.28, "sofia": 0.14})
-
-    # Nordics
-    if country_code in ["NO","SE","FI","IS","DK"]:
-        if is_coastal:
-            return _pick({"ingrid": 0.40, "werra": 0.25, "katja": 0.20, "sigrid": 0.15})
-        if is_mountain:
-            return _pick({"ingrid": 0.45, "werra": 0.35, "alessandra": 0.20})
-        if is_city:
-            return _pick({"sigrid": 0.30, "ingrid": 0.25, "katja": 0.20, "werra": 0.15, "elena": 0.10})
-        return _pick({"ingrid": 0.35, "werra": 0.30, "katja": 0.20, "sigrid": 0.15})
-
-    # UK
-    if country_code == "GB":
-        if is_coastal:
-            return _pick({"werra": 0.35, "katja": 0.25, "charlotte": 0.20, "ingrid": 0.20})
-        if is_mountain:
-            return _pick({"werra": 0.45, "ingrid": 0.30, "katja": 0.25})
-        if is_city:
-            return _pick({"charlotte": 0.40, "terry": 0.25, "naomi": 0.20, "katja": 0.15})
-        return _pick({"charlotte": 0.30, "werra": 0.25, "terry": 0.25, "katja": 0.20})
-
-    # Germany
-    if country_code == "DE":
-        if is_coastal:
-            return _pick({"ingrid": 0.30, "werra": 0.30, "katja": 0.25, "elena": 0.15})
-        if is_mountain:
-            return _pick({"alessandra": 0.35, "werra": 0.35, "ingrid": 0.20, "katja": 0.10})
-        if is_city:
-            return _pick({"elena": 0.25, "werra": 0.20, "katja": 0.20, "charlotte": 0.15, "sigrid": 0.10, "terry": 0.10})
-        return _pick({"werra": 0.30, "elena": 0.25, "katja": 0.20, "sigrid": 0.15, "terry": 0.10})
-
-    # Austria / Switzerland
-    if country_code in ["AT","CH"]:
-        if is_mountain:
-            return _pick({"alessandra": 0.45, "ingrid": 0.25, "werra": 0.20, "katja": 0.10})
-        return _pick({"alessandra": 0.35, "werra": 0.25, "katja": 0.20, "sigrid": 0.10, "elena": 0.10})
-
-    # France
-    if country_code == "FR":
-        if is_coastal:
-            return _pick({"yosra": 0.40, "naomi": 0.35, "sofia": 0.25})
-        if is_city:
-            return _pick({"yosra": 0.35, "celine": 0.28, "naomi": 0.22, "charlotte": 0.15})
-        return _pick({"yosra": 0.40, "sofia": 0.25, "celine": 0.20, "werra": 0.15})
-
-    # Spain / Portugal
-    if country_code in ["ES","PT"]:
-        if is_coastal:
-            return _pick({"sofia": 0.38, "ana": 0.28, "lyra": 0.22, "luca": 0.12})
-        if is_city:
-            return _pick({"maria": 0.32, "sofia": 0.28, "yosra": 0.22, "stacy": 0.18})
-        return _pick({"sofia": 0.39, "maria": 0.30, "yosra": 0.20, "luca": 0.11})
-
-    # Italy
-    if country_code == "IT":
-        if is_coastal:
-            return _pick({"naomi": 0.30, "luca": 0.22, "sofia": 0.22, "alessandra": 0.16, "djordje": 0.05, "valentina": 0.05})
-        if is_mountain:
-            return _pick({"alessandra": 0.55, "ingrid": 0.28, "luca": 0.12, "valentina": 0.05})
-        if is_city:
-            return _pick({"carmela": 0.28, "naomi": 0.25, "luca": 0.18, "stacy": 0.18, "valentina": 0.11})
-        return _pick({"luca": 0.28, "alessandra": 0.25, "sofia": 0.25, "naomi": 0.16, "valentina": 0.06})
-
-    # Greece
-    if country_code == "GR":
-        if is_coastal:
-            return _pick({"lyra": 0.35, "thea": 0.30, "sofia": 0.19, "naomi": 0.13, "djordje": 0.03})
-        return _pick({"thea": 0.45, "lyra": 0.40, "sofia": 0.15})
-
-    # Southern Balkans / Adriatic — Kelek secondary (cartographer coast)
-    if country_code in ["HR","ME","AL","MK"]:
-        if is_coastal:
-            return _pick({"naomi": 0.24, "thea": 0.22, "lyra": 0.20, "kelek": 0.22, "djordje": 0.05, "valentina": 0.07})
-        return _pick({"katja": 0.30, "elena": 0.26, "mila": 0.17, "kelek": 0.15, "thea": 0.12})
-
-    # Balkans (north/central — no Kelek pool)
-    if country_code in ["RS","BA","SI"]:
-        if is_coastal:
-            return _pick({"mila": 0.32, "katja": 0.26, "elena": 0.24, "thea": 0.12, "djordje": 0.06})
-        if is_city:
-            return _pick({"mila": 0.32, "katja": 0.27, "elena": 0.26, "diaz": 0.08, "tammy": 0.07})
-        return _pick({"katja": 0.36, "werra": 0.24, "elena": 0.20, "mila": 0.20})
-
-    # Eastern Europe
-    if country_code in ["PL","CZ","SK","HU","RO","BG","LV","LT","EE"]:
-        if is_city:
-            return _pick({"elena": 0.25, "katja": 0.25, "mila": 0.20, "sigrid": 0.15, "olga": 0.15})
-        return _pick({"elena": 0.30, "katja": 0.25, "mila": 0.20, "werra": 0.15, "olga": 0.10})
-
-    # Ukraine / Russia area
-    if country_code in ["UA","BY","MD"]:
-        if is_city:
-            return _pick({"olga": 0.35, "elena": 0.25, "mila": 0.25, "katja": 0.15})
-        return _pick({"olga": 0.40, "werra": 0.25, "elena": 0.25, "katja": 0.10})
-
-    # Turkey — kelek primary for Aegean/Mediterranean coast
-    if country_code == "TR":
-        if is_coastal:
-            return _pick({"kelek": 0.45, "yosra": 0.32, "sofia": 0.18, "djordje": 0.05})
-        return _pick({"yosra": 0.45, "kelek": 0.30, "katja": 0.15, "naomi": 0.10})
-
-    # US / Canada — characters only; road POV via try_road_pov() above
-    if country_code in ["US","CA"]:
-        if is_desert:
-            return _pick({"jade": 0.40, "amber": 0.35, "maya": 0.25})
-        if is_coastal:
-            return _pick({"kay": 0.34, "ana": 0.22, "maya": 0.18, "zara": 0.26})
-        if is_mountain:
-            return _pick({"ingrid": 0.40, "jade": 0.30, "werra": 0.30})
-        if is_city:
-            return _pick({"diaz": 0.22, "charlotte": 0.17, "tammy": 0.17, "stacy": 0.13, "zara": 0.24, "rosa": 0.07})
-        return _pick({"tammy": 0.28, "jade": 0.22, "maya": 0.14, "stacy": 0.14, "zara": 0.22})
-
-    # Mexico
-    if country_code == "MX":
-        if is_coastal:
-            return _pick({"luca": 0.19, "sofia": 0.28, "ana": 0.28, "diaz": 0.18, "rosa": 0.07})
-        return _pick({"diaz": 0.43, "tammy": 0.22, "luca": 0.15, "rosa": 0.20})
-
-    # Latin America (non-BR/MX)
-    if country_code in ["CO","VE","PE","EC","BO","PY","AR","CL","UY","GT","CR","PA","HN","SV","NI","BZ"]:
-        if is_coastal:
-            return _pick({"ana": 0.35, "sofia": 0.25, "luca": 0.15, "diaz": 0.15, "isabella": 0.10})
-        return _pick({"ana": 0.32, "sofia": 0.24, "luca": 0.14, "diaz": 0.15, "rosa": 0.10, "isabella": 0.05})
-
-    # Caribbean — isabella primary (Cuban-American energy fits perfectly)
-    if country_code in ["CU","JM","HT","DO","PR","TT","BB","LC","VC","GD","AG","DM","KN","BS"]:
-        return _pick({"isabella": 0.36, "ana": 0.30, "sofia": 0.20, "naomi": 0.10, "luca": 0.04})
-
-    # Middle East / Gulf
-    if country_code in ["AE","SA","QA","BH","KW","OM","JO","LB","IL"]:
-        return _pick({"naomi": 0.40, "yosra": 0.35, "charlotte": 0.25})
-
-    # Southeast Asia
-    if country_code in ["TH","VN","ID","MY","PH","SG","KH","LA","MM"]:
-        return _pick({"sofia": 0.32, "lyra": 0.27, "naomi": 0.20, "yuki": 0.15, "luca": 0.06})
-
-    # India / South Asia
-    if country_code in ["IN","LK","NP","PK","BD","MV"]:
-        return _pick({"sofia": 0.30, "naomi": 0.25, "ana": 0.25, "diaz": 0.20})
-
-    # Default
-    return _pick({"sofia": 0.35, "naomi": 0.30, "ana": 0.20, "luca": 0.15})
 
 # ══════════════════════════════════════════════
 # PIPELINE FUNCTIONS
@@ -7935,7 +7806,7 @@ ROAD_IDENTITY_SPECS = {
     "werra":      "Steps off a regional train at a small rural station — platform empty, grey sky, forest behind. Or walks out from the treeline onto a road. No luggage except a worn canvas pack. No ceremony. She has been here before in a different century.",
     "lyra":       "Arrives at dusk or evening — walks along a harbour or narrow street, approaching a lit terrace or taverna. Loose dress, relaxed pace. The location is warm and old. She belongs here.",
     "tammy":      "Steps off a Greyhound at a small town stop — already scanning the area. Or the Ford Crown Victoria pulls into a gas station or diner lot — Montana plates. She gets out slowly, stretches, looks around like she is confirming something. Maybe a toothpick or lollipop — rarely a cigarette.",
-    "thea":       "Arrives on Vespa — parks it wherever, doesn't check if it's allowed. Old scratched Vespa, Greek plates (GR), small Spartan helmet sticker on the rear. Sunglasses on, cigarette nearly finished. She has been here before. She lives here.",
+    "thea":       "Arrives on Vespa (old, scratched, Greek plates GR, small Spartan helmet sticker on the rear) OR simply walks in from a side street — she lives here, the Vespa is parked somewhere else half the time. Sunglasses on, cigarette nearly finished. She has been here before.",
     "charlotte":  "CITY: Black cab pulls up. Door opens. She steps out — long legs in back-seam nylons first, phone to ear, still finishing a call. She doesn't look up. She doesn't need to. COUNTRYSIDE: She arrives on horseback. The horse is better behaved than most people she meets. She dismounts without drama.",
     "noir":       "She was already there. Standing under the streetlamp in the rain, cigarette holder in hand, not waiting for anything. She has been here for an hour. Or a decade. The taxi that brought her is already gone.",
     "regina":     "She was already there. No arrival. She was always already there.",
@@ -8148,7 +8019,7 @@ Expression: focused, maybe slight annoyance if someone is in the way. She lives 
 Background: Mediterranean village street, steps, or bar entrance — not a scenic viewpoint.
 LOCALE: any signage or bottle labels in local language only.
 
-IF THEA: cigarette or toothpick in the corner of her mouth — she didn't put it down for this. Dark vintage sunglasses on. She is not impressed by the weight. She is not impressed by anything.
+IF THEA: this is a WORKING SHOT — she is a taverna waitress, mid-shift. Outfit override: work clothes, not off-duty — simple dark or white work t-shirt, worn apron (half-apron or bistro apron, stained, tied at the waist), sturdy shorts or work trousers, maybe simple work gloves for the crate. Hair tied back. No Vespa in frame. Cigarette or toothpick in the corner of her mouth — she didn't put it down for this. Dark vintage sunglasses on. She is not impressed by the weight. She is not impressed by anything.
 """,
     "watchmaker_window": """
 ACTIVITY SHOT: Character standing outside a watchmaker's shop window, evening or dusk.
@@ -10480,6 +10351,14 @@ def process_place(place: dict, dry_run: bool = False, exploit: bool = False,
     if character_key in DISABLED_CHARACTERS:
         print(f"  ⏭️  {character_key} is disabled — skipping")
         return {"overall": 0, "void_energy": 0, "exploit_potential": 0, "one_line": ""}
+    # Per-run image budget (generation only — existing images in DB unaffected):
+    # score < 85 → max 3, score >= 85 → max 5
+    _score_pp = place.get("attractiveness_score", 0) or 0
+    _shot_budget = 3 if _score_pp < 85 else 5
+    _shots = {"n": 0}
+    def _budget_ok() -> bool:
+        return _shots["n"] < _shot_budget
+    print(f"  🎞️  Image budget: {_shot_budget} (score {_score_pp})")
     reset_tammy_set_state(character_key)
     if dayhike_only and not ENABLE_GOLDEN_DAYHIKE:
         print("  ⏭️  Golden dayhike disabled — skipping")
@@ -10522,6 +10401,7 @@ def process_place(place: dict, dry_run: bool = False, exploit: bool = False,
     else:
         # Venice special: double exploits, always include cleavage
         claude_visual = generate_one(place, character_key, dry_run, exploit, no_review=no_review, exploit_only=exploit_only, goldie_only=goldie_only, noir_mode=noir_mode, prestige_mode=prestige_mode, nightlife_mode=nightlife_mode, viper_mode=viper_mode, maxpower_mode=maxpower_mode, outfit_override=outfit_override, eclipse_mode=eclipse_mode, sidewinder_mode=sidewinder_mode, continental_mode=continental_mode, outfit_light=outfit_light, us_mode=us_mode, eu_mode=eu_mode, exploit_key=exploit_key, expression_override=expression_override, time_override=time_override, wet_override=wet_override, friend_char=friend_char, safe_mode=safe_mode)
+        _shots["n"] += 1
 
     if goldie_only and not _single_shot:
         print("  🐕 Generating Goldie shot...")
@@ -10543,6 +10423,9 @@ def process_place(place: dict, dry_run: bool = False, exploit: bool = False,
             print(f"  ⚠️  Goldie failed: {e}")
         return claude_visual
 
+    if goldie and not _single_shot and not _budget_ok():
+        print(f"  ⏭️  Goldie skipped — image budget reached ({_shot_budget})")
+        goldie = False
     if goldie and not _single_shot:
         print("  🐕 Scoring Goldie...")
         goldie_data = claude_goldie_score(place["name_en"], place["country_code"], place.get("terrain_type",""))
@@ -10563,6 +10446,7 @@ def process_place(place: dict, dry_run: bool = False, exploit: bool = False,
                     goldie_webp = convert_to_webp(goldie_bytes)
                     gp = upload_goldie_to_supabase(goldie_webp, place)
                     print(f"  ✅ Goldie: {gp}")
+                _shots["n"] += 1
             except Exception as e:
                 log_blocked(place, "goldie", "goldie", "goldie", goldie_prompt, e)
                 print(f"  ⚠️  Goldie failed: {e}")
@@ -10570,7 +10454,7 @@ def process_place(place: dict, dry_run: bool = False, exploit: bool = False,
             print(f"  ⏭️  Goldie score too low ({goldie_score:.1f})")
 
     # Driver always gets one additional character
-    if character_key in ["driver_pov","driver_van"] and not exploit_only and not goldie_only and not _single_shot:
+    if character_key in ["driver_pov","driver_van"] and not exploit_only and not goldie_only and not _single_shot and _budget_ok():
         extra = select_character(
             place["country_code"], place.get("terrain_type",""), place.get("place_type",""),
             place.get("name_en",""), place=place,
@@ -10579,6 +10463,7 @@ def process_place(place: dict, dry_run: bool = False, exploit: bool = False,
             extra = "jade" if place["country_code"] in ["US","CA"] else "sofia"
         print(f"\n  🔄 Driver bonus: {extra}")
         generate_one(place, extra, dry_run, exploit, suffix=f"_{extra}", exploit_key=exploit_key)
+        _shots["n"] += 1
 
     # Multi-char rotation
     if multi_char and not dry_run and not _single_shot:
@@ -10587,8 +10472,12 @@ def process_place(place: dict, dry_run: bool = False, exploit: bool = False,
         extra_chars = get_multi_chars(place, character_key, overall, void_e)
         extra_chars = [c for c in extra_chars if c != character_key]
         for i, extra_char in enumerate(extra_chars):
+            if not _budget_ok():
+                print(f"  ⏭️  Multi-char stopped — image budget reached ({_shot_budget})")
+                break
             print(f"\n  🔄 Multi-char [{i+1}/{len(extra_chars)}]: {extra_char}")
             generate_one(place, extra_char, dry_run, exploit, suffix=f"_{extra_char}", exploit_key=exploit_key)
+            _shots["n"] += 1
 
     # ── PLACE BOOST EXPLOITS ──
     _boost_shots = get_place_boost(place.get("name_en",""), character_key) if (exploit and not no_boost and not _single_shot) else []
@@ -10620,7 +10509,7 @@ def process_place(place: dict, dry_run: bool = False, exploit: bool = False,
 
 
     # ── ROAD IDENTITY ──
-    if road_identity and not goldie_only and not _single_shot and should_generate_road_identity(place, character_key) and character_key not in ["driver_pov","driver_van"]:
+    if road_identity and not goldie_only and not _single_shot and _budget_ok() and should_generate_road_identity(place, character_key) and character_key not in ["driver_pov","driver_van"]:
         _arrival_ctx = get_arrival_context(place)
         print(f"  🚗 Road Identity: {_arrival_ctx[:50]}...")
         ri_brief = claude_location_brief(place["name_en"], place["country_code"])
@@ -10637,6 +10526,7 @@ def process_place(place: dict, dry_run: bool = False, exploit: bool = False,
                 ri_webp = convert_to_webp(ri_bytes)
                 rp = upload_road_identity_to_supabase(ri_webp, place, character_key)
                 print(f"  ✅ Road: {rp}")
+            _shots["n"] += 1
         except Exception as e:
             log_blocked(place, character_key, "road_identity", "road", ri_prompt, e)
             print(f"  ⚠️  Road Identity failed: {e}")
@@ -10789,7 +10679,12 @@ def process_place(place: dict, dry_run: bool = False, exploit: bool = False,
             print(f"  ⏭️  Activity '{activity_key}' disabled globally")
         elif acts:
             acts = _cafe_menu_exclusive(acts)
+            if _score_pp < 85:
+                acts = acts[:1]
             for act in acts:
+                if not _budget_ok():
+                    print(f"  ⏭️  Activity budget reached ({_shot_budget})")
+                    break
                 if act == "attraction_pass" and not has_famous_attraction(place):
                     print(f"  ⏭️  attraction_pass skipped — {name} has no iconic landmark")
                     continue
@@ -10840,6 +10735,7 @@ def process_place(place: dict, dry_run: bool = False, exploit: bool = False,
                         print(f"  ⚠️  Activity failed ({_act_file}): {e}")
                         continue
                     if act_bytes:
+                        _shots["n"] += 1
                         if dry_run:
                             ap = cast_output_path(place, character_key, _style_tag, f"activity_{_act_file}")
                             ap.write_bytes(convert_to_webp(act_bytes))
@@ -10881,6 +10777,7 @@ def process_place(place: dict, dry_run: bool = False, exploit: bool = False,
     if (
         ENABLE_GOLDEN_DAYHIKE
         and (dayhike_only or _nature_pack)
+        and (_budget_ok() or dayhike_only)
     ) and (
         not main_only
         and not arrival_only
@@ -10914,6 +10811,9 @@ def process_place(place: dict, dry_run: bool = False, exploit: bool = False,
     _is_vast = _vl_terrain in _VAST_LANDSCAPE_TERRAINS or _vl_pt in _VAST_LANDSCAPE_PLACE_TYPES
     _nature_pack_fs = nature_shot_pack(place, us_mode, eu_mode, continental_mode)
     _do_farshot = (_is_vast and not _nature_pack_fs) or bool(_nature_pack_fs)
+    if _do_farshot and not _budget_ok():
+        print(f"  ⏭️  Far shot skipped — image budget reached ({_shot_budget})")
+        _do_farshot = False
     if _do_farshot and not goldie_only and not activity_only and not dayhike_only and not main_only and not arrival_only and character_key not in ["driver_pov", "driver_van"]:
         print(f"  🏔️  Vast landscape far shot...")
         _vl_brief = claude_location_brief(place["name_en"], place.get("country_code", ""))
@@ -10936,6 +10836,7 @@ def process_place(place: dict, dry_run: bool = False, exploit: bool = False,
                 _vl_path = f"cast/farshot/{place['name_en'].lower().replace(' ','_')}_{place.get('country_code','').lower()}_cast_{character_key}_farshot.webp"
                 supabase.storage.from_("dedicated").upload(_vl_path, _vl_webp, {"content-type": "image/webp"})
                 print(f"  ✅ Far shot: {_vl_path}")
+            _shots["n"] += 1
         except Exception as e:
             print(f"  ⚠️  Far shot failed: {e}")
 
@@ -10948,6 +10849,7 @@ def process_place(place: dict, dry_run: bool = False, exploit: bool = False,
         _sd_angles = random.sample(SCENIC_DRIVE_SHOT_ANGLES, min(2, len(SCENIC_DRIVE_SHOT_ANGLES)))
         _sd_stop = SCENIC_DRIVE_PETROL_SHOT if random.random() < 0.4 else SCENIC_DRIVE_STOP_SHOT
         _sd_shots = [("angle", a) for a in _sd_angles] + [("roadside", SCENIC_DRIVE_STOP_SHOT), ("stop", _sd_stop)]
+        _sd_shots = _sd_shots[:max(0, _shot_budget - _shots["n"])]
         print(f"  🛣️  Scenic drive: {len(_sd_shots)} exterior shots")
         for _sdi, (_sd_type, _sd_angle) in enumerate(_sd_shots):
             _sd_prompt = build_scenic_drive_prompt(place, character_key, _sd_angle, _sd_vehicle, _sd_brief)
@@ -10963,6 +10865,7 @@ def process_place(place: dict, dry_run: bool = False, exploit: bool = False,
                     _sd_path = f"cast/scenic/{_place_name.lower().replace(' ','_')}_{place.get('country_code','').lower()}_cast_{character_key}_scenic_{_sd_type}_{_sdi+1}.webp"
                     supabase.storage.from_("dedicated").upload(_sd_path, _sd_webp, {"content-type": "image/webp"})
                     print(f"  ✅ Scenic {_sd_type}: {_sd_path}")
+                _shots["n"] += 1
             except Exception as e:
                 print(f"  ⚠️  Scenic drive shot failed: {e}")
 
@@ -11693,7 +11596,26 @@ if __name__ == "__main__":
     parser.add_argument("--landscape", action="store_true", help="Horizontal 16:9 (1536x1024 API → 1200x675 webp)")
     parser.add_argument("--free-prompt", type=str, default=None, help="One-off shot from raw prompt (no place). Use with --output-stem")
     parser.add_argument("--output-stem", type=str, default=None, help="Output filename stem in ~/sunnomad_output/")
+    parser.add_argument("--simulate-char", type=str, default=None, metavar="PLACE", help="Print char selection distribution for a place (no generation)")
     args = parser.parse_args()
+    if args.simulate_char:
+        _r = supabase.table("places").select(
+            "id, name_en, country_code, terrain_type, place_type, attractiveness_score"
+        ).ilike("name_en", f"%{args.simulate_char}%").limit(5).execute()
+        if not _r.data:
+            print(f"❌ No place matching '{args.simulate_char}'")
+            raise SystemExit(1)
+        _p = _r.data[0]
+        print(f"📍 {_p['name_en']} ({_p['country_code']}) — terrain={_p.get('terrain_type','')} type={_p.get('place_type','')} score={_p.get('attractiveness_score','')}")
+        _char_select_verbose = False
+        from collections import Counter
+        _c = Counter()
+        _n = 5000
+        for _ in range(_n):
+            _c[select_character(_p["country_code"], _p.get("terrain_type", ""), _p.get("place_type", ""), _p["name_en"], place=_p)] += 1
+        for _k, _v in _c.most_common():
+            print(f"  {_k:<12} {_v/_n*100:5.1f}%")
+        raise SystemExit(0)
     if args.free_prompt:
         run_free_shot(
             args.free_prompt,

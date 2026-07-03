@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { supabase } from '../../config/supabase';
+import { mixpanel } from '../../services/mixpanel';
 
 
 const StopStayCard = ({ destination, lang }) => {
@@ -17,6 +18,29 @@ const StopStayCard = ({ destination, lang }) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const placeId = destination?.placeId || destination?.id;
+  const placeName = destination?.name || destination?.name_en;
+
+  const openStayLink = (url, linkName) => {
+    mixpanel.track('Stop Stay Link Tapped', {
+      place_id: placeId,
+      place_name: placeName,
+      link_name: linkName,
+    });
+    Linking.openURL(url);
+  };
+
+  const handleTabPress = (tabId) => {
+    if (tabId !== activeTab) {
+      mixpanel.track('Stop Stay Tab Changed', {
+        place_id: placeId,
+        place_name: placeName,
+        tab: tabId,
+      });
+    }
+    setActiveTab(tabId);
+  };
 
   useEffect(() => {
     const placeId = destination?.placeId || destination?.id;
@@ -171,6 +195,14 @@ const StopStayCard = ({ destination, lang }) => {
         }
       }
 
+      // Strip distance/location suffix from name (e.g. ", 12km südlich") → prepend to details
+      const distanceMatch = name.match(/^(.+?),\s+(\d+[\s,]*km\b.*)$/i);
+      if (distanceMatch) {
+        name = distanceMatch[1].trim();
+        const distancePart = distanceMatch[2].trim();
+        details = details ? `${distancePart}, ${details}` : distancePart;
+      }
+
       return {
         label,
         name,
@@ -179,6 +211,25 @@ const StopStayCard = ({ destination, lang }) => {
         type: isWildcamp ? 'wildcamp' : index === 0 ? 'main' : 'secondary',
       };
     });
+  };
+
+  // Split text on [,;] or newline but never inside parentheses
+  const splitOutsideParens = (text) => {
+    const parts = [];
+    let depth = 0;
+    let current = '';
+    for (const ch of text) {
+      if (ch === '(') depth++;
+      else if (ch === ')') depth = Math.max(0, depth - 1);
+      if (depth === 0 && /[,;\n]/.test(ch)) {
+        if (current.trim()) parts.push(current.trim());
+        current = '';
+      } else {
+        current += ch;
+      }
+    }
+    if (current.trim()) parts.push(current.trim());
+    return parts;
   };
 
   const isFallbackStay = (stayText) => {
@@ -220,6 +271,27 @@ const StopStayCard = ({ destination, lang }) => {
     );
   };
 
+  // Render a campsite name, splitting on " oder " into individual link lines
+  const renderCampsiteNames = (name, link) => {
+    const parts = name.split(/ oder /i).map(p => p.trim()).filter(Boolean);
+    if (parts.length === 1) {
+      return link
+        ? <Text style={[styles.blockNameMain, styles.blockNameLink]} numberOfLines={2} onPress={() => openStayLink(link, name)}>{name}<Text style={styles.linkArrow}> ↗</Text></Text>
+        : <Text style={styles.blockNameMain} numberOfLines={2}>{name}</Text>;
+    }
+    const town = destination?.name_en || destination?.name || '';
+    return parts.map((part, idx) => {
+      const partUrl = link && idx === 0
+        ? link
+        : `https://www.google.com/maps/search/${encodeURIComponent(part + (town ? ' ' + town : ''))}`;
+      return (
+        <Text key={idx} style={[styles.blockNameMain, styles.blockNameLink]} numberOfLines={2} onPress={() => openStayLink(partUrl, part)}>
+          {part}<Text style={styles.linkArrow}> ↗</Text>
+        </Text>
+      );
+    });
+  };
+
   const renderStayBlocks = (stayText, campsiteLink1, campsiteLink2) => {
     if (isFallbackStay(stayText)) return renderFallbackStay(stayText);
 
@@ -247,10 +319,7 @@ const StopStayCard = ({ destination, lang }) => {
             return (
               <View key={i} style={styles.blockSeparator}>
                 {block.label && <Text style={styles.blockLabel}>{block.label}</Text>}
-                {link
-                ? <Text style={[styles.blockNameMain, styles.blockNameLink]} numberOfLines={2} onPress={() => Linking.openURL(link)}>{block.name}<Text style={styles.linkArrow}> ↗</Text></Text>
-                : <Text style={styles.blockNameMain} numberOfLines={2}>{block.name}</Text>
-                }
+                {renderCampsiteNames(block.name, link)}
                 {block.parenthetical && <Text style={styles.blockParenthetical}>{block.parenthetical}</Text>}
                 {block.details && <Text style={styles.blockDetails}>{block.details}</Text>}
               </View>
@@ -261,10 +330,7 @@ const StopStayCard = ({ destination, lang }) => {
           return (
             <View key={i}>
               {block.label && <Text style={styles.blockLabel}>{block.label}</Text>}
-              {link
-                ? <Text style={[styles.blockNameMain, styles.blockNameLink]} numberOfLines={2} onPress={() => Linking.openURL(link)}>{block.name}<Text style={styles.linkArrow}> ↗</Text></Text>
-                : <Text style={styles.blockNameMain} numberOfLines={2}>{block.name}</Text>
-              }
+              {renderCampsiteNames(block.name, link)}
               {block.parenthetical && <Text style={styles.blockParenthetical}>{block.parenthetical}</Text>}
               {block.details && (
                 <Text style={styles.blockDetails}>
@@ -379,7 +445,7 @@ const StopStayCard = ({ destination, lang }) => {
               styles.tab,
               activeTab === tab.id && styles.activeTab
             ]}
-            onPress={() => setActiveTab(tab.id)}
+            onPress={() => handleTabPress(tab.id)}
           >
             <Text
               style={[
@@ -401,7 +467,7 @@ const StopStayCard = ({ destination, lang }) => {
             {vehicleWarning && (
               <View style={styles.extraFieldBlock}>
                 <Text style={styles.extraFieldLabel}><Text style={styles.extraFieldEmoji}>🚐</Text> {lang === 'fr' ? 'VÉHICULE' : lang === 'de' ? 'FAHRZEUG' : 'VEHICLE'}</Text>
-                {vehicleWarning.split(/[,;]\s+|\n/).filter(Boolean).map((line, i) => (
+                {splitOutsideParens(vehicleWarning).filter(Boolean).map((line, i) => (
                   <Text key={i} style={styles.extraFieldText}>{'• '}{line.trim()}</Text>
                 ))}
               </View>

@@ -187,10 +187,13 @@ def pick_pexels_row(rows: list[dict]) -> dict | None:
 
     def pexels_rank(r: dict) -> tuple:
         path = r.get("storage_path") or ""
+        # unaccented/ holds re-downloaded duplicates (same filename, often a
+        # different photo) — never let them win over the original
+        dup = 1 if "/unaccented/" in path.lower() else 0
         sort = r.get("sort_order") or 999
         m = re.search(r"_pexels_(\d+)", path.lower())
         n = int(m.group(1)) if m else sort
-        return (n, sort, path)
+        return (dup, n, sort, path)
 
     return sorted(pexels, key=pexels_rank)[0]
 

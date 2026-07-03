@@ -1,7 +1,7 @@
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import * as authService from '../services/authService';
 import * as profileService from '../services/profileService';
-import { identifyUser, resetMixpanelIdentity } from '../services/mixpanel';
+import { identifyUser, resetMixpanelIdentity, mixpanel } from '../services/mixpanel';
 
 const AuthContext = createContext({});
 
@@ -130,6 +130,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setProfile(null);
       setSession(null);
+      mixpanel.track('Sign Out');
       await resetMixpanelIdentity();
 
       return { error: null };

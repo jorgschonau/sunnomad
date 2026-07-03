@@ -30,6 +30,7 @@ import { formatTemperature, formatDistance, getTemperatureSymbol, getDistanceSym
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   getHeroImage as getDedicatedHeroImage,
+  getCachedHeroImage,
   listDedicatedHeroImages,
   DEFAULT_HERO_IMAGE_URL,
 } from '../../services/placeHeroImageService';
@@ -161,7 +162,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const { t, i18n } = useTranslation();
   const { theme } = useTheme();
   const { temperatureUnit, distanceUnit } = useUnits();
-  const { destination, dateOffset: initialDateOffset = 0, reverseMode = 'warm', origin } = route.params;
+  const { destination, dateOffset: initialDateOffset = 0, reverseMode = 'warm', origin, source: viewSource = 'map' } = route.params;
   const [dateOffset, setDateOffset] = useState(initialDateOffset);
   const [datePickerVisible, setDatePickerVisible] = useState(false);
   const tempSym = getTemperatureSymbol(temperatureUnit);
@@ -206,14 +207,20 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const [localBadges, setLocalBadges] = useState(destination?.badges || []);
   const [badgeSource, setBadgeSource] = useState(destination);
   const [firstLineW, setFirstLineW] = useState(null);
+  // Base layer under the hero: last hero shown for this place (rotation cross-fades
+  // from it), or the blurred local generic on first load.
+  const [heroBase, setHeroBase] = useState(() => getCachedHeroImage({ id: effectivePlaceId }));
+  // null = lookup pending; the resolved hero fades in over the base layer
   const [heroMeta, setHeroMeta] = useState(null);
-  const [devHeroList, setDevHeroList] = useState([]);
-  const [devHeroIndex, setDevHeroIndex] = useState(0);
+  const [heroList, setHeroList] = useState([]);
+  const [heroIndex, setHeroIndex] = useState(0);
   const [devHeroNavVisible, setDevHeroNavVisible] = useState(true);
+  // null = not loaded yet from storage; false = never used → pulse the button
+  const [heroExpandUsed, setHeroExpandUsed] = useState(null);
 
   const getHeroTrackingProps = (meta = null) => {
     const h = meta
-      ?? (__DEV__ && devHeroList.length > 0 ? devHeroList[devHeroIndex] : null)
+      ?? (heroList.length > 0 ? heroList[heroIndex] : null)
       ?? heroMeta;
     return {
       hero_image_name: h?.hero_image_name ?? destination.generic_key ?? null,
@@ -236,6 +243,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const uiOpacityAnim = React.useRef(new Animated.Value(1)).current;
   const heroHintAnim = React.useRef(new Animated.Value(0)).current;
   const heroScaleAnim = React.useRef(new Animated.Value(1)).current;
+  const heroFadeAnim = React.useRef(new Animated.Value(0)).current;
+  const lastFadedHeroUrl = React.useRef(null);
   const pulseAnim = React.useRef(new Animated.Value(1)).current;
   const vignetteAnim = React.useRef(new Animated.Value(0)).current;
 
@@ -492,6 +501,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         condition: destination.condition,
         temperature: destination.temperature,
         distance_km: destination.distance,
+        source: viewSource,
       });
     });
     return () => task.cancel();
@@ -499,18 +509,43 @@ const DestinationDetailScreen = ({ route, navigation }) => {
 
   useEffect(() => {
     const placeObj = { id: effectivePlaceId, generic_key: destination.generic_key, name_en: destination.name_en };
-    setDevHeroList([]);
-    setDevHeroIndex(0);
+    setHeroList([]);
+    setHeroIndex(0);
+    lastFadedHeroUrl.current = null;
+    const cached = getCachedHeroImage(placeObj);
+    setHeroBase(cached);
+    setHeroMeta(null);
+
+    // Lookup taking too long (slow network): commit to what we have — the last
+    // cached hero, else the local generic (DEFAULT url routes to it in render).
+    let fallbackShown = false;
+    const fallbackHero = cached ?? {
+      url: DEFAULT_HERO_IMAGE_URL,
+      hero_variant: null,
+      hero_variant_index: null,
+      hero_source: 'timeout_fallback',
+      hero_image_name: null,
+    };
+    const fallbackTimer = setTimeout(() => {
+      fallbackShown = true;
+      setHeroMeta(fallbackHero);
+    }, 3000);
+
     getDedicatedHeroImage(placeObj).then(async (hero) => {
       if (hero.url?.startsWith('http')) {
         try { await Image.prefetch(hero.url); } catch (_) { /* ignore */ }
       }
+      clearTimeout(fallbackTimer);
+      if (fallbackShown) {
+        // Late arrival: promote the fallback to base so the cross-fade starts from it
+        setHeroBase(fallbackHero);
+      }
       setHeroMeta(hero);
       if (__DEV__) {
         const list = await listDedicatedHeroImages(placeObj);
-        setDevHeroList(list);
+        setHeroList(list);
         const idx = list.findIndex((h) => h.url === hero.url);
-        setDevHeroIndex(idx >= 0 ? idx : 0);
+        setHeroIndex(idx >= 0 ? idx : 0);
         list.forEach((h) => {
           if (h.url?.startsWith('http') && h.url !== hero.url) {
             Image.prefetch(h.url).catch(() => {});
@@ -528,7 +563,22 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         });
       }
     }).catch(() => {});
+
+    return () => clearTimeout(fallbackTimer);
   }, [effectivePlaceId]);
+
+  // Cross-fade the resolved hero in over the base layer whenever its URL changes
+  useEffect(() => {
+    const h = (heroList.length > 0 ? heroList[heroIndex] : null) ?? heroMeta;
+    if (!h?.url || h.url === lastFadedHeroUrl.current) return;
+    lastFadedHeroUrl.current = h.url;
+    heroFadeAnim.setValue(0);
+    Animated.timing(heroFadeAnim, {
+      toValue: 1,
+      duration: 600,
+      useNativeDriver: true,
+    }).start();
+  }, [heroMeta, heroList, heroIndex]);
 
   useEffect(() => {
     if (!__DEV__) return;
@@ -673,6 +723,25 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const toggleUiFocus = useCallback(() => {
     const newFocused = !uiFocused;
     setUiFocused(newFocused);
+    if (heroExpandUsed === false) {
+      setHeroExpandUsed(true);
+      AsyncStorage.setItem('heroExpandUsed', '1').catch(() => {});
+    }
+    // First fullscreen entry: load the variant list on demand so the user can swipe
+    if (newFocused && heroList.length === 0) {
+      const placeObj = { id: effectivePlaceId, generic_key: destination.generic_key, name_en: destination.name_en };
+      listDedicatedHeroImages(placeObj).then((list) => {
+        if (list.length < 2) return;
+        const idx = list.findIndex((h) => h.url === heroMeta?.url);
+        setHeroList(list);
+        setHeroIndex(idx >= 0 ? idx : 0);
+        list.forEach((h) => {
+          if (h.url?.startsWith('http') && h.url !== heroMeta?.url) {
+            Image.prefetch(h.url).catch(() => {});
+          }
+        });
+      }).catch(() => {});
+    }
     mixpanel.track('Hero Image Toggled', {
       place_id: effectivePlaceId,
       place_name: destination.name,
@@ -700,48 +769,82 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         useNativeDriver: true,
       }),
     ]).start();
-  }, [uiFocused, heroScaleAnim, vignetteAnim]);
+  }, [uiFocused, heroScaleAnim, vignetteAnim, heroExpandUsed, heroList.length, heroMeta]);
 
-  // One-time discovery: pulse button once + show "View photo" tooltip after 1s on first ever visit
   useEffect(() => {
-    if (!heroSource) return;
-    let pulseTimer;
+    AsyncStorage.getItem('heroExpandUsed').then((v) => {
+      if (__DEV__) console.log('[heroDiscovery] heroExpandUsed:', v);
+      setHeroExpandUsed(v === '1');
+    });
+  }, []);
+
+  // Show the "View photo" tooltip for ~2s, then fade it out
+  const showHeroTooltip = useCallback((onDone) => {
+    setHeroHintVisible(true);
+    Animated.timing(heroHintAnim, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+    setTimeout(() => {
+      Animated.timing(heroHintAnim, {
+        toValue: 0,
+        duration: 400,
+        useNativeDriver: true,
+      }).start(() => {
+        setHeroHintVisible(false);
+        if (onDone) onDone();
+      });
+    }, 2000);
+  }, []);
+
+  // Dev: long-press the fullscreen button to reset the discovery hints
+  const resetHeroDiscoveryHints = useCallback(() => {
+    if (!__DEV__) return;
+    AsyncStorage.multiRemove(['heroExpandUsed', 'heroExpandPulseShown']).catch(() => {});
+    setHeroExpandUsed(false);
+    console.log('[heroDiscovery] hints reset');
+    showHeroTooltip();
+  }, [showHeroTooltip]);
+
+  // Gentle looping pulse on the fullscreen button until it has been used once (ever).
+  // JS-orchestrated loop: Animated.loop with native-driven sequences is unreliable.
+  useEffect(() => {
+    if (heroExpandUsed !== false) return;
+    if (__DEV__) console.log('[heroDiscovery] pulse loop started');
+    let cancelled = false;
+    let pauseTimer;
+    const runPulse = () => {
+      if (cancelled) return;
+      Animated.sequence([
+        Animated.timing(pulseAnim, { toValue: 1.15, duration: 550, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+        Animated.timing(pulseAnim, { toValue: 1.0, duration: 550, easing: Easing.inOut(Easing.quad), useNativeDriver: true }),
+      ]).start(({ finished }) => {
+        if (!finished || cancelled) return;
+        pauseTimer = setTimeout(runPulse, 1400);
+      });
+    };
+    pauseTimer = setTimeout(runPulse, 800);
+    return () => {
+      cancelled = true;
+      clearTimeout(pauseTimer);
+      pulseAnim.setValue(1);
+    };
+  }, [heroExpandUsed]);
+
+  // One-time discovery: show "View photo" tooltip after 1s on first ever visit
+  useEffect(() => {
     let tooltipTimer;
     AsyncStorage.getItem('heroExpandPulseShown').then(val => {
       if (val) return;
-      pulseTimer = setTimeout(() => {
-        // Show tooltip
-        setHeroHintVisible(true);
-        Animated.timing(heroHintAnim, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }).start();
-
-        // Single pulse on button: scale 1 → 1.18 → 1
-        Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.18, duration: 220, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1.0, duration: 220, easing: Easing.in(Easing.quad), useNativeDriver: true }),
-        ]).start();
-
-        // Fade tooltip out after 2s
-        tooltipTimer = setTimeout(() => {
-          Animated.timing(heroHintAnim, {
-            toValue: 0,
-            duration: 400,
-            useNativeDriver: true,
-          }).start(() => {
-            setHeroHintVisible(false);
-            AsyncStorage.setItem('heroExpandPulseShown', '1').catch(() => {});
-          });
-        }, 2000);
+      tooltipTimer = setTimeout(() => {
+        showHeroTooltip(() => {
+          AsyncStorage.setItem('heroExpandPulseShown', '1').catch(() => {});
+        });
       }, 1000);
     });
-    return () => {
-      if (pulseTimer) clearTimeout(pulseTimer);
-      if (tooltipTimer) clearTimeout(tooltipTimer);
-    };
-  }, [heroSource]);
+    return () => clearTimeout(tooltipTimer);
+  }, []);
 
   const handleDriveThere = async () => {
     try {
@@ -998,18 +1101,40 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   };
 
   const activeHeroMeta =
-    __DEV__ && devHeroList.length > 0
-      ? (devHeroList[devHeroIndex] ?? heroMeta)
+    heroList.length > 0
+      ? (heroList[heroIndex] ?? heroMeta)
       : heroMeta;
 
-  const cycleDevHero = (delta) => {
-    setDevHeroIndex((i) => (i + delta + devHeroList.length) % devHeroList.length);
+  const cycleHero = (delta, method = 'button') => {
+    if (heroList.length < 2) return;
+    const next = (heroIndex + delta + heroList.length) % heroList.length;
+    // Promote the currently shown image to base so the next one cross-fades over it
+    const current = heroList[heroIndex] ?? heroMeta;
+    if (current) setHeroBase(current);
+    setHeroIndex(next);
+    mixpanel.track('Hero Browsed', {
+      place_id: effectivePlaceId,
+      place_name: destination.name,
+      direction: delta > 0 ? 'next' : 'prev',
+      method,
+      ...getHeroTrackingProps(heroList[next]),
+    });
   };
 
-  const heroSource = activeHeroMeta?.url && activeHeroMeta.url !== DEFAULT_HERO_IMAGE_URL
-    ? { uri: activeHeroMeta.url }
+  // Resolved hero (fades in over the base). Null while the lookup is pending.
+  const heroSource = activeHeroMeta
+    ? (activeHeroMeta.url && activeHeroMeta.url !== DEFAULT_HERO_IMAGE_URL
+        ? { uri: activeHeroMeta.url }
+        : getHeroImage(destination))
+    : null;
+  // Base layer: last hero shown for this place (rotation and timeout-fallback
+  // cross-fade from it), otherwise the local generic. Blur it only while nothing
+  // has been shown for this place yet (loading placeholder).
+  const heroBaseSource = heroBase?.url && heroBase.url !== DEFAULT_HERO_IMAGE_URL
+    ? { uri: heroBase.url }
     : getHeroImage(destination);
-  const hasHero = !!heroSource;
+  const heroBaseBlurred = !heroBase;
+  const hasHero = !!(heroSource || heroBaseSource);
   const useDarkText = !hasHero && needsDarkText();
   const textColor = useDarkText ? '#2b3e50' : '#fff';
   const subtitleColor = useDarkText ? '#3a4f5d' : '#fff';
@@ -1033,13 +1158,23 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       ref={scrollViewRef}
     >
       <View style={{ position: 'relative', minHeight: 500 }}>
-      {heroSource && (
+      {hasHero && (
         <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 500, overflow: 'hidden' }}>
-          <Animated.Image
-            source={heroSource}
-            style={{ width: '100%', height: '100%', top: 0, transform: [{ scale: heroScaleAnim }] }}
-            resizeMode="cover"
-          />
+          {heroBaseSource && (
+            <Animated.Image
+              source={heroBaseSource}
+              blurRadius={heroBaseBlurred ? 12 : 0}
+              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, transform: [{ scale: heroScaleAnim }] }}
+              resizeMode="cover"
+            />
+          )}
+          {heroSource && (
+            <Animated.Image
+              source={heroSource}
+              style={{ width: '100%', height: '100%', top: 0, opacity: heroFadeAnim, transform: [{ scale: heroScaleAnim }] }}
+              resizeMode="cover"
+            />
+          )}
           <LinearGradient
             colors={['rgba(0,0,0,0.28)', 'transparent']}
             start={{ x: 0, y: 0 }}
@@ -1064,13 +1199,17 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           />
         </View>
       )}
-      {heroSource && (
+      {hasHero && (
         <>
-          {uiFocused && (
-            <Pressable
-              onPress={toggleUiFocus}
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 440, zIndex: 9 }}
-            />
+          {uiFocused && heroList.length > 1 && (
+            <View style={styles.heroDotsRow} pointerEvents="none">
+              {heroList.map((h, i) => (
+                <View
+                  key={h.url ?? i}
+                  style={[styles.heroDot, i === heroIndex && styles.heroDotActive]}
+                />
+              ))}
+            </View>
           )}
           {heroHintVisible && (
             <Animated.View style={[styles.heroExpandTooltip, { opacity: heroHintAnim }]} pointerEvents="none">
@@ -1080,6 +1219,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           <Animated.View style={[styles.heroExpandButtonOuter, { transform: [{ scale: pulseAnim }] }]}>
             <Pressable
               onPress={toggleUiFocus}
+              onLongPress={__DEV__ ? resetHeroDiscoveryHints : undefined}
               style={styles.heroExpandButton}
               hitSlop={{ top: 4, bottom: 4, left: 4, right: 4 }}
             >
@@ -1090,26 +1230,25 @@ const DestinationDetailScreen = ({ route, navigation }) => {
               />
             </Pressable>
           </Animated.View>
-          {__DEV__ && devHeroList.length > 1 && (
+          {heroList.length > 1 && (uiFocused || (__DEV__ && devHeroNavVisible)) && (
             <>
-              {devHeroNavVisible && (
-                <>
-                  <Pressable
-                    onPress={() => cycleDevHero(-1)}
-                    style={styles.devHeroChevronLeft}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <MaterialIcons name="chevron-left" size={22} color="rgba(255, 255, 255, 0.95)" />
-                  </Pressable>
-                  <Pressable
-                    onPress={() => cycleDevHero(1)}
-                    style={styles.devHeroChevronRight}
-                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                  >
-                    <MaterialIcons name="chevron-right" size={22} color="rgba(255, 255, 255, 0.95)" />
-                  </Pressable>
-                </>
-              )}
+              <Pressable
+                onPress={() => cycleHero(-1, 'button')}
+                style={styles.heroChevronLeft}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <MaterialIcons name="chevron-left" size={22} color="rgba(255, 255, 255, 0.95)" />
+              </Pressable>
+              <Pressable
+                onPress={() => cycleHero(1, 'button')}
+                style={styles.heroChevronRight}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <MaterialIcons name="chevron-right" size={22} color="rgba(255, 255, 255, 0.95)" />
+              </Pressable>
+            </>
+          )}
+          {__DEV__ && heroList.length > 1 && (
               <Pressable
                 onPress={toggleDevHeroNav}
                 style={styles.devHeroCounter}
@@ -1118,7 +1257,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                 {devHeroNavVisible ? (
                   <View style={styles.devHeroCounterPill}>
                     <Text style={styles.devHeroCounterText}>
-                      {devHeroIndex + 1} / {devHeroList.length}
+                      {heroIndex + 1} / {heroList.length}
                     </Text>
                     <MaterialIcons name="visibility-off" size={13} color="rgba(255, 255, 255, 0.75)" />
                   </View>
@@ -1128,12 +1267,11 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                   </View>
                 )}
               </Pressable>
-            </>
           )}
         </>
       )}
       <View style={styles.heroContent}>
-      <View style={[styles.header, { backgroundColor: heroSource ? 'transparent' : getWeatherColor(heroCondition, heroTemp) }]}>
+      <View style={[styles.header, { backgroundColor: hasHero ? 'transparent' : getWeatherColor(heroCondition, heroTemp) }]}>
   <View style={styles.headerTop}>
     <View style={styles.headerNameContainer}>
       {(() => {
@@ -1159,7 +1297,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
             >
               {name}
             </Text>
-            {heroSource && firstLineW != null && (
+            {hasHero && firstLineW != null && (
               <Pressable
                 onPress={!favouriteLoading ? handleToggleFavourite : undefined}
                 hitSlop={{ top: 12, bottom: 12, left: 10, right: 10 }}
@@ -2062,7 +2200,30 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '500',
   },
-  devHeroChevronLeft: {
+  heroDotsRow: {
+    position: 'absolute',
+    top: 396,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 7,
+  },
+  heroDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255, 255, 255, 0.45)',
+  },
+  heroDotActive: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+  },
+  heroChevronLeft: {
     position: 'absolute',
     left: 8,
     top: '50%',
@@ -2077,7 +2238,7 @@ const styles = StyleSheet.create({
     borderWidth: 0.75,
     borderColor: 'rgba(255, 255, 255, 0.28)',
   },
-  devHeroChevronRight: {
+  heroChevronRight: {
     position: 'absolute',
     right: 8,
     top: '50%',

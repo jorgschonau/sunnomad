@@ -177,7 +177,10 @@ export default function LoginScreen({ navigation }) {
 
           <TouchableOpacity
             style={styles.forgotPassword}
-            onPress={() => navigation.navigate('ForgotPassword')}
+            onPress={() => {
+              mixpanel.track('Forgot Password Link Tapped');
+              navigation.navigate('ForgotPassword');
+            }}
             disabled={loading}
           >
             <Text style={styles.forgotPasswordText}>

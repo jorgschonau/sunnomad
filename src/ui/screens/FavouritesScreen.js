@@ -62,6 +62,7 @@ const FavouritesScreen = ({ navigation }) => {
           onPress: async () => {
             const result = await removeFromFavourites(placeId);
             if (result.success) {
+              mixpanel.track('Favourite Removed', { place_id: placeId, place_name: name });
               await loadFavourites();
             }
           },
@@ -71,7 +72,7 @@ const FavouritesScreen = ({ navigation }) => {
   };
 
   const handleViewDetails = (destination) => {
-    navigation.navigate('DestinationDetail', { destination });
+    navigation.navigate('DestinationDetail', { destination, source: 'favourites' });
   };
 
   const renderFavouriteItem = useCallback(({ item }) => (

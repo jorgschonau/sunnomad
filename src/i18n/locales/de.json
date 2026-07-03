@@ -36,6 +36,11 @@
     "modeWarmer": "Wärmer",
     "modeCooler": "Kühler",
     "modeAll": "Alle",
+    "refTitle": "Referenzort",
+    "refCurrentLocation": "Aktueller Standort",
+    "refSelectedLocation": "Gewählter Ort",
+    "refSelectedLocationNamed": "Gewählter Ort ({{name}})",
+    "refTooltip": "Tippen, um zum Referenzort\nzurückzukehren.\nLange drücken für Optionen.",
     "moreResults": "Weitere Ergebnisse",
     "viaGoogle": "via Google",
     "loadingState0": "Suche GPS Signal... 🛰️",
@@ -45,6 +50,7 @@
     "loadingTip1": "Tipp: GPS funktioniert draußen am besten",
     "loadingTip2": "Tipp: Standort wird im Hintergrund aktualisiert",
     "yourLocation": "Dein Standort",
+    "youAreHere": "Du bist hier",
     "newCenterPoint": "Neuer Mittelpunkt",
     "centerPointSet": "📍 Neuer Mittelpunkt gesetzt",
     "centerPointReset": "📍 Mittelpunkt zurückgesetzt",
@@ -389,6 +395,7 @@
     "description": "Teile deine Lieblingsorte, entdecke Empfehlungen von anderen Reisenden und vernetze dich mit der Community."
   },
   "profile": {
+    "title": "Profil anzeigen",
     "accountInfo": "Kontoinformationen",
     "location": "Standort",
     "memberSince": "Dabei seit",

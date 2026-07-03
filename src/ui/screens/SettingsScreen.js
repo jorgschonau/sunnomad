@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUnits } from '../../contexts/UnitContext';
+import { mixpanel } from '../../services/mixpanel';
 
 const LANGUAGES = [
   { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
@@ -37,13 +38,17 @@ const SettingsScreen = ({ navigation }) => {
   const { useImperial, setUseImperial } = useUnits();
 
   const handleSelectLanguage = (langCode) => {
+    if (i18n.language === langCode) return;
     i18n.changeLanguage(langCode);
+    mixpanel.track('Settings Changed', { setting: 'language', value: langCode });
   };
 
   const currentLanguage = LANGUAGES.find(lang => lang.code === i18n.language) || LANGUAGES[0];
 
   const handleSelectTheme = (themeId) => {
+    if (currentTheme === themeId) return;
     changeTheme(themeId);
+    mixpanel.track('Settings Changed', { setting: 'theme', value: themeId });
   };
 
   return (
@@ -127,7 +132,12 @@ const SettingsScreen = ({ navigation }) => {
                 { backgroundColor: theme.surface, borderBottomColor: theme.background },
                 isSelected && { backgroundColor: theme.background }
               ]}
-              onPress={() => setUseImperial(option.id === 'imperial')}
+              onPress={() => {
+                const next = option.id === 'imperial';
+                if (useImperial === next) return;
+                setUseImperial(next);
+                mixpanel.track('Settings Changed', { setting: 'units', value: option.id });
+              }}
             >
               <Text style={styles.settingItemFlag}>{option.icon}</Text>
               <Text style={[

@@ -75,10 +75,7 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
   );
 
   destinations.forEach(dest => {
-    if (dest.isCurrentLocation) {
-      dest.badges = [];
-      return;
-    }
+    if (dest.isCurrentLocation) return;
     if (!dest.distance) {
       dest.distance = getDistanceKm(originLat, originLon, dest.lat, dest.lon);
     }
@@ -427,6 +424,20 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
         }
       }
     });
+  }
+
+  // Current location: local weather badges only (no travel badges), after global limits
+  const currentLocation = destinations.find(d => d.isCurrentLocation);
+  if (currentLocation) {
+    currentLocation.distance = 0;
+    currentLocation.badges = calculateBadges(
+      currentLocation,
+      originLocation,
+      0,
+      tempRankMap,
+      reverseMode,
+      radiusKm,
+    ).filter(b => b !== 'WORTH_THE_DRIVE' && b !== 'WORTH_THE_DRIVE_BUDGET');
   }
 
   const destWithBadges = destinations.filter(d => d.badges && d.badges.length > 0);

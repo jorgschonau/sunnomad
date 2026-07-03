@@ -70,13 +70,31 @@ export async function listDedicatedHeroImages(place) {
   return (data ?? []).map(dedicatedRowToHero).filter(Boolean);
 }
 
+// Last resolved hero per place id (session-only). Not used to skip the lookup (variant
+// rotation stays random per open) — only as an instant base layer to cross-fade from.
+const heroCache = new Map();
+
+/** Sync lookup of the last hero shown for this place, or null. */
+export function getCachedHeroImage(place) {
+  const id = place?.id ?? null;
+  return (id && heroCache.get(id)) || null;
+}
+
 /**
  * Hero image URL: dedicated rows from `place_hero_images` (`place_id`), else generic rows from
  * `generic_hero_images` (`generic_key`, `storage_path`, `is_active`), else default.
+ * Always resolves fresh (variant rotation); remembers the result per place id for transitions.
  * @param {{ id?: string|null, generic_key?: string|null, name_en?: string|null }} place
  * @returns {Promise<{ url: string, hero_variant: string|null, hero_variant_index: number|null, hero_source: string }>}
  */
 export async function getHeroImage(place) {
+  const hero = await resolveHeroImage(place);
+  const id = place?.id ?? null;
+  if (id) heroCache.set(id, hero);
+  return hero;
+}
+
+async function resolveHeroImage(place) {
   const id = place?.id ?? null;
   const genericKey = place?.generic_key ?? null;
 

@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View,
   Text,
@@ -15,6 +16,7 @@ import {
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
+import { mixpanel } from '../../services/mixpanel';
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -42,6 +44,12 @@ export default function ForgotPasswordScreen({ navigation }) {
   const [emailSent, setEmailSent] = useState(false);
   const [emailError, setEmailError] = useState('');
 
+  useFocusEffect(
+    useCallback(() => {
+      mixpanel.track('Forgot Password Viewed');
+    }, [])
+  );
+
   const validateEmail = (value) => {
     if (!value.trim()) {
       setEmailError(t('auth.fillAllFields'));
@@ -58,16 +66,19 @@ export default function ForgotPasswordScreen({ navigation }) {
   const handleResetPassword = async () => {
     if (!validateEmail(email)) return;
 
+    mixpanel.track('Forgot Password Started');
     setLoading(true);
     const { error } = await resetPassword(email.trim());
     setLoading(false);
 
     if (error) {
+      mixpanel.track('Forgot Password Failed', { reason: error.message || 'unknown' });
       Alert.alert(
         t('auth.error'),
         error.message || t('auth.resetPasswordFailed')
       );
     } else {
+      mixpanel.track('Forgot Password Completed');
       setEmailSent(true);
     }
   };

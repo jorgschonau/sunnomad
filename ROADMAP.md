@@ -310,4 +310,11 @@ Jun–Jul 2026          Aug–Sep 2026          Q4 2026
 -- bestimmte regionen
 -- zum beispiel greek mythologie, ww1/ww2 spots, wüstenregionen usw
 
+## promos
+
+-- promos, z.b. july 4th (best of us, oder top national parks ...), halloween (castle rock etc), 
+-- button mit den shortcuts zu markern, ja mach pronmo. können einzelne orte oder collections sein.
+-- button oben rechts, mit history der der promos, evtl auto grey out/ delete after x days
+
+
 

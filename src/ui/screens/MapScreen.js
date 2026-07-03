@@ -10,6 +10,7 @@ import {
   Linking,
   InteractionManager,
   Keyboard,
+  Animated,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -19,7 +20,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeProvider';
 import { getWeatherForRadius, getWeatherIcon, getWeatherColor, mapWeatherCode, applyBadgesToDestinations } from '../../usecases/weatherUsecases';
 import { BadgeMetadata, DestinationBadge, filterWarmDryIfHeatwave } from '../../domain/destinationBadge';
-import { playTickSound } from '../../utils/soundUtils';
+import { playTickSound, playMediumHaptic } from '../../utils/soundUtils';
 import { trackMapViews, trackDetailView } from '../../services/placesService';
 import { mixpanel } from '../../services/mixpanel';
 import { hybridSearch, ensurePlaceInDB } from '../../services/hybridSearchService';
@@ -35,6 +36,7 @@ import { useUnits } from '../../contexts/UnitContext';
 import { formatTemperature, formatDistance, milesToKm, kmToMiles } from '../../utils/unitConversion';
 import { hasDedicatedHeroImage } from '../../utils/heroImages';
 import { supabase } from '../../config/supabase';
+import { getPreloadResult, getCachedLocation, setCachedLocation } from '../../utils/locationPreload';
 
 // Custom map style to hide POI Business and Transit
 const customMapStyle = [
@@ -45,6 +47,20 @@ const customMapStyle = [
   { featureType: 'landscape.man_made', stylers: [{ visibility: 'off' }] },
   { featureType: 'water', elementType: 'labels', stylers: [{ visibility: 'off' }] },
 ];
+
+// Minimum movement (in km) between the currently shown position and a fresh GPS
+// fix before it's worth re-centering + re-fetching markers a second time.
+const SIGNIFICANT_MOVE_KM = 10;
+
+function getDistanceKm(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLon = ((lon2 - lon1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
 
 const TROPHY_BADGES = new Set([DestinationBadge.WORTH_THE_DRIVE, DestinationBadge.WORTH_THE_DRIVE_BUDGET]);
 const isTrophyWorthy = (badges) => badges.some(b => TROPHY_BADGES.has(b));
@@ -58,11 +74,15 @@ const DestinationMarker = ({
   getWeatherIcon,
   styles: markerStyles,
   temperatureUnit,
+  pulseKey = 0,
 }) => {
+  const { t } = useTranslation();
   const hasImageBadge = getMapBadges(dest.badges, dest._heatwaveData?.shouldAward).some(
     b => b === DestinationBadge.WARM_AND_DRY || b === DestinationBadge.HEATWAVE
   );
   const [imageLoaded, setImageLoaded] = useState(!hasImageBadge);
+  const [isPulsing, setIsPulsing] = useState(false);
+  const pulseAnim = useRef(new Animated.Value(0)).current;
   const handleImageLoad = useCallback(() => {
     setTimeout(() => setImageLoaded(true), 500);
   }, []);
@@ -74,21 +94,69 @@ const DestinationMarker = ({
     return () => clearTimeout(safety);
   }, [hasImageBadge, imageLoaded]);
 
+  useEffect(() => {
+    if (!dest.isCurrentLocation || pulseKey === 0) return undefined;
+
+    pulseAnim.setValue(0);
+    setIsPulsing(true);
+
+    const halfPulse = (toValue) => Animated.timing(pulseAnim, {
+      toValue,
+      duration: 170,
+      useNativeDriver: false,
+    });
+
+    const animation = Animated.sequence([
+      halfPulse(1), halfPulse(0),
+      halfPulse(1), halfPulse(0),
+      halfPulse(1), halfPulse(0),
+    ]);
+
+    animation.start(({ finished }) => {
+      if (finished) {
+        pulseAnim.setValue(0);
+        setIsPulsing(false);
+      }
+    });
+
+    return () => {
+      animation.stop();
+      setIsPulsing(false);
+    };
+  }, [dest.isCurrentLocation, pulseKey, pulseAnim]);
+
+  const MarkerContainer = dest.isCurrentLocation ? Animated.View : View;
+
   return (
     <Marker
       coordinate={{ latitude: dest.lat, longitude: dest.lon }}
-      anchor={{ x: 0.5, y: 0.5 }}
+      anchor={dest.isCurrentLocation ? { x: 0.5, y: 64 / 118 } : { x: 0.5, y: 0.5 }}
       style={{ overflow: 'visible', zIndex: 999 }}
-      tracksViewChanges={hasImageBadge ? !imageLoaded : false}
+      tracksViewChanges={isPulsing || (hasImageBadge ? !imageLoaded : false)}
       onPress={onPress}
     >
-      <View style={markerStyles.markerFrameAndroid}>
-        <View style={[
+      <View style={[
+        markerStyles.markerFrameAndroid,
+        dest.isCurrentLocation && markerStyles.currentLocationFrame,
+      ]}>
+        <MarkerContainer style={[
           markerStyles.markerContainer,
           { backgroundColor: getWeatherColor(dest.condition, dest.temperature) },
           dest.isCurrentLocation && markerStyles.currentLocationMarker,
           dest.isCenterPoint && markerStyles.centerPointMarker,
           hasDedicatedHeroImage(dest.id || dest.placeId) && markerStyles.dedicatedHeroMarker,
+          dest.isCurrentLocation && isPulsing && {
+            transform: [{
+              scale: pulseAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [1, 1.12],
+              }),
+            }],
+            borderColor: pulseAnim.interpolate({
+              inputRange: [0, 1],
+              outputRange: ['rgba(92, 163, 217, 0.7)', 'rgba(92, 163, 217, 1)'],
+            }),
+          },
         ]}>
           <Text style={markerStyles.markerWeatherIcon}>{getWeatherIcon(dest.condition)}</Text>
           <Text style={markerStyles.markerTemp}>
@@ -131,7 +199,10 @@ const DestinationMarker = ({
               </>
             );
           })()}
-        </View>
+        </MarkerContainer>
+        {dest.isCurrentLocation && (
+          <Text style={markerStyles.currentLocationLabel}>{t('map.youAreHere')}</Text>
+        )}
       </View>
     </Marker>
   );
@@ -208,8 +279,9 @@ const MapScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [locationError, setLocationError] = useState(null); // Error state for location fetch
   const [locationPermissionGranted, setLocationPermissionGranted] = useState(false); // Track if GPS permission was granted
-  const [isRecentering, setIsRecentering] = useState(false); // Prevent duplicate on-demand location requests
-  const recenterCooldownUntilRef = useRef(0); // Throttle on-demand GPS requests
+  const lastAppliedCoordsRef = useRef(null); // Most recently applied real coords, for movement-threshold checks
+  const [currentLocationPulseKey, setCurrentLocationPulseKey] = useState(0);
+  const lastLocationPulseAtRef = useRef(0);
   const mapViewTrackedIds = useRef(new Set()); // Deduplicate map_view_count per session
   const mapViewTrackTimer = useRef(null);
   const [loadingState, setLoadingState] = useState(LOADING_STATES[0].text);
@@ -218,7 +290,7 @@ const MapScreen = ({ navigation }) => {
   const [loadingDestinations, setLoadingDestinations] = useState(false);
   const [loadingPhaseKey, setLoadingPhaseKey] = useState(LOADING_CARD_PHASES[0]);
   const loadingPhaseTimerRef = useRef(null);
-  const [controlsExpanded, setControlsExpanded] = useState(true); // Controls einklappbar
+  const [controlsExpanded, setControlsExpanded] = useState(false); // Controls einklappbar
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showOnlyBadges, setShowOnlyBadges] = useState(false); // Toggle to show only destinations with badges
   const [showRadiusMenu, setShowRadiusMenu] = useState(false); // Dropdown for radius selection
@@ -231,6 +303,9 @@ const MapScreen = ({ navigation }) => {
   const [searchFocused, setSearchFocused] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const searchDebounceRef = useRef(null);
+  const [showRefMenu, setShowRefMenu] = useState(false); // Reference location context menu
+  const [showRefTip, setShowRefTip] = useState(false); // One-time tooltip for the reference button
+  const savedManualRef = useRef(null); // Last manual center { center, weather }, kept across mode switches
 
   // Default fallback location (Frankfurt, center of Europe)
   const DEFAULT_LOCATION = {
@@ -240,9 +315,33 @@ const MapScreen = ({ navigation }) => {
     longitudeDelta: 2,
   };
 
+  // Viewport bounds matching the map's initialRegion (radius * 2 * 1.5 delta).
+  // Must cover what the map actually shows on start; onRegionChangeComplete
+  // refines them later. A too-small initial box hides most markers until the
+  // user moves the map.
+  const initialViewportBounds = (latitude, longitude, radiusKm) => {
+    const latDelta = (radiusKm * 2 * 1.5) / 111;
+    const lonDelta = (radiusKm * 2 * 1.5) / (111 * Math.cos(latitude * Math.PI / 180));
+    return {
+      north: latitude + latDelta / 2,
+      south: latitude - latDelta / 2,
+      east: longitude + lonDelta / 2,
+      west: longitude - lonDelta / 2,
+    };
+  };
+
+  const triggerCurrentLocationPulse = useCallback(() => {
+    const now = Date.now();
+    if (now - lastLocationPulseAtRef.current < 2500) return;
+    lastLocationPulseAtRef.current = now;
+    setCurrentLocationPulseKey(k => k + 1);
+  }, []);
+
   const applyLocationFromPosition = useCallback((position, { notifyFallback = false } = {}) => {
     if (!position?.coords) return;
     const { latitude, longitude } = position.coords;
+    lastAppliedCoordsRef.current = { latitude, longitude };
+    setCachedLocation({ latitude, longitude });
     const outsideSupported = !isWithinSupportedMapRegion(latitude, longitude);
     const initialRegion = outsideSupported
       ? { ...DEFAULT_LOCATION }
@@ -260,18 +359,16 @@ const MapScreen = ({ navigation }) => {
     setLocation(initialRegion);
     setMapViewport(prev => ({
       ...prev,
-      bounds: {
-        north: initialRegion.latitude + initialRegion.latitudeDelta / 2,
-        south: initialRegion.latitude - initialRegion.latitudeDelta / 2,
-        east: initialRegion.longitude + initialRegion.longitudeDelta / 2,
-        west: initialRegion.longitude - initialRegion.longitudeDelta / 2,
-      },
+      bounds: initialViewportBounds(initialRegion.latitude, initialRegion.longitude, radius),
     }));
     setLocationError(null);
+    if (!outsideSupported) {
+      triggerCurrentLocationPulse();
+    }
     if (outsideSupported && notifyFallback) {
       showToast(t('map.usingDefaultLocation'), 'info');
     }
-  }, [t]);
+  }, [t, triggerCurrentLocationPulse]);
 
   /**
    * Skip location → use default (Frankfurt).
@@ -286,12 +383,7 @@ const MapScreen = ({ navigation }) => {
 
       setMapViewport(prev => ({
         ...prev,
-        bounds: {
-          north: DEFAULT_LOCATION.latitude + DEFAULT_LOCATION.latitudeDelta / 2,
-          south: DEFAULT_LOCATION.latitude - DEFAULT_LOCATION.latitudeDelta / 2,
-          east: DEFAULT_LOCATION.longitude + DEFAULT_LOCATION.longitudeDelta / 2,
-          west: DEFAULT_LOCATION.longitude - DEFAULT_LOCATION.longitudeDelta / 2,
-        },
+        bounds: initialViewportBounds(DEFAULT_LOCATION.latitude, DEFAULT_LOCATION.longitude, radius),
       }));
 
       showToast(t('map.usingDefaultLocation'), 'info');
@@ -365,44 +457,107 @@ const MapScreen = ({ navigation }) => {
       } catch (e) { /* corrupted JSON */ }
     }
 
+    // 0. Instant path: a real GPS fix already resolved earlier this session
+    // (e.g. re-mount after login/logout) — show it immediately, no waiting.
+    const sessionCached = getCachedLocation();
+    if (sessionCached) {
+      applyLocationFromPosition({ coords: sessionCached }, { notifyFallback: false });
+      setLoading(false);
+    }
+
     // 1. Check if Location Services are enabled
     try {
       const enabled = await Location.hasServicesEnabledAsync();
       if (!enabled) {
-        setLocationError('disabled');
-        setLoading(false);
+        if (!lastAppliedCoordsRef.current) {
+          setLocationError('disabled');
+          setLoading(false);
+        }
         return;
       }
     } catch (error) {
       console.warn('Could not check location services:', error);
     }
 
-    // 2. Request permission
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        setLocationPermissionGranted(false);
-        setLocationError('permission');
-        setLoading(false);
-        return;
+    // 2. Check permission WITHOUT prompting first. If it's not granted yet,
+    // show the fallback region (and let markers load for it) right away instead
+    // of waiting on the permission dialog; request permission in the background.
+    let permissionStatus = getPreloadResult().permissionStatus;
+    if (!permissionStatus) {
+      try {
+        permissionStatus = (await Location.getForegroundPermissionsAsync()).status;
+      } catch (error) {
+        console.warn('getForegroundPermissionsAsync failed:', error.message);
+        permissionStatus = 'undetermined';
       }
-      setLocationPermissionGranted(true);
-    } catch (error) {
-      console.error('Location permission error:', error);
+    }
+
+    if (permissionStatus !== 'granted') {
       setLocationPermissionGranted(false);
-      setLocationError('permission');
-      setLoading(false);
+      if (!lastAppliedCoordsRef.current) {
+        setLocation(DEFAULT_LOCATION);
+        setMapViewport(prev => ({
+          ...prev,
+          bounds: initialViewportBounds(DEFAULT_LOCATION.latitude, DEFAULT_LOCATION.longitude, radius),
+        }));
+        setLocationError(null);
+        showToast(t('map.usingDefaultLocation'), 'info');
+        setLoading(false);
+      }
+
+      Location.requestForegroundPermissionsAsync()
+        .then(async ({ status }) => {
+          if (status !== 'granted') {
+            setLocationPermissionGranted(false);
+            if (!lastAppliedCoordsRef.current) setLocationError('permission');
+            return;
+          }
+          setLocationPermissionGranted(true);
+          setLocationError(null);
+          try {
+            const fresh = await Location.getCurrentPositionAsync({
+              accuracy: Location.Accuracy.Balanced,
+              timeout: 15000,
+              maximumAge: 10000,
+            });
+            if (fresh?.coords) {
+              applyLocationFromPosition(fresh, { notifyFallback: true });
+              setLoading(false);
+            }
+          } catch (error) {
+            console.warn('getCurrentPositionAsync (post-permission) failed:', error.message);
+          }
+        })
+        .catch((error) => {
+          console.error('Location permission error:', error);
+          setLocationPermissionGranted(false);
+          if (!lastAppliedCoordsRef.current) {
+            setLocationError('permission');
+            setLoading(false);
+          }
+        });
       return;
     }
 
-    // 3. Try cached location first for an instant map start
-    let hasInstantLocation = false;
+    setLocationPermissionGranted(true);
+
+    // 3. Try preloaded / cached location first for an instant map start
+    let hasInstantLocation = !!lastAppliedCoordsRef.current;
     try {
-      const lastKnown = await Location.getLastKnownPositionAsync({
+      const preloadedPosition = getPreloadResult().lastKnownPosition;
+      const lastKnown = preloadedPosition || await Location.getLastKnownPositionAsync({
         maxAge: 60000,
       });
       if (lastKnown?.coords) {
-        applyLocationFromPosition(lastKnown, { notifyFallback: true });
+        const prev = lastAppliedCoordsRef.current;
+        const movedSignificantly = !prev || getDistanceKm(
+          prev.latitude, prev.longitude, lastKnown.coords.latitude, lastKnown.coords.longitude
+        ) > SIGNIFICANT_MOVE_KM;
+        if (movedSignificantly) {
+          applyLocationFromPosition(lastKnown, { notifyFallback: true });
+        } else {
+          setCachedLocation({ latitude: lastKnown.coords.latitude, longitude: lastKnown.coords.longitude });
+        }
         setLoading(false);
         hasInstantLocation = true;
       }
@@ -410,7 +565,8 @@ const MapScreen = ({ navigation }) => {
       console.warn('getLastKnownPositionAsync (fast start) failed:', error.message);
     }
 
-    // 4. Fetch fresh position in background and update once ready
+    // 4. Fetch fresh position in background. Only re-center + re-fetch markers if it
+    // meaningfully differs from what's already shown, to avoid a redundant double load.
     try {
       const fresh = await Location.getCurrentPositionAsync({
         accuracy: Location.Accuracy.Balanced,
@@ -418,7 +574,15 @@ const MapScreen = ({ navigation }) => {
         maximumAge: 10000,
       });
       if (fresh?.coords) {
-        applyLocationFromPosition(fresh, { notifyFallback: true });
+        const prev = lastAppliedCoordsRef.current;
+        const movedSignificantly = !prev || getDistanceKm(
+          prev.latitude, prev.longitude, fresh.coords.latitude, fresh.coords.longitude
+        ) > SIGNIFICANT_MOVE_KM;
+        if (movedSignificantly) {
+          applyLocationFromPosition(fresh, { notifyFallback: true });
+        } else {
+          setCachedLocation({ latitude: fresh.coords.latitude, longitude: fresh.coords.longitude });
+        }
         setLoading(false);
         return;
       }
@@ -432,12 +596,7 @@ const MapScreen = ({ navigation }) => {
       setLocation(DEFAULT_LOCATION);
       setMapViewport(prev => ({
         ...prev,
-        bounds: {
-          north: DEFAULT_LOCATION.latitude + DEFAULT_LOCATION.latitudeDelta / 2,
-          south: DEFAULT_LOCATION.latitude - DEFAULT_LOCATION.latitudeDelta / 2,
-          east: DEFAULT_LOCATION.longitude + DEFAULT_LOCATION.longitudeDelta / 2,
-          west: DEFAULT_LOCATION.longitude - DEFAULT_LOCATION.longitudeDelta / 2,
-        },
+        bounds: initialViewportBounds(DEFAULT_LOCATION.latitude, DEFAULT_LOCATION.longitude, radius),
       }));
       setLocationError(null);
       showToast(t('map.usingDefaultLocation'), 'info');
@@ -495,6 +654,24 @@ const MapScreen = ({ navigation }) => {
       console.warn('Failed to save date offset:', err)
     );
   }, [selectedDateOffset]);
+
+  // Remember the last manual reference so the context menu can switch back to it
+  useEffect(() => {
+    if (centerPoint) {
+      savedManualRef.current = { center: centerPoint, weather: centerPointWeather };
+    }
+  }, [centerPoint, centerPointWeather]);
+
+  // One-time tooltip for the reference location button
+  useEffect(() => {
+    if (__DEV__) {
+      setShowRefTip(true);
+      return;
+    }
+    AsyncStorage.getItem('refLocTipShown')
+      .then(val => { if (!val) setShowRefTip(true); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!location) return;
@@ -928,12 +1105,12 @@ const MapScreen = ({ navigation }) => {
     };
   };
 
-  const handleMarkerPress = (destination) => {
+  const handleMarkerPress = (destination, source = 'map') => {
     markerJustPressedRef.current = true;
     setTimeout(() => { markerJustPressedRef.current = false; }, 500);
     if (destination.id) trackDetailView(destination.id);
     const origin = destinations.find(d => d.isCenterPoint) || destinations.find(d => d.isCurrentLocation);
-    navigation.navigate('DestinationDetail', { destination, dateOffset: selectedDateOffset, reverseMode, origin });
+    navigation.navigate('DestinationDetail', { destination, dateOffset: selectedDateOffset, reverseMode, origin, source });
   };
 
   const isMiles = distanceUnit === 'miles';
@@ -1145,10 +1322,10 @@ const MapScreen = ({ navigation }) => {
       
       // Tertiary: Distance from user (closer is better)
       if (userLat && userLon) {
-        const aLat = a.lat || a.latitude;
-        const aLon = a.lon || a.longitude;
-        const bLat = b.lat || b.latitude;
-        const bLon = b.lon || b.longitude;
+        const aLat = a.lat ?? a.latitude;
+        const aLon = a.lon ?? a.longitude;
+        const bLat = b.lat ?? b.latitude;
+        const bLon = b.lon ?? b.longitude;
         const aDist = getDistanceKm(userLat, userLon, aLat, aLon);
         const bDist = getDistanceKm(userLat, userLon, bLat, bLon);
         return aDist - bDist;
@@ -1180,11 +1357,30 @@ const MapScreen = ({ navigation }) => {
     // Separate special markers (always shown)
     const specialMarkers = candidates.filter(p => p.isCurrentLocation || p.isCenterPoint);
 
+    // Grid over the area where candidates can actually exist (viewport ∩ radius box).
+    // On start the map is zoomed out well beyond the radius circle; a viewport-wide
+    // grid would collapse all places into a few cells → too few markers.
+    let gridBounds = bounds;
+    const gridCenter = centerPoint || location;
+    if (bounds && gridCenter && radius) {
+      const latPad = radius / 111;
+      const lonPad = radius / (111 * Math.cos(gridCenter.latitude * Math.PI / 180));
+      const clamped = {
+        north: Math.min(bounds.north, gridCenter.latitude + latPad),
+        south: Math.max(bounds.south, gridCenter.latitude - latPad),
+        east:  Math.min(bounds.east,  gridCenter.longitude + lonPad),
+        west:  Math.max(bounds.west,  gridCenter.longitude - lonPad),
+      };
+      if (clamped.north > clamped.south && clamped.east > clamped.west) {
+        gridBounds = clamped;
+      }
+    }
+
     const makeGridKey = (lat, lon, cols, rows) => {
-      if (!bounds) return '0_0';
-      const col = Math.floor((lon - bounds.west)  / (bounds.east  - bounds.west)  * cols);
-      const row = Math.floor((lat - bounds.south) / (bounds.north - bounds.south) * rows);
-      return `${Math.min(col, cols-1)}_${Math.min(row, rows-1)}`;
+      if (!gridBounds) return '0_0';
+      const col = Math.floor((lon - gridBounds.west)  / (gridBounds.east  - gridBounds.west)  * cols);
+      const row = Math.floor((lat - gridBounds.south) / (gridBounds.north - gridBounds.south) * rows);
+      return `${Math.max(0, Math.min(col, cols-1))}_${Math.max(0, Math.min(row, rows-1))}`;
     };
     const getGridKey = (lat, lon) => makeGridKey(lat, lon, GRID_COLS, GRID_ROWS);
 
@@ -1207,8 +1403,8 @@ const MapScreen = ({ navigation }) => {
     const pinnedOverflow = [];
     const sortedPinned = sortByQuality(allPinned, userLat, userLon);
     for (const p of sortedPinned) {
-      const pLat = p.lat || p.latitude;
-      const pLon = p.lon || p.longitude;
+      const pLat = p.lat ?? p.latitude;
+      const pLon = p.lon ?? p.longitude;
       const key = getGridKey(pLat, pLon);
       const count = pinnedGridCounts.get(key) || 0;
       if (count < PINNED_GRID_LIMIT) {
@@ -1231,8 +1427,8 @@ const MapScreen = ({ navigation }) => {
 
     const viewportPlaces = (bounds)
       ? normal.filter(p => {
-          const lat = p.lat || p.latitude;
-          const lon = p.lon || p.longitude;
+          const lat = p.lat ?? p.latitude;
+          const lon = p.lon ?? p.longitude;
           return lat >= bounds.south && lat <= bounds.north &&
                  lon >= bounds.west  && lon <= bounds.east;
         })
@@ -1253,8 +1449,8 @@ const MapScreen = ({ navigation }) => {
     };
     const gridMap = new Map();
     for (const place of viewportPlaces) {
-      const lat = place.lat || place.latitude;
-      const lon = place.lon || place.longitude;
+      const lat = place.lat ?? place.latitude;
+      const lon = place.lon ?? place.longitude;
       const key = getPlaceGridKey(lat, lon, place.place_type);
       const existing = gridMap.get(key);
       if (!existing || gridRank(place) > gridRank(existing)) {
@@ -1276,8 +1472,8 @@ const MapScreen = ({ navigation }) => {
     for (const place of sorted) {
       if (gridWinners.length >= maxMarkers - pinned.length) break;
       if (URBAN_PLACE_TYPES.has(place.place_type) && selectedUrbanCoords.length > 0) {
-        const pLat = place.lat || place.latitude;
-        const pLon = place.lon || place.longitude;
+        const pLat = place.lat ?? place.latitude;
+        const pLon = place.lon ?? place.longitude;
         const tooClose = selectedUrbanCoords.some(([sLat, sLon]) =>
           getDistanceKm(pLat, pLon, sLat, sLon) < MIN_URBAN_DISTANCE_KM
         );
@@ -1285,7 +1481,7 @@ const MapScreen = ({ navigation }) => {
       }
       gridWinners.push(place);
       if (URBAN_PLACE_TYPES.has(place.place_type)) {
-        selectedUrbanCoords.push([place.lat || place.latitude, place.lon || place.longitude]);
+        selectedUrbanCoords.push([place.lat ?? place.latitude, place.lon ?? place.longitude]);
       }
     }
 
@@ -1305,7 +1501,7 @@ const MapScreen = ({ navigation }) => {
     let candidates = displayDestinations.filter(d => {
       const lat = d.lat ?? d.latitude;
       const lon = d.lon ?? d.longitude;
-      if (!lat || !lon) return false;
+      if (lat == null || lon == null) return false;
       return getDistanceKm(effectiveCenter.latitude, effectiveCenter.longitude, lat, lon) <= radius;
     });
     // Client-side weather condition filter (instant, no re-fetch needed)
@@ -1317,6 +1513,28 @@ const MapScreen = ({ navigation }) => {
     }
     return getVisibleMarkers(candidates, currentZoom, currentBounds, favouriteDestinations);
   }, [mapViewport, displayDestinations, location, radius, favouriteDestinations, centerPoint, selectedConditions]);
+
+  // Favourites are rendered as dedicated markers further below. Detect them here
+  // so the normal marker isn't drawn on top of the favourite marker (destinations
+  // carry no isFavourite flag; match by id like the favourite render does).
+  const favouriteIdSet = useMemo(() => {
+    const set = new Set();
+    favouriteDestinations.forEach(f => {
+      if (f?.placeId) set.add(f.placeId);
+      if (f?.id) set.add(f.id);
+    });
+    return set;
+  }, [favouriteDestinations]);
+
+  const isFavouritePlace = useCallback((dest) => {
+    if (dest.id && favouriteIdSet.has(dest.id)) return true;
+    const lat = dest.lat ?? dest.latitude;
+    const lon = dest.lon ?? dest.longitude;
+    return favouriteDestinations.some(f =>
+      f && f.lat != null && f.lon != null &&
+      Math.abs(lat - Number(f.lat)) < 0.01 && Math.abs(lon - Number(f.lon)) < 0.01
+    );
+  }, [favouriteDestinations, favouriteIdSet]);
 
   // Track map_view_count as a side-effect of visibleMarkers changing
   useEffect(() => {
@@ -1402,7 +1620,12 @@ const MapScreen = ({ navigation }) => {
       );
 
       if (match) {
-        handleMarkerPress(match);
+        mixpanel.track('Map Tap', {
+          place_id: match.id || match.placeId,
+          place_name: match.name,
+          zoom: mapViewport.zoom,
+        });
+        handleMarkerPress(match, 'map_tap');
       } else {
         showToast('No destination found nearby', 'info');
       }
@@ -1439,21 +1662,77 @@ const MapScreen = ({ navigation }) => {
   };
 
   /**
-   * Reset center point to user location
+   * Reference location button: tap returns the map to the active reference
+   * (GPS or manual center point), long press opens the mode context menu.
    */
-  const resetCenterPoint = async () => {
+  const dismissRefTip = () => {
+    if (__DEV__) return; // Dev: tooltip stays visible for styling/testing
+    if (!showRefTip) return;
+    setShowRefTip(false);
+    AsyncStorage.setItem('refLocTipShown', '1').catch(() => {});
+  };
+
+  const animateToReference = (point) => {
+    if (!mapRef.current || !point) return;
+    mapRef.current.animateToRegion({
+      latitude: point.latitude,
+      longitude: point.longitude,
+      latitudeDelta: (radius * 2) / 111,
+      longitudeDelta: (radius * 2) / (111 * Math.cos(point.latitude * Math.PI / 180)),
+    }, 300);
+  };
+
+  const handleRefButtonPress = () => {
+    dismissRefTip();
+    mixpanel.track('Reference Button Tapped', { mode: centerPoint ? 'manual' : 'gps' });
+    animateToReference(centerPoint || location);
+  };
+
+  const handleRefButtonLongPress = () => {
+    dismissRefTip();
+    playTickSound();
+    setShowRefMenu(true);
+  };
+
+  const selectGpsReference = () => {
+    setShowRefMenu(false);
+    if (!centerPoint) {
+      animateToReference(location);
+      return;
+    }
+    playMediumHaptic();
+    mixpanel.track('Reference Mode Changed', { mode: 'gps' });
     setCenterPoint(null);
     setCenterPointWeather(null);
-    try {
-      await AsyncStorage.removeItem('mapCenterPoint');
-    } catch (error) {
-      console.warn('Failed to remove center point:', error);
-    }
-    playTickSound();
-    showToast(t('map.centerPointReset'), 'info');
-    
-    // Note: useEffect with centerPoint dependency will automatically reload destinations
+    AsyncStorage.removeItem('mapCenterPoint').catch(error =>
+      console.warn('Failed to remove center point:', error)
+    );
+    skipNextLocationAnimRef.current = true;
+    animateToReference(location);
   };
+
+  const selectManualReference = () => {
+    setShowRefMenu(false);
+    if (centerPoint) {
+      animateToReference(centerPoint);
+      return;
+    }
+    const saved = savedManualRef.current;
+    if (!saved?.center) return;
+    playMediumHaptic();
+    mixpanel.track('Reference Mode Changed', { mode: 'manual' });
+    setCenterPoint(saved.center);
+    setCenterPointWeather(saved.weather || null);
+    AsyncStorage.setItem('mapCenterPoint', JSON.stringify(saved.center)).catch(error =>
+      console.warn('Failed to save center point:', error)
+    );
+    skipNextLocationAnimRef.current = true;
+    animateToReference(saved.center);
+  };
+
+  const manualRefAvailable = !!(centerPoint || savedManualRef.current?.center);
+  const manualRefWeatherName = (centerPointWeather || savedManualRef.current?.weather)?.name;
+  const manualRefName = manualRefWeatherName ? manualRefWeatherName.replace('⊕', '').trim() : null;
 
   const flyToRegion = (fromLat, fromLon, targetRegion) => {
     if (!mapRef.current) return;
@@ -1464,86 +1743,6 @@ const MapScreen = ({ navigation }) => {
       setTimeout(() => { flyOverActiveRef.current = false; }, duration + 200);
     }
     mapRef.current.animateToRegion(targetRegion, duration);
-  };
-
-  /**
-   * On-demand recenter: request one fresh location update and move map.
-   * Avoids keeping the native user-location layer active all the time.
-   */
-  const recenterToCurrentLocation = async () => {
-    if (isRecentering) return;
-    const now = Date.now();
-    if (now < recenterCooldownUntilRef.current) {
-      const secondsLeft = Math.ceil((recenterCooldownUntilRef.current - now) / 1000);
-      showToast(t('map.recenterCooldown', { seconds: secondsLeft }), 'info');
-      return;
-    }
-    setIsRecentering(true);
-    recenterCooldownUntilRef.current = now + 10000;
-
-    try {
-      const servicesEnabled = await Location.hasServicesEnabledAsync();
-      if (!servicesEnabled) {
-        setLocationError('disabled');
-        showToast(t('map.locationDisabled'), 'error');
-        return;
-      }
-
-      let hasPermission = locationPermissionGranted;
-      if (!hasPermission) {
-        const { status } = await Location.requestForegroundPermissionsAsync();
-        hasPermission = status === 'granted';
-        setLocationPermissionGranted(hasPermission);
-      }
-
-      if (!hasPermission) {
-        setLocationError('permission');
-        showToast(t('map.locationNotAvailable'), 'error');
-        return;
-      }
-
-      let position = null;
-      try {
-        position = await Location.getCurrentPositionAsync({
-          accuracy: Location.Accuracy.Balanced,
-          timeout: 10000,
-          maximumAge: 15000,
-        });
-      } catch (error) {
-        console.warn('recenter getCurrentPositionAsync failed:', error?.message || error);
-      }
-
-      if (!position?.coords) {
-        position = await Location.getLastKnownPositionAsync({ maxAge: 120000 });
-      }
-
-      if (!position?.coords) {
-        showToast(t('map.locationUnavailable'), 'error');
-        return;
-      }
-
-      applyLocationFromPosition(position, { notifyFallback: true });
-      setCenterPoint(null);
-      setCenterPointWeather(null);
-      setLocationError(null);
-      AsyncStorage.removeItem('mapCenterPoint').catch(err =>
-        console.warn('Failed to remove center point while recentering:', err)
-      );
-
-      const lat = position.coords.latitude;
-      const lon = position.coords.longitude;
-      const targetLatDelta = (radius * 2) / 111;
-      const targetLonDelta = (radius * 2) / (111 * Math.cos(lat * Math.PI / 180));
-      const targetRegion = { latitude: lat, longitude: lon, latitudeDelta: targetLatDelta, longitudeDelta: targetLonDelta };
-
-      skipNextLocationAnimRef.current = true;
-      flyToRegion(currentRegion?.latitude ?? lat, currentRegion?.longitude ?? lon, targetRegion);
-
-      playTickSound();
-      showToast(t('map.recentered'), 'success');
-    } finally {
-      setTimeout(() => setIsRecentering(false), 1200);
-    }
   };
 
   const searchPlaces = useCallback(async (text) => {
@@ -1942,16 +2141,18 @@ const MapScreen = ({ navigation }) => {
         {/* Greedy-filtered markers based on zoom + score */}
         {visibleMarkers
           .filter(dest => {
-            // Skip favourites - they're rendered separately below
-            if (dest.isFavourite) return false;
             // Always show current location and center point
             if (dest.isCurrentLocation || dest.isCenterPoint) return true;
+            // Skip favourites - they're rendered separately below
+            if (isFavouritePlace(dest)) return false;
             if (!showOnlyBadges) return true;
             return isTrophyWorthy(getMapBadges(dest.badges));
           })
           .map((dest, index) => (
           <DestinationMarker
-            key={`${dest.lat}-${dest.lon}-${selectedDateOffset}-${index}`}
+            // Stable per place, but changes with displayed content (temp/condition/badges):
+            // marker views are cached (tracksViewChanges=false) and only repaint on remount.
+            key={`${dest.isCurrentLocation ? 'cl' : dest.isCenterPoint ? 'cp' : (dest.id || dest.placeId || `${dest.lat}-${dest.lon}`)}-${selectedDateOffset}-${dest.temperature}-${dest.condition}-${(dest.badges || []).join(',')}`}
             dest={dest}
             index={index}
             onPress={() => handleMarkerPress(dest)}
@@ -1960,6 +2161,7 @@ const MapScreen = ({ navigation }) => {
             getWeatherIcon={getWeatherIcon}
             styles={styles}
             temperatureUnit={temperatureUnit}
+            pulseKey={dest.isCurrentLocation ? currentLocationPulseKey : 0}
           />
         ))}
 
@@ -2132,8 +2334,10 @@ const MapScreen = ({ navigation }) => {
           opacity: 1.0,
         }]}
         onPress={() => {
-          setShowOnlyBadges(!showOnlyBadges);
+          const next = !showOnlyBadges;
+          setShowOnlyBadges(next);
           playTickSound();
+          mixpanel.track('Badge Filter Toggled', { enabled: next });
         }}
         accessibilityLabel={showOnlyBadges ? 'Show all destinations' : 'Show only special destinations'}
         accessibilityRole="switch"
@@ -2157,29 +2361,15 @@ const MapScreen = ({ navigation }) => {
           borderColor: 'rgba(0,0,0,0.07)',
           shadowColor: '#000'
         }]}
-        onPress={() => navigation.navigate('Settings')}
+        onPress={() => {
+          mixpanel.track('Settings Opened');
+          navigation.navigate('Settings');
+        }}
         accessibilityLabel={t('app.settings')}
         accessibilityRole="button"
         accessibilityHint="Open app settings"
       >
         <Text style={styles.settingsIcon}>⚙️</Text>
-      </TouchableOpacity>
-
-      {/* Recenter Button (on-demand location, battery-friendly) */}
-      <TouchableOpacity
-        style={[styles.myLocationButton, {
-          backgroundColor: theme.surface,
-          borderColor: 'rgba(0,0,0,0.07)',
-          shadowColor: '#000',
-          opacity: isRecentering ? 0.6 : 1,
-        }]}
-        onPress={recenterToCurrentLocation}
-        disabled={isRecentering}
-        accessibilityLabel="Center map on my location"
-        accessibilityRole="button"
-        accessibilityHint="Fetch current location once and center the map"
-      >
-        <Text style={styles.myLocationIcon}>{isRecentering ? '…' : '📍'}</Text>
       </TouchableOpacity>
 
       {/* Feedback Button */}
@@ -2202,24 +2392,6 @@ const MapScreen = ({ navigation }) => {
         </View>
       </View>
 
-      {/* Reset Center Button (only show if centerPoint is set) */}
-      {centerPoint && (
-        <TouchableOpacity
-          style={[styles.resetCenterButton, { 
-            backgroundColor: '#C05030',
-            borderColor: 'rgba(255,255,255,0.4)',
-            shadowColor: theme.shadow
-          }]}
-          onPress={resetCenterPoint}
-          accessibilityLabel="Reset center point"
-          accessibilityRole="button"
-          accessibilityHint="Reset map center to your current location"
-        >
-          <Text style={styles.resetCenterIcon}>📍</Text>
-          <Text style={styles.resetCenterText}>↺</Text>
-        </TouchableOpacity>
-      )}
-
       {/* Collapsible Controls */}
       <View style={styles.controlsWrapper}>
         <TouchableOpacity
@@ -2228,7 +2400,11 @@ const MapScreen = ({ navigation }) => {
             borderColor: theme.border,
             shadowColor: theme.shadow
           }]}
-          onPress={() => setControlsExpanded(!controlsExpanded)}
+          onPress={() => setControlsExpanded((prev) => {
+            const next = !prev;
+            mixpanel.track('Controls Toggled', { expanded: next });
+            return next;
+          })}
           accessibilityLabel={controlsExpanded ? 'Hide filters' : 'Show filters'}
           accessibilityRole="button"
           accessibilityHint="Toggle weather and radius filter controls"
@@ -2332,6 +2508,71 @@ const MapScreen = ({ navigation }) => {
         <Text style={[styles.zoomIndicatorText, { color: theme.textSecondary }]}>Z{mapViewport.zoom}</Text>
       </View>
       )}
+
+      {/* Reference Location Button (above Warmer/Cooler pill) */}
+      {showRefMenu && (
+        <TouchableOpacity
+          style={styles.refMenuBackdrop}
+          activeOpacity={1}
+          onPress={() => setShowRefMenu(false)}
+        />
+      )}
+      {showRefMenu && (
+        <View style={[styles.refMenu, {
+          backgroundColor: theme.surface,
+          borderColor: 'rgba(0,0,0,0.07)',
+          shadowColor: '#000',
+        }]}>
+          <Text style={[styles.refMenuTitle, { color: theme.textSecondary }]}>{t('map.refTitle')}</Text>
+          {/* In GPS mode the current location is already active — only offer the switch to manual */}
+          {centerPoint && (
+            <TouchableOpacity
+              style={styles.refMenuRow}
+              onPress={selectGpsReference}
+              accessibilityRole="menuitem"
+            >
+              <Text style={[styles.refMenuCheck, { color: theme.text }]}>○</Text>
+              <Text style={[styles.refMenuText, { color: theme.text }]}>{t('map.refCurrentLocation')}</Text>
+            </TouchableOpacity>
+          )}
+          <TouchableOpacity
+            style={[styles.refMenuRow, !manualRefAvailable && styles.refMenuRowDisabled]}
+            onPress={selectManualReference}
+            disabled={!manualRefAvailable}
+            accessibilityRole="menuitem"
+          >
+            <Text style={[styles.refMenuCheck, { color: theme.text }]}>{centerPoint ? '✓' : '○'}</Text>
+            <Text style={[styles.refMenuText, { color: theme.text }]}>
+              {manualRefName
+                ? t('map.refSelectedLocationNamed', { name: manualRefName })
+                : t('map.refSelectedLocation')}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+      {showRefTip && !showRefMenu && (
+        <View style={styles.refTipWrap} pointerEvents="none">
+          <View style={styles.refTip}>
+            <Text style={styles.refTipText}>{t('map.refTooltip')}</Text>
+          </View>
+          <View style={styles.refTipArrow} />
+        </View>
+      )}
+      <TouchableOpacity
+        style={[styles.refLocButton, {
+          backgroundColor: theme.surface,
+          borderColor: 'rgba(0,0,0,0.07)',
+          shadowColor: '#000',
+        }]}
+        onPress={handleRefButtonPress}
+        onLongPress={handleRefButtonLongPress}
+        delayLongPress={400}
+        accessibilityLabel={t('map.refTitle')}
+        accessibilityRole="button"
+        accessibilityHint="Return the map to the active reference location. Long press for options."
+      >
+        <Text style={styles.refLocIcon}>{centerPoint ? '📍' : '⌖'}</Text>
+      </TouchableOpacity>
 
       {/* Bottom Left Buttons Container */}
       <View style={styles.bottomLeftButtons}>
@@ -2562,7 +2803,28 @@ const styles = StyleSheet.create({
   },
   currentLocationMarker: {
     borderColor: '#5CA3D9',
-    borderWidth: 2,
+    borderWidth: 3,
+  },
+  currentLocationFrame: {
+    height: 118,
+    justifyContent: 'flex-start',
+    paddingTop: 30,
+  },
+  currentLocationLabel: {
+    position: 'absolute',
+    top: 101,
+    alignSelf: 'center',
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#FFFFFF',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 4,
+    overflow: 'hidden',
+    textShadowColor: 'rgba(0, 0, 0, 0.8)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 2,
   },
   markerWeatherIcon: {
     fontSize: 22,
@@ -2907,31 +3169,9 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
     marginTop: 2,
   },
-  myLocationButton: {
-    position: 'absolute',
-    top: 214,
-    right: 10,
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 1.5,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.14,
-    shadowRadius: 5,
-    elevation: 4,
-  },
-  myLocationIcon: {
-    fontSize: 28,
-    textAlign: 'center',
-    lineHeight: 30,
-    includeFontPadding: false,
-    marginTop: 2,
-  },
   feedbackButtonWrap: {
     position: 'absolute',
-    top: 282,
+    top: 214,
     right: 10,
     width: 58,
     height: 58,
@@ -2972,9 +3212,9 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
     marginTop: 2,
   },
-  resetCenterButton: {
+  refLocButton: {
     position: 'absolute',
-    bottom: 140,
+    bottom: 104,
     left: 20,
     width: 58,
     height: 58,
@@ -2987,16 +3227,88 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 4,
   },
-  resetCenterIcon: {
-    fontSize: 20,
+  refLocIcon: {
+    fontSize: 28,
     textAlign: 'center',
-    marginTop: -3,
+    lineHeight: 32,
+    includeFontPadding: false,
   },
-  resetCenterText: {
-    fontSize: 17,
+  refMenuBackdrop: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  refMenu: {
+    position: 'absolute',
+    bottom: 170,
+    left: 20,
+    minWidth: 210,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    paddingVertical: 6,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.14,
+    shadowRadius: 5,
+    elevation: 5,
+  },
+  refMenuTitle: {
+    fontSize: 12,
     fontWeight: '600',
-    color: '#fff',
-    marginTop: -2,
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+  },
+  refMenuRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  refMenuRowDisabled: {
+    opacity: 0.4,
+  },
+  refMenuCheck: {
+    fontSize: 15,
+    width: 18,
+    textAlign: 'center',
+  },
+  refMenuText: {
+    fontSize: 15,
+    fontWeight: '500',
+    flexShrink: 1,
+  },
+  refTipWrap: {
+    position: 'absolute',
+    bottom: 168,
+    left: 20,
+    alignItems: 'flex-start',
+  },
+  refTip: {
+    backgroundColor: 'rgba(30,30,30,0.72)',
+    borderRadius: 10,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
+  },
+  refTipArrow: {
+    width: 0,
+    height: 0,
+    marginLeft: 23,
+    borderLeftWidth: 6,
+    borderRightWidth: 6,
+    borderTopWidth: 6,
+    borderLeftColor: 'transparent',
+    borderRightColor: 'transparent',
+    borderTopColor: 'rgba(30,30,30,0.72)',
+  },
+  refTipText: {
+    fontSize: 11,
+    lineHeight: 15,
+    color: 'rgba(255,255,255,0.92)',
+    letterSpacing: 0.1,
   },
   favouriteMarkerBorder: {
     borderColor: '#C06030',

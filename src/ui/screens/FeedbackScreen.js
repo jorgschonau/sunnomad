@@ -14,9 +14,11 @@ import {
   Animated,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useAuth } from '../../contexts/AuthContext';
 import { submitFeedback } from '../../services/feedbackService';
+import { mixpanel } from '../../services/mixpanel';
 
 const AUTO_CLOSE_MS = 6000;
 const GOLDIE_HEIGHT = 179;
@@ -94,6 +96,12 @@ export default function FeedbackScreen({ navigation }) {
 
   const canSend = message.trim().length > 0 && !sending;
 
+  useFocusEffect(
+    React.useCallback(() => {
+      mixpanel.track('Feedback Opened');
+    }, [])
+  );
+
   useEffect(() => {
     if (!sent) return undefined;
     const timer = setTimeout(() => {
@@ -114,6 +122,7 @@ export default function FeedbackScreen({ navigation }) {
       return;
     }
 
+    mixpanel.track('Feedback Submitted', { message_length: message.trim().length });
     setSent(true);
   };
 
