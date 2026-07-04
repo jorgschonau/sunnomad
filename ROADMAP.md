@@ -21,6 +21,8 @@ Stand: Juni 2026 · Fokus 2026: testen, stabilisieren, Discovery — **kein Payw
 | Mixpanel (Basis) | ~15 Events |
 | Detail Screen | Drive there, Hero expand, state_name |
 | Hero Image Pipeline | `generate_hero_images.py`, `--goldie-only`, Cast-Chars |
+| Account-Löschung | Apple 5.1.1(v)/Play-Pflicht — Edge Function `delete-account` (Service-Role, cascade via `profiles` FK), Button in ProfileScreen |
+| Ironic Streak | 4 rotierende Sprüche im ProfileScreen, Basis `profile.app_open_count` |
 
 ---
 
@@ -30,7 +32,7 @@ Stand: Juni 2026 · Fokus 2026: testen, stabilisieren, Discovery — **kein Payw
 |---|------|---------|
 | 1.1 | **getVisibleMarkers Rewrite** + Z7+ API-Refetch — Grid/Double-Filter raus, viewport-basiert | 2–3 Tage |
 | 1.2 | **Bugfixes aus Beta-Feedback** | laufend |
-| 1.3 | **Mixpanel Lücken** — hero_variant_index, user identify on login | 0.5 Tag |
+| ~~1.3~~ | ~~**Mixpanel Lücken** — hero_variant_index, user identify on login~~ ✅ erledigt (hero_variant_index in DestinationDetailScreen, identifyUser in AuthContext) | 0.5 Tag |
 
 ---
 
@@ -110,7 +112,7 @@ CREATE TABLE regional_content (
 | Android / Web | Evaluate |
 | Historic Sites | battlegrounds, temples — DB-Insert |
 | Weekend Escape Generator | Berlin, 5h, Van, Sonne → komplette Route |
-| Community Tab | Stub „Coming Soon“ im Code |
+| ~~Community Tab~~ ✅ | Stub „Coming Soon“ existiert bereits (`CommunityScreen.js`) |
 
 ---
 
@@ -184,7 +186,7 @@ Jun–Jul 2026          Aug–Sep 2026          Q4 2026
 | Mission Unlocked | ~0.5 Tage | GTA-Persiflage, 3+ Spots gleiche Region, 15–20 Missions JSON |
 | Ironic Badges | ~0.5 Tage | „Wrong Season Champion", „Certified Sun Chaser" |
 | Fake Level System | ~2h | Level 1: „Sun Chaser" → Level 2: „Still a Sun Chaser" |
-| Ironic Streak | ~2h | „Day 3 of looking for sun. Still haven't left the couch." |
+| ~~Ironic Streak~~ ✅ | ~2h | 4 rotierende Sprüche im ProfileScreen (Beta-Bezug), Basis `app_open_count` |
 
 ---
 
@@ -315,6 +317,9 @@ Jun–Jul 2026          Aug–Sep 2026          Q4 2026
 -- promos, z.b. july 4th (best of us, oder top national parks ...), halloween (castle rock etc), 
 -- button mit den shortcuts zu markern, ja mach pronmo. können einzelne orte oder collections sein.
 -- button oben rechts, mit history der der promos, evtl auto grey out/ delete after x days
+-- evtl auch best ofs , best of greece, best of france
+-- oder thematisch: greek mythologiy, french wine regions, us deserts, snowbird refuges etc etc
 
-
+## faves
+-- setting, always visible yes/no
 

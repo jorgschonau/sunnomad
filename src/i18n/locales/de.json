@@ -389,7 +389,17 @@
     "resetEmailSent": "Link gesendet!",
     "resetEmailSentMessage": "Schau in dein Postfach",
     "resetPasswordFailed": "E-Mail konnte nicht gesendet werden. Bitte versuche es erneut.",
-    "resendEmail": "Nochmal senden"
+    "resendEmail": "Nochmal senden",
+    "resetPasswordTitle": "Neues Passwort festlegen",
+    "resetPasswordSubtitle": "Wähle ein neues Passwort für deinen Account",
+    "newPassword": "Neues Passwort",
+    "newPasswordPlaceholder": "Gib dein neues Passwort ein",
+    "confirmNewPassword": "Neues Passwort bestätigen",
+    "updatePassword": "Passwort aktualisieren",
+    "passwordUpdated": "Passwort aktualisiert",
+    "passwordUpdatedMessage": "Dein Passwort wurde erfolgreich geändert",
+    "updatePasswordFailed": "Passwort konnte nicht aktualisiert werden. Bitte versuche es erneut.",
+    "recoveryLinkExpired": "Dieser Link ist abgelaufen. Bitte fordere einen neuen an."
   },
   "communityScreen": {
     "description": "Teile deine Lieblingsorte, entdecke Empfehlungen von anderen Reisenden und vernetze dich mit der Community."
@@ -404,7 +414,15 @@
     "editProfile": "Profil bearbeiten",
     "changeEmail": "E-Mail ändern",
     "changePassword": "Passwort ändern",
-    "featureComingSoon": "Diese Funktion kommt demnächst."
+    "featureComingSoon": "Diese Funktion kommt demnächst.",
+    "ironicStreak1": "Tag {{count}} auf der Suche nach der Sonne. Noch nicht von der Couch aufgestanden.",
+    "ironicStreak2": "Tag {{count}} als Beta-Tester. Bugs gemeldet: 0. Bugs gefunden: mindestens 12.",
+    "ironicStreak3": "{{count}}. Mal geöffnet, obwohl die App dich schon dreimal angelogen hat. Respekt.",
+    "ironicStreak4": "Tag {{count}}. Noch kein Feedback geschickt. Wir merken uns das.",
+    "deleteAccount": "Account löschen",
+    "deleteAccountConfirmTitle": "Account löschen?",
+    "deleteAccountConfirmMessage": "Dein Account und alle Daten (Favoriten, Profil) werden unwiderruflich gelöscht. Das kann nicht rückgängig gemacht werden.",
+    "deleteAccountFailed": "Account konnte nicht gelöscht werden. Bitte versuche es erneut."
   },
   "dateFilter": {
     "weatherFor": "Wetter für",

@@ -17,10 +17,14 @@ import { getFavourites } from '../../usecases/favouritesUsecases';
 import { mixpanel } from '../../services/mixpanel';
 
 export default function ProfileScreen({ navigation }) {
-  const { user, profile, signOut, isAuthenticated } = useAuth();
+  const { user, profile, signOut, deleteAccount, isAuthenticated } = useAuth();
   const { theme } = useTheme();
   const { t } = useTranslation();
   const [favouriteCount, setFavouriteCount] = useState(0);
+  const ironicStreakKey = useMemo(
+    () => `profile.ironicStreak${1 + Math.floor(Math.random() * 4)}`,
+    []
+  );
 
   useFocusEffect(
     useCallback(() => {
@@ -48,6 +52,26 @@ export default function ProfileScreen({ navigation }) {
           style: 'destructive',
           onPress: async () => {
             await signOut();
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteAccount = () => {
+    Alert.alert(
+      t('profile.deleteAccountConfirmTitle'),
+      t('profile.deleteAccountConfirmMessage'),
+      [
+        { text: t('app.back'), style: 'cancel' },
+        {
+          text: t('profile.deleteAccount'),
+          style: 'destructive',
+          onPress: async () => {
+            const { error } = await deleteAccount();
+            if (error) {
+              Alert.alert(t('auth.error'), t('profile.deleteAccountFailed'));
+            }
           },
         },
       ]
@@ -101,6 +125,11 @@ export default function ProfileScreen({ navigation }) {
           )}
         </View>
         <Text style={styles.displayName}>{profile?.display_name || user?.email}</Text>
+        {profile?.app_open_count > 0 && (
+          <Text style={styles.ironicStreak}>
+            {t(ironicStreakKey, { count: profile.app_open_count })}
+          </Text>
+        )}
       </View>
 
       {/* Stats Card */}
@@ -169,6 +198,11 @@ export default function ProfileScreen({ navigation }) {
       {/* Sign out */}
       <TouchableOpacity style={styles.signOutLink} onPress={handleSignOut}>
         <Text style={styles.signOutText}>{t('auth.signOut')}</Text>
+      </TouchableOpacity>
+
+      {/* Delete account */}
+      <TouchableOpacity style={styles.signOutLink} onPress={handleDeleteAccount}>
+        <Text style={styles.deleteAccountText}>{t('profile.deleteAccount')}</Text>
       </TouchableOpacity>
     </ScrollView>
   );
@@ -258,6 +292,13 @@ const createStyles = (theme) =>
       fontSize: 22,
       fontWeight: 'bold',
       color: theme.text,
+    },
+    ironicStreak: {
+      fontSize: 13,
+      fontStyle: 'italic',
+      color: theme.textSecondary,
+      marginTop: 6,
+      textAlign: 'center',
     },
 
     // ── Stats Card ──
@@ -352,5 +393,10 @@ const createStyles = (theme) =>
       fontSize: 14,
       color: '#EF4444',
       fontWeight: '600',
+    },
+    deleteAccountText: {
+      fontSize: 13,
+      color: theme.textTertiary || theme.textSecondary,
+      fontWeight: '500',
     },
   });

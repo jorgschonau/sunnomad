@@ -121,7 +121,7 @@ export default function RegisterScreen({ navigation }) {
 
     if (error) {
       let reason = 'unknown';
-      let errorMessage = error.message || t('auth.tryAgain');
+      let errorMessage = t('auth.tryAgain');
       if (error.message?.includes('already registered')) {
         reason = 'email_exists';
         errorMessage = t('auth.emailAlreadyExists');

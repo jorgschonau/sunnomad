@@ -245,6 +245,19 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const heroScaleAnim = React.useRef(new Animated.Value(1)).current;
   const heroFadeAnim = React.useRef(new Animated.Value(0)).current;
   const lastFadedHeroUrl = React.useRef(null);
+  // Reset opacity to 0 synchronously (before the state update that swaps the image
+  // source commits), so the new image never briefly flashes at full opacity.
+  const startHeroFade = useCallback((url) => {
+    if (!url || url === lastFadedHeroUrl.current) return;
+    lastFadedHeroUrl.current = url;
+    heroFadeAnim.setValue(0);
+    Animated.timing(heroFadeAnim, {
+      toValue: 1,
+      duration: 850,
+      easing: Easing.inOut(Easing.ease),
+      useNativeDriver: true,
+    }).start();
+  }, [heroFadeAnim]);
   const pulseAnim = React.useRef(new Animated.Value(1)).current;
   const vignetteAnim = React.useRef(new Animated.Value(0)).current;
 
@@ -528,6 +541,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     };
     const fallbackTimer = setTimeout(() => {
       fallbackShown = true;
+      startHeroFade(fallbackHero.url);
       setHeroMeta(fallbackHero);
     }, 3000);
 
@@ -540,6 +554,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         // Late arrival: promote the fallback to base so the cross-fade starts from it
         setHeroBase(fallbackHero);
       }
+      startHeroFade(hero.url);
       setHeroMeta(hero);
       if (__DEV__) {
         const list = await listDedicatedHeroImages(placeObj);
@@ -566,19 +581,6 @@ const DestinationDetailScreen = ({ route, navigation }) => {
 
     return () => clearTimeout(fallbackTimer);
   }, [effectivePlaceId]);
-
-  // Cross-fade the resolved hero in over the base layer whenever its URL changes
-  useEffect(() => {
-    const h = (heroList.length > 0 ? heroList[heroIndex] : null) ?? heroMeta;
-    if (!h?.url || h.url === lastFadedHeroUrl.current) return;
-    lastFadedHeroUrl.current = h.url;
-    heroFadeAnim.setValue(0);
-    Animated.timing(heroFadeAnim, {
-      toValue: 1,
-      duration: 600,
-      useNativeDriver: true,
-    }).start();
-  }, [heroMeta, heroList, heroIndex]);
 
   useEffect(() => {
     if (!__DEV__) return;
@@ -1111,6 +1113,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     // Promote the currently shown image to base so the next one cross-fades over it
     const current = heroList[heroIndex] ?? heroMeta;
     if (current) setHeroBase(current);
+    startHeroFade(heroList[next]?.url);
     setHeroIndex(next);
     mixpanel.track('Hero Browsed', {
       place_id: effectivePlaceId,

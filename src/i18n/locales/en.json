@@ -389,7 +389,17 @@
     "resetEmailSent": "Link sent!",
     "resetEmailSentMessage": "Check your inbox",
     "resetPasswordFailed": "Could not send email. Please try again.",
-    "resendEmail": "Send again"
+    "resendEmail": "Send again",
+    "resetPasswordTitle": "Set a new password",
+    "resetPasswordSubtitle": "Choose a new password for your account",
+    "newPassword": "New Password",
+    "newPasswordPlaceholder": "Enter your new password",
+    "confirmNewPassword": "Confirm New Password",
+    "updatePassword": "Update Password",
+    "passwordUpdated": "Password updated",
+    "passwordUpdatedMessage": "Your password has been changed successfully",
+    "updatePasswordFailed": "Could not update password. Please try again.",
+    "recoveryLinkExpired": "This link has expired. Please request a new one."
   },
   "communityScreen": {
     "description": "Share your favorite spots, discover recommendations from other travelers, and connect with the community."
@@ -404,7 +414,15 @@
     "editProfile": "Edit Profile",
     "changeEmail": "Change email",
     "changePassword": "Change password",
-    "featureComingSoon": "This feature will be available soon."
+    "featureComingSoon": "This feature will be available soon.",
+    "ironicStreak1": "Day {{count}} of looking for sun. Still haven't left the couch.",
+    "ironicStreak2": "Day {{count}} as a beta tester. Bugs reported: 0. Bugs found: at least 12.",
+    "ironicStreak3": "Opened this {{count}} times despite the app lying to you three times already. Respect.",
+    "ironicStreak4": "Day {{count}}. Still no feedback sent. We're keeping track.",
+    "deleteAccount": "Delete Account",
+    "deleteAccountConfirmTitle": "Delete account?",
+    "deleteAccountConfirmMessage": "Your account and all data (favourites, profile) will be permanently deleted. This cannot be undone.",
+    "deleteAccountFailed": "Could not delete account. Please try again."
   },
   "dateFilter": {
     "weatherFor": "Weather for",

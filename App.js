@@ -1,7 +1,7 @@
 import 'react-native-gesture-handler';
 import 'react-native-get-random-values';
 import React, { useEffect, useState, useCallback, useRef, Suspense } from 'react';
-import { View, Image, Text, StyleSheet, Animated, Easing, ActivityIndicator } from 'react-native';
+import { View, Image, Text, StyleSheet, Animated, Easing, ActivityIndicator, Linking, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { StatusBar } from 'expo-status-bar';
@@ -41,6 +41,7 @@ import FavouritesScreen from './src/ui/screens/FavouritesScreen';
 import LoginScreen from './src/ui/screens/LoginScreen';
 import RegisterScreen from './src/ui/screens/RegisterScreen';
 import ForgotPasswordScreen from './src/ui/screens/ForgotPasswordScreen';
+import ResetPasswordScreen from './src/ui/screens/ResetPasswordScreen';
 import ProfileScreen from './src/ui/screens/ProfileScreen';
 import FeedbackScreen from './src/ui/screens/FeedbackScreen';
 
@@ -273,8 +274,9 @@ function PixelDissolveOverlay({ active, onDone }) {
 }
 
 function RootNavigator() {
-  const { isAuthenticated, loading } = useAuth();
+  const { isAuthenticated, loading, isPasswordRecovery, consumeRecoveryUrl } = useAuth();
   const { theme } = useTheme();
+  const { t } = useTranslation();
   const [splashPhase, setSplashPhase] = useState(null);
   const [introReady, setIntroReady] = useState(false);
   const [fontsLoaded] = useFonts({ Yellowtail_400Regular });
@@ -283,6 +285,23 @@ function RootNavigator() {
   const [showSunnomad, setShowSunnomad] = useState(false);
   const presentsOpacity = useRef(new Animated.Value(0)).current;
   const onDissolveDone = useCallback(() => setGoldieHidden(true), []);
+
+  // Handle `sunnomad://reset-password` deep link (cold start + already-running app)
+  useEffect(() => {
+    const handleUrl = async ({ url }) => {
+      const { error } = await consumeRecoveryUrl(url);
+      if (error) {
+        Alert.alert(t('auth.error'), t('auth.recoveryLinkExpired'));
+      }
+    };
+
+    Linking.getInitialURL().then((url) => {
+      if (url) handleUrl({ url });
+    });
+
+    const subscription = Linking.addEventListener('url', handleUrl);
+    return () => subscription.remove();
+  }, [consumeRecoveryUrl, t]);
 
   // Goldie intro+dissolve once per day; SunNomad splash every launch
   useEffect(() => {
@@ -439,7 +458,13 @@ function RootNavigator() {
 
   return (
     <NavigationContainer>
-      {isAuthenticated ? <MainNavigator /> : <AuthNavigator />}
+      {isPasswordRecovery ? (
+        <ResetPasswordScreen />
+      ) : isAuthenticated ? (
+        <MainNavigator />
+      ) : (
+        <AuthNavigator />
+      )}
     </NavigationContainer>
   );
 }

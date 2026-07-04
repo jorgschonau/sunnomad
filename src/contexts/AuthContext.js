@@ -18,6 +18,7 @@ export const AuthProvider = ({ children }) => {
   const [profile, setProfile] = useState(null);
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
   // Initialize session on app start
   useEffect(() => {
@@ -151,6 +152,59 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const updatePassword = async (newPassword) => {
+    try {
+      const { error } = await authService.updatePassword(newPassword);
+      if (error) throw error;
+      return { error: null };
+    } catch (error) {
+      console.error('Update password error:', error);
+      return { error };
+    }
+  };
+
+  // Consume a `sunnomad://reset-password#access_token=...&type=recovery` deep link:
+  // sets the recovery session and flags the app to show ResetPasswordScreen.
+  const consumeRecoveryUrl = async (url) => {
+    const parsed = authService.parseAuthUrl(url);
+    if (!parsed || parsed.type !== 'recovery') return { error: null };
+
+    if (!parsed.accessToken || !parsed.refreshToken) {
+      return { error: new Error(parsed.error || 'Invalid recovery link') };
+    }
+
+    const { session: recoverySession, error } = await authService.setRecoverySession(
+      parsed.accessToken,
+      parsed.refreshToken
+    );
+    if (error) return { error };
+
+    setSession(recoverySession);
+    setUser(recoverySession?.user ?? null);
+    setIsPasswordRecovery(true);
+    return { error: null };
+  };
+
+  const cancelPasswordRecovery = () => setIsPasswordRecovery(false);
+
+  const deleteAccount = async () => {
+    try {
+      const { error } = await authService.deleteAccount();
+      if (error) throw error;
+
+      mixpanel.track('Account Deleted');
+      await resetMixpanelIdentity();
+      setUser(null);
+      setProfile(null);
+      setSession(null);
+
+      return { error: null };
+    } catch (error) {
+      console.error('Delete account error:', error);
+      return { error };
+    }
+  };
+
   const updateProfile = async (updates) => {
     try {
       if (!user) throw new Error('No user logged in');
@@ -180,8 +234,13 @@ export const AuthProvider = ({ children }) => {
     signIn,
     signOut,
     resetPassword,
+    updatePassword,
+    deleteAccount,
     updateProfile,
     refreshProfile: () => user && loadProfile(user.id),
+    isPasswordRecovery,
+    consumeRecoveryUrl,
+    cancelPasswordRecovery,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

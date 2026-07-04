@@ -19,17 +19,13 @@ import { useTranslation } from 'react-i18next';
 import { mixpanel } from '../../services/mixpanel';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Brand colors extracted from the SunNomad logo
+// Brand colors (match LoginScreen/RegisterScreen)
 const BRAND = {
   cream: '#F5E6D3',
-  creamDark: '#E8D5C0',
   orange: '#C87840',
-  orangePressed: '#A86230',
   navy: '#1E3A5F',
-  navyLight: '#2B4A6F',
   coral: '#C9A88C',
   pink: '#C4A0A0',
   white: '#FFFFFF',
@@ -39,61 +35,51 @@ const BRAND = {
   shadow: '#5C4033',
 };
 
-export default function LoginScreen({ navigation }) {
-  const { signIn } = useAuth();
+export default function ResetPasswordScreen() {
+  const { updatePassword, cancelPasswordRecovery } = useAuth();
   const { t } = useTranslation();
 
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [emailError, setEmailError] = useState('');
 
   useFocusEffect(
     useCallback(() => {
-      mixpanel.track('Login Screen Viewed');
+      mixpanel.track('Reset Password Screen Viewed');
     }, [])
   );
 
-  const validateEmail = (value) => {
-    if (!value.trim()) {
-      setEmailError(t('auth.fillAllFields'));
-      return false;
-    }
-    if (!EMAIL_REGEX.test(value.trim())) {
-      setEmailError(t('auth.invalidEmail'));
-      return false;
-    }
-    setEmailError('');
-    return true;
-  };
-
-  const handleLogin = async () => {
-    if (!validateEmail(email)) {
-      mixpanel.track('Login Validation Failed', { reason: 'invalid_email' });
-      return;
-    }
-
-    if (!password) {
-      mixpanel.track('Login Validation Failed', { reason: 'missing_password' });
+  const handleUpdatePassword = async () => {
+    if (!password || !confirmPassword) {
       Alert.alert(t('auth.error'), t('auth.fillAllFields'));
       return;
     }
 
-    mixpanel.track('Login Started');
+    if (password !== confirmPassword) {
+      Alert.alert(t('auth.error'), t('auth.passwordsDontMatch'));
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert(t('auth.error'), t('auth.passwordTooShort'));
+      return;
+    }
+
+    mixpanel.track('Reset Password Started');
     setLoading(true);
-    const { error } = await signIn(email.trim(), password);
+    const { error } = await updatePassword(password);
     setLoading(false);
 
     if (error) {
-      mixpanel.track('Login Failed', { reason: 'invalid_credentials' });
-      const message =
-        error.message === 'Invalid login credentials'
-          ? t('auth.checkCredentials')
-          : error.message || t('auth.checkCredentials');
-      Alert.alert(t('auth.loginFailed'), message);
+      mixpanel.track('Reset Password Failed', { reason: error.message || 'unknown' });
+      Alert.alert(t('auth.error'), t('auth.updatePasswordFailed'));
     } else {
-      mixpanel.track('Login Completed');
+      mixpanel.track('Reset Password Completed');
+      Alert.alert(t('auth.passwordUpdated'), t('auth.passwordUpdatedMessage'), [
+        { text: 'OK', onPress: cancelPasswordRecovery },
+      ]);
     }
   };
 
@@ -102,7 +88,6 @@ export default function LoginScreen({ navigation }) {
       style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
-      {/* Decorative sunset accent strip at top */}
       <View style={styles.accentStrip}>
         <View style={styles.accentPink} />
         <View style={styles.accentCoral} />
@@ -115,7 +100,6 @@ export default function LoginScreen({ navigation }) {
         showsVerticalScrollIndicator={false}
         showsHorizontalScrollIndicator={false}
       >
-        {/* Logo */}
         <View style={styles.header}>
           <Image
             source={require('../../../assets/sunnomad-logo.png')}
@@ -124,43 +108,24 @@ export default function LoginScreen({ navigation }) {
           />
         </View>
 
-        {/* Form Card */}
+        <Text style={styles.title}>{t('auth.resetPasswordTitle')}</Text>
+        <Text style={styles.subtitle}>{t('auth.resetPasswordSubtitle')}</Text>
+
         <View style={styles.formCard}>
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>{t('auth.email')}</Text>
-            <TextInput
-              style={[styles.input, emailError ? styles.inputError : null]}
-              placeholder={t('auth.emailPlaceholder')}
-              placeholderTextColor={BRAND.textMuted}
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                if (emailError) validateEmail(text);
-              }}
-              onBlur={() => email && validateEmail(email)}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              autoComplete="email"
-              editable={!loading}
-            />
-            {emailError ? (
-              <Text style={styles.errorText}>{emailError}</Text>
-            ) : null}
-          </View>
-
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>{t('auth.password')}</Text>
+            <Text style={styles.label}>{t('auth.newPassword')}</Text>
             <View style={[styles.input, styles.passwordContainer]}>
               <TextInput
                 style={styles.passwordInput}
-                placeholder={t('auth.passwordPlaceholder')}
+                placeholder={t('auth.newPasswordPlaceholder')}
                 placeholderTextColor={BRAND.textMuted}
                 value={password}
                 onChangeText={setPassword}
                 secureTextEntry={!showPassword}
-                autoComplete="password"
+                autoComplete="new-password"
                 autoCorrect={false}
                 editable={!loading}
+                autoFocus
               />
               <TouchableOpacity
                 style={styles.eyeButton}
@@ -174,46 +139,48 @@ export default function LoginScreen({ navigation }) {
                 />
               </TouchableOpacity>
             </View>
+            <Text style={styles.hint}>{t('auth.minSixChars')}</Text>
+          </View>
+
+          <View style={styles.inputContainer}>
+            <Text style={styles.label}>{t('auth.confirmNewPassword')}</Text>
+            <View style={[styles.input, styles.passwordContainer]}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder={t('auth.confirmPasswordPlaceholder')}
+                placeholderTextColor={BRAND.textMuted}
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+                secureTextEntry={!showConfirmPassword}
+                autoComplete="new-password"
+                autoCorrect={false}
+                editable={!loading}
+              />
+              <TouchableOpacity
+                style={styles.eyeButton}
+                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+              >
+                <Ionicons
+                  name={showConfirmPassword ? 'eye-off-outline' : 'eye-outline'}
+                  size={22}
+                  color={BRAND.textMuted}
+                />
+              </TouchableOpacity>
+            </View>
           </View>
 
           <TouchableOpacity
-            style={styles.forgotPassword}
-            onPress={() => {
-              mixpanel.track('Forgot Password Link Tapped');
-              navigation.navigate('ForgotPassword');
-            }}
-            disabled={loading}
-          >
-            <Text style={styles.forgotPasswordText}>
-              {t('auth.forgotPassword')}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
+            onPress={handleUpdatePassword}
             disabled={loading}
             activeOpacity={0.85}
           >
             {loading ? (
               <ActivityIndicator color={BRAND.white} />
             ) : (
-              <Text style={styles.buttonText}>{t('auth.login')}</Text>
+              <Text style={styles.buttonText}>{t('auth.updatePassword')}</Text>
             )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>{t('auth.noAccount')}</Text>
-          <TouchableOpacity
-            onPress={() => {
-              mixpanel.track('Sign Up Link Tapped');
-              navigation.navigate('Register');
-            }}
-            disabled={loading}
-          >
-            <Text style={styles.linkText}>{t('auth.signUp')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -227,7 +194,6 @@ const styles = StyleSheet.create({
     backgroundColor: BRAND.cream,
   },
 
-  // --- Decorative sunset accent ---
   accentStrip: {
     flexDirection: 'row',
     height: 5,
@@ -245,7 +211,6 @@ const styles = StyleSheet.create({
     backgroundColor: BRAND.orange,
   },
 
-  // --- Scroll ---
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
@@ -253,24 +218,36 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  // --- Header / Logo ---
   header: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: 40,
     marginTop: 20,
   },
   logoBanner: {
-    width: Math.min(SCREEN_WIDTH * 0.75, 320),
-    height: 90,
+    width: Math.min(SCREEN_WIDTH * 0.55, 240),
+    height: 68,
   },
 
-  // --- Form Card ---
+  title: {
+    fontSize: 26,
+    fontWeight: '600',
+    color: BRAND.navy,
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 15,
+    color: BRAND.textMuted,
+    textAlign: 'center',
+    marginBottom: 32,
+  },
+
   formCard: {
     backgroundColor: BRAND.white,
     borderRadius: 18,
     paddingHorizontal: 24,
-    paddingTop: 32,
-    paddingBottom: 28,
+    paddingTop: 28,
+    paddingBottom: 24,
     shadowColor: BRAND.shadow,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.07,
@@ -301,14 +278,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  inputError: {
-    borderColor: BRAND.error,
-  },
-  errorText: {
-    color: BRAND.error,
-    fontSize: 13,
+  hint: {
+    fontSize: 12,
+    color: BRAND.textMuted,
     marginTop: 6,
-    fontWeight: '500',
   },
   passwordContainer: {
     flexDirection: 'row',
@@ -330,19 +303,6 @@ const styles = StyleSheet.create({
     height: 44,
   },
 
-  // --- Forgot Password ---
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: 28,
-    marginTop: -8,
-  },
-  forgotPasswordText: {
-    color: BRAND.orange,
-    fontSize: 13,
-    fontWeight: '600',
-  },
-
-  // --- Button ---
   button: {
     backgroundColor: BRAND.orange,
     borderRadius: 12,
@@ -362,23 +322,5 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     letterSpacing: 0.5,
-  },
-
-  // --- Footer ---
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 32,
-  },
-  footerText: {
-    color: BRAND.textMuted,
-    fontSize: 15,
-    marginRight: 6,
-  },
-  linkText: {
-    color: BRAND.orange,
-    fontSize: 15,
-    fontWeight: '500',
   },
 });

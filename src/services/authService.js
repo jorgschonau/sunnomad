@@ -26,7 +26,8 @@ export const initializeSession = async () => {
     }
     return null;
   } catch (error) {
-    console.error('Failed to initialize session:', error);
+    console.warn('Stored session invalid, clearing:', error.message);
+    await AsyncStorage.removeItem(SESSION_KEY);
     return null;
   }
 };
@@ -190,6 +191,70 @@ export const updatePassword = async (newPassword) => {
 };
 
 /**
+ * Permanently delete the current user's account (Apple 5.1.1(v) / Google Play requirement).
+ * Runs server-side via Edge Function since deleting an auth user needs the service role key.
+ * Cascades to profiles/favourites via ON DELETE CASCADE.
+ * @returns {Promise<{error}>}
+ */
+export const deleteAccount = async () => {
+  try {
+    const { error } = await supabase.functions.invoke('delete-account');
+    if (error) throw error;
+
+    await saveSession(null);
+    return { error: null };
+  } catch (error) {
+    console.error('Delete account error:', error);
+    return { error };
+  }
+};
+
+/**
+ * Parse Supabase auth tokens out of a deep link URL
+ * (e.g. sunnomad://reset-password#access_token=...&refresh_token=...&type=recovery)
+ * @param {string} url
+ * @returns {{accessToken: string|null, refreshToken: string|null, type: string|null, error: string|null}|null}
+ */
+export const parseAuthUrl = (url) => {
+  if (!url) return null;
+
+  const hashIndex = url.indexOf('#');
+  const queryIndex = url.indexOf('?');
+  const paramsString =
+    hashIndex >= 0 ? url.slice(hashIndex + 1) : queryIndex >= 0 ? url.slice(queryIndex + 1) : '';
+
+  if (!paramsString) return null;
+
+  const params = new URLSearchParams(paramsString);
+  return {
+    accessToken: params.get('access_token'),
+    refreshToken: params.get('refresh_token'),
+    type: params.get('type'),
+    error: params.get('error_description') || params.get('error'),
+  };
+};
+
+/**
+ * Set the session from a password recovery deep link
+ * @param {string} accessToken
+ * @param {string} refreshToken
+ * @returns {Promise<{session, error}>}
+ */
+export const setRecoverySession = async (accessToken, refreshToken) => {
+  try {
+    const { data, error } = await supabase.auth.setSession({
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    });
+    if (error) throw error;
+    return { session: data.session, error: null };
+  } catch (error) {
+    console.error('Set recovery session error:', error);
+    return { session: null, error };
+  }
+};
+
+/**
  * Listen to auth state changes
  * @param {function} callback - Callback function (event, session) => void
  * @returns {object} Subscription object with unsubscribe method
@@ -212,6 +277,9 @@ export default {
   getCurrentSession,
   resetPassword,
   updatePassword,
+  deleteAccount,
+  parseAuthUrl,
+  setRecoverySession,
   onAuthStateChange,
 };
 
