@@ -2,6 +2,29 @@ import { supabase } from '../config/supabase';
 import { getPlaceName } from '../utils/localization';
 import { mapWeatherMain } from '../domain/weatherPresentation';
 
+const sunshineSecondsToHours = (seconds) => {
+  if (seconds == null || seconds <= 0) return null;
+  return Math.round(Number(seconds) / 3600);
+};
+
+/** Avg sunshine hours on forecast days 1–3 vs today (±1h threshold). */
+const computeSunshineTrend = (allForecasts) => {
+  const todayH = sunshineSecondsToHours(allForecasts[0]?.sunshine_duration);
+  const nextHours = allForecasts
+    .slice(1, 4)
+    .map((d) => sunshineSecondsToHours(d?.sunshine_duration))
+    .filter((h) => h != null);
+
+  let trend = 'stable';
+  if (todayH != null && nextHours.length > 0) {
+    const avg = nextHours.reduce((a, b) => a + b, 0) / nextHours.length;
+    if (avg > todayH + 1) trend = 'more';
+    else if (avg < todayH - 1) trend = 'less';
+  }
+
+  return { sunshineHoursToday: todayH, sunshineTrend: trend };
+};
+
 /**
  * Favourites Service
  * Handles user's favourite places with Supabase backend
@@ -35,7 +58,7 @@ export const getFavourites = async (locale = 'en') => {
           weather_forecast (
             forecast_date, temp_min, temp_max,
             weather_main, weather_description, weather_icon,
-            wind_speed, humidity, rain_volume, snow_volume
+            wind_speed, humidity, rain_volume, snow_volume, sunshine_duration
           )
         )
       `)
@@ -60,7 +83,9 @@ export const getFavourites = async (locale = 'en') => {
           windSpeed: w.wind_speed != null ? Math.round(w.wind_speed) : 0,
           description: w.weather_description || '',
           humidity: w.humidity || null,
+          sunshine_duration: w.sunshine_duration ?? null,
         }));
+        const { sunshineHoursToday, sunshineTrend } = computeSunshineTrend(allForecasts);
         return {
           id: place.id,
           favouriteId: fav.id,
@@ -80,6 +105,9 @@ export const getFavourites = async (locale = 'en') => {
           weatherIcon: weather.weather_icon || null,
           windSpeed: weather.wind_speed != null ? Math.round(weather.wind_speed) : null,
           humidity: weather.humidity || null,
+          sunshine_duration: weather.sunshine_duration ?? null,
+          sunshineHoursToday,
+          sunshineTrend,
           forecastArray,
         };
       });

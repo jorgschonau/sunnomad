@@ -80,6 +80,92 @@ export function getCachedHeroImage(place) {
   return (id && heroCache.get(id)) || null;
 }
 
+function dedicatedRowToUrl(row) {
+  const path = String(row?.storage_path || '').replace(/^\/+/, '');
+  return path ? `${DEDICATED_BUCKET_URL}/${path}` : null;
+}
+
+/** List strip: pexels/landscape first — cast close-ups look odd at 88px height. */
+function pickListHeroRow(rows) {
+  const pathOf = (r) => String(r.storage_path || '').toLowerCase();
+  const pexels = rows.find(
+    (r) => r.variant === 'pexels' || pathOf(r).includes('/pexels/') || pathOf(r).startsWith('pexels/')
+  );
+  if (pexels) return pexels;
+
+  const noPeople = rows.find(
+    (r) => !r.character && r.variant !== 'cast' && r.variant !== 'goldie'
+  );
+  if (noPeople) return noPeople;
+
+  return null;
+}
+
+// Favourites list thumbs — session cache (cleared when Favourites screen unmounts).
+const listThumbCache = new Map();
+
+export function invalidateListThumbCache(placeId) {
+  if (placeId) listThumbCache.delete(String(placeId));
+  else listThumbCache.clear();
+}
+
+function urlFromRows(rows) {
+  if (!rows?.length) return null;
+  return dedicatedRowToUrl(pickListHeroRow(rows));
+}
+
+/** Batch-resolve list thumb URLs; uses cache, one DB query for uncached ids. */
+export async function resolveListThumbUrls(placeIds) {
+  const ids = [...new Set((placeIds || []).filter(Boolean).map(String))];
+  const result = new Map();
+  const missing = [];
+
+  for (const id of ids) {
+    if (listThumbCache.has(id)) result.set(id, listThumbCache.get(id));
+    else missing.push(id);
+  }
+
+  if (missing.length === 0) return result;
+
+  const { data, error } = await supabase
+    .from('place_hero_images')
+    .select('place_id, storage_path, variant, character, sort_order')
+    .in('place_id', missing)
+    .eq('is_active', true)
+    .order('sort_order', { ascending: true });
+
+  if (error) {
+    if (__DEV__) console.warn('place_hero_images (list thumbs):', error.message);
+    for (const id of missing) {
+      listThumbCache.set(id, null);
+      result.set(id, null);
+    }
+    return result;
+  }
+
+  const byPlace = new Map();
+  for (const row of data ?? []) {
+    const pid = String(row.place_id);
+    if (!byPlace.has(pid)) byPlace.set(pid, []);
+    byPlace.get(pid).push(row);
+  }
+
+  for (const id of missing) {
+    const url = urlFromRows(byPlace.get(id));
+    listThumbCache.set(id, url);
+    result.set(id, url);
+  }
+
+  return result;
+}
+
+/** Single-place helper (uses cache). */
+export async function getDedicatedHeroUrl(placeId) {
+  if (!placeId) return null;
+  const map = await resolveListThumbUrls([placeId]);
+  return map.get(String(placeId)) ?? null;
+}
+
 /**
  * Hero image URL: dedicated rows from `place_hero_images` (`place_id`), else generic rows from
  * `generic_hero_images` (`generic_key`, `storage_path`, `is_active`), else default.

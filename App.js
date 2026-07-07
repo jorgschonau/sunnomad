@@ -2,6 +2,7 @@ import 'react-native-gesture-handler';
 import 'react-native-get-random-values';
 import React, { useEffect, useState, useCallback, useRef, Suspense } from 'react';
 import { View, Image, Text, StyleSheet, Animated, Easing, ActivityIndicator, Linking, Alert } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
 import { StatusBar } from 'expo-status-bar';
@@ -10,6 +11,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import * as SplashScreen from 'expo-splash-screen';
 import { useFonts, Yellowtail_400Regular } from '@expo-google-fonts/yellowtail';
 import * as Sentry from '@sentry/react-native';
+import Toast from 'react-native-toast-message';
 import { mixpanel, initMixpanel } from './src/services/mixpanel';
 import { useAppLifecycle } from './src/hooks/useAppLifecycle';
 
@@ -191,7 +193,7 @@ const DISSOLVE_CELL = INTRO_LOGO_SIZE / DISSOLVE_GRID;
 const DISSOLVE_MS = 1500;
 const DISSOLVE_TILES_PER_TICK = 4;
 const POST_DISSOLVE_PAUSE_MS = 800;
-const SUNNOMAD_HOLD_MS = 2000;
+const SUNNOMAD_HOLD_MS = 1000;
 const SPLASH_BG = '#F5F0EB';
 const GOLDIE_LOGO = require('./assets/goldieapps.png');
 const GOLDIE_SPLASH_DATE_KEY = 'goldieSplashLastDate';
@@ -542,11 +544,12 @@ function App() {
     <ThemeProvider>
       <UnitProvider>
         <AuthProvider>
-          <View style={devBannerStyles.root}>
+          <GestureHandlerRootView style={devBannerStyles.root}>
             <StatusBar style="dark" backgroundColor="#F5F0EB" />
             <RootNavigator />
             <DevBuildBanner />
-          </View>
+            <Toast />
+          </GestureHandlerRootView>
         </AuthProvider>
       </UnitProvider>
     </ThemeProvider>
