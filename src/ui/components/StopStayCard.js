@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,21 +12,41 @@ import { supabase } from '../../config/supabase';
 import { mixpanel } from '../../services/mixpanel';
 
 
-const StopStayCard = ({ destination, lang }) => {
+const StopStayCard = ({ destination, lang, onContentReady }) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('stay');
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const contentReadySent = useRef(false);
 
   const placeId = destination?.placeId || destination?.id;
   const placeName = destination?.name || destination?.name_en;
 
+  useEffect(() => {
+    contentReadySent.current = false;
+  }, [placeId]);
+
+  useEffect(() => {
+    if (contentReadySent.current || loading || error || !data) return;
+    const hasContent = data.stay || data.fact || data.when;
+    if (hasContent) {
+      contentReadySent.current = true;
+      onContentReady?.();
+    }
+  }, [loading, error, data, onContentReady]);
+
   const openStayLink = (url, linkName) => {
+    let linkDomain = null;
+    try {
+      linkDomain = new URL(url).hostname.replace(/^www\./, '');
+    } catch (_) { /* ignore */ }
     mixpanel.track('Stop Stay Link Tapped', {
       place_id: placeId,
       place_name: placeName,
       link_name: linkName,
+      tab: activeTab,
+      link_domain: linkDomain,
     });
     Linking.openURL(url);
   };

@@ -268,11 +268,15 @@
     "viewDetails": "Details ansehen",
     "removeFromFavourites": "Aus Favoriten entfernen",
     "savedOn": "Gespeichert am {{date}}",
-    "sunToday": "Sonne heute",
-    "trend": "Trend",
+    "sunToday": "Sonnenstunden",
+    "trend": "3-Tages-Trend",
     "trendMore": "↗ mehr Sonne",
     "trendLess": "↘ weniger",
-    "trendStable": "→ stabil"
+    "trendStable": "→ stabil",
+    "sortRecent": "Zuletzt",
+    "sortWarmest": "Wärme",
+    "sortNearest": "Entfernung",
+    "sortSun": "Sonne"
   },
   "badges": {
     "worththedrive": "Lohnt die Fahrt",

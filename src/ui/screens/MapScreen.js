@@ -65,11 +65,75 @@ function getDistanceKm(lat1, lon1, lat2, lon2) {
 const TROPHY_BADGES = new Set([DestinationBadge.WORTH_THE_DRIVE, DestinationBadge.WORTH_THE_DRIVE_BUDGET]);
 const isTrophyWorthy = (badges) => badges.some(b => TROPHY_BADGES.has(b));
 
-const DestinationMarker = ({
-  dest,
-  index,
+/**
+ * Get all badges for map markers (all badges are shown on map now).
+ * Module-level so memoized markers get a stable reference.
+ */
+const getMapBadges = (badges, heatwaveShouldAward = false) => {
+  return filterWarmDryIfHeatwave(badges, heatwaveShouldAward);
+};
+
+const markerKeyFor = (dest) =>
+  dest.isCurrentLocation ? 'cl'
+  : dest.isCenterPoint ? 'cp'
+  : String(dest.id || dest.placeId || `${dest.lat}-${dest.lon}`);
+
+const favStableKey = (fav) =>
+  String(fav.placeId || fav.id || `${fav.lat}-${fav.lon}`);
+
+// Above favourites (10k) and regular markers — origin pin always on top
+const ORIGIN_MARKER_Z_INDEX = 20000;
+
+/** GPS or chosen center — same layout, label, and stacking behaviour */
+const OriginLocationMarker = React.memo(({
+  coordinate,
+  weather,
+  label,
+  markerAccentStyle,
+  labelAccentStyle,
   onPress,
-  getMapBadges,
+  styles: s,
+  temperatureUnit,
+  getWeatherColor,
+  getWeatherIcon,
+}) => (
+  <Marker
+    coordinate={coordinate}
+    anchor={{ x: 0.5, y: 64 / 118 }}
+    zIndex={ORIGIN_MARKER_Z_INDEX}
+    // Single origin pin — keep tracking on so iOS doesn't drop it after pan/zoom
+    tracksViewChanges
+    onPress={onPress}
+  >
+    {weather ? (
+      <View style={[s.markerFrameAndroid, s.currentLocationFrame]}>
+        <View style={[
+          s.markerContainer,
+          { backgroundColor: getWeatherColor(weather.condition, weather.temperature) },
+          markerAccentStyle,
+        ]}>
+          <Text style={s.markerWeatherIcon}>{getWeatherIcon(weather.condition)}</Text>
+          <Text style={s.markerTemp}>
+            {weather.temperature != null
+              ? formatTemperature(weather.temperature, temperatureUnit, false)
+              : '?°'}
+          </Text>
+        </View>
+        <Text style={[s.currentLocationLabel, labelAccentStyle]}>{label}</Text>
+      </View>
+    ) : (
+      <View style={s.centerPointCircleMarker}>
+        <View style={s.centerPointCircleInner}>
+          <Text style={s.centerPointIcon}>⊕</Text>
+        </View>
+      </View>
+    )}
+  </Marker>
+));
+
+const DestinationMarker = React.memo(({
+  dest,
+  onPress,
   getWeatherColor,
   getWeatherIcon,
   styles: markerStyles,
@@ -77,6 +141,7 @@ const DestinationMarker = ({
   pulseKey = 0,
 }) => {
   const { t } = useTranslation();
+  const isOriginMarker = dest.isCurrentLocation || dest.isCenterPoint;
   const hasImageBadge = getMapBadges(dest.badges, dest._heatwaveData?.shouldAward).some(
     b => b === DestinationBadge.WARM_AND_DRY || b === DestinationBadge.HEATWAVE
   );
@@ -87,6 +152,29 @@ const DestinationMarker = ({
     setTimeout(() => setImageLoaded(true), 500);
   }, []);
 
+  // Marker views are snapshot-cached (tracksViewChanges=false). The key is stable
+  // per place, so when displayed content changes we briefly re-enable
+  // tracksViewChanges to let the native view repaint, then freeze it again.
+  // Starts true: on iOS a marker mounted with tracksViewChanges=false can stay
+  // blank until the map is forced to redraw (markers used to remount on every
+  // content change, which masked this).
+  const contentSig = `${dest.temperature}|${dest.condition}|${(dest.badges || []).join(',')}`;
+  const prevSigRef = useRef(contentSig);
+  const [repaintWindow, setRepaintWindow] = useState(true);
+  useEffect(() => {
+    // Initial paint after mount, then freeze
+    const timer = setTimeout(() => setRepaintWindow(false), 500);
+    return () => clearTimeout(timer);
+  }, []);
+  useEffect(() => {
+    if (prevSigRef.current === contentSig) return undefined;
+    prevSigRef.current = contentSig;
+    if (hasImageBadge) setImageLoaded(false); // wait for badge image before freezing again
+    setRepaintWindow(true);
+    const timer = setTimeout(() => setRepaintWindow(false), 500);
+    return () => clearTimeout(timer);
+  }, [contentSig, hasImageBadge]);
+
   // Safety: force tracksViewChanges off after 3s even if image never fires onLoad
   useEffect(() => {
     if (imageLoaded || !hasImageBadge) return;
@@ -95,7 +183,7 @@ const DestinationMarker = ({
   }, [hasImageBadge, imageLoaded]);
 
   useEffect(() => {
-    if (!dest.isCurrentLocation || pulseKey === 0) return undefined;
+    if (!isOriginMarker || pulseKey === 0) return undefined;
 
     pulseAnim.setValue(0);
     setIsPulsing(true);
@@ -123,21 +211,21 @@ const DestinationMarker = ({
       animation.stop();
       setIsPulsing(false);
     };
-  }, [dest.isCurrentLocation, pulseKey, pulseAnim]);
+  }, [isOriginMarker, pulseKey, pulseAnim]);
 
-  const MarkerContainer = dest.isCurrentLocation ? Animated.View : View;
+  const MarkerContainer = isOriginMarker ? Animated.View : View;
 
   return (
     <Marker
       coordinate={{ latitude: dest.lat, longitude: dest.lon }}
-      anchor={dest.isCurrentLocation ? { x: 0.5, y: 64 / 118 } : { x: 0.5, y: 0.5 }}
+      anchor={isOriginMarker ? { x: 0.5, y: 64 / 118 } : { x: 0.5, y: 0.5 }}
       style={{ overflow: 'visible', zIndex: 999 }}
-      tracksViewChanges={isPulsing || (hasImageBadge ? !imageLoaded : false)}
-      onPress={onPress}
+      tracksViewChanges={repaintWindow || isPulsing || (hasImageBadge ? !imageLoaded : false)}
+      onPress={() => onPress(dest)}
     >
       <View style={[
         markerStyles.markerFrameAndroid,
-        dest.isCurrentLocation && markerStyles.currentLocationFrame,
+        isOriginMarker && markerStyles.currentLocationFrame,
       ]}>
         <MarkerContainer style={[
           markerStyles.markerContainer,
@@ -145,7 +233,7 @@ const DestinationMarker = ({
           dest.isCurrentLocation && markerStyles.currentLocationMarker,
           dest.isCenterPoint && markerStyles.centerPointMarker,
           hasDedicatedHeroImage(dest.id || dest.placeId) && markerStyles.dedicatedHeroMarker,
-          dest.isCurrentLocation && isPulsing && {
+          isOriginMarker && isPulsing && {
             transform: [{
               scale: pulseAnim.interpolate({
                 inputRange: [0, 1],
@@ -154,7 +242,9 @@ const DestinationMarker = ({
             }],
             borderColor: pulseAnim.interpolate({
               inputRange: [0, 1],
-              outputRange: ['rgba(92, 163, 217, 0.7)', 'rgba(92, 163, 217, 1)'],
+              outputRange: dest.isCenterPoint
+                ? ['rgba(192, 80, 48, 0.7)', 'rgba(192, 80, 48, 1)']
+                : ['rgba(92, 163, 217, 0.7)', 'rgba(92, 163, 217, 1)'],
             }),
           },
         ]}>
@@ -200,13 +290,18 @@ const DestinationMarker = ({
             );
           })()}
         </MarkerContainer>
-        {dest.isCurrentLocation && (
-          <Text style={markerStyles.currentLocationLabel}>{t('map.youAreHere')}</Text>
+        {isOriginMarker && (
+          <Text style={[
+            markerStyles.currentLocationLabel,
+            dest.isCenterPoint && markerStyles.centerPointLabel,
+          ]}>
+            {t(dest.isCenterPoint ? 'map.chosenLocation' : 'map.youAreHere')}
+          </Text>
         )}
       </View>
     </Marker>
   );
-};
+});
 
 // Map boundaries — EU + NA + TR + Maghreb (Americas west of -25° via search split)
 const MAP_BOUNDS = {
@@ -225,16 +320,8 @@ function isWithinSupportedMapRegion(latitude, longitude) {
   );
 }
 
-const LOADING_STATES = [
-  { text: 'Suche GPS Signal... 🛰️', duration: 2000 },
-  { text: 'Bestimme Position... 📍', duration: 2000 },
-  { text: 'Gleich geschafft... ⏱️', duration: 3000 },
-];
-const LOADING_TIPS = [
-  'Tipp: WiFi hilft bei Indoor-Ortung',
-  'Tipp: GPS funktioniert draußen am besten',
-  'Tipp: Standort wird im Hintergrund aktualisiert',
-];
+const LOADING_STATE_KEYS = ['map.loadingState0', 'map.loadingState1', 'map.loadingState2'];
+const LOADING_TIP_KEYS = ['map.loadingTip0', 'map.loadingTip1', 'map.loadingTip2'];
 
 const LOADING_CARD_PHASES = [
   'loadingCardPhaseLocation',
@@ -263,6 +350,7 @@ const MapScreen = ({ navigation }) => {
   const [displayDestinations, setDisplayDestinations] = useState([]); // Derived from destinations + date offset (async when offset !== 0)
   // visibleMarkers is derived via useMemo below
   const [mapViewport, setMapViewport] = useState({ zoom: 5, bounds: null });
+  const [devZoom, setDevZoom] = useState(5);
   const currentZoomRef = useRef(5);
   const radiusDebounceTimer = useRef(null);
 
@@ -282,9 +370,10 @@ const MapScreen = ({ navigation }) => {
   const lastAppliedCoordsRef = useRef(null); // Most recently applied real coords, for movement-threshold checks
   const [currentLocationPulseKey, setCurrentLocationPulseKey] = useState(0);
   const lastLocationPulseAtRef = useRef(0);
+  const [centerPointPulseKey, setCenterPointPulseKey] = useState(0);
   const mapViewTrackedIds = useRef(new Set()); // Deduplicate map_view_count per session
   const mapViewTrackTimer = useRef(null);
-  const [loadingState, setLoadingState] = useState(LOADING_STATES[0].text);
+  const [loadingStateIndex, setLoadingStateIndex] = useState(0);
   const [loadingTipIndex, setLoadingTipIndex] = useState(0);
   const [showSkipLocation, setShowSkipLocation] = useState(false);
   const [loadingDestinations, setLoadingDestinations] = useState(false);
@@ -336,6 +425,12 @@ const MapScreen = ({ navigation }) => {
     lastLocationPulseAtRef.current = now;
     setCurrentLocationPulseKey(k => k + 1);
   }, []);
+
+  // Pulse the center-point marker whenever a location is freely chosen (long-press / search)
+  useEffect(() => {
+    if (!centerPoint) return;
+    setCenterPointPulseKey(k => k + 1);
+  }, [centerPoint?.latitude, centerPoint?.longitude]);
 
   const applyLocationFromPosition = useCallback((position, { notifyFallback = false } = {}) => {
     if (!position?.coords) return;
@@ -413,7 +508,7 @@ const MapScreen = ({ navigation }) => {
   const initializeLocation = async () => {
     setLoading(true);
     setShowSkipLocation(false);
-    setLoadingState(LOADING_STATES[0].text);
+    setLoadingStateIndex(0);
     setLoadingTipIndex(0);
     setLocationError(null);
 
@@ -432,7 +527,12 @@ const MapScreen = ({ navigation }) => {
 
     if (savedCenter) {
       try {
-        setCenterPoint(JSON.parse(savedCenter));
+        const parsed = JSON.parse(savedCenter);
+        setCenterPoint(parsed);
+        setMapViewport(prev => ({
+          ...prev,
+          bounds: initialViewportBounds(parsed.latitude, parsed.longitude, radius),
+        }));
       } catch (e) { /* corrupted JSON */ }
     }
 
@@ -627,11 +727,9 @@ const MapScreen = ({ navigation }) => {
 
   useEffect(() => {
     if (!(loading && !location)) return undefined;
-    let currentIndex = 0;
     const interval = setInterval(() => {
-      currentIndex = (currentIndex + 1) % LOADING_STATES.length;
-      setLoadingState(LOADING_STATES[currentIndex].text);
-      setLoadingTipIndex(prev => (prev + 1) % LOADING_TIPS.length);
+      setLoadingStateIndex(prev => (prev + 1) % LOADING_STATE_KEYS.length);
+      setLoadingTipIndex(prev => (prev + 1) % LOADING_TIP_KEYS.length);
     }, 2000);
 
     return () => clearInterval(interval);
@@ -805,7 +903,9 @@ const MapScreen = ({ navigation }) => {
     if (selectedDateOffset === 0) {
       const origin = destinations.find(d => d.isCenterPoint) || destinations.find(d => d.isCurrentLocation);
       if (origin) applyBadgesToDestinations(destinations, origin, origin.lat, origin.lon, reverseMode, radius);
-      setDisplayDestinations([...destinations]);
+      // Shallow-copy elements: applyBadgesToDestinations mutates in place, and the
+      // memoized markers only re-render when the dest reference changes.
+      setDisplayDestinations(destinations.map(d => ({ ...d })));
       return;
     }
 
@@ -826,7 +926,8 @@ const MapScreen = ({ navigation }) => {
         const ok = shifted.filter((s, i) => s !== dests[i]).length;
         console.log(`📅 +${offset}: ${ok} shifted, ${shifted.length - ok} unchanged`);
       }
-      setDisplayDestinations(shifted);
+      // Shallow-copy: badge application mutates in place, memoized markers compare by reference
+      setDisplayDestinations(shifted.map(d => ({ ...d })));
     };
 
     if (!needsExtendedData) {
@@ -863,11 +964,16 @@ const MapScreen = ({ navigation }) => {
     return () => { cancelled = true; };
   }, [destinations, selectedDateOffset, reverseMode, radius, shiftDestination]);
 
-  // Derive shifted center point weather from displayDestinations (respects date offset)
+  // Center-point weather for the dedicated map pin (date-offset aware)
   const displayCenterPointWeather = useMemo(() => {
     if (!centerPointWeather) return null;
     return displayDestinations.find(d => d.isCenterPoint) || centerPointWeather;
   }, [displayDestinations, centerPointWeather]);
+
+  const displayCurrentLocationWeather = useMemo(
+    () => displayDestinations.find(d => d.isCurrentLocation) || null,
+    [displayDestinations],
+  );
 
   const toRadians = (degrees) => {
     return degrees * (Math.PI / 180);
@@ -933,7 +1039,12 @@ const MapScreen = ({ navigation }) => {
       let allDestinations = [];
       if (currentLocationWeather) allDestinations.push(currentLocationWeather);
       if (centerPointWeather) allDestinations.push(centerPointWeather);
-      allDestinations = [...allDestinations, ...weatherData];
+      // Drop the origin place from the radius list — it's already the center/current marker.
+      const originId = centerPointWeather?.id || currentLocationWeather?.id;
+      const filteredWeather = originId
+        ? weatherData.filter(p => p.id !== originId && p.placeId !== originId)
+        : weatherData;
+      allDestinations = [...allDestinations, ...filteredWeather];
       if (__DEV__) {
         console.log(`🏆 Badge origin: ${centerPointWeather ? 'centerPoint' : 'currentLocation'}, ${allDestinations.length} places`);
       }
@@ -1113,6 +1224,11 @@ const MapScreen = ({ navigation }) => {
     navigation.navigate('DestinationDetail', { destination, dateOffset: selectedDateOffset, reverseMode, origin, source });
   };
 
+  // Stable callback for memoized DestinationMarker (always calls the latest handler)
+  const handleMarkerPressRef = useRef(handleMarkerPress);
+  handleMarkerPressRef.current = handleMarkerPress;
+  const stableMarkerPress = useCallback((destination, source) => handleMarkerPressRef.current(destination, source), []);
+
   const isMiles = distanceUnit === 'miles';
 
   const getRadiusStep = (r) => {
@@ -1232,13 +1348,6 @@ const MapScreen = ({ navigation }) => {
       position: 'bottom',
       visibilityTime: 2000,
     });
-  };
-
-  /**
-   * Get all badges for map markers (all badges are shown on map now)
-   */
-  const getMapBadges = (badges, heatwaveShouldAward = false) => {
-    return filterWarmDryIfHeatwave(badges, heatwaveShouldAward);
   };
 
   /**
@@ -1362,18 +1471,32 @@ const MapScreen = ({ navigation }) => {
     // grid would collapse all places into a few cells → too few markers.
     let gridBounds = bounds;
     const gridCenter = centerPoint || location;
-    if (bounds && gridCenter && radius) {
+    let radiusBox = null;
+    if (gridCenter && radius) {
       const latPad = radius / 111;
       const lonPad = radius / (111 * Math.cos(gridCenter.latitude * Math.PI / 180));
+      radiusBox = {
+        north: gridCenter.latitude + latPad,
+        south: gridCenter.latitude - latPad,
+        east: gridCenter.longitude + lonPad,
+        west: gridCenter.longitude - lonPad,
+      };
+    }
+    if (bounds && radiusBox) {
       const clamped = {
-        north: Math.min(bounds.north, gridCenter.latitude + latPad),
-        south: Math.max(bounds.south, gridCenter.latitude - latPad),
-        east:  Math.min(bounds.east,  gridCenter.longitude + lonPad),
-        west:  Math.max(bounds.west,  gridCenter.longitude - lonPad),
+        north: Math.min(bounds.north, radiusBox.north),
+        south: Math.max(bounds.south, radiusBox.south),
+        east: Math.min(bounds.east, radiusBox.east),
+        west: Math.max(bounds.west, radiusBox.west),
       };
       if (clamped.north > clamped.south && clamped.east > clamped.west) {
         gridBounds = clamped;
+      } else {
+        // Stale viewport bounds (e.g. GPS in Europe, center point in the US) — use radius box
+        gridBounds = radiusBox;
       }
+    } else if (radiusBox) {
+      gridBounds = radiusBox;
     }
 
     const makeGridKey = (lat, lon, cols, rows) => {
@@ -1425,12 +1548,12 @@ const MapScreen = ({ navigation }) => {
       ),
     ];
 
-    const viewportPlaces = (bounds)
+    const viewportPlaces = (gridBounds)
       ? normal.filter(p => {
           const lat = p.lat ?? p.latitude;
           const lon = p.lon ?? p.longitude;
-          return lat >= bounds.south && lat <= bounds.north &&
-                 lon >= bounds.west  && lon <= bounds.east;
+          return lat >= gridBounds.south && lat <= gridBounds.north &&
+                 lon >= gridBounds.west  && lon <= gridBounds.east;
         })
       : normal;
 
@@ -1467,21 +1590,48 @@ const MapScreen = ({ navigation }) => {
         return bScore - aScore;
       });
     
+    // When the budget is smaller than the number of cell winners, a pure score cut
+    // drops all markers in low-score regions → visual clusters. Instead bucket the
+    // winners into a coarse 4x4 super-grid and pick round-robin across buckets so
+    // every region keeps its best places.
+    const buckets = new Map();
+    for (const place of sorted) {
+      const key = makeGridKey(place.lat ?? place.latitude, place.lon ?? place.longitude, 4, 4);
+      if (!buckets.has(key)) buckets.set(key, []);
+      buckets.get(key).push(place); // stays score-desc within each bucket
+    }
+    const bucketLists = Array.from(buckets.values());
+    
+    const budget = Math.max(0, maxMarkers - pinned.length);
     const gridWinners = [];
     const selectedUrbanCoords = [];
-    for (const place of sorted) {
-      if (gridWinners.length >= maxMarkers - pinned.length) break;
-      if (URBAN_PLACE_TYPES.has(place.place_type) && selectedUrbanCoords.length > 0) {
-        const pLat = place.lat ?? place.latitude;
-        const pLon = place.lon ?? place.longitude;
-        const tooClose = selectedUrbanCoords.some(([sLat, sLon]) =>
-          getDistanceKm(pLat, pLon, sLat, sLon) < MIN_URBAN_DISTANCE_KM
-        );
-        if (tooClose) continue;
+    const takeEligible = (list) => {
+      while (list.length > 0) {
+        const place = list.shift();
+        if (URBAN_PLACE_TYPES.has(place.place_type) && selectedUrbanCoords.length > 0) {
+          const pLat = place.lat ?? place.latitude;
+          const pLon = place.lon ?? place.longitude;
+          const tooClose = selectedUrbanCoords.some(([sLat, sLon]) =>
+            getDistanceKm(pLat, pLon, sLat, sLon) < MIN_URBAN_DISTANCE_KM
+          );
+          if (tooClose) continue;
+        }
+        return place;
       }
-      gridWinners.push(place);
-      if (URBAN_PLACE_TYPES.has(place.place_type)) {
-        selectedUrbanCoords.push([place.lat ?? place.latitude, place.lon ?? place.longitude]);
+      return null;
+    };
+    let madeProgress = true;
+    while (gridWinners.length < budget && madeProgress) {
+      madeProgress = false;
+      for (const list of bucketLists) {
+        if (gridWinners.length >= budget) break;
+        const place = takeEligible(list);
+        if (!place) continue;
+        gridWinners.push(place);
+        if (URBAN_PLACE_TYPES.has(place.place_type)) {
+          selectedUrbanCoords.push([place.lat ?? place.latitude, place.lon ?? place.longitude]);
+        }
+        madeProgress = true;
       }
     }
 
@@ -1502,6 +1652,8 @@ const MapScreen = ({ navigation }) => {
       const lat = d.lat ?? d.latitude;
       const lon = d.lon ?? d.longitude;
       if (lat == null || lon == null) return false;
+      // GPS / center pins always stay in the candidate set (not radius-clipped)
+      if (d.isCurrentLocation || d.isCenterPoint) return true;
       return getDistanceKm(effectiveCenter.latitude, effectiveCenter.longitude, lat, lon) <= radius;
     });
     // Client-side weather condition filter (instant, no re-fetch needed)
@@ -1535,6 +1687,105 @@ const MapScreen = ({ navigation }) => {
       Math.abs(lat - Number(f.lat)) < 0.01 && Math.abs(lon - Number(f.lon)) < 0.01
     );
   }, [favouriteDestinations, favouriteIdSet]);
+
+  // Markers actually rendered on the map. Deduped by key and sorted by key:
+  // a stable sibling order means React only inserts/removes marker views and
+  // never reorders them — reordering native map subviews crashes iOS
+  // (NSRangeException in insertReactSubview:atIndex:).
+  const renderedMarkers = useMemo(() => {
+    const originPlaceId = centerPointWeather?.id
+      || displayDestinations.find(d => d.isCurrentLocation)?.id;
+    const seen = new Set();
+    const result = [];
+    for (const dest of visibleMarkers) {
+      // Origin pins have dedicated Markers below (always show their labels)
+      if (dest.isCenterPoint || dest.isCurrentLocation) continue;
+      // Favourites are rendered separately below
+      if (isFavouritePlace(dest)) continue;
+      if (showOnlyBadges && !isTrophyWorthy(getMapBadges(dest.badges))) continue;
+      const destId = dest.id || dest.placeId;
+      if (destId && originPlaceId && destId === originPlaceId) continue;
+      const key = markerKeyFor(dest);
+      if (seen.has(key)) continue;
+      seen.add(key);
+      result.push({ key, dest });
+    }
+    result.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
+    return result;
+  }, [visibleMarkers, isFavouritePlace, showOnlyBadges, centerPointWeather, displayDestinations]);
+
+  // Sorted keys alone are not enough: when the visible set changes, remaining markers
+  // still shift native subview indices (insert/remove in the middle). Bumping this
+  // sig remounts the whole marker layer on membership change — safe on iOS maps.
+  const markerListSig = useMemo(
+    () => renderedMarkers.map(({ key }) => key).join('\0'),
+    [renderedMarkers],
+  );
+
+  const renderedFavourites = useMemo(() => {
+    const effectiveCenter = centerPoint || location;
+    if (!effectiveCenter || !radius) return [];
+
+    return favouriteDestinations
+      .filter(fav => {
+        if (!fav || fav.lat == null || fav.lon == null) return false;
+        return getDistanceKm(
+          effectiveCenter.latitude, effectiveCenter.longitude,
+          Number(fav.lat), Number(fav.lon),
+        ) <= radius;
+      })
+      .map((fav) => {
+        const withWeather = displayDestinations.find(d =>
+          (d.id && fav.placeId && d.id === fav.placeId) ||
+          (d.id && fav.id && d.id === fav.id) ||
+          (Math.abs((d.lat ?? d.latitude) - fav.lat) < 0.01 &&
+           Math.abs((d.lon ?? d.longitude) - fav.lon) < 0.01)
+        );
+
+        let temp = withWeather?.temperature ?? null;
+        let cond = withWeather?.condition ?? null;
+        if (temp == null && fav.forecastArray?.length > selectedDateOffset) {
+          const shifted = fav.forecastArray[selectedDateOffset];
+          temp = shifted?.high ?? shifted?.temp ?? fav.temperature ?? null;
+          cond = shifted?.condition ?? fav.condition ?? 'cloudy';
+        } else if (temp == null) {
+          temp = fav.temperature ?? null;
+          cond = cond ?? fav.condition ?? 'cloudy';
+        }
+        cond = cond ?? 'cloudy';
+
+        const favBadges = getMapBadges(
+          withWeather?.badges || fav.badges || [],
+          withWeather?._heatwaveData?.shouldAward,
+        );
+
+        return {
+          stableKey: favStableKey(fav),
+          fav,
+          withWeather,
+          temp,
+          cond,
+          favBadges,
+          hasFavBadges: favBadges.length > 0,
+        };
+      })
+      .sort((a, b) => (a.stableKey < b.stableKey ? -1 : a.stableKey > b.stableKey ? 1 : 0));
+  }, [favouriteDestinations, centerPoint, location, radius, displayDestinations, selectedDateOffset]);
+
+  const favListSig = useMemo(
+    () => renderedFavourites.map(f => f.stableKey).join('\0'),
+    [renderedFavourites],
+  );
+
+  // Remount origin pin whenever the marker layer or viewport changes — iOS drops a
+  // stable-key origin marker when sibling markers remount after pan/zoom.
+  const mapLayerSig = useMemo(() => {
+    const b = mapViewport.bounds;
+    const vp = b
+      ? `${mapViewport.zoom}|${b.north.toFixed(2)}|${b.west.toFixed(2)}`
+      : `z${mapViewport.zoom}`;
+    return `${vp}\0${markerListSig}\0${favListSig}`;
+  }, [mapViewport, markerListSig, favListSig]);
 
   // Track map_view_count as a side-effect of visibleMarkers changing
   useEffect(() => {
@@ -1575,7 +1826,11 @@ const MapScreen = ({ navigation }) => {
     
     // Now set center point — this triggers the useEffect that calls loadDestinations
     setCenterPoint(newCenter);
-    
+    setMapViewport(prev => ({
+      ...prev,
+      bounds: initialViewportBounds(latitude, longitude, radius),
+    }));
+
     AsyncStorage.setItem('mapCenterPoint', JSON.stringify(newCenter)).catch(error =>
       console.warn('Failed to save center point:', error)
     );
@@ -1609,7 +1864,7 @@ const MapScreen = ({ navigation }) => {
       });
 
       if (error || !data || data.length === 0) {
-        showToast('No destination found nearby', 'info');
+        showToast(t('map.noDestinationNearby'), 'info');
         return;
       }
 
@@ -1627,11 +1882,11 @@ const MapScreen = ({ navigation }) => {
         });
         handleMarkerPress(match, 'map_tap');
       } else {
-        showToast('No destination found nearby', 'info');
+        showToast(t('map.noDestinationNearby'), 'info');
       }
     } catch (err) {
       console.warn('nearest_place RPC failed:', err);
-      showToast('No destination found nearby', 'info');
+      showToast(t('map.noDestinationNearby'), 'info');
     }
   };
 
@@ -1660,6 +1915,19 @@ const MapScreen = ({ navigation }) => {
       setCenterPointWeather(null);
     }
   };
+
+  // Saved center point restored without weather — fetch it (standalone pin needs this)
+  useEffect(() => {
+    if (!centerPoint || centerPointWeather) return;
+    fetchCenterPointWeather(centerPoint.latitude, centerPoint.longitude);
+  }, [centerPoint, centerPointWeather]);
+
+  // centerPointWeather is omitted from the location/radius effect deps; reload when it arrives
+  useEffect(() => {
+    if (!location || !centerPointWeather) return;
+    if (!hasLoadedForLocationRef.current) return;
+    loadDestinations();
+  }, [centerPointWeather]);
 
   /**
    * Reference location button: tap returns the map to the active reference
@@ -1801,6 +2069,10 @@ const MapScreen = ({ navigation }) => {
       // Set as center point so radius + destinations center around the searched place
       await fetchCenterPointWeather(lat, lng);
       setCenterPoint(newCenter);
+      setMapViewport(prev => ({
+        ...prev,
+        bounds: initialViewportBounds(lat, lng, radius),
+      }));
       AsyncStorage.setItem('mapCenterPoint', JSON.stringify(newCenter)).catch(err =>
         console.warn('Failed to save center point:', err)
       );
@@ -1842,6 +2114,7 @@ const MapScreen = ({ navigation }) => {
         west: longitude - longitudeDelta / 2,
       };
       setMapViewport({ zoom, bounds: newBounds });
+      if (__DEV__) setDevZoom(zoom);
       let newLatitude = latitude;
       let newLongitude = longitude;
       let needsAdjustment = false;
@@ -1876,10 +2149,10 @@ const MapScreen = ({ navigation }) => {
       <View style={[styles.loadingContainer, { backgroundColor: theme.background }]}>
         <ActivityIndicator size="large" color={theme.primary} />
         <Text style={[styles.loadingText, { color: theme.text }]}>
-          {loadingState}
+          {t(LOADING_STATE_KEYS[loadingStateIndex])}
         </Text>
         <Text style={[styles.hintText, { color: theme.textSecondary || '#888' }]}>
-          {LOADING_TIPS[loadingTipIndex]}
+          {t(LOADING_TIP_KEYS[loadingTipIndex])}
         </Text>
         {/* Skip button visible after 5 seconds */}
         {showSkipLocation && (
@@ -2082,6 +2355,7 @@ const MapScreen = ({ navigation }) => {
             Math.round(Math.log2(360 / region.latitudeDelta))
           ));
           currentZoomRef.current = zoom;
+          if (__DEV__) setDevZoom(zoom);
         }}
         onRegionChangeComplete={handleRegionChangeComplete}
       >
@@ -2103,105 +2377,57 @@ const MapScreen = ({ navigation }) => {
           />
         )}
 
-        {/* Custom Center Point Marker - Shows weather for SELECTED DATE */}
-        {centerPoint && (
-          <Marker
-            key={`centerpoint-${selectedDateOffset}`}
+        {/* Origin pin first in tree (zIndex on top) — key tied to mapLayerSig so iOS
+            remounts it whenever sibling markers remount after pan/zoom */}
+        {centerPoint ? (
+          <OriginLocationMarker
+            key={`origin-cp-${selectedDateOffset}-${centerPoint.latitude.toFixed(4)}-${centerPoint.longitude.toFixed(4)}@${mapLayerSig}`}
             coordinate={{ latitude: centerPoint.latitude, longitude: centerPoint.longitude }}
-            anchor={{ x: 0.5, y: 0.5 }}
-            tracksViewChanges={false}
+            weather={displayCenterPointWeather}
+            label={t('map.chosenLocation')}
+            markerAccentStyle={styles.centerPointMarker}
+            labelAccentStyle={styles.centerPointLabel}
             onPress={() => displayCenterPointWeather && handleMarkerPress(displayCenterPointWeather)}
-          >
-            {displayCenterPointWeather ? (
-              <View style={[
-                styles.markerContainer,
-                { backgroundColor: getWeatherColor(displayCenterPointWeather.condition, displayCenterPointWeather.temperature) },
-                styles.centerPointMarker
-              ]}>
-                <Text style={styles.markerWeatherIcon}>{getWeatherIcon(displayCenterPointWeather.condition)}</Text>
-                <Text style={styles.markerTemp}>
-                  {displayCenterPointWeather.temperature !== null && displayCenterPointWeather.temperature !== undefined 
-                    ? formatTemperature(displayCenterPointWeather.temperature, temperatureUnit, false) 
-                    : '?°'}
-                </Text>
-                <View style={styles.centerPointBadgeIndicator}>
-                  <Text style={styles.centerPointBadgeText}>⊕</Text>
-                </View>
-              </View>
-            ) : (
-              <View style={styles.centerPointCircleMarker}>
-                <View style={styles.centerPointCircleInner}>
-                  <Text style={styles.centerPointIcon}>⊕</Text>
-                </View>
-              </View>
-            )}
-          </Marker>
-        )}
+            styles={styles}
+            temperatureUnit={temperatureUnit}
+            getWeatherColor={getWeatherColor}
+            getWeatherIcon={getWeatherIcon}
+          />
+        ) : location ? (
+          <OriginLocationMarker
+            key={`origin-gps-${selectedDateOffset}@${mapLayerSig}`}
+            coordinate={{ latitude: location.latitude, longitude: location.longitude }}
+            weather={displayCurrentLocationWeather}
+            label={t('map.youAreHere')}
+            markerAccentStyle={styles.currentLocationMarker}
+            onPress={() => displayCurrentLocationWeather && handleMarkerPress(displayCurrentLocationWeather)}
+            styles={styles}
+            temperatureUnit={temperatureUnit}
+            getWeatherColor={getWeatherColor}
+            getWeatherIcon={getWeatherIcon}
+          />
+        ) : null}
 
-        {/* Greedy-filtered markers based on zoom + score */}
-        {visibleMarkers
-          .filter(dest => {
-            // Always show current location and center point
-            if (dest.isCurrentLocation || dest.isCenterPoint) return true;
-            // Skip favourites - they're rendered separately below
-            if (isFavouritePlace(dest)) return false;
-            if (!showOnlyBadges) return true;
-            return isTrophyWorthy(getMapBadges(dest.badges));
-          })
-          .map((dest, index) => (
+        {/* Greedy-filtered markers based on zoom + score (deduped + key-sorted in renderedMarkers) */}
+        {renderedMarkers.map(({ key, dest }) => (
           <DestinationMarker
-            // Stable per place, but changes with displayed content (temp/condition/badges):
-            // marker views are cached (tracksViewChanges=false) and only repaint on remount.
-            key={`${dest.isCurrentLocation ? 'cl' : dest.isCenterPoint ? 'cp' : (dest.id || dest.placeId || `${dest.lat}-${dest.lon}`)}-${selectedDateOffset}-${dest.temperature}-${dest.condition}-${(dest.badges || []).join(',')}`}
+            // Stable per place + list sig: content repaints internally; membership
+            // changes remount the layer (prevents iOS NSRangeException on reorder).
+            key={`${key}@${markerListSig}`}
             dest={dest}
-            index={index}
-            onPress={() => handleMarkerPress(dest)}
-            getMapBadges={getMapBadges}
+            onPress={stableMarkerPress}
             getWeatherColor={getWeatherColor}
             getWeatherIcon={getWeatherIcon}
             styles={styles}
             temperatureUnit={temperatureUnit}
-            pulseKey={dest.isCurrentLocation ? currentLocationPulseKey : 0}
+            pulseKey={dest.isCurrentLocation ? currentLocationPulseKey : dest.isCenterPoint ? centerPointPulseKey : 0}
           />
         ))}
 
-        {/* Favourites - rendered separately; only within current radius */}
-        {favouriteDestinations
-          .filter(fav => {
-            if (!fav || fav.lat == null || fav.lon == null) return false;
-            const effectiveCenter = centerPoint || location;
-            if (!effectiveCenter || !radius) return false;
-            return getDistanceKm(
-              effectiveCenter.latitude, effectiveCenter.longitude,
-              Number(fav.lat), Number(fav.lon)
-            ) <= radius;
-          })
-          .map((fav, index) => {
-            const withWeather = displayDestinations.find(d =>
-              (d.id && fav.placeId && d.id === fav.placeId) ||
-              (d.id && fav.id && d.id === fav.id) ||
-              (Math.abs((d.lat ?? d.latitude) - fav.lat) < 0.01 &&
-               Math.abs((d.lon ?? d.longitude) - fav.lon) < 0.01)
-            );
-
-            let temp = withWeather?.temperature ?? null;
-            let cond = withWeather?.condition ?? null;
-            if (temp == null && fav.forecastArray?.length > selectedDateOffset) {
-              const shifted = fav.forecastArray[selectedDateOffset];
-              temp = shifted?.high ?? shifted?.temp ?? fav.temperature ?? null;
-              cond = shifted?.condition ?? fav.condition ?? 'cloudy';
-            } else if (temp == null) {
-              temp = fav.temperature ?? null;
-              cond = cond ?? fav.condition ?? 'cloudy';
-            }
-            cond = cond ?? 'cloudy';
-            
-            const favBadges = getMapBadges(withWeather?.badges || fav.badges || [], withWeather?._heatwaveData?.shouldAward);
-            const hasFavBadges = favBadges.length > 0;
-
-            return (
+        {/* Favourites - key-sorted + list sig (same iOS reorder crash guard as renderedMarkers) */}
+        {renderedFavourites.map(({ stableKey, fav, withWeather, temp, cond, favBadges, hasFavBadges }) => (
           <Marker
-            key={`sep-fav-${fav.placeId || fav.id || `${fav.lat}-${fav.lon}`}-${selectedDateOffset}-${mapViewport.zoom}`}
+            key={`fav-${stableKey}-${selectedDateOffset}-${temp}-${cond}-${favBadges.join(',')}@${favListSig}`}
             coordinate={{ latitude: Number(fav.lat), longitude: Number(fav.lon) }}
             anchor={{ x: 0.5, y: 0.5 }}
             zIndex={hasFavBadges ? 10000 : 500}
@@ -2246,8 +2472,7 @@ const MapScreen = ({ navigation }) => {
               </View>
             </View>
           </Marker>
-            );
-          })}
+        ))}
 
         </>}
       </MapView>
@@ -2317,7 +2542,7 @@ const MapScreen = ({ navigation }) => {
           borderColor: 'rgba(0,0,0,0.07)',
           shadowColor: '#000'
         }]}
-        onPress={() => navigation.navigate('Favourites')}
+        onPress={() => navigation.navigate('Favourites', { source: 'map' })}
         accessibilityLabel={t('app.favourites')}
         accessibilityRole="button"
         accessibilityHint="View your saved favourite destinations"
@@ -2503,13 +2728,7 @@ const MapScreen = ({ navigation }) => {
         </View>
       </View>
 
-      {__DEV__ && (
-      <View style={[styles.zoomIndicator, { backgroundColor: theme.surface, borderColor: theme.border }]}>
-        <Text style={[styles.zoomIndicatorText, { color: theme.textSecondary }]}>Z{mapViewport.zoom}</Text>
-      </View>
-      )}
-
-      {/* Reference Location Button (above Warmer/Cooler pill) */}
+      {/* Reference location + dev zoom (grouped bottom-left) */}
       {showRefMenu && (
         <TouchableOpacity
           style={styles.refMenuBackdrop}
@@ -2558,21 +2777,28 @@ const MapScreen = ({ navigation }) => {
           <View style={styles.refTipArrow} />
         </View>
       )}
-      <TouchableOpacity
-        style={[styles.refLocButton, {
-          backgroundColor: theme.surface,
-          borderColor: 'rgba(0,0,0,0.07)',
-          shadowColor: '#000',
-        }]}
-        onPress={handleRefButtonPress}
-        onLongPress={handleRefButtonLongPress}
-        delayLongPress={400}
-        accessibilityLabel={t('map.refTitle')}
-        accessibilityRole="button"
-        accessibilityHint="Return the map to the active reference location. Long press for options."
-      >
-        <Text style={styles.refLocIcon}>{centerPoint ? '📍' : '⌖'}</Text>
-      </TouchableOpacity>
+      <View style={styles.bottomRefRow}>
+        <TouchableOpacity
+          style={[styles.refLocButton, {
+            backgroundColor: theme.surface,
+            borderColor: 'rgba(0,0,0,0.07)',
+            shadowColor: '#000',
+          }]}
+          onPress={handleRefButtonPress}
+          onLongPress={handleRefButtonLongPress}
+          delayLongPress={400}
+          accessibilityLabel={t('map.refTitle')}
+          accessibilityRole="button"
+          accessibilityHint="Return the map to the active reference location. Long press for options."
+        >
+          <Text style={styles.refLocIcon}>{centerPoint ? '📍' : '⌖'}</Text>
+        </TouchableOpacity>
+        {__DEV__ && (
+          <View style={[styles.zoomIndicator, { backgroundColor: theme.surface, borderColor: theme.border }]}>
+            <Text style={[styles.zoomIndicatorText, { color: theme.text }]}>Z{devZoom}</Text>
+          </View>
+        )}
+      </View>
 
       {/* Bottom Left Buttons Container */}
       <View style={styles.bottomLeftButtons}>
@@ -2826,6 +3052,9 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
+  centerPointLabel: {
+    backgroundColor: 'rgba(192, 80, 48, 0.85)',
+  },
   markerWeatherIcon: {
     fontSize: 22,
   },
@@ -3061,18 +3290,25 @@ const styles = StyleSheet.create({
     marginLeft: 8,
   },
   zoomIndicator: {
-    position: 'absolute',
-    bottom: 120,
-    left: 20,
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 8,
     borderRadius: 8,
     borderWidth: 1,
-    opacity: 0.7,
+    minWidth: 40,
+    alignItems: 'center',
   },
   zoomIndicatorText: {
     fontSize: 12,
     fontWeight: '600',
+  },
+  bottomRefRow: {
+    position: 'absolute',
+    bottom: 104,
+    left: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    zIndex: 50,
   },
   bottomLeftButtons: {
     position: 'absolute',
@@ -3213,9 +3449,6 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   refLocButton: {
-    position: 'absolute',
-    bottom: 104,
-    left: 20,
     width: 58,
     height: 58,
     borderRadius: 29,

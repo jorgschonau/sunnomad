@@ -481,7 +481,8 @@ export const getWeatherForRadius = async (userLat, userLon, radiusKm, desiredCon
 
   if (error) {
     console.error('Failed to load places from Supabase:', error);
-    return [];
+    // Propagate so MapScreen shows its error toast instead of an empty map
+    throw error;
   }
 
   __DEV__ && console.log(`📍 Loaded ${places.length} places from Supabase`);

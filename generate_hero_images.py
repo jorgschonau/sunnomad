@@ -143,6 +143,7 @@ DISABLED_CHARACTERS: set = {
     "oksana",
     "kiona",
     "zsofi",
+    "driver_pov",   # temp hold
     "driver_van",   # temp hold
 }
 
@@ -6275,6 +6276,8 @@ def driver_pov_ok(country_code: str, terrain_type: str, place_type: str, place_n
 
 def try_road_pov(country_code: str, terrain_type: str, place_type: str, place_name: str = "") -> str | None:
     """Sole random path to POV_KEYS — never mixed into character weighted_choice pools."""
+    if "driver_pov" in DISABLED_CHARACTERS:
+        return None
     if not driver_pov_ok(country_code, terrain_type, place_type, place_name):
         return None
     rot = get_rotation_key(country_code, terrain_type, place_type)
@@ -7464,8 +7467,51 @@ def _maya_context(place: dict, activity_key: str = None, shot_type: str = None) 
 PORTRAIT_API_SIZE = "1024x1536"
 LANDSCAPE_API_SIZE = "1536x1024"
 
+# ── BFL (Black Forest Labs / FLUX) backend ──────────────────────────────────
+# Aktiviert via --backend bfl. Braucht BFL_API_KEY in .env.
+# safety_tolerance: 0 (strikt) bis 6 (max permissiv). BFL cappt bei
+# Referenzbild (Kontext-Editing) hart auf 2 — volle Toleranz nur text-to-image.
+IMAGE_BACKEND = "openai"
+BFL_SAFETY_TOLERANCE = 6
+BFL_API_BASE = "https://api.bfl.ai"
+
+
+def generate_image_bfl(prompt: str, reference_bytes=None, landscape: bool = False) -> bytes:
+    key = os.environ["BFL_API_KEY"]
+    headers = {"accept": "application/json", "x-key": key, "Content-Type": "application/json"}
+    payload = {
+        "prompt": prompt,
+        "aspect_ratio": "3:2" if landscape else "2:3",
+        "output_format": "jpeg",
+        "safety_tolerance": BFL_SAFETY_TOLERANCE,
+    }
+    if reference_bytes:
+        img = Image.open(io.BytesIO(reference_bytes)).convert("RGB")
+        buf = io.BytesIO()
+        img.save(buf, format="JPEG", quality=92)
+        payload["input_image"] = base64.b64encode(buf.getvalue()).decode()
+        payload["safety_tolerance"] = min(BFL_SAFETY_TOLERANCE, 2)  # BFL-Cap bei Editing
+        _cost["img_edit"] += 1
+    else:
+        _cost["img_gen"] += 1
+    r = requests.post(f"{BFL_API_BASE}/v1/flux-kontext-pro", headers=headers, json=payload, timeout=60)
+    r.raise_for_status()
+    polling_url = r.json()["polling_url"]
+    deadline = time.time() + 300
+    while time.time() < deadline:
+        time.sleep(1.5)
+        res = requests.get(polling_url, headers={"accept": "application/json", "x-key": key}, timeout=30).json()
+        status = res.get("status")
+        if status == "Ready":
+            return requests.get(res["result"]["sample"], timeout=60).content
+        if status in ("Error", "Content Moderated", "Request Moderated", "Failed"):
+            raise RuntimeError(f"BFL {status}: {res.get('details') or res}")
+    raise TimeoutError("BFL polling timeout after 300s")
+
 
 def generate_image(prompt: str, reference_bytes=None, landscape: bool = False) -> bytes:
+    if IMAGE_BACKEND == "bfl":
+        return generate_image_bfl(prompt, reference_bytes=reference_bytes, landscape=landscape)
     import tempfile
     api_size = LANDSCAPE_API_SIZE if landscape else PORTRAIT_API_SIZE
     # Portrait canonical on a landscape edit forces portrait output — generate text-only instead.
@@ -11594,6 +11640,8 @@ if __name__ == "__main__":
     parser.add_argument("--activity-all", action="store_true", help="Run all available activity keys for place/char")
     parser.add_argument("--specials-only", action="store_true", help="Run only char-exclusive signature shots (exploit + cinematic + activity)")
     parser.add_argument("--landscape", action="store_true", help="Horizontal 16:9 (1536x1024 API → 1200x675 webp)")
+    parser.add_argument("--backend", type=str, default="openai", choices=["openai", "bfl"], help="Image backend: openai (default) or bfl (FLUX Kontext, braucht BFL_API_KEY)")
+    parser.add_argument("--safety-tolerance", type=int, default=6, help="BFL only: 0 (strikt) bis 6 (max). Mit Referenzbild cappt BFL auf 2.")
     parser.add_argument("--free-prompt", type=str, default=None, help="One-off shot from raw prompt (no place). Use with --output-stem")
     parser.add_argument("--output-stem", type=str, default=None, help="Output filename stem in ~/sunnomad_output/")
     parser.add_argument("--simulate-char", type=str, default=None, metavar="PLACE", help="Print char selection distribution for a place (no generation)")
@@ -11616,6 +11664,8 @@ if __name__ == "__main__":
         for _k, _v in _c.most_common():
             print(f"  {_k:<12} {_v/_n*100:5.1f}%")
         raise SystemExit(0)
+    IMAGE_BACKEND = args.backend
+    BFL_SAFETY_TOLERANCE = max(0, min(6, args.safety_tolerance))
     if args.free_prompt:
         run_free_shot(
             args.free_prompt,

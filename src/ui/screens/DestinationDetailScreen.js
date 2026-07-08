@@ -232,6 +232,11 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const [heroHintVisible, setHeroHintVisible] = useState(false);
   const scrollViewRef = React.useRef(null);
   const stopStayCardY = React.useRef(0);
+  const stopStayEntrySource = React.useRef(null);
+  const stopStayImpressionFired = React.useRef(false);
+  const stopStayHasContent = React.useRef(false);
+  const lastScrollY = React.useRef(0);
+  const scrollViewportHeight = React.useRef(0);
   const [readyForDetails, setReadyForDetails] = useState(false);
   const favOpacityAnim = React.useRef(new Animated.Value(1)).current;
   const favStarColor = favOpacityAnim.interpolate({
@@ -581,6 +586,41 @@ const DestinationDetailScreen = ({ route, navigation }) => {
 
     return () => clearTimeout(fallbackTimer);
   }, [effectivePlaceId]);
+
+  useEffect(() => {
+    stopStayImpressionFired.current = false;
+    stopStayHasContent.current = false;
+    stopStayEntrySource.current = null;
+  }, [effectivePlaceId]);
+
+  const checkStopStayImpression = useCallback(() => {
+    if (stopStayImpressionFired.current || !stopStayHasContent.current) return;
+    if (lastScrollY.current + scrollViewportHeight.current >= stopStayCardY.current + 80) {
+      stopStayImpressionFired.current = true;
+      mixpanel.track('Stop Stay Viewed', {
+        place_id: effectivePlaceId,
+        place_name: destination.name,
+        entry_method: stopStayEntrySource.current === 'button' ? 'button'
+          : stopStayEntrySource.current === 'scroll' ? 'scroll'
+          : 'in_viewport',
+      });
+    }
+  }, [effectivePlaceId, destination.name]);
+
+  const handleStopStayContentReady = useCallback(() => {
+    stopStayHasContent.current = true;
+    checkStopStayImpression();
+  }, [checkStopStayImpression]);
+
+  const handleScroll = useCallback((e) => {
+    const { contentOffset, layoutMeasurement } = e.nativeEvent;
+    if (contentOffset.y > 10 && stopStayEntrySource.current !== 'button') {
+      stopStayEntrySource.current = 'scroll';
+    }
+    lastScrollY.current = contentOffset.y;
+    scrollViewportHeight.current = layoutMeasurement.height;
+    checkStopStayImpression();
+  }, [checkStopStayImpression]);
 
   useEffect(() => {
     if (!__DEV__) return;
@@ -1159,6 +1199,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       showsVerticalScrollIndicator={false}
       showsHorizontalScrollIndicator={false}
       ref={scrollViewRef}
+      onScroll={handleScroll}
+      scrollEventThrottle={100}
     >
       <View style={{ position: 'relative', minHeight: 500 }}>
       {hasHero && (
@@ -1353,6 +1395,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       style={styles.stopStayPill}
       activeOpacity={0.7}
       onPress={() => {
+        stopStayEntrySource.current = 'button';
         mixpanel.track('Stop Stay Tapped', { place_id: effectivePlaceId, place_name: destination.name });
         scrollViewRef.current?.scrollTo({ y: stopStayCardY.current, animated: true });
       }}
@@ -1783,9 +1826,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
 
         {/* Stop & Stay Card */}
         <View onLayout={(e) => { stopStayCardY.current = e.nativeEvent.layout.y; }}>
-          <StopStayCard 
-            destination={destination} 
-            lang={i18n.language} 
+          <StopStayCard
+            destination={destination}
+            lang={i18n.language}
+            onContentReady={handleStopStayContentReady}
           />
         </View>
 

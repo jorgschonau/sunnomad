@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   View,
   Text,
@@ -22,8 +22,67 @@ import { mixpanel } from '../../services/mixpanel';
 import { getWeatherIcon, getWeatherColor } from '../../usecases/weatherUsecases';
 import { getHeroImage } from '../../utils/heroImages';
 import { useUnits } from '../../contexts/UnitContext';
-import { formatTemperature } from '../../utils/unitConversion';
+import { formatTemperature, kmToMiles } from '../../utils/unitConversion';
+import { calculateETA } from '../../domain/destinationBadge';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { getCachedLocation, getPreloadResult } from '../../utils/locationPreload';
 import Ionicons from '@expo/vector-icons/Ionicons';
+
+const SORT_STORAGE_KEY = 'favouritesSort';
+const SORT_KEYS = ['recent', 'warmest', 'nearest', 'sun'];
+const ROAD_FACTOR = 1.35;
+
+const haversineKm = (lat1, lon1, lat2, lon2) => {
+  const R = 6371;
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2
+    + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+};
+
+const sortFavourites = (items, sortKey, userLoc) => {
+  const list = [...items];
+  switch (sortKey) {
+    case 'warmest':
+      return list.sort((a, b) => (b.temperature ?? -999) - (a.temperature ?? -999));
+    case 'nearest': {
+      if (!userLoc) return list;
+      const dist = (item) => haversineKm(userLoc.latitude, userLoc.longitude, item.lat, item.lon);
+      return list.sort((a, b) => dist(a) - dist(b));
+    }
+    case 'sun':
+      return list.sort((a, b) => (b.sunshineHoursToday ?? -1) - (a.sunshineHoursToday ?? -1));
+    case 'recent':
+    default:
+      return list.sort((a, b) => new Date(b.savedAt || 0) - new Date(a.savedAt || 0));
+  }
+};
+
+const formatDriveDistance = (straightKm, distanceUnit, locale) => {
+  if (straightKm == null || straightKm <= 0) return null;
+  const roadKm = straightKm * ROAD_FACTOR;
+  const etaH = Math.round(calculateETA(roadKm));
+  const numLocale = locale?.startsWith('de') ? 'de-DE' : 'en-US';
+  if (distanceUnit === 'miles') {
+    const mi = Math.round(kmToMiles(roadKm));
+    return `${mi.toLocaleString(numLocale)} mi · ~${etaH}h`;
+  }
+  const km = Math.round(roadKm);
+  return `${km.toLocaleString(numLocale)} km · ~${etaH}h`;
+};
+
+const resolveUserLocation = () => {
+  const cached = getCachedLocation();
+  if (cached) return cached;
+  const pos = getPreloadResult().lastKnownPosition;
+  if (pos?.coords) {
+    return { latitude: pos.coords.latitude, longitude: pos.coords.longitude };
+  }
+  return null;
+};
 
 const NA_COUNTRIES = new Set(['US', 'CA', 'MX']);
 const UNDO_MS = 5000;
@@ -44,13 +103,58 @@ const heroDestForItem = (item) => ({
   image_region: item.image_region ?? inferImageRegion(item.country_code),
 });
 
-const FavouriteCard = ({ item, theme, t, temperatureUnit, onPress }) => {
+const SORT_LABELS = {
+  recent: 'favourites.sortRecent',
+  warmest: 'favourites.sortWarmest',
+  nearest: 'favourites.sortNearest',
+  sun: 'favourites.sortSun',
+};
+
+const SortBar = ({ sortKey, onSortChange, hasLocation, theme, t }) => {
+  const options = SORT_KEYS.filter((key) => key !== 'nearest' || hasLocation);
+  return (
+    <View style={styles.sortBar}>
+      {options.map((key) => {
+        const active = sortKey === key;
+        return (
+          <Pressable
+            key={key}
+            style={[
+              styles.sortChip,
+              {
+                backgroundColor: active ? theme.primary : theme.surface,
+                borderColor: active ? theme.primary : theme.border,
+              },
+            ]}
+            onPress={() => onSortChange(key)}
+          >
+            <Text
+              style={[
+                styles.sortChipText,
+                { color: active ? '#FFFFFF' : theme.textSecondary },
+              ]}
+            >
+              {t(SORT_LABELS[key])}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+};
+
+const FavouriteCard = ({ item, theme, t, temperatureUnit, distanceUnit, locale, userLocation, onPress }) => {
   const conditionLabel = t(`weather.${item.condition || 'cloudy'}`);
   const countryLabel = item.country_code || '';
   const heroSource = item.heroUrl
     ? { uri: item.heroUrl }
     : getHeroImage(heroDestForItem(item));
-  const metaLine = [countryLabel, conditionLabel].filter(Boolean).join(' · ');
+
+  const straightKm = userLocation
+    ? haversineKm(userLocation.latitude, userLocation.longitude, item.lat, item.lon)
+    : null;
+  const driveLabel = formatDriveDistance(straightKm, distanceUnit, locale);
+  const metaLine = [driveLabel, countryLabel, conditionLabel].filter(Boolean).join(' · ');
 
   const trendLabel = item.sunshineTrend === 'more'
     ? t('favourites.trendMore')
@@ -123,7 +227,7 @@ const FavouriteCard = ({ item, theme, t, temperatureUnit, onPress }) => {
   );
 };
 
-const FavouriteSwipeableRow = ({ item, theme, t, temperatureUnit, onPress, onDelete }) => {
+const FavouriteSwipeableRow = ({ item, theme, t, temperatureUnit, distanceUnit, locale, userLocation, onPress, onDelete }) => {
   const swipeableRef = useRef(null);
   const hapticFiredRef = useRef(false);
 
@@ -164,21 +268,63 @@ const FavouriteSwipeableRow = ({ item, theme, t, temperatureUnit, onPress, onDel
         theme={theme}
         t={t}
         temperatureUnit={temperatureUnit}
+        distanceUnit={distanceUnit}
+        locale={locale}
+        userLocation={userLocation}
         onPress={onPress}
       />
     </ReanimatedSwipeable>
   );
 };
 
-const FavouritesScreen = ({ navigation }) => {
+const FavouritesScreen = ({ navigation, route }) => {
   const { t, i18n } = useTranslation();
   const { theme } = useTheme();
-  const { temperatureUnit } = useUnits();
+  const { temperatureUnit, distanceUnit } = useUnits();
   const [favourites, setFavourites] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pendingDelete, setPendingDelete] = useState(null);
+  const [sortKey, setSortKey] = useState('recent');
+  const [userLocation, setUserLocation] = useState(() => resolveUserLocation());
   const hasLoadedRef = useRef(false);
   const pendingDeleteRef = useRef(null);
+  const sortKeyRef = useRef(sortKey);
+  sortKeyRef.current = sortKey;
+
+  useEffect(() => {
+    AsyncStorage.getItem(SORT_STORAGE_KEY).then((saved) => {
+      if (saved && SORT_KEYS.includes(saved)) setSortKey(saved);
+    });
+  }, []);
+
+  const handleSortChange = useCallback((key) => {
+    if (key === sortKey) return;
+    const previousSort = sortKey;
+    setSortKey(key);
+    AsyncStorage.setItem(SORT_STORAGE_KEY, key).catch(() => {});
+    mixpanel.track('Favourites Sort Changed', {
+      sort: key,
+      previous_sort: previousSort,
+      favourites_count: favourites.length,
+    });
+  }, [sortKey, favourites.length]);
+
+  const sortedFavourites = useMemo(
+    () => sortFavourites(favourites, sortKey, userLocation),
+    [favourites, sortKey, userLocation],
+  );
+
+  const availableSortKeys = useMemo(
+    () => SORT_KEYS.filter((key) => key !== 'nearest' || userLocation),
+    [userLocation],
+  );
+
+  useEffect(() => {
+    if (sortKey === 'nearest' && !userLocation) {
+      setSortKey('recent');
+      AsyncStorage.setItem(SORT_STORAGE_KEY, 'recent').catch(() => {});
+    }
+  }, [sortKey, userLocation]);
 
   useEffect(() => () => {
     invalidateListThumbCache();
@@ -203,9 +349,11 @@ const FavouritesScreen = ({ navigation }) => {
       });
       setFavourites(withHero);
       hasLoadedRef.current = true;
+      return withHero;
     } catch (error) {
       console.error('Failed to load favourites:', error);
       Alert.alert(t('map.error'), 'Failed to load favourites');
+      return [];
     } finally {
       setLoading(false);
     }
@@ -213,9 +361,17 @@ const FavouritesScreen = ({ navigation }) => {
 
   useFocusEffect(
     useCallback(() => {
-      mixpanel.track('Favourites Opened');
-      loadFavourites();
-    }, [])
+      const loc = resolveUserLocation();
+      setUserLocation(loc);
+      loadFavourites().then((favs) => {
+        mixpanel.track('Favourites Opened', {
+          favourites_count: favs.length,
+          sort: sortKeyRef.current,
+          has_location: !!loc,
+          source: route.params?.source ?? 'direct',
+        });
+      });
+    }, [route.params?.source])
   );
 
   const commitPendingDelete = useCallback(async () => {
@@ -229,10 +385,15 @@ const FavouritesScreen = ({ navigation }) => {
     const placeId = pending.item.placeId || pending.item.id;
     const result = await removeFromFavourites(placeId);
     if (result.success) {
-      mixpanel.track('Favourite Removed', { place_id: placeId, place_name: pending.item.name });
+      mixpanel.track('Favourite Removed', {
+        place_id: placeId,
+        place_name: pending.item.name,
+        method: 'swipe',
+        sort: sortKey,
+      });
       invalidateListThumbCache(placeId);
     }
-  }, []);
+  }, [sortKey]);
 
   const flushPendingDelete = useCallback(async () => {
     if (pendingDeleteRef.current) {
@@ -244,6 +405,11 @@ const FavouritesScreen = ({ navigation }) => {
     await flushPendingDelete();
 
     const placeId = item.placeId || item.id;
+    mixpanel.track('Favourite Delete Started', {
+      place_id: placeId,
+      place_name: item.name,
+      sort: sortKey,
+    });
     setFavourites((prev) => prev.filter((f) => (f.placeId || f.id) !== placeId));
 
     const timeoutId = setTimeout(() => {
@@ -252,11 +418,18 @@ const FavouritesScreen = ({ navigation }) => {
 
     pendingDeleteRef.current = { item, timeoutId };
     setPendingDelete(item);
-  }, [flushPendingDelete, commitPendingDelete]);
+  }, [flushPendingDelete, commitPendingDelete, sortKey]);
 
   const undoDelete = useCallback(() => {
     const pending = pendingDeleteRef.current;
     if (!pending) return;
+
+    const placeId = pending.item.placeId || pending.item.id;
+    mixpanel.track('Favourite Remove Undone', {
+      place_id: placeId,
+      place_name: pending.item.name,
+      sort: sortKey,
+    });
 
     clearTimeout(pending.timeoutId);
     pendingDeleteRef.current = null;
@@ -266,9 +439,16 @@ const FavouritesScreen = ({ navigation }) => {
       if (prev.some((f) => (f.placeId || f.id) === id)) return prev;
       return [pending.item, ...prev];
     });
-  }, []);
+  }, [sortKey]);
 
   const handleViewDetails = (destination) => {
+    mixpanel.track('Favourite Tapped', {
+      place_id: destination.placeId || destination.id,
+      place_name: destination.name,
+      sort: sortKey,
+      condition: destination.condition,
+      temperature: destination.temperature,
+    });
     navigation.navigate('DestinationDetail', { destination, source: 'favourites' });
   };
 
@@ -278,10 +458,13 @@ const FavouritesScreen = ({ navigation }) => {
       theme={theme}
       t={t}
       temperatureUnit={temperatureUnit}
+      distanceUnit={distanceUnit}
+      locale={i18n.language}
+      userLocation={userLocation}
       onPress={() => handleViewDetails(item)}
       onDelete={queueDelete}
     />
-  ), [theme, t, temperatureUnit, queueDelete]);
+  ), [theme, t, temperatureUnit, distanceUnit, i18n.language, userLocation, queueDelete]);
 
   const renderEmptyState = () => (
     <View style={styles.emptyContainer}>
@@ -312,13 +495,24 @@ const FavouritesScreen = ({ navigation }) => {
       {favourites.length === 0 ? (
         renderEmptyState()
       ) : (
-        <FlatList
-          data={favourites}
-          renderItem={renderFavouriteItem}
-          keyExtractor={(item) => item.favouriteId || item.id || `${item.lat}_${item.lon}`}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
+        <>
+          {favourites.length > 1 ? (
+            <SortBar
+              sortKey={availableSortKeys.includes(sortKey) ? sortKey : 'recent'}
+              onSortChange={handleSortChange}
+              hasLocation={!!userLocation}
+              theme={theme}
+              t={t}
+            />
+          ) : null}
+          <FlatList
+            data={sortedFavourites}
+            renderItem={renderFavouriteItem}
+            keyExtractor={(item) => item.favouriteId || item.id || `${item.lat}_${item.lon}`}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+          />
+        </>
       )}
 
       {pendingDelete ? (
@@ -344,8 +538,26 @@ const styles = StyleSheet.create({
   },
   listContent: {
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 4,
     paddingBottom: 24,
+  },
+  sortBar: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingTop: 10,
+    paddingBottom: 6,
+  },
+  sortChip: {
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+    borderRadius: 20,
+    borderWidth: 1,
+  },
+  sortChipText: {
+    fontSize: 13,
+    fontWeight: '600',
   },
   swipeableContainer: {
     marginBottom: 14,

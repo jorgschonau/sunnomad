@@ -1,4 +1,4 @@
-import React, { createContext, useState, useEffect, useContext } from 'react';
+import React, { createContext, useState, useEffect, useContext, useCallback, useMemo, useRef } from 'react';
 import * as authService from '../services/authService';
 import * as profileService from '../services/profileService';
 import { identifyUser, resetMixpanelIdentity, mixpanel } from '../services/mixpanel';
@@ -19,6 +19,7 @@ export const AuthProvider = ({ children }) => {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  const hadAuthenticatedUser = useRef(false);
 
   // Initialize session on app start
   useEffect(() => {
@@ -33,12 +34,14 @@ export const AuthProvider = ({ children }) => {
       setUser(session?.user ?? null);
 
       if (session?.user) {
+        hadAuthenticatedUser.current = true;
         await identifyUser(session.user.id);
         await loadProfile(session.user.id);
         profileService.recordAppOpen(session.user.id);
       } else {
         setProfile(null);
-        if (event === 'SIGNED_OUT') {
+        if (hadAuthenticatedUser.current) {
+          hadAuthenticatedUser.current = false;
           await resetMixpanelIdentity();
         }
       }
@@ -55,11 +58,11 @@ export const AuthProvider = ({ children }) => {
       const session = await authService.initializeSession();
       
       if (session?.user) {
+        // Only set state for instant navigation gating. identifyUser/loadProfile/
+        // recordAppOpen run once in the onAuthStateChange listener, which fires
+        // SIGNED_IN for the restored session (previously both paths did the work).
         setSession(session);
         setUser(session.user);
-        await identifyUser(session.user.id);
-        await loadProfile(session.user.id);
-        profileService.recordAppOpen(session.user.id);
       }
     } catch (error) {
       console.error('Failed to initialize auth:', error);
@@ -68,7 +71,7 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  const loadProfile = async (userId) => {
+  const loadProfile = useCallback(async (userId) => {
     try {
       const { profile, error } = await profileService.getProfile(userId);
       if (error) throw error;
@@ -76,9 +79,9 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Failed to load profile:', error);
     }
-  };
+  }, []);
 
-  const signUp = async (email, password, username, displayName) => {
+  const signUp = useCallback(async (email, password, username, displayName) => {
     try {
       const { user, session, error } = await authService.signUp(
         email,
@@ -101,9 +104,9 @@ export const AuthProvider = ({ children }) => {
       console.error('Sign up error:', error);
       return { error };
     }
-  };
+  }, [loadProfile]);
 
-  const signIn = async (email, password) => {
+  const signIn = useCallback(async (email, password) => {
     try {
       const { user, session, error } = await authService.signIn(email, password);
 
@@ -121,9 +124,9 @@ export const AuthProvider = ({ children }) => {
       console.error('Sign in error:', error);
       return { error };
     }
-  };
+  }, [loadProfile]);
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       const { error } = await authService.signOut();
       if (error) throw error;
@@ -139,9 +142,9 @@ export const AuthProvider = ({ children }) => {
       console.error('Sign out error:', error);
       return { error };
     }
-  };
+  }, []);
 
-  const resetPassword = async (email) => {
+  const resetPassword = useCallback(async (email) => {
     try {
       const { error } = await authService.resetPassword(email);
       if (error) throw error;
@@ -150,9 +153,9 @@ export const AuthProvider = ({ children }) => {
       console.error('Reset password error:', error);
       return { error };
     }
-  };
+  }, []);
 
-  const updatePassword = async (newPassword) => {
+  const updatePassword = useCallback(async (newPassword) => {
     try {
       const { error } = await authService.updatePassword(newPassword);
       if (error) throw error;
@@ -161,11 +164,11 @@ export const AuthProvider = ({ children }) => {
       console.error('Update password error:', error);
       return { error };
     }
-  };
+  }, []);
 
   // Consume a `sunnomad://reset-password#access_token=...&type=recovery` deep link:
   // sets the recovery session and flags the app to show ResetPasswordScreen.
-  const consumeRecoveryUrl = async (url) => {
+  const consumeRecoveryUrl = useCallback(async (url) => {
     const parsed = authService.parseAuthUrl(url);
     if (!parsed || parsed.type !== 'recovery') return { error: null };
 
@@ -183,11 +186,11 @@ export const AuthProvider = ({ children }) => {
     setUser(recoverySession?.user ?? null);
     setIsPasswordRecovery(true);
     return { error: null };
-  };
+  }, []);
 
-  const cancelPasswordRecovery = () => setIsPasswordRecovery(false);
+  const cancelPasswordRecovery = useCallback(() => setIsPasswordRecovery(false), []);
 
-  const deleteAccount = async () => {
+  const deleteAccount = useCallback(async () => {
     try {
       const { error } = await authService.deleteAccount();
       if (error) throw error;
@@ -203,9 +206,9 @@ export const AuthProvider = ({ children }) => {
       console.error('Delete account error:', error);
       return { error };
     }
-  };
+  }, []);
 
-  const updateProfile = async (updates) => {
+  const updateProfile = useCallback(async (updates) => {
     try {
       if (!user) throw new Error('No user logged in');
 
@@ -222,9 +225,13 @@ export const AuthProvider = ({ children }) => {
       console.error('Update profile error:', error);
       return { error };
     }
-  };
+  }, [user]);
 
-  const value = {
+  const refreshProfile = useCallback(() => user && loadProfile(user.id), [user, loadProfile]);
+
+  // Memoized: without this every provider render created a new value object and
+  // re-rendered every useAuth() consumer (incl. RootNavigator and all screens).
+  const value = useMemo(() => ({
     user,
     profile,
     session,
@@ -237,11 +244,15 @@ export const AuthProvider = ({ children }) => {
     updatePassword,
     deleteAccount,
     updateProfile,
-    refreshProfile: () => user && loadProfile(user.id),
+    refreshProfile,
     isPasswordRecovery,
     consumeRecoveryUrl,
     cancelPasswordRecovery,
-  };
+  }), [
+    user, profile, session, loading, isPasswordRecovery,
+    signUp, signIn, signOut, resetPassword, updatePassword,
+    deleteAccount, updateProfile, refreshProfile, consumeRecoveryUrl, cancelPasswordRecovery,
+  ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

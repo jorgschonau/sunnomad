@@ -48,6 +48,7 @@ export default function LoginScreen({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [emailError, setEmailError] = useState('');
+  const [passwordError, setPasswordError] = useState('');
 
   useFocusEffect(
     useCallback(() => {
@@ -56,11 +57,12 @@ export default function LoginScreen({ navigation }) {
   );
 
   const validateEmail = (value) => {
-    if (!value.trim()) {
-      setEmailError(t('auth.fillAllFields'));
+    const trimmed = value.trim();
+    if (!trimmed) {
+      setEmailError(t('auth.enterEmail'));
       return false;
     }
-    if (!EMAIL_REGEX.test(value.trim())) {
+    if (!EMAIL_REGEX.test(trimmed)) {
       setEmailError(t('auth.invalidEmail'));
       return false;
     }
@@ -68,18 +70,58 @@ export default function LoginScreen({ navigation }) {
     return true;
   };
 
+  const validatePassword = (value) => {
+    if (!value) {
+      setPasswordError(t('auth.enterPassword'));
+      return false;
+    }
+    setPasswordError('');
+    return true;
+  };
+
+  const trackValidationFailed = (reason, emailValue, passwordValue) => {
+    mixpanel.track('Login Validation Failed', {
+      reason,
+      email_filled: !!emailValue.trim(),
+      password_filled: !!passwordValue,
+    });
+  };
+
   const handleLogin = async () => {
-    if (!validateEmail(email)) {
-      mixpanel.track('Login Validation Failed', { reason: 'invalid_email' });
+    const trimmedEmail = email.trim();
+    const hasEmail = !!trimmedEmail;
+    const hasPassword = !!password;
+
+    if (!hasEmail && !hasPassword) {
+      setEmailError(t('auth.fillAllFields'));
+      setPasswordError(t('auth.fillAllFields'));
+      trackValidationFailed('missing_fields', email, password);
       return;
     }
 
-    if (!password) {
-      mixpanel.track('Login Validation Failed', { reason: 'missing_password' });
-      Alert.alert(t('auth.error'), t('auth.fillAllFields'));
+    if (!hasEmail) {
+      setEmailError(t('auth.enterEmail'));
+      setPasswordError('');
+      trackValidationFailed('empty_email', email, password);
       return;
     }
 
+    if (!EMAIL_REGEX.test(trimmedEmail)) {
+      setEmailError(t('auth.invalidEmail'));
+      setPasswordError('');
+      trackValidationFailed('invalid_email', email, password);
+      return;
+    }
+
+    setEmailError('');
+
+    if (!hasPassword) {
+      setPasswordError(t('auth.enterPassword'));
+      trackValidationFailed('missing_password', email, password);
+      return;
+    }
+
+    setPasswordError('');
     mixpanel.track('Login Started');
     setLoading(true);
     const { error } = await signIn(email.trim(), password);
@@ -150,13 +192,16 @@ export default function LoginScreen({ navigation }) {
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>{t('auth.password')}</Text>
-            <View style={[styles.input, styles.passwordContainer]}>
+            <View style={[styles.input, styles.passwordContainer, passwordError ? styles.inputError : null]}>
               <TextInput
                 style={styles.passwordInput}
                 placeholder={t('auth.passwordPlaceholder')}
                 placeholderTextColor={BRAND.textMuted}
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={(text) => {
+                  setPassword(text);
+                  if (passwordError) validatePassword(text);
+                }}
                 secureTextEntry={!showPassword}
                 autoComplete="password"
                 autoCorrect={false}
@@ -174,6 +219,9 @@ export default function LoginScreen({ navigation }) {
                 />
               </TouchableOpacity>
             </View>
+            {passwordError ? (
+              <Text style={styles.errorText}>{passwordError}</Text>
+            ) : null}
           </View>
 
           <TouchableOpacity

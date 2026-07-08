@@ -6,7 +6,7 @@ Storage: mirrors entire `dedicated` bucket (cast/, pexels/, goldie/, subfolders,
 After upload:  python3 hero_publish.py --sync
 Rules (per place):
   a) Activate all images for the primary cast character (auto = most cast rows, or override).
-  b) Also activate ALL goldie rows, ALL arty rows, + exactly one pexels row.
+  b) Also activate ALL goldie rows, ALL arty rows, ALL chatgpt rows, + exactly one pexels row.
   c) TEMP showcase places (`_goldie_only_showcase` in hero_char_overrides.json): one goldie only.
   d) Deactivate everything else; assign sort_order (rotation order in app).
 
@@ -91,7 +91,7 @@ def load_no_pexels() -> set[str]:
 
 
 def classify_row(row: dict) -> tuple[str, str | None]:
-    """Return (kind, character). cast/ goldie/ pexels/ arty/ from path + filename."""
+    """Return (kind, character). cast/ goldie/ pexels/ arty/ chatgpt/ from path + filename."""
     path = (row.get("storage_path") or "").lower()
     variant = (row.get("variant") or "").lower()
     char = (row.get("character") or "").lower().strip()
@@ -99,6 +99,9 @@ def classify_row(row: dict) -> tuple[str, str | None]:
 
     if head == "arty" or variant == "arty":
         return "arty", None
+
+    if head == "chatgpt" or variant == "chatgpt" or "_chatgpt" in path:
+        return "chatgpt", None
 
     blob = f"_{path.replace('/', '_')}_"
     if char == "goldie" or "_goldie_" in blob:
@@ -147,6 +150,10 @@ def infer_variant(storage_path: str, character: str | None) -> str:
         return "goldie"
     if kind == "pexels":
         return "pexels"
+    if kind == "arty":
+        return "arty"
+    if kind == "chatgpt":
+        return "chatgpt"
     head = (storage_path or "").split("/")[0].lower()
     if head in ("arty", "chatgpt", "pexels", "goldie"):
         return head
@@ -199,13 +206,13 @@ def pick_pexels_row(rows: list[dict]) -> dict | None:
 
 
 def build_rotation(rows: list[dict]) -> list[dict]:
-    """Interleave cast shots; all arty; all goldie mid-deck; pexels last."""
+    """Interleave cast shots; all arty + chatgpt; all goldie mid-deck; pexels last."""
     if len(rows) == 1 and classify_row(rows[0])[0] == "goldie":
         return rows
 
     cast = [r for r in rows if classify_row(r)[0] == "cast"]
     arties = sorted(
-        [r for r in rows if classify_row(r)[0] == "arty"],
+        [r for r in rows if classify_row(r)[0] in ("arty", "chatgpt")],
         key=lambda r: r.get("storage_path") or "",
     )
     goldies = sorted(
@@ -481,7 +488,7 @@ def sync_place(
             kind, char = classify_row(row)
             if kind == "cast" and char and (all_chars or (primary and char == primary)):
                 active.append(row)
-            elif kind in ("goldie", "arty"):
+            elif kind in ("goldie", "arty", "chatgpt"):
                 active.append(row)
 
         pex = pick_pexels_row(rows)

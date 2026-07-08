@@ -268,11 +268,15 @@
     "viewDetails": "View Details",
     "removeFromFavourites": "Remove from favourites",
     "savedOn": "Saved on {{date}}",
-    "sunToday": "Sun today",
-    "trend": "Trend",
+    "sunToday": "Sun hours",
+    "trend": "3-day trend",
     "trendMore": "↗ more sun",
     "trendLess": "↘ less sun",
-    "trendStable": "→ stable"
+    "trendStable": "→ stable",
+    "sortRecent": "Recent",
+    "sortWarmest": "Warmest",
+    "sortNearest": "Distance",
+    "sortSun": "Sun"
   },
   "badges": {
     "worththedrive": "Worth the Drive",

@@ -134,7 +134,7 @@ export default function ProfileScreen({ navigation }) {
 
       {/* Stats Card */}
       <View style={styles.statsCard}>
-        <TouchableOpacity style={styles.statRow} onPress={() => navigation.navigate('Favourites')}>
+        <TouchableOpacity style={styles.statRow} onPress={() => navigation.navigate('Favourites', { source: 'profile' })}>
           <View style={styles.statIconContainer}>
             <Ionicons name="star-outline" size={20} color={theme.primary} />
           </View>

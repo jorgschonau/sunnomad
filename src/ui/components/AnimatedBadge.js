@@ -6,18 +6,19 @@ import { View, Text, Image, Animated, StyleSheet, Platform } from 'react-native'
  */
 const AnimatedBadge = ({ icon, color, delay = 0, onImageLoad }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
-  const pulseAnim = useRef(new Animated.Value(1)).current;
   const scaleAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     // Force reset to fully transparent and tiny
     fadeAnim.setValue(0);
     scaleAnim.setValue(0);
-    pulseAnim.setValue(1);
 
     const isAndroid = Platform.OS === 'android';
     const startDelay = isAndroid ? 50 : (100 + delay);
 
+    // Entry animation only. The old infinite pulse loop ran on every visible
+    // marker badge (up to ~6 × 100 concurrent loops on iOS) and kept CPU/GPU
+    // busy while the map was idle.
     const entryAnimation = Animated.sequence([
       Animated.delay(startDelay),
       Animated.parallel([
@@ -36,33 +37,6 @@ const AnimatedBadge = ({ icon, color, delay = 0, onImageLoad }) => {
     ]);
     entryAnimation.start();
 
-    if (!isAndroid) {
-      const pulse = Animated.loop(
-        Animated.sequence([
-          Animated.timing(pulseAnim, {
-            toValue: 1.1,
-            duration: 1400,
-            useNativeDriver: true,
-          }),
-          Animated.timing(pulseAnim, {
-            toValue: 1,
-            duration: 1400,
-            useNativeDriver: true,
-          }),
-        ])
-      );
-
-      const pulseTimeout = setTimeout(() => {
-        pulse.start();
-      }, 100 + delay + 800);
-
-      return () => {
-        entryAnimation.stop();
-        clearTimeout(pulseTimeout);
-        pulse.stop();
-      };
-    }
-
     return () => {
       entryAnimation.stop();
     };
@@ -75,9 +49,7 @@ const AnimatedBadge = ({ icon, color, delay = 0, onImageLoad }) => {
         {
           backgroundColor: color,
           opacity: fadeAnim,
-          transform: [
-            { scale: Animated.multiply(scaleAnim, pulseAnim) }
-          ],
+          transform: [{ scale: scaleAnim }],
         },
       ]}
     >

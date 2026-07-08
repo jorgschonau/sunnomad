@@ -4,6 +4,12 @@ import { v4 as uuidv4 } from 'uuid';
 const TOKEN = process.env.EXPO_PUBLIC_MIXPANEL_TOKEN;
 const API = 'https://api-eu.mixpanel.com/track';
 const STORAGE_KEY = 'mp_distinct_id';
+const IS_DEV = typeof __DEV__ !== 'undefined' && __DEV__;
+const TRACKING_ENABLED = !!TOKEN && !IS_DEV;
+
+const BASE_PROPERTIES = {
+  app_environment: IS_DEV ? 'development' : 'production',
+};
 
 let distinctId = 'anonymous';
 
@@ -41,9 +47,11 @@ export async function resetMixpanelIdentity() {
 }
 
 function send(event, properties = {}) {
+  if (!TRACKING_ENABLED) return;
+
   const payload = JSON.stringify([{
     event,
-    properties: { token: TOKEN, distinct_id: distinctId, ...properties },
+    properties: { token: TOKEN, distinct_id: distinctId, ...BASE_PROPERTIES, ...properties },
   }]);
   fetch(API, {
     method: 'POST',

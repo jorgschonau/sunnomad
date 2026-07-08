@@ -24,14 +24,16 @@ let _cachedLocation = null;
 export function startLocationPreload() {
   if (_promise) return _promise;
 
-  const permissionP = Location.requestForegroundPermissionsAsync()
+  // Read-only permission check: never triggers the OS dialog during splash.
+  // If not granted yet, MapScreen requests it with context once the map shows.
+  const permissionP = Location.getForegroundPermissionsAsync()
     .then(({ status }) => {
       _resolved.permissionStatus = status;
       return { status };
     })
     .catch(() => {
-      _resolved.permissionStatus = 'denied';
-      return { status: 'denied' };
+      _resolved.permissionStatus = 'undetermined';
+      return { status: 'undetermined' };
     });
 
   const servicesP = Location.hasServicesEnabledAsync()
