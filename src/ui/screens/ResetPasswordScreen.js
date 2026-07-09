@@ -76,7 +76,7 @@ export default function ResetPasswordScreen() {
       mixpanel.track('Reset Password Failed', { reason: error.message || 'unknown' });
       Alert.alert(t('auth.error'), t('auth.updatePasswordFailed'));
     } else {
-      mixpanel.track('Reset Password Completed');
+      mixpanel.track('Password Reset Successful');
       Alert.alert(t('auth.passwordUpdated'), t('auth.passwordUpdatedMessage'), [
         { text: 'OK', onPress: cancelPasswordRecovery },
       ]);
