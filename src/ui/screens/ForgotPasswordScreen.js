@@ -46,7 +46,7 @@ export default function ForgotPasswordScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
-      mixpanel.track('Forgot Password Viewed');
+      mixpanel.track('Password Reset Email Screen Viewed');
     }, [])
   );
 
@@ -64,23 +64,29 @@ export default function ForgotPasswordScreen({ navigation }) {
   };
 
   const handleResetPassword = async () => {
+    const emailValue = email.trim().toLowerCase();
+
     if (!validateEmail(email)) {
       const reason = !email.trim() ? 'empty_email'
         : !EMAIL_REGEX.test(email.trim()) ? 'invalid_email'
         : 'validation_failed';
-      mixpanel.track('Password Reset Email Attempted', { email_sent: false, reason });
+      mixpanel.track('Password Reset Email Attempted', {
+        email_sent: false,
+        reason,
+        email: emailValue || null,
+      });
       return;
     }
 
-    mixpanel.track('Forgot Password Started');
     setLoading(true);
-    const { error } = await resetPassword(email.trim());
+    const { error } = await resetPassword(emailValue);
     setLoading(false);
 
     if (error) {
       mixpanel.track('Password Reset Email Attempted', {
         email_sent: false,
         reason: error.message || 'unknown',
+        email: emailValue,
       });
       if (error.message === 'email_not_registered') {
         setEmailError(t('auth.emailNotRegistered'));
@@ -88,7 +94,7 @@ export default function ForgotPasswordScreen({ navigation }) {
         Alert.alert(t('auth.error'), t('auth.resetPasswordFailed'));
       }
     } else {
-      mixpanel.track('Password Reset Email Attempted', { email_sent: true });
+      mixpanel.track('Password Reset Email Attempted', { email_sent: true, email: emailValue });
       setEmailSent(true);
     }
   };

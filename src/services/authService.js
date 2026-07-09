@@ -9,23 +9,32 @@ import * as Linking from 'expo-linking';
 
 const SESSION_KEY = '@sunnomad:session';
 
+/** Set when a recovery deep link is being handled — blocks stored-session restore. */
+let storedSessionRestoreBlocked = false;
+
+export const blockStoredSessionRestore = () => {
+  storedSessionRestoreBlocked = true;
+};
+
 /**
  * Initialize auth session from storage
  */
 export const initializeSession = async () => {
+  if (storedSessionRestoreBlocked) return null;
+
   try {
     const sessionJson = await AsyncStorage.getItem(SESSION_KEY);
-    if (sessionJson) {
-      const session = JSON.parse(sessionJson);
-      const { data, error } = await supabase.auth.setSession({
-        access_token: session.access_token,
-        refresh_token: session.refresh_token,
-      });
-      
-      if (error) throw error;
-      return data.session;
-    }
-    return null;
+    if (!sessionJson || storedSessionRestoreBlocked) return null;
+
+    const session = JSON.parse(sessionJson);
+    const { data, error } = await supabase.auth.setSession({
+      access_token: session.access_token,
+      refresh_token: session.refresh_token,
+    });
+
+    if (storedSessionRestoreBlocked) return null;
+    if (error) throw error;
+    return data.session;
   } catch (error) {
     if (__DEV__) console.warn('Stored session invalid, clearing:', error.message);
     await AsyncStorage.removeItem(SESSION_KEY);
@@ -194,14 +203,29 @@ export const resetPassword = async (email) => {
  */
 export const updatePassword = async (newPassword) => {
   try {
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+    if (sessionError) throw sessionError;
+    if (!session) {
+      return { error: new Error('no_session'), userId: null };
+    }
+
+    const userId = session.user?.id ?? null;
     const { error } = await supabase.auth.updateUser({
       password: newPassword,
     });
-    if (error) throw error;
-    return { error: null };
+
+    if (error) {
+      const msg = error.message ?? '';
+      if (msg.includes('different from the old') || msg.includes('should be different')) {
+        return { error: new Error('same_password'), userId };
+      }
+      throw error;
+    }
+
+    return { error: null, userId };
   } catch (error) {
     console.error('Update password error:', error);
-    return { error };
+    return { error, userId: null };
   }
 };
 
@@ -249,6 +273,11 @@ export const parseAuthUrl = (url) => {
   };
 };
 
+export const isRecoveryAuthUrl = (url) => {
+  const parsed = parseAuthUrl(url);
+  return parsed?.type === 'recovery' && !!parsed.accessToken && !!parsed.refreshToken;
+};
+
 /**
  * Set the session from a password recovery deep link
  * @param {string} accessToken
@@ -257,6 +286,7 @@ export const parseAuthUrl = (url) => {
  */
 export const setRecoverySession = async (accessToken, refreshToken) => {
   try {
+    blockStoredSessionRestore();
     const { data, error } = await supabase.auth.setSession({
       access_token: accessToken,
       refresh_token: refreshToken,
@@ -275,11 +305,12 @@ export const setRecoverySession = async (accessToken, refreshToken) => {
  * @returns {object} Subscription object with unsubscribe method
  */
 export const onAuthStateChange = (callback) => {
-  const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-    await saveSession(session);
+  const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    // Must not await here — Supabase blocks updateUser/signIn until this callback returns.
+    void saveSession(session);
     callback(event, session);
   });
-  
+
   return subscription;
 };
 

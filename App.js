@@ -293,6 +293,14 @@ function RootNavigator() {
   const [showSunnomad, setShowSunnomad] = useState(false);
   const presentsOpacity = useRef(new Animated.Value(0)).current;
   const onDissolveDone = useCallback(() => setGoldieHidden(true), []);
+  const splashLockedRef = useRef(false);
+
+  useEffect(() => {
+    if (isPasswordRecovery || isAuthenticated) {
+      splashLockedRef.current = true;
+      setSplashPhase('done');
+    }
+  }, [isPasswordRecovery, isAuthenticated]);
 
   useEffect(() => {
     if (!recoveryLinkError) return;
@@ -305,14 +313,15 @@ function RootNavigator() {
   useEffect(() => {
     AsyncStorage.getItem(GOLDIE_SPLASH_DATE_KEY)
       .then((stored) => {
-        if (stored === todayDateKey()) {
-          setShowSunnomad(true);
-          setSplashPhase('sunnomad');
-        } else {
-          setSplashPhase('intro');
-        }
+        if (splashLockedRef.current) return;
+        const phase = stored === todayDateKey() ? 'sunnomad' : 'intro';
+        if (phase === 'sunnomad') setShowSunnomad(true);
+        setSplashPhase((prev) => (prev === 'done' ? prev : phase));
       })
-      .catch(() => setSplashPhase('intro'));
+      .catch(() => {
+        if (splashLockedRef.current) return;
+        setSplashPhase((prev) => (prev === 'done' ? prev : 'intro'));
+      });
   }, []);
 
   // Start location + AsyncStorage preload immediately (during splash)
@@ -395,10 +404,11 @@ function RootNavigator() {
     SplashScreen.hideAsync();
   }, [splashPhase, fontsLoaded, introReady]);
 
-  if (splashPhase === null && !isPasswordRecovery) return null;
+  if (splashPhase === null && !isPasswordRecovery && !isAuthenticated) return null;
 
   const showSplash =
     !isPasswordRecovery
+    && !isAuthenticated
     && (
       splashPhase === 'intro'
       || splashPhase === 'main'

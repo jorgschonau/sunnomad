@@ -414,6 +414,7 @@
     "passwordUpdated": "Password updated",
     "passwordUpdatedMessage": "Your password has been changed successfully",
     "updatePasswordFailed": "Could not update password. Please try again.",
+    "passwordSameAsOld": "The new password must be different from your current one.",
     "recoveryLinkExpired": "This link has expired. Please request a new one."
   },
   "communityScreen": {

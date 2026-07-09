@@ -18,6 +18,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { mixpanel } from '../../services/mixpanel';
 import Ionicons from '@expo/vector-icons/Ionicons';
+import Toast from 'react-native-toast-message';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -36,50 +37,100 @@ const BRAND = {
 };
 
 export default function ResetPasswordScreen() {
-  const { updatePassword, cancelPasswordRecovery } = useAuth();
+  const { updatePassword, user } = useAuth();
   const { t } = useTranslation();
+  const resetEmail = user?.email?.toLowerCase() ?? null;
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordHint, setPasswordHint] = useState('');
+  const [confirmHint, setConfirmHint] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
 
+  const MIN_PASSWORD_LENGTH = 6;
+
+  const syncPasswordHint = useCallback((text) => {
+    if (!text) {
+      setPasswordHint('');
+      return;
+    }
+    setPasswordHint(text.length < MIN_PASSWORD_LENGTH ? t('auth.minSixChars') : '');
+  }, [t]);
+
+  const syncConfirmHint = useCallback((nextConfirm, nextPassword = confirmPassword) => {
+    if (!nextConfirm) {
+      setConfirmHint('');
+      return;
+    }
+    setConfirmHint(nextPassword !== nextConfirm ? t('auth.passwordsDontMatch') : '');
+  }, [confirmPassword, t]);
+
+  const onPasswordChange = useCallback((text) => {
+    setPassword(text);
+    syncPasswordHint(text);
+    if (confirmPassword) {
+      syncConfirmHint(confirmPassword, text);
+    }
+  }, [confirmPassword, syncConfirmHint, syncPasswordHint]);
+
+  const onConfirmPasswordChange = useCallback((text) => {
+    setConfirmPassword(text);
+    syncConfirmHint(text, password);
+  }, [password, syncConfirmHint]);
+
   useFocusEffect(
     useCallback(() => {
-      mixpanel.track('Reset Password Screen Viewed');
-    }, [])
+      mixpanel.track('Password Reset Screen Viewed', { email: resetEmail });
+    }, [resetEmail])
   );
 
   const handleUpdatePassword = async () => {
     if (!password || !confirmPassword) {
+      mixpanel.track('Password Reset Attempted', { successful: false, reason: 'missing_fields', email: resetEmail });
       Alert.alert(t('auth.error'), t('auth.fillAllFields'));
       return;
     }
 
-    if (password !== confirmPassword) {
-      Alert.alert(t('auth.error'), t('auth.passwordsDontMatch'));
+    if (password !== confirmPassword || password.length < MIN_PASSWORD_LENGTH) {
+      syncPasswordHint(password);
+      syncConfirmHint(confirmPassword, password);
+      mixpanel.track('Password Reset Attempted', {
+        successful: false,
+        reason: password.length < MIN_PASSWORD_LENGTH ? 'password_too_short' : 'passwords_dont_match',
+        email: resetEmail,
+      });
       return;
     }
 
-    if (password.length < 6) {
-      Alert.alert(t('auth.error'), t('auth.passwordTooShort'));
-      return;
-    }
-
-    mixpanel.track('Reset Password Started');
     setLoading(true);
     const { error } = await updatePassword(password);
     setLoading(false);
 
     if (error) {
-      mixpanel.track('Reset Password Failed', { reason: error.message || 'unknown' });
-      Alert.alert(t('auth.error'), t('auth.updatePasswordFailed'));
+      mixpanel.track('Password Reset Attempted', {
+        successful: false,
+        reason: error.message || 'unknown',
+        email: resetEmail,
+      });
+      const message =
+        error.message === 'no_session'
+          ? t('auth.recoveryLinkExpired')
+          : error.message === 'same_password'
+            ? t('auth.passwordSameAsOld')
+            : t('auth.updatePasswordFailed');
+      Alert.alert(t('auth.error'), message);
     } else {
-      mixpanel.track('Password Reset Successful');
-      Alert.alert(t('auth.passwordUpdated'), t('auth.passwordUpdatedMessage'), [
-        { text: 'OK', onPress: cancelPasswordRecovery },
-      ]);
+      mixpanel.track('Password Reset Successful', { email: resetEmail });
+      // Toast lives in App.js — finishPasswordRecovery already navigated to map.
+      Toast.show({
+        type: 'success',
+        text1: t('auth.passwordUpdated'),
+        text2: t('auth.passwordUpdatedMessage'),
+        position: 'bottom',
+        visibilityTime: 2500,
+      });
     }
   };
 
@@ -114,15 +165,20 @@ export default function ResetPasswordScreen() {
         <View style={styles.formCard}>
           <View style={styles.inputContainer}>
             <Text style={styles.label}>{t('auth.newPassword')}</Text>
-            <View style={[styles.input, styles.passwordContainer]}>
+            <View style={[
+              styles.input,
+              styles.passwordContainer,
+              passwordHint ? styles.inputError : null,
+            ]}>
               <TextInput
                 style={styles.passwordInput}
                 placeholder={t('auth.newPasswordPlaceholder')}
                 placeholderTextColor={BRAND.textMuted}
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={onPasswordChange}
                 secureTextEntry={!showPassword}
-                autoComplete="new-password"
+                autoComplete="off"
+                textContentType="password"
                 autoCorrect={false}
                 editable={!loading}
                 autoFocus
@@ -139,20 +195,27 @@ export default function ResetPasswordScreen() {
                 />
               </TouchableOpacity>
             </View>
-            <Text style={styles.hint}>{t('auth.minSixChars')}</Text>
+            {!!passwordHint && (
+              <Text style={styles.errorText}>{passwordHint}</Text>
+            )}
           </View>
 
           <View style={styles.inputContainer}>
             <Text style={styles.label}>{t('auth.confirmNewPassword')}</Text>
-            <View style={[styles.input, styles.passwordContainer]}>
+            <View style={[
+              styles.input,
+              styles.passwordContainer,
+              confirmHint ? styles.inputError : null,
+            ]}>
               <TextInput
                 style={styles.passwordInput}
                 placeholder={t('auth.confirmPasswordPlaceholder')}
                 placeholderTextColor={BRAND.textMuted}
                 value={confirmPassword}
-                onChangeText={setConfirmPassword}
+                onChangeText={onConfirmPasswordChange}
                 secureTextEntry={!showConfirmPassword}
-                autoComplete="new-password"
+                autoComplete="off"
+                textContentType="password"
                 autoCorrect={false}
                 editable={!loading}
               />
@@ -168,6 +231,9 @@ export default function ResetPasswordScreen() {
                 />
               </TouchableOpacity>
             </View>
+            {!!confirmHint && (
+              <Text style={styles.errorText}>{confirmHint}</Text>
+            )}
           </View>
 
           <TouchableOpacity
@@ -278,10 +344,14 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-  hint: {
-    fontSize: 12,
-    color: BRAND.textMuted,
+  inputError: {
+    borderColor: BRAND.error,
+  },
+  errorText: {
+    color: BRAND.error,
+    fontSize: 13,
     marginTop: 6,
+    fontWeight: '500',
   },
   passwordContainer: {
     flexDirection: 'row',
