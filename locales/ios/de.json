@@ -1,0 +1,5 @@
+{
+  "ios": {
+    "NSLocationWhenInUseUsageDescription": "SunNomad nutzt deinen Standort, um dir sonnige Ziele in deiner Nähe zu zeigen."
+  }
+}

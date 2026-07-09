@@ -91,7 +91,7 @@ const StopStayCard = ({ destination, lang, onContentReady }) => {
 
       setData(result);
     } catch (err) {
-      console.warn('StopStayCard failed to fetch place detail:', err);
+      if (__DEV__) console.warn('StopStayCard failed to fetch place detail:', err);
       setError(err.message);
     } finally {
       setLoading(false);

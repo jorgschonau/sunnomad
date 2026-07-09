@@ -139,43 +139,48 @@ export const getPlacesWithWeather = async (filters = {}) => {
     
     // Query 2: Get weather for places (16 days)
     // Each place has up to 16 forecast rows → chunk size must keep total rows per query
-    // well under Supabase max_rows (default 1000, paid plans typically 5000-10000)
+    // well under Supabase max_rows (default 1000, paid plans typically 5000-10000).
+    // Keep CHUNK_SIZE modest: long `.in(place_id, …)` GET URLs break on iOS (~50 UUIDs safe).
     const FORECAST_DAYS = 16;
     const SAFE_ROWS_PER_QUERY = 4000;
-    const CHUNK_SIZE = Math.floor(SAFE_ROWS_PER_QUERY / FORECAST_DAYS); // 250 places per chunk
+    const CHUNK_SIZE = 50;
     
     const placeIds = mergedPlaces.map(p => p.id);
     const fallbackDate = new Date(new Date(targetDate).getTime() + FORECAST_DAYS * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
     __DEV__ && console.log(`🌤️ Fetching weather for ${placeIds.length} places in chunks of ${CHUNK_SIZE} (${targetDate} to ${fallbackDate})...`);
     
     const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    
-    // Fire all chunk queries in parallel instead of awaiting them one by one
-    const chunkQueries = [];
-    for (let i = 0; i < placeIds.length; i += CHUNK_SIZE) {
-      const chunk = placeIds.slice(i, i + CHUNK_SIZE);
-      chunkQueries.push(
-        supabase
+    const WEATHER_SELECT = 'place_id, forecast_date, temp_min, temp_max, weather_main, weather_description, weather_icon, wind_speed, sunshine_duration, fetched_at, humidity, precipitation_sum';
+
+    const fetchWeatherChunks = async (ids, requireFresh) => {
+      let rows = [];
+      for (let i = 0; i < ids.length; i += CHUNK_SIZE) {
+        const chunk = ids.slice(i, i + CHUNK_SIZE);
+        let query = supabase
           .from('weather_forecast')
-          .select('place_id, forecast_date, temp_min, temp_max, weather_main, weather_description, weather_icon, wind_speed, sunshine_duration, fetched_at, humidity, precipitation_sum')
+          .select(WEATHER_SELECT)
           .in('place_id', chunk)
           .gte('forecast_date', targetDate)
           .lte('forecast_date', fallbackDate)
-          .gte('fetched_at', sevenDaysAgo)
           .order('forecast_date', { ascending: true })
-      );
-    }
-    
-    let allWeather = [];
-    const chunkResults = await Promise.all(chunkQueries);
-    chunkResults.forEach(({ data, error: err }, idx) => {
-      if (err) {
-        __DEV__ && console.warn(`⚠️ Weather chunk ${idx + 1} failed:`, err.message);
-      } else if (data) {
-        __DEV__ && console.log(`  📦 Chunk ${idx + 1}: ${data.length} rows`);
-        allWeather.push(...data);
+          .limit(SAFE_ROWS_PER_QUERY);
+        if (requireFresh) query = query.gte('fetched_at', sevenDaysAgo);
+        const { data, error: err } = await query;
+        if (err) {
+          console.error(`Weather chunk ${Math.floor(i / CHUNK_SIZE) + 1} failed:`, err.message);
+        } else if (data?.length) {
+          __DEV__ && console.log(`  📦 Chunk ${Math.floor(i / CHUNK_SIZE) + 1}: ${data.length} rows`);
+          rows.push(...data);
+        }
       }
-    });
+      return rows;
+    };
+
+    let allWeather = await fetchWeatherChunks(placeIds, true);
+    if (allWeather.length === 0 && placeIds.length > 0) {
+      console.error(`Weather fetch returned 0 rows for ${placeIds.length} places — retrying without fetched_at filter`);
+      allWeather = await fetchWeatherChunks(placeIds, false);
+    }
     
     __DEV__ && console.log(`🌤️ Got ${allWeather.length} weather records for ${placeIds.length} places (${targetDate} - ${fallbackDate})`);
     
@@ -421,7 +426,7 @@ export const getPlaceDetail = async (placeId, locale = 'en') => {
       .order('forecast_date', { ascending: true })
       .limit(32);
 
-    if (weatherError) console.warn('Weather fetch failed:', weatherError);
+    if (weatherError && __DEV__) console.warn('Weather fetch failed:', weatherError);
 
     const seenDates = new Set();
     const allWeather = (rawWeather || []).filter(w => {
@@ -639,45 +644,52 @@ export const fetchExtendedForecast = async (placeIds) => {
   const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
   
   const result = {};
-  const CHUNK = 250;
-  // Fire all chunk queries in parallel (same pattern as getPlacesWithWeather)
-  const chunkQueries = [];
+  const CHUNK = 50;
+  const EXT_SELECT = 'place_id, forecast_date, temp_min, temp_max, weather_main, weather_description, wind_speed, sunshine_duration, humidity, precipitation_sum';
+
+  const loadChunk = async (chunk, requireFresh) => {
+    let query = supabase
+      .from('weather_forecast')
+      .select(EXT_SELECT)
+      .in('place_id', chunk)
+      .gte('forecast_date', today)
+      .lte('forecast_date', endDate)
+      .order('forecast_date', { ascending: true })
+      .limit(4000);
+    if (requireFresh) query = query.gte('fetched_at', sevenDaysAgo);
+    return query;
+  };
+
   for (let i = 0; i < placeIds.length; i += CHUNK) {
     const chunk = placeIds.slice(i, i + CHUNK);
-    chunkQueries.push(
-      supabase
-        .from('weather_forecast')
-        .select('place_id, forecast_date, temp_min, temp_max, weather_main, weather_description, wind_speed, sunshine_duration, humidity, precipitation_sum')
-        .in('place_id', chunk)
-        .gte('forecast_date', today)
-        .lte('forecast_date', endDate)
-        .gte('fetched_at', sevenDaysAgo)
-        .order('forecast_date', { ascending: true })
-    );
-  }
-  const chunkResults = await Promise.all(chunkQueries);
-  for (const { data, error } of chunkResults) {
-    if (!error && data) {
-      const seenDates = {};
-      data.forEach(w => {
-        if (!result[w.place_id]) result[w.place_id] = [];
-        const dateKey = `${w.place_id}_${w.forecast_date}`;
-        if (!seenDates[dateKey]) {
-          seenDates[dateKey] = true;
-          result[w.place_id].push({
-            condition: mapWeatherMain(w.weather_main, w.weather_description),
-            temp: w.temp_max != null && w.temp_min != null ? Math.round((w.temp_min + w.temp_max) / 2) : null,
-            high: w.temp_max != null ? Math.round(w.temp_max) : null,
-            low: w.temp_min != null ? Math.round(w.temp_min) : null,
-            description: w.weather_description,
-            precipitation: w.precipitation_sum || 0,
-            windSpeed: Math.round(w.wind_speed || 0),
-            sunshine_duration: w.sunshine_duration || 0,
-            humidity: w.humidity ?? null,
-          });
-        }
-      });
+    let { data, error } = await loadChunk(chunk, true);
+    if ((!data || data.length === 0) && !error) {
+      ({ data, error } = await loadChunk(chunk, false));
     }
+    if (error) {
+      console.error('Extended forecast chunk failed:', error.message);
+      continue;
+    }
+    if (!data) continue;
+    const seenDates = {};
+    data.forEach(w => {
+      if (!result[w.place_id]) result[w.place_id] = [];
+      const dateKey = `${w.place_id}_${w.forecast_date}`;
+      if (!seenDates[dateKey]) {
+        seenDates[dateKey] = true;
+        result[w.place_id].push({
+          condition: mapWeatherMain(w.weather_main, w.weather_description),
+          temp: w.temp_max != null && w.temp_min != null ? Math.round((w.temp_min + w.temp_max) / 2) : null,
+          high: w.temp_max != null ? Math.round(w.temp_max) : null,
+          low: w.temp_min != null ? Math.round(w.temp_min) : null,
+          description: w.weather_description,
+          precipitation: w.precipitation_sum || 0,
+          windSpeed: Math.round(w.wind_speed || 0),
+          sunshine_duration: w.sunshine_duration || 0,
+          humidity: w.humidity ?? null,
+        });
+      }
+    });
   }
   
   __DEV__ && console.log(`📅 Extended forecast: fetched ${Object.keys(result).length} places, sample length: ${Object.values(result)[0]?.length ?? 0} days`);

@@ -8,6 +8,9 @@ export default {
     version: '1.0.0',
     orientation: 'portrait',
     userInterfaceStyle: 'light',
+    locales: {
+      de: './locales/ios/de.json',
+    },
     splash: {
       backgroundColor: '#F5F0EB',
     },
@@ -15,9 +18,12 @@ export default {
     assetBundlePatterns: ['**/*'],
     ios: {
       supportsTablet: true,
+      buildNumber: '1',
       bundleIdentifier: IS_DEV ? 'com.sunnomad.app.dev' : 'com.sunnomad.app',
       infoPlist: {
-        NSLocationWhenInUseUsageDescription: 'SunNomad uses your location to show weather for destinations near you.',
+        CFBundleAllowMixedLocalizations: true,
+        NSLocationWhenInUseUsageDescription:
+          'SunNomad uses your location to show sunny destinations near you.',
         ITSAppUsesNonExemptEncryption: false,
       },
       config: {
@@ -44,8 +50,8 @@ export default {
       [
         'expo-location',
         {
-          locationAlwaysAndWhenInUsePermission:
-            'SunNomad nutzt deinen Standort um Reiseziele in deiner Nähe zu finden.',
+          locationWhenInUsePermission:
+            'SunNomad uses your location to show sunny destinations near you.',
         },
       ],
       'expo-localization',

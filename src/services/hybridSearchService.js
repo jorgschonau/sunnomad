@@ -133,7 +133,7 @@ async function searchGoogle(query, language, bounds = BOUNDS_EUROPE) {
     const json = await res.json();
     __DEV__ && console.log(`🔍 Google response: status=${res.status}, places=${json.places?.length || 0}, error=${json.error?.message || 'none'}`);
     if (!res.ok || json.error) {
-      console.warn('Google Places API error:', json.error?.message || res.status);
+      if (__DEV__) console.warn('Google Places API error:', json.error?.message || res.status);
       return [];
     }
     if (!json.places?.length) return [];

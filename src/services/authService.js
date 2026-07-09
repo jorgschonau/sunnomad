@@ -26,7 +26,7 @@ export const initializeSession = async () => {
     }
     return null;
   } catch (error) {
-    console.warn('Stored session invalid, clearing:', error.message);
+    if (__DEV__) console.warn('Stored session invalid, clearing:', error.message);
     await AsyncStorage.removeItem(SESSION_KEY);
     return null;
   }

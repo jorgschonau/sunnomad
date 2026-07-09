@@ -19,7 +19,7 @@ try {
   const locale = Localization.locale || Localization.getLocales()[0]?.languageCode || 'en';
   deviceLanguage = locale.split('-')[0] || 'en';
 } catch (error) {
-  console.warn('Could not get device language:', error);
+  if (__DEV__) console.warn('Could not get device language:', error);
 }
 
 i18n

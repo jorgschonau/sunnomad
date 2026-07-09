@@ -38,7 +38,7 @@ export const openInMaps = async (place, providerPreference = NavigationProvider.
       throw new Error(`Unknown provider: ${provider}`);
     }
   } catch (error) {
-    console.warn(`Failed to open ${provider} maps, trying fallback`, error);
+    if (__DEV__) console.warn(`Failed to open ${provider} maps, trying fallback`, error);
     // Fallback: try the opposite provider
     try {
       if (provider === NavigationProvider.APPLE_MAPS) {
@@ -47,7 +47,7 @@ export const openInMaps = async (place, providerPreference = NavigationProvider.
         await openAppleMaps(lat, lon, name);
       }
     } catch (fallbackError) {
-      console.warn('Fallback also failed, opening web maps', fallbackError);
+      if (__DEV__) console.warn('Fallback also failed, opening web maps', fallbackError);
       // Final fallback: Google Maps web
       await openWebMaps(lat, lon, name);
     }

@@ -19,7 +19,7 @@ export const playMediumHaptic = async () => {
   try {
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
   } catch (error) {
-    console.debug('Haptic feedback not available:', error.message);
+    if (__DEV__) console.debug('Haptic feedback not available:', error.message);
   }
 };
 
@@ -30,7 +30,7 @@ export const playSuccessHaptic = async () => {
   try {
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
   } catch (error) {
-    console.debug('Haptic feedback not available:', error.message);
+    if (__DEV__) console.debug('Haptic feedback not available:', error.message);
   }
 };
 

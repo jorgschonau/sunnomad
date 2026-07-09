@@ -13,6 +13,7 @@ import {
   Easing,
   LayoutAnimation,
   InteractionManager,
+  Platform,
 } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
@@ -38,6 +39,12 @@ import { getHeroImage } from '../../utils/heroImages';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import StopStayCard from '../components/StopStayCard';
 import { mixpanel } from '../../services/mixpanel';
+
+const HERO_CROSSFADE_MS = 1200;
+const HERO_FADE_EASING = Easing.bezier(0.22, 1, 0.36, 1);
+const HERO_KEN_BURNS_START = 1.015;
+const HERO_BASE_FADE_OUT = 0.96;
+const HERO_INCOMING_LOAD_TIMEOUT_MS = 3000;
 
 const getWindDescriptionKey = (windSpeed) => {
   const speed = windSpeed || 0;
@@ -212,6 +219,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const [heroBase, setHeroBase] = useState(() => getCachedHeroImage({ id: effectivePlaceId }));
   // null = lookup pending; the resolved hero fades in over the base layer
   const [heroMeta, setHeroMeta] = useState(null);
+  const [heroIncomingMeta, setHeroIncomingMeta] = useState(null);
   const [heroList, setHeroList] = useState([]);
   const [heroIndex, setHeroIndex] = useState(0);
   const [devHeroNavVisible, setDevHeroNavVisible] = useState(true);
@@ -249,20 +257,225 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const heroHintAnim = React.useRef(new Animated.Value(0)).current;
   const heroScaleAnim = React.useRef(new Animated.Value(1)).current;
   const heroFadeAnim = React.useRef(new Animated.Value(0)).current;
+  const heroKenBurnsAnim = React.useRef(new Animated.Value(1)).current;
+  const heroBaseOpacityAnim = React.useRef(new Animated.Value(1)).current;
   const lastFadedHeroUrl = React.useRef(null);
-  // Reset opacity to 0 synchronously (before the state update that swaps the image
-  // source commits), so the new image never briefly flashes at full opacity.
-  const startHeroFade = useCallback((url) => {
-    if (!url || url === lastFadedHeroUrl.current) return;
-    lastFadedHeroUrl.current = url;
+  const heroFadeRunning = React.useRef(false);
+  const pendingHeroTarget = React.useRef(null);
+  const incomingLoadResolver = React.useRef(null);
+  const baseLoadResolver = React.useRef(null);
+  const baseLoadGeneration = React.useRef(0);
+  const fadeAnimRef = React.useRef(null);
+  const skipCrossfadeRequested = React.useRef(false);
+  const heroBaseRef = React.useRef(null);
+  const heroIncomingMetaRef = React.useRef(null);
+
+  useEffect(() => { heroBaseRef.current = heroBase; }, [heroBase]);
+  useEffect(() => { heroIncomingMetaRef.current = heroIncomingMeta; }, [heroIncomingMeta]);
+
+  const stopHeroFadeAnim = useCallback(() => {
+    if (fadeAnimRef.current) {
+      fadeAnimRef.current.stop();
+      fadeAnimRef.current = null;
+    }
+  }, []);
+
+  const onHeroIncomingLoad = useCallback(() => {
+    incomingLoadResolver.current?.();
+    incomingLoadResolver.current = null;
+  }, []);
+
+  const onHeroBaseLoad = useCallback(() => {
+    baseLoadResolver.current?.();
+    baseLoadResolver.current = null;
+  }, []);
+
+  const abortCurrentCrossfadeForSkip = useCallback(() => {
+    stopHeroFadeAnim();
+    if (incomingLoadResolver.current) {
+      incomingLoadResolver.current();
+      incomingLoadResolver.current = null;
+    }
+    if (baseLoadResolver.current) {
+      baseLoadResolver.current();
+      baseLoadResolver.current = null;
+    }
+    baseLoadGeneration.current += 1;
+
+    const incoming = heroIncomingMetaRef.current;
+    const promote = incoming?.url ? incoming : heroBaseRef.current;
+    if (promote?.url) {
+      setHeroBase(promote);
+      setHeroMeta(promote);
+      lastFadedHeroUrl.current = promote.url;
+    }
+    setHeroIncomingMeta(null);
+    heroFadeAnim.setValue(1);
+    heroKenBurnsAnim.setValue(1);
+    heroBaseOpacityAnim.setValue(1);
+  }, [heroBaseOpacityAnim, heroFadeAnim, heroKenBurnsAnim, stopHeroFadeAnim]);
+
+  const shouldAbortCrossfade = useCallback(
+    () => skipCrossfadeRequested.current || !!pendingHeroTarget.current,
+    [],
+  );
+
+  const abortIfSkipRequested = useCallback(() => {
+    if (!shouldAbortCrossfade()) return false;
+    skipCrossfadeRequested.current = false;
+    abortCurrentCrossfadeForSkip();
+    return true;
+  }, [abortCurrentCrossfadeForSkip, shouldAbortCrossfade]);
+
+  const heroMetaToSource = useCallback((meta) => {
+    if (!meta?.url || meta.url === DEFAULT_HERO_IMAGE_URL) return getHeroImage(destination);
+    return { uri: meta.url };
+  }, [destination]);
+
+  const waitForIncomingPaint = useCallback(() => new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      incomingLoadResolver.current = null;
+      resolve();
+    };
+    incomingLoadResolver.current = finish;
+    setTimeout(finish, HERO_INCOMING_LOAD_TIMEOUT_MS);
+  }), []);
+
+  const waitForBasePaint = useCallback((generation) => new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled || baseLoadGeneration.current !== generation) return;
+      settled = true;
+      baseLoadResolver.current = null;
+      resolve();
+    };
+    baseLoadResolver.current = finish;
+    setTimeout(finish, 400);
+  }), []);
+
+  const executeSingleCrossfade = useCallback(async (targetMeta) => {
+    const url = targetMeta?.url;
+    if (!url || url === lastFadedHeroUrl.current) {
+      setHeroBase(targetMeta);
+      setHeroMeta(targetMeta);
+      setHeroIncomingMeta(null);
+      heroBaseOpacityAnim.setValue(1);
+      lastFadedHeroUrl.current = url;
+      return 'done';
+    }
+
+    if (url.startsWith('http')) {
+      try { await Image.prefetch(url); } catch (_) { /* still wait for onLoadEnd */ }
+    }
+    if (abortIfSkipRequested()) return 'skipped';
+
+    stopHeroFadeAnim();
     heroFadeAnim.setValue(0);
-    Animated.timing(heroFadeAnim, {
-      toValue: 1,
-      duration: 850,
-      easing: Easing.inOut(Easing.ease),
-      useNativeDriver: true,
-    }).start();
-  }, [heroFadeAnim]);
+    heroKenBurnsAnim.setValue(HERO_KEN_BURNS_START);
+    heroBaseOpacityAnim.setValue(1);
+    setHeroIncomingMeta(targetMeta);
+
+    await new Promise((r) => { requestAnimationFrame(() => requestAnimationFrame(r)); });
+    if (abortIfSkipRequested()) return 'skipped';
+
+    await waitForIncomingPaint();
+    if (abortIfSkipRequested()) return 'skipped';
+
+    const finished = await new Promise((resolve) => {
+      fadeAnimRef.current = Animated.parallel([
+        Animated.timing(heroFadeAnim, {
+          toValue: 1,
+          duration: HERO_CROSSFADE_MS,
+          easing: HERO_FADE_EASING,
+          useNativeDriver: true,
+        }),
+        Animated.timing(heroKenBurnsAnim, {
+          toValue: 1,
+          duration: HERO_CROSSFADE_MS,
+          easing: HERO_FADE_EASING,
+          useNativeDriver: true,
+        }),
+        Animated.timing(heroBaseOpacityAnim, {
+          toValue: HERO_BASE_FADE_OUT,
+          duration: HERO_CROSSFADE_MS,
+          easing: HERO_FADE_EASING,
+          useNativeDriver: true,
+        }),
+      ]);
+      fadeAnimRef.current.start(({ finished: animFinished }) => {
+        fadeAnimRef.current = null;
+        resolve(animFinished);
+      });
+    });
+    if (!finished || abortIfSkipRequested()) return 'skipped';
+
+    lastFadedHeroUrl.current = url;
+    setHeroMeta(targetMeta);
+
+    const loadGen = ++baseLoadGeneration.current;
+    setHeroBase(targetMeta);
+    await new Promise((r) => { requestAnimationFrame(() => requestAnimationFrame(r)); });
+    if (abortIfSkipRequested()) return 'skipped';
+
+    await waitForBasePaint(loadGen);
+    if (abortIfSkipRequested()) return 'skipped';
+
+    setHeroIncomingMeta(null);
+    heroFadeAnim.setValue(1);
+    heroKenBurnsAnim.setValue(1);
+    heroBaseOpacityAnim.setValue(1);
+    return 'done';
+  }, [
+    abortIfSkipRequested,
+    heroBaseOpacityAnim,
+    heroFadeAnim,
+    heroKenBurnsAnim,
+    stopHeroFadeAnim,
+    waitForIncomingPaint,
+    waitForBasePaint,
+  ]);
+
+  const processPendingHeroTransition = useCallback(async () => {
+    if (heroFadeRunning.current) return;
+    heroFadeRunning.current = true;
+    skipCrossfadeRequested.current = false;
+    try {
+      while (pendingHeroTarget.current) {
+        const job = pendingHeroTarget.current;
+        pendingHeroTarget.current = null;
+        if (job.index != null) setHeroIndex(job.index);
+
+        const result = await executeSingleCrossfade(job.meta);
+        if (result === 'skipped' || pendingHeroTarget.current) {
+          continue;
+        }
+        if (job.tracking?.event) {
+          mixpanel.track(job.tracking.event, job.tracking.props);
+        }
+      }
+    } finally {
+      heroFadeRunning.current = false;
+      if (pendingHeroTarget.current) {
+        processPendingHeroTransition();
+      }
+    }
+  }, [executeSingleCrossfade]);
+
+  const requestHeroTransition = useCallback((meta, index = null, tracking = null) => {
+    if (!meta?.url) return;
+    pendingHeroTarget.current = { meta, index, tracking };
+    if (index != null) setHeroIndex(index);
+    if (heroFadeRunning.current) {
+      skipCrossfadeRequested.current = true;
+      stopHeroFadeAnim();
+      return;
+    }
+    processPendingHeroTransition();
+  }, [processPendingHeroTransition, stopHeroFadeAnim]);
+
   const pulseAnim = React.useRef(new Animated.Value(1)).current;
   const vignetteAnim = React.useRef(new Animated.Value(0)).current;
 
@@ -390,7 +603,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           }
           __DEV__ && console.log('[resolvePlace] final resolvedId:', resolvedId);
         } catch (e) {
-          console.warn('[resolvePlace] lookup failed:', e);
+          if (__DEV__) console.warn('[resolvePlace] lookup failed:', e);
         }
       }
 
@@ -434,7 +647,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           setIsLoading(false);
           return;
         } catch (fetchError) {
-          console.warn(`⚠️ Supabase fetch failed for ${destination.name}, using inline forecast fallback:`, fetchError);
+          if (__DEV__) console.warn(`⚠️ Supabase fetch failed for ${destination.name}, using inline forecast fallback:`, fetchError);
         }
       }
       
@@ -529,14 +742,18 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     const placeObj = { id: effectivePlaceId, generic_key: destination.generic_key, name_en: destination.name_en };
     setHeroList([]);
     setHeroIndex(0);
+    setHeroIncomingMeta(null);
+    pendingHeroTarget.current = null;
+    heroFadeRunning.current = false;
+    stopHeroFadeAnim();
     lastFadedHeroUrl.current = null;
     const cached = getCachedHeroImage(placeObj);
     setHeroBase(cached);
     setHeroMeta(null);
+    heroFadeAnim.setValue(0);
+    heroKenBurnsAnim.setValue(1);
+    heroBaseOpacityAnim.setValue(1);
 
-    // Lookup taking too long (slow network): commit to what we have — the last
-    // cached hero, else the local generic (DEFAULT url routes to it in render).
-    let fallbackShown = false;
     const fallbackHero = cached ?? {
       url: DEFAULT_HERO_IMAGE_URL,
       hero_variant: null,
@@ -545,22 +762,22 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       hero_image_name: null,
     };
     const fallbackTimer = setTimeout(() => {
-      fallbackShown = true;
-      startHeroFade(fallbackHero.url);
-      setHeroMeta(fallbackHero);
+      requestHeroTransition(fallbackHero, 0);
     }, 3000);
 
     getDedicatedHeroImage(placeObj).then(async (hero) => {
-      if (hero.url?.startsWith('http')) {
-        try { await Image.prefetch(hero.url); } catch (_) { /* ignore */ }
-      }
       clearTimeout(fallbackTimer);
-      if (fallbackShown) {
-        // Late arrival: promote the fallback to base so the cross-fade starts from it
-        setHeroBase(fallbackHero);
-      }
-      startHeroFade(hero.url);
-      setHeroMeta(hero);
+      requestHeroTransition(hero, 0, hero.url !== DEFAULT_HERO_IMAGE_URL ? {
+        event: 'Hero Shown',
+        props: {
+          place_id: effectivePlaceId,
+          place_name: destination.name,
+          hero_image_name: hero.hero_image_name,
+          hero_variant: hero.hero_variant,
+          hero_variant_index: hero.hero_variant_index,
+          hero_source: hero.hero_source,
+        },
+      } : null);
       if (__DEV__) {
         const list = await listDedicatedHeroImages(placeObj);
         setHeroList(list);
@@ -572,20 +789,17 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           }
         });
       }
-      if (hero.url !== DEFAULT_HERO_IMAGE_URL) {
-        mixpanel.track('Hero Shown', {
-          place_id: effectivePlaceId,
-          place_name: destination.name,
-          hero_image_name: hero.hero_image_name,
-          hero_variant: hero.hero_variant,
-          hero_variant_index: hero.hero_variant_index,
-          hero_source: hero.hero_source,
-        });
-      }
     }).catch(() => {});
 
-    return () => clearTimeout(fallbackTimer);
-  }, [effectivePlaceId]);
+    return () => {
+      clearTimeout(fallbackTimer);
+      stopHeroFadeAnim();
+      pendingHeroTarget.current = null;
+      heroFadeRunning.current = false;
+      incomingLoadResolver.current = null;
+      baseLoadResolver.current = null;
+    };
+  }, [effectivePlaceId, requestHeroTransition, stopHeroFadeAnim, heroFadeAnim, heroKenBurnsAnim, heroBaseOpacityAnim]);
 
   useEffect(() => {
     stopStayImpressionFired.current = false;
@@ -1143,41 +1357,33 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   };
 
   const activeHeroMeta =
-    heroList.length > 0
+    heroIncomingMeta
+    ?? (heroList.length > 0
       ? (heroList[heroIndex] ?? heroMeta)
-      : heroMeta;
+      : heroMeta);
 
   const cycleHero = (delta, method = 'button') => {
     if (heroList.length < 2) return;
     const next = (heroIndex + delta + heroList.length) % heroList.length;
-    // Promote the currently shown image to base so the next one cross-fades over it
-    const current = heroList[heroIndex] ?? heroMeta;
-    if (current) setHeroBase(current);
-    startHeroFade(heroList[next]?.url);
-    setHeroIndex(next);
-    mixpanel.track('Hero Browsed', {
-      place_id: effectivePlaceId,
-      place_name: destination.name,
-      direction: delta > 0 ? 'next' : 'prev',
-      method,
-      ...getHeroTrackingProps(heroList[next]),
+    const target = heroList[next];
+    requestHeroTransition(target, next, {
+      event: 'Hero Browsed',
+      props: {
+        place_id: effectivePlaceId,
+        place_name: destination.name,
+        direction: delta > 0 ? 'next' : 'prev',
+        method,
+        ...getHeroTrackingProps(target),
+      },
     });
   };
 
-  // Resolved hero (fades in over the base). Null while the lookup is pending.
-  const heroSource = activeHeroMeta
-    ? (activeHeroMeta.url && activeHeroMeta.url !== DEFAULT_HERO_IMAGE_URL
-        ? { uri: activeHeroMeta.url }
-        : getHeroImage(destination))
-    : null;
-  // Base layer: last hero shown for this place (rotation and timeout-fallback
-  // cross-fade from it), otherwise the local generic. Blur it only while nothing
-  // has been shown for this place yet (loading placeholder).
+  const heroIncomingSource = heroIncomingMeta ? heroMetaToSource(heroIncomingMeta) : null;
   const heroBaseSource = heroBase?.url && heroBase.url !== DEFAULT_HERO_IMAGE_URL
     ? { uri: heroBase.url }
     : getHeroImage(destination);
-  const heroBaseBlurred = !heroBase;
-  const hasHero = !!(heroSource || heroBaseSource);
+  const heroBaseBlurred = !heroBase && !heroMeta;
+  const hasHero = !!(heroIncomingSource || heroBase || heroMeta || heroBaseSource);
   const useDarkText = !hasHero && needsDarkText();
   const textColor = useDarkText ? '#2b3e50' : '#fff';
   const subtitleColor = useDarkText ? '#3a4f5d' : '#fff';
@@ -1191,6 +1397,17 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     return d.toLocaleDateString(dateLocale, { weekday: 'short', day: 'numeric', month: 'short' });
   };
   const heroDateLabel = formatDateLabel(dateOffset);
+
+  let devHeroFileName = null;
+  if (__DEV__ && uiFocused && activeHeroMeta) {
+    if (activeHeroMeta.hero_image_name) {
+      devHeroFileName = activeHeroMeta.hero_image_name;
+    } else if (activeHeroMeta.url) {
+      const base = activeHeroMeta.url.split('/').pop()?.split('?')[0] || '';
+      const dot = base.lastIndexOf('.');
+      devHeroFileName = dot >= 0 ? base.slice(0, dot) : base;
+    }
+  }
 
   return (
     <View style={{ flex: 1 }}>
@@ -1208,15 +1425,33 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           {heroBaseSource && (
             <Animated.Image
               source={heroBaseSource}
+              onLoadEnd={onHeroBaseLoad}
               blurRadius={heroBaseBlurred ? 12 : 0}
-              style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, transform: [{ scale: heroScaleAnim }] }}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                opacity: heroBaseOpacityAnim,
+                transform: [{ scale: heroScaleAnim }],
+              }}
               resizeMode="cover"
             />
           )}
-          {heroSource && (
+          {heroIncomingSource && (
             <Animated.Image
-              source={heroSource}
-              style={{ width: '100%', height: '100%', top: 0, opacity: heroFadeAnim, transform: [{ scale: heroScaleAnim }] }}
+              source={heroIncomingSource}
+              onLoadEnd={onHeroIncomingLoad}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                right: 0,
+                bottom: 0,
+                opacity: heroFadeAnim,
+                transform: [{ scale: heroScaleAnim }, { scale: heroKenBurnsAnim }],
+              }}
               resizeMode="cover"
             />
           )}
@@ -1256,6 +1491,13 @@ const DestinationDetailScreen = ({ route, navigation }) => {
               ))}
             </View>
           )}
+          {devHeroFileName ? (
+            <View style={styles.devHeroFileName} pointerEvents="none">
+              <Text style={styles.devHeroFileNameText} numberOfLines={2}>
+                {devHeroFileName}
+              </Text>
+            </View>
+          ) : null}
           {heroHintVisible && (
             <Animated.View style={[styles.heroExpandTooltip, { opacity: heroHintAnim }]} pointerEvents="none">
               <Text style={styles.heroExpandTooltipText}>View photo</Text>
@@ -2322,6 +2564,26 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '600',
     fontVariant: ['tabular-nums'],
+  },
+  devHeroFileName: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    bottom: 96,
+    zIndex: 11,
+    alignItems: 'center',
+  },
+  devHeroFileNameText: {
+    color: 'rgba(255, 255, 255, 0.92)',
+    fontSize: 11,
+    fontWeight: '600',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
+    textAlign: 'center',
+    backgroundColor: 'rgba(0, 0, 0, 0.45)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    overflow: 'hidden',
   },
   tapToShowPill: {
     position: 'absolute',

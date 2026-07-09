@@ -576,7 +576,7 @@ const MapScreen = ({ navigation }) => {
         return;
       }
     } catch (error) {
-      console.warn('Could not check location services:', error);
+      if (__DEV__) console.warn('Could not check location services:', error);
     }
 
     // 2. Check permission WITHOUT prompting first. If it's not granted yet,
@@ -587,7 +587,7 @@ const MapScreen = ({ navigation }) => {
       try {
         permissionStatus = (await Location.getForegroundPermissionsAsync()).status;
       } catch (error) {
-        console.warn('getForegroundPermissionsAsync failed:', error.message);
+        if (__DEV__) console.warn('getForegroundPermissionsAsync failed:', error.message);
         permissionStatus = 'undetermined';
       }
     }
@@ -625,7 +625,7 @@ const MapScreen = ({ navigation }) => {
               setLoading(false);
             }
           } catch (error) {
-            console.warn('getCurrentPositionAsync (post-permission) failed:', error.message);
+            if (__DEV__) console.warn('getCurrentPositionAsync (post-permission) failed:', error.message);
           }
         })
         .catch((error) => {
@@ -662,7 +662,7 @@ const MapScreen = ({ navigation }) => {
         hasInstantLocation = true;
       }
     } catch (error) {
-      console.warn('getLastKnownPositionAsync (fast start) failed:', error.message);
+      if (__DEV__) console.warn('getLastKnownPositionAsync (fast start) failed:', error.message);
     }
 
     // 4. Fetch fresh position in background. Only re-center + re-fetch markers if it
@@ -687,12 +687,12 @@ const MapScreen = ({ navigation }) => {
         return;
       }
     } catch (error) {
-      console.warn('getCurrentPositionAsync failed:', error.message);
+      if (__DEV__) console.warn('getCurrentPositionAsync failed:', error.message);
     }
 
     // 5. If no instant location was available and fresh GPS failed, use default
     if (!hasInstantLocation) {
-      console.warn('No cached or fresh location available, using default location');
+      if (__DEV__) console.warn('No cached or fresh location available, using default location');
       setLocation(DEFAULT_LOCATION);
       setMapViewport(prev => ({
         ...prev,
@@ -716,7 +716,7 @@ const MapScreen = ({ navigation }) => {
         const favs = await getFavourites();
         setFavouriteDestinations(favs);
       } catch (e) {
-        console.warn('Failed to load favourites for map:', e);
+        if (__DEV__) console.warn('Failed to load favourites for map:', e);
       }
     };
     loadFavs();
@@ -748,9 +748,9 @@ const MapScreen = ({ navigation }) => {
 
   // Persist selected date offset to AsyncStorage
   useEffect(() => {
-    AsyncStorage.setItem('selectedDateOffset', selectedDateOffset.toString()).catch(err =>
-      console.warn('Failed to save date offset:', err)
-    );
+    AsyncStorage.setItem('selectedDateOffset', selectedDateOffset.toString()).catch(err => {
+      if (__DEV__) console.warn('Failed to save date offset:', err);
+    });
   }, [selectedDateOffset]);
 
   // Remember the last manual reference so the context menu can switch back to it
@@ -773,9 +773,7 @@ const MapScreen = ({ navigation }) => {
 
   useEffect(() => {
     if (!location) return;
-    if (__DEV__) {
-      console.log('🔄 Trigger: location/radius/centerPoint changed, reloading destinations...');
-    }
+    if (__DEV__) console.log('🔄 Trigger: location/radius/centerPoint changed, reloading destinations...');
     // First time we get location: load immediately (no debounce). Later: debounce radius/center changes.
     if (!hasLoadedForLocationRef.current) {
       hasLoadedForLocationRef.current = true;
@@ -924,7 +922,7 @@ const MapScreen = ({ navigation }) => {
       if (origin) applyBadgesToDestinations(shifted, origin, origin.lat, origin.lon, reverseMode, radius);
       if (__DEV__) {
         const ok = shifted.filter((s, i) => s !== dests[i]).length;
-        console.log(`📅 +${offset}: ${ok} shifted, ${shifted.length - ok} unchanged`);
+        if (__DEV__) console.log(`📅 +${offset}: ${ok} shifted, ${shifted.length - ok} unchanged`);
       }
       // Shallow-copy: badge application mutates in place, memoized markers compare by reference
       setDisplayDestinations(shifted.map(d => ({ ...d })));
@@ -1017,7 +1015,7 @@ const MapScreen = ({ navigation }) => {
       const effectiveCenter = centerPoint || location;
       const originTemp = centerPointWeather?.temperature || null;
       if (__DEV__) {
-        console.log(`🔄 Loading destinations for center: ${effectiveCenter.latitude.toFixed(2)}, ${effectiveCenter.longitude.toFixed(2)}, radius: ${radius}km (req#${requestId})`);
+        if (__DEV__) console.log(`🔄 Loading destinations for center: ${effectiveCenter.latitude.toFixed(2)}, ${effectiveCenter.longitude.toFixed(2)}, radius: ${radius}km (req#${requestId})`);
       }
       const [weatherData, currentLocationWeather] = await Promise.all([
         getWeatherForRadius(
@@ -1046,18 +1044,18 @@ const MapScreen = ({ navigation }) => {
         : weatherData;
       allDestinations = [...allDestinations, ...filteredWeather];
       if (__DEV__) {
-        console.log(`🏆 Badge origin: ${centerPointWeather ? 'centerPoint' : 'currentLocation'}, ${allDestinations.length} places`);
+        if (__DEV__) console.log(`🏆 Badge origin: ${centerPointWeather ? 'centerPoint' : 'currentLocation'}, ${allDestinations.length} places`);
       }
       if (__DEV__ && allDestinations.length > 1) {
         const sample = allDestinations.find(d => !d.isCurrentLocation && !d.isCenterPoint);
-        if (sample) console.log('[DEBUG MapScreen] sample dest:', sample.name, '| place_type:', sample.place_type, '| image_region:', sample.image_region);
+        if (sample && __DEV__) console.log('[DEBUG MapScreen] sample dest:', sample.name, '| place_type:', sample.place_type, '| image_region:', sample.image_region);
       }
       setDestinations(allDestinations);
       AsyncStorage.setItem('mapDestinationsCache', JSON.stringify({
         timestamp: Date.now(),
         version: 2,
         data: allDestinations,
-      })).catch((cacheError) => console.warn('Failed to cache destinations:', cacheError));
+      })).catch((cacheError) => { if (__DEV__) console.warn('Failed to cache destinations:', cacheError); });
     } catch (error) {
       if (requestId !== loadRequestIdRef.current) return;
       showToast(t('map.failedToLoadWeather') || 'Failed to load weather data', 'error');
@@ -1132,7 +1130,7 @@ const MapScreen = ({ navigation }) => {
         extraProps: { distance: 0, isCurrentLocation: true },
       });
     } catch (error) {
-      console.warn('Failed to fetch current location weather:', error);
+      if (__DEV__) console.warn('Failed to fetch current location weather:', error);
       return null;
     }
   };
@@ -1792,7 +1790,7 @@ const MapScreen = ({ navigation }) => {
     if (visibleMarkers.length === 0) return;
     if (__DEV__) {
       const specialCount = visibleMarkers.filter(v => v.isCurrentLocation || v.isCenterPoint).length;
-      console.log(`🔍 Zoom ${mapViewport.zoom}: ${visibleMarkers.length} markers (${specialCount} special) of ${displayDestinations.length}`);
+      if (__DEV__) console.log(`🔍 Zoom ${mapViewport.zoom}: ${visibleMarkers.length} markers (${specialCount} special) of ${displayDestinations.length}`);
     }
     const newIds = visibleMarkers
       .filter(d => d.id && !d.isCurrentLocation && !d.isCenterPoint && !mapViewTrackedIds.current.has(d.id))
@@ -1831,9 +1829,9 @@ const MapScreen = ({ navigation }) => {
       bounds: initialViewportBounds(latitude, longitude, radius),
     }));
 
-    AsyncStorage.setItem('mapCenterPoint', JSON.stringify(newCenter)).catch(error =>
-      console.warn('Failed to save center point:', error)
-    );
+    AsyncStorage.setItem('mapCenterPoint', JSON.stringify(newCenter)).catch(error => {
+      if (__DEV__) console.warn('Failed to save center point:', error);
+    });
     
     showToast(t('map.centerPointSet'), 'info');
   };
@@ -1885,7 +1883,7 @@ const MapScreen = ({ navigation }) => {
         showToast(t('map.noDestinationNearby'), 'info');
       }
     } catch (err) {
-      console.warn('nearest_place RPC failed:', err);
+      if (__DEV__) console.warn('nearest_place RPC failed:', err);
       showToast(t('map.noDestinationNearby'), 'info');
     }
   };
@@ -1911,7 +1909,7 @@ const MapScreen = ({ navigation }) => {
       });
       setCenterPointWeather(weatherData);
     } catch (error) {
-      console.warn('Failed to fetch center point weather:', error);
+      if (__DEV__) console.warn('Failed to fetch center point weather:', error);
       setCenterPointWeather(null);
     }
   };
@@ -1972,9 +1970,9 @@ const MapScreen = ({ navigation }) => {
     mixpanel.track('Reference Mode Changed', { mode: 'gps' });
     setCenterPoint(null);
     setCenterPointWeather(null);
-    AsyncStorage.removeItem('mapCenterPoint').catch(error =>
-      console.warn('Failed to remove center point:', error)
-    );
+    AsyncStorage.removeItem('mapCenterPoint').catch(error => {
+      if (__DEV__) console.warn('Failed to remove center point:', error);
+    });
     skipNextLocationAnimRef.current = true;
     animateToReference(location);
   };
@@ -1991,9 +1989,9 @@ const MapScreen = ({ navigation }) => {
     mixpanel.track('Reference Mode Changed', { mode: 'manual' });
     setCenterPoint(saved.center);
     setCenterPointWeather(saved.weather || null);
-    AsyncStorage.setItem('mapCenterPoint', JSON.stringify(saved.center)).catch(error =>
-      console.warn('Failed to save center point:', error)
-    );
+    AsyncStorage.setItem('mapCenterPoint', JSON.stringify(saved.center)).catch(error => {
+      if (__DEV__) console.warn('Failed to save center point:', error);
+    });
     skipNextLocationAnimRef.current = true;
     animateToReference(saved.center);
   };
@@ -2073,9 +2071,9 @@ const MapScreen = ({ navigation }) => {
         ...prev,
         bounds: initialViewportBounds(lat, lng, radius),
       }));
-      AsyncStorage.setItem('mapCenterPoint', JSON.stringify(newCenter)).catch(err =>
-        console.warn('Failed to save center point:', err)
-      );
+      AsyncStorage.setItem('mapCenterPoint', JSON.stringify(newCenter)).catch(err => {
+        if (__DEV__) console.warn('Failed to save center point:', err);
+      });
 
       skipNextLocationAnimRef.current = true;
       InteractionManager.runAfterInteractions(() => {

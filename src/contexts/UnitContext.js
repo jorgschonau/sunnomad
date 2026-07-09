@@ -42,7 +42,7 @@ export const UnitProvider = ({ children }) => {
         applyImperial(savedImperial === 'true');
       }
     } catch (error) {
-      console.warn('Failed to load unit preferences:', error);
+      if (__DEV__) console.warn('Failed to load unit preferences:', error);
     } finally {
       setIsLoading(false);
     }
@@ -53,7 +53,7 @@ export const UnitProvider = ({ children }) => {
       applyImperial(imperial);
       await AsyncStorage.setItem('useImperial', imperial.toString());
     } catch (error) {
-      console.warn('Failed to save unit preference:', error);
+      if (__DEV__) console.warn('Failed to save unit preference:', error);
     }
   };
 
