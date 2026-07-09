@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect, useContext, useCallback, useMemo, useRef } from 'react';
+import { Linking } from 'react-native';
 import * as authService from '../services/authService';
 import * as profileService from '../services/profileService';
 import { identifyUser, resetMixpanelIdentity, mixpanel } from '../services/mixpanel';
@@ -19,25 +20,105 @@ export const AuthProvider = ({ children }) => {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
+  const [recoveryLinkError, setRecoveryLinkError] = useState(null);
   const hadAuthenticatedUser = useRef(false);
 
-  // Initialize session on app start
-  useEffect(() => {
-    initializeAuth();
+  const loadProfile = useCallback(async (userId) => {
+    try {
+      const { profile, error } = await profileService.getProfile(userId);
+      if (error) throw error;
+      setProfile(profile);
+    } catch (error) {
+      console.error('Failed to load profile:', error);
+    }
   }, []);
+
+  // Consume a `sunnomad://reset-password#access_token=...&type=recovery` deep link:
+  // sets the recovery session and flags the app to show ResetPasswordScreen.
+  const consumeRecoveryUrl = useCallback(async (url) => {
+    const parsed = authService.parseAuthUrl(url);
+    if (!parsed || parsed.type !== 'recovery') return { error: null };
+
+    if (!parsed.accessToken || !parsed.refreshToken) {
+      return { error: new Error(parsed.error || 'Invalid recovery link') };
+    }
+
+    const { session: recoverySession, error } = await authService.setRecoverySession(
+      parsed.accessToken,
+      parsed.refreshToken
+    );
+    if (error) return { error };
+
+    setSession(recoverySession);
+    setUser(recoverySession?.user ?? null);
+    setIsPasswordRecovery(true);
+    return { error: null };
+  }, []);
+
+  const clearRecoveryLinkError = useCallback(() => setRecoveryLinkError(null), []);
+
+  // Initialize auth + deep links (recovery URL must win over stored session on cold start)
+  useEffect(() => {
+    let linkingSubscription;
+
+    const handleRecoveryUrl = async (url) => {
+      const { error } = await consumeRecoveryUrl(url);
+      if (error) setRecoveryLinkError(error);
+    };
+
+    const initializeAuth = async () => {
+      try {
+        setLoading(true);
+
+        const initialUrl = await Linking.getInitialURL();
+        if (initialUrl) {
+          const parsed = authService.parseAuthUrl(initialUrl);
+          if (parsed?.type === 'recovery') {
+            await handleRecoveryUrl(initialUrl);
+            return;
+          }
+        }
+
+        const session = await authService.initializeSession();
+        if (session?.user) {
+          setSession(session);
+          setUser(session.user);
+        }
+      } catch (error) {
+        console.error('Failed to initialize auth:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
+
+    linkingSubscription = Linking.addEventListener('url', ({ url }) => {
+      handleRecoveryUrl(url);
+    });
+
+    return () => linkingSubscription?.remove();
+  }, [consumeRecoveryUrl]);
 
   // Listen to auth state changes
   useEffect(() => {
     const subscription = authService.onAuthStateChange(async (event, session) => {
       if (__DEV__) console.log('Auth state changed:', event);
+
+      if (event === 'PASSWORD_RECOVERY') {
+        setIsPasswordRecovery(true);
+      }
+
       setSession(session);
       setUser(session?.user ?? null);
 
       if (session?.user) {
         hadAuthenticatedUser.current = true;
-        await identifyUser(session.user.id);
-        await loadProfile(session.user.id);
-        profileService.recordAppOpen(session.user.id);
+        if (event !== 'PASSWORD_RECOVERY') {
+          await identifyUser(session.user.id);
+          await loadProfile(session.user.id);
+          profileService.recordAppOpen(session.user.id);
+        }
       } else {
         setProfile(null);
         if (hadAuthenticatedUser.current) {
@@ -50,36 +131,7 @@ export const AuthProvider = ({ children }) => {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
-
-  const initializeAuth = async () => {
-    try {
-      setLoading(true);
-      const session = await authService.initializeSession();
-      
-      if (session?.user) {
-        // Only set state for instant navigation gating. identifyUser/loadProfile/
-        // recordAppOpen run once in the onAuthStateChange listener, which fires
-        // SIGNED_IN for the restored session (previously both paths did the work).
-        setSession(session);
-        setUser(session.user);
-      }
-    } catch (error) {
-      console.error('Failed to initialize auth:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadProfile = useCallback(async (userId) => {
-    try {
-      const { profile, error } = await profileService.getProfile(userId);
-      if (error) throw error;
-      setProfile(profile);
-    } catch (error) {
-      console.error('Failed to load profile:', error);
-    }
-  }, []);
+  }, [loadProfile]);
 
   const signUp = useCallback(async (email, password, username, displayName) => {
     try {
@@ -166,28 +218,6 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
-  // Consume a `sunnomad://reset-password#access_token=...&type=recovery` deep link:
-  // sets the recovery session and flags the app to show ResetPasswordScreen.
-  const consumeRecoveryUrl = useCallback(async (url) => {
-    const parsed = authService.parseAuthUrl(url);
-    if (!parsed || parsed.type !== 'recovery') return { error: null };
-
-    if (!parsed.accessToken || !parsed.refreshToken) {
-      return { error: new Error(parsed.error || 'Invalid recovery link') };
-    }
-
-    const { session: recoverySession, error } = await authService.setRecoverySession(
-      parsed.accessToken,
-      parsed.refreshToken
-    );
-    if (error) return { error };
-
-    setSession(recoverySession);
-    setUser(recoverySession?.user ?? null);
-    setIsPasswordRecovery(true);
-    return { error: null };
-  }, []);
-
   const cancelPasswordRecovery = useCallback(() => setIsPasswordRecovery(false), []);
 
   const deleteAccount = useCallback(async () => {
@@ -248,10 +278,13 @@ export const AuthProvider = ({ children }) => {
     isPasswordRecovery,
     consumeRecoveryUrl,
     cancelPasswordRecovery,
+    recoveryLinkError,
+    clearRecoveryLinkError,
   }), [
-    user, profile, session, loading, isPasswordRecovery,
+    user, profile, session, loading, isPasswordRecovery, recoveryLinkError,
     signUp, signIn, signOut, resetPassword, updatePassword,
     deleteAccount, updateProfile, refreshProfile, consumeRecoveryUrl, cancelPasswordRecovery,
+    clearRecoveryLinkError,
   ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

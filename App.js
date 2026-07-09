@@ -1,7 +1,7 @@
 import 'react-native-gesture-handler';
 import 'react-native-get-random-values';
 import React, { useEffect, useState, useCallback, useRef, Suspense } from 'react';
-import { View, Image, Text, StyleSheet, Animated, Easing, ActivityIndicator, Linking, Alert } from 'react-native';
+import { View, Image, Text, StyleSheet, Animated, Easing, ActivityIndicator, Alert } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants from 'expo-constants';
@@ -276,7 +276,13 @@ function PixelDissolveOverlay({ active, onDone }) {
 }
 
 function RootNavigator() {
-  const { isAuthenticated, loading, isPasswordRecovery, consumeRecoveryUrl } = useAuth();
+  const {
+    isAuthenticated,
+    loading,
+    isPasswordRecovery,
+    recoveryLinkError,
+    clearRecoveryLinkError,
+  } = useAuth();
   const { theme } = useTheme();
   const { t } = useTranslation();
   const [splashPhase, setSplashPhase] = useState(null);
@@ -288,22 +294,12 @@ function RootNavigator() {
   const presentsOpacity = useRef(new Animated.Value(0)).current;
   const onDissolveDone = useCallback(() => setGoldieHidden(true), []);
 
-  // Handle `sunnomad://reset-password` deep link (cold start + already-running app)
   useEffect(() => {
-    const handleUrl = async ({ url }) => {
-      const { error } = await consumeRecoveryUrl(url);
-      if (error) {
-        Alert.alert(t('auth.error'), t('auth.recoveryLinkExpired'));
-      }
-    };
-
-    Linking.getInitialURL().then((url) => {
-      if (url) handleUrl({ url });
-    });
-
-    const subscription = Linking.addEventListener('url', handleUrl);
-    return () => subscription.remove();
-  }, [consumeRecoveryUrl, t]);
+    if (!recoveryLinkError) return;
+    Alert.alert(t('auth.error'), t('auth.recoveryLinkExpired'), [
+      { text: 'OK', onPress: clearRecoveryLinkError },
+    ]);
+  }, [recoveryLinkError, clearRecoveryLinkError, t]);
 
   // Goldie intro+dissolve once per day; SunNomad splash every launch
   useEffect(() => {
@@ -399,13 +395,16 @@ function RootNavigator() {
     SplashScreen.hideAsync();
   }, [splashPhase, fontsLoaded, introReady]);
 
-  if (splashPhase === null) return null;
+  if (splashPhase === null && !isPasswordRecovery) return null;
 
   const showSplash =
-    splashPhase === 'intro'
-    || splashPhase === 'main'
-    || splashPhase === 'sunnomad'
-    || (loading && splashPhase !== 'done');
+    !isPasswordRecovery
+    && (
+      splashPhase === 'intro'
+      || splashPhase === 'main'
+      || splashPhase === 'sunnomad'
+      || (loading && splashPhase !== 'done')
+    );
 
   if (showSplash) {
     const dissolving = splashPhase === 'main';

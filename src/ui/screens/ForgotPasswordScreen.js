@@ -73,7 +73,11 @@ export default function ForgotPasswordScreen({ navigation }) {
 
     if (error) {
       mixpanel.track('Forgot Password Failed', { reason: error.message || 'unknown' });
-      Alert.alert(t('auth.error'), t('auth.resetPasswordFailed'));
+      if (error.message === 'email_not_registered') {
+        setEmailError(t('auth.emailNotRegistered'));
+      } else {
+        Alert.alert(t('auth.error'), t('auth.resetPasswordFailed'));
+      }
     } else {
       mixpanel.track('Forgot Password Completed');
       setEmailSent(true);

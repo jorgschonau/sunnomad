@@ -1,5 +1,6 @@
 import { supabase } from '../config/supabase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Linking from 'expo-linking';
 
 /**
  * Authentication Service
@@ -161,8 +162,22 @@ export const getCurrentSession = async () => {
  */
 export const resetPassword = async (email) => {
   try {
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: 'sunnomad://reset-password',
+    const trimmed = email.trim();
+    const { data: exists, error: checkError } = await supabase.rpc('check_email_registered', {
+      email_input: trimmed,
+    });
+
+    if (!checkError && exists === false) {
+      const err = new Error('email_not_registered');
+      return { error: err };
+    }
+
+    if (checkError && __DEV__) {
+      console.warn('check_email_registered unavailable, skipping pre-check:', checkError.message);
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(trimmed, {
+      redirectTo: Linking.createURL('reset-password'),
     });
     if (error) throw error;
     return { error: null };
