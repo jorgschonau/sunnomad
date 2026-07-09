@@ -430,6 +430,7 @@
     "editProfile": "Profil bearbeiten",
     "changeEmail": "E-Mail ändern",
     "changePassword": "Passwort ändern",
+    "changePasswordSubtitle": "Wähle ein neues Passwort für deinen Account",
     "featureComingSoon": "Diese Funktion kommt demnächst.",
     "ironicStreak1": "Tag {{count}} auf der Suche nach der Sonne. Noch nicht von der Couch aufgestanden.",
     "ironicStreak2": "Tag {{count}} als Beta-Tester. Bugs gemeldet: 0. Bugs gefunden: mindestens 12.",

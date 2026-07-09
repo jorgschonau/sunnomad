@@ -267,15 +267,14 @@ export const AuthProvider = ({ children }) => {
 
   const updatePassword = useCallback(async (newPassword) => {
     try {
-      const { error, userId } = await authService.updatePassword(newPassword);
+      const { error } = await authService.updatePassword(newPassword);
       if (error) throw error;
-      finishPasswordRecovery(userId);
       return { error: null };
     } catch (error) {
       console.error('Update password error:', error);
       return { error };
     }
-  }, [finishPasswordRecovery]);
+  }, []);
 
   const cancelPasswordRecovery = useCallback(() => {
     finishPasswordRecovery(user?.id);

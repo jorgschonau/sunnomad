@@ -178,7 +178,10 @@ export default function ProfileScreen({ navigation }) {
 
         <TouchableOpacity
           style={styles.outlineButton}
-          onPress={() => Alert.alert(t('settings.comingSoon'), t('profile.featureComingSoon'))}
+          onPress={() => {
+            mixpanel.track('Change Password Link Tapped');
+            navigation.navigate('ChangePassword');
+          }}
         >
           <Ionicons name="lock-closed-outline" size={20} color={theme.primary} style={styles.actionIcon} />
           <Text style={styles.outlineButtonText}>{t('profile.changePassword')}</Text>

@@ -45,6 +45,7 @@ import RegisterScreen from './src/ui/screens/RegisterScreen';
 import ForgotPasswordScreen from './src/ui/screens/ForgotPasswordScreen';
 import ResetPasswordScreen from './src/ui/screens/ResetPasswordScreen';
 import ProfileScreen from './src/ui/screens/ProfileScreen';
+import ChangePasswordScreen from './src/ui/screens/ChangePasswordScreen';
 import FeedbackScreen from './src/ui/screens/FeedbackScreen';
 
 import { ThemeProvider, useTheme } from './src/theme/ThemeProvider';
@@ -171,6 +172,14 @@ function MainNavigator() {
         component={ProfileScreen}
         options={{
           title: t('profile.title', 'Profile'),
+          headerBackTitle: t('app.back'),
+        }}
+      />
+      <AppStack.Screen
+        name="ChangePassword"
+        component={ChangePasswordScreen}
+        options={{
+          title: t('profile.changePassword'),
           headerBackTitle: t('app.back'),
         }}
       />
@@ -534,14 +543,20 @@ const splashStyles = StyleSheet.create({
 });
 
 function DevBuildBanner() {
-  if (!__DEV__) return null;
+  const appVariant = Constants.expoConfig?.extra?.appVariant;
+  const isDevVariant = appVariant === 'development';
+  // TestFlight/internal dev builds have __DEV__ === false — still show banner.
+  if (!__DEV__ && !isDevVariant) return null;
+
   const version = Constants.nativeApplicationVersion ?? '?';
   const build = Constants.nativeBuildVersion ?? '?';
+  const scheme = Constants.expoConfig?.scheme ?? '?';
+  const label = isDevVariant ? 'SunNomad Dev' : 'Metro DEV';
+
   return (
     <View style={devBannerStyles.wrap} pointerEvents="none">
       <Text style={devBannerStyles.text}>
-        DEV · v{version} ({build})
-        {Constants.expoConfig?.extra?.appVariant === 'development' ? ' · SunNomad Dev' : ''}
+        {label} · {scheme}:// · v{version} ({build})
       </Text>
     </View>
   );

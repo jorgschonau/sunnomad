@@ -21,7 +21,6 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
-// Brand colors (match LoginScreen/RegisterScreen)
 const BRAND = {
   cream: '#F5E6D3',
   orange: '#C87840',
@@ -35,10 +34,10 @@ const BRAND = {
   shadow: '#5C4033',
 };
 
-export default function ResetPasswordScreen() {
-  const { updatePassword, cancelPasswordRecovery, user } = useAuth();
+export default function ChangePasswordScreen({ navigation }) {
+  const { updatePassword, user } = useAuth();
   const { t } = useTranslation();
-  const resetEmail = user?.email?.toLowerCase() ?? null;
+  const userEmail = user?.email?.toLowerCase() ?? null;
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -81,13 +80,13 @@ export default function ResetPasswordScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      mixpanel.track('Password Reset Screen Viewed', { email: resetEmail });
-    }, [resetEmail])
+      mixpanel.track('Change Password Screen Viewed', { email: userEmail });
+    }, [userEmail])
   );
 
-  const handleUpdatePassword = async () => {
+  const handleChangePassword = async () => {
     if (!password || !confirmPassword) {
-      mixpanel.track('Password Reset Attempted', { successful: false, reason: 'missing_fields', email: resetEmail });
+      mixpanel.track('Change Password Attempted', { successful: false, reason: 'missing_fields', email: userEmail });
       Alert.alert(t('auth.error'), t('auth.fillAllFields'));
       return;
     }
@@ -95,10 +94,10 @@ export default function ResetPasswordScreen() {
     if (password !== confirmPassword || password.length < MIN_PASSWORD_LENGTH) {
       syncPasswordHint(password);
       syncConfirmHint(confirmPassword, password);
-      mixpanel.track('Password Reset Attempted', {
+      mixpanel.track('Change Password Attempted', {
         successful: false,
         reason: password.length < MIN_PASSWORD_LENGTH ? 'password_too_short' : 'passwords_dont_match',
-        email: resetEmail,
+        email: userEmail,
       });
       return;
     }
@@ -108,28 +107,26 @@ export default function ResetPasswordScreen() {
     setLoading(false);
 
     if (error) {
-      mixpanel.track('Password Reset Attempted', {
+      mixpanel.track('Change Password Attempted', {
         successful: false,
         reason: error.message || 'unknown',
-        email: resetEmail,
+        email: userEmail,
       });
       const message =
-        error.message === 'no_session'
-          ? t('auth.recoveryLinkExpired')
-          : error.message === 'same_password'
-            ? t('auth.passwordSameAsOld')
-            : t('auth.updatePasswordFailed');
+        error.message === 'same_password'
+          ? t('auth.passwordSameAsOld')
+          : t('auth.updatePasswordFailed');
       Alert.alert(t('auth.error'), message);
     } else {
-      mixpanel.track('Password Reset Attempted', { successful: true, email: resetEmail });
+      mixpanel.track('Change Password Attempted', { successful: true, email: userEmail });
       Alert.alert(
         t('auth.passwordUpdated'),
         t('auth.passwordUpdatedMessage'),
         [{
           text: 'OK',
           onPress: () => {
-            mixpanel.track('Password Reset Successful', { email: resetEmail });
-            cancelPasswordRecovery();
+            mixpanel.track('Change Password Successful', { email: userEmail });
+            navigation.goBack();
           },
         }]
       );
@@ -161,8 +158,8 @@ export default function ResetPasswordScreen() {
           />
         </View>
 
-        <Text style={styles.title}>{t('auth.resetPasswordTitle')}</Text>
-        <Text style={styles.subtitle}>{t('auth.resetPasswordSubtitle')}</Text>
+        <Text style={styles.title}>{t('profile.changePassword')}</Text>
+        <Text style={styles.subtitle}>{t('profile.changePasswordSubtitle')}</Text>
 
         <View style={styles.formCard}>
           <View style={styles.inputContainer}>
@@ -180,7 +177,7 @@ export default function ResetPasswordScreen() {
                 onChangeText={onPasswordChange}
                 secureTextEntry={!showPassword}
                 autoComplete="off"
-                textContentType="password"
+                textContentType="newPassword"
                 autoCorrect={false}
                 editable={!loading}
                 autoFocus
@@ -217,7 +214,7 @@ export default function ResetPasswordScreen() {
                 onChangeText={onConfirmPasswordChange}
                 secureTextEntry={!showConfirmPassword}
                 autoComplete="off"
-                textContentType="password"
+                textContentType="newPassword"
                 autoCorrect={false}
                 editable={!loading}
               />
@@ -240,7 +237,7 @@ export default function ResetPasswordScreen() {
 
           <TouchableOpacity
             style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleUpdatePassword}
+            onPress={handleChangePassword}
             disabled={loading}
             activeOpacity={0.85}
           >
@@ -261,7 +258,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: BRAND.cream,
   },
-
   accentStrip: {
     flexDirection: 'row',
     height: 5,
@@ -278,14 +274,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: BRAND.orange,
   },
-
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
     paddingHorizontal: 28,
     paddingBottom: 40,
   },
-
   header: {
     alignItems: 'center',
     marginBottom: 40,
@@ -295,7 +289,6 @@ const styles = StyleSheet.create({
     width: Math.min(SCREEN_WIDTH * 0.55, 240),
     height: 68,
   },
-
   title: {
     fontSize: 26,
     fontWeight: '600',
@@ -309,7 +302,6 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 32,
   },
-
   formCard: {
     backgroundColor: BRAND.white,
     borderRadius: 18,
@@ -374,7 +366,6 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
   },
-
   button: {
     backgroundColor: BRAND.orange,
     borderRadius: 12,
