@@ -276,7 +276,9 @@
     "sortRecent": "Zuletzt",
     "sortWarmest": "Wärme",
     "sortNearest": "Entfernung",
-    "sortSun": "Sonne"
+    "sortSun": "Sonne",
+    "loadFailed": "Favoriten konnten nicht geladen werden",
+    "updateFailed": "Favoriten konnten nicht aktualisiert werden"
   },
   "badges": {
     "worththedrive": "Lohnt die Fahrt",

@@ -35,9 +35,8 @@ const BRAND = {
 };
 
 export default function ChangePasswordScreen({ navigation }) {
-  const { updatePassword, user } = useAuth();
+  const { updatePassword } = useAuth();
   const { t } = useTranslation();
-  const userEmail = user?.email?.toLowerCase() ?? null;
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -80,13 +79,13 @@ export default function ChangePasswordScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
-      mixpanel.track('Change Password Screen Viewed', { email: userEmail });
-    }, [userEmail])
+      mixpanel.track('Change Password Screen Viewed');
+    }, [])
   );
 
   const handleChangePassword = async () => {
     if (!password || !confirmPassword) {
-      mixpanel.track('Change Password Attempted', { successful: false, reason: 'missing_fields', email: userEmail });
+      mixpanel.track('Change Password Attempted', { successful: false, reason: 'missing_fields' });
       Alert.alert(t('auth.error'), t('auth.fillAllFields'));
       return;
     }
@@ -97,7 +96,6 @@ export default function ChangePasswordScreen({ navigation }) {
       mixpanel.track('Change Password Attempted', {
         successful: false,
         reason: password.length < MIN_PASSWORD_LENGTH ? 'password_too_short' : 'passwords_dont_match',
-        email: userEmail,
       });
       return;
     }
@@ -110,7 +108,6 @@ export default function ChangePasswordScreen({ navigation }) {
       mixpanel.track('Change Password Attempted', {
         successful: false,
         reason: error.message || 'unknown',
-        email: userEmail,
       });
       const message =
         error.message === 'same_password'
@@ -118,14 +115,14 @@ export default function ChangePasswordScreen({ navigation }) {
           : t('auth.updatePasswordFailed');
       Alert.alert(t('auth.error'), message);
     } else {
-      mixpanel.track('Change Password Attempted', { successful: true, email: userEmail });
+      mixpanel.track('Change Password Attempted', { successful: true });
       Alert.alert(
         t('auth.passwordUpdated'),
         t('auth.passwordUpdatedMessage'),
         [{
           text: 'OK',
           onPress: () => {
-            mixpanel.track('Change Password Successful', { email: userEmail });
+            mixpanel.track('Change Password Successful');
             navigation.goBack();
           },
         }]

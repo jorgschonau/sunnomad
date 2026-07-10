@@ -276,7 +276,9 @@
     "sortRecent": "Recent",
     "sortWarmest": "Warmest",
     "sortNearest": "Distance",
-    "sortSun": "Sun"
+    "sortSun": "Sun",
+    "loadFailed": "Failed to load favourites",
+    "updateFailed": "Failed to update favourites"
   },
   "badges": {
     "worththedrive": "Worth the Drive",

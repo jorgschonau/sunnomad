@@ -522,7 +522,9 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     return slots;
   };
 
-  const loadForecast = async () => {
+  // isCancelled guards against a stale response landing after the user
+  // navigated to another destination (or away) while the fetch was running.
+  const loadForecast = async (isCancelled = () => false) => {
     try {
       setIsRefreshing(true);
       setError(null);
@@ -547,6 +549,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           }
         });
         if (Object.keys(slots).length >= 2) {
+          if (isCancelled()) return;
           const day0 = destination.forecastArray[startIdx];
           const fastForecast = {
             ...destination,
@@ -643,6 +646,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
             convertedForecast._springAwakeningData = destination._springAwakeningData;
           }
           
+          if (isCancelled()) return;
           setForecast(convertedForecast);
           setIsLoading(false);
           return;
@@ -692,12 +696,14 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           } : null,
         };
         
+        if (isCancelled()) return;
         setForecast({ ...fallbackBase, forecast: normalizedForecast });
         setIsLoading(false);
         return;
       }
       
       // PRIORITY 3: Fallback - generate forecast from current data (5 days)
+      if (isCancelled()) return;
       setForecast({
         ...fallbackBase,
         forecast: {
@@ -711,19 +717,22 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     } catch (err) {
       console.error('Error fetching forecast:', err);
       // Only show error if we don't have any data at all
-      if (!forecast) {
+      if (!forecast && !isCancelled()) {
         setError(err.message || t('destination.errorMessage'));
       }
     } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
+      if (!isCancelled()) {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
     }
   };
 
   useEffect(() => {
+    let cancelled = false;
     const task = InteractionManager.runAfterInteractions(() => {
       setReadyForDetails(true);
-      loadForecast();
+      loadForecast(() => cancelled);
       checkFavouriteStatus();
       mixpanel.track('Destination Viewed', {
         place_id: effectivePlaceId,
@@ -735,7 +744,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         source: viewSource,
       });
     });
-    return () => task.cancel();
+    return () => {
+      cancelled = true;
+      task.cancel();
+    };
   }, [destination.lat, destination.lon]);
 
   useEffect(() => {
@@ -966,11 +978,11 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         mixpanel.track(result.isFavourite ? 'Destination Favourited' : 'Destination Unfavourited', favProps);
       } else {
         if (__DEV__) console.warn('Toggle favourite failed:', result.message);
-        showFavToast(result.message || 'Failed to update favourites');
+        showFavToast(result.message || t('favourites.updateFailed'));
       }
     } catch (error) {
       console.error('Failed to toggle favourite:', error);
-      showFavToast('Failed to update favourites');
+      showFavToast(t('favourites.updateFailed'));
     } finally {
       setFavouriteLoading(false);
     }
@@ -1141,7 +1153,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         <Text style={[styles.errorMessage, { color: theme.text }]}>{error}</Text>
         <TouchableOpacity 
           style={[styles.retryButton, { backgroundColor: theme.primary }]} 
-          onPress={loadForecast}
+          onPress={() => loadForecast()}
         >
           <Text style={styles.retryButtonText}>{t('destination.retry')}</Text>
         </TouchableOpacity>

@@ -122,8 +122,8 @@ const SortBar = ({ sortKey, onSortChange, hasLocation, theme, t }) => {
             style={[
               styles.sortChip,
               {
-                backgroundColor: active ? theme.primary : theme.surface,
-                borderColor: active ? theme.primary : theme.border,
+                backgroundColor: active ? theme.primaryLight : theme.surface,
+                borderColor: active ? theme.primaryLight : `${theme.border}AA`,
               },
             ]}
             onPress={() => onSortChange(key)}
@@ -131,7 +131,7 @@ const SortBar = ({ sortKey, onSortChange, hasLocation, theme, t }) => {
             <Text
               style={[
                 styles.sortChipText,
-                { color: active ? '#FFFFFF' : theme.textSecondary },
+                { color: active ? theme.primaryDark : theme.textSecondary },
               ]}
             >
               {t(SORT_LABELS[key])}
@@ -188,13 +188,23 @@ const FavouriteCard = ({ item, theme, t, temperatureUnit, distanceUnit, locale, 
       {heroSource ? (
         <View style={styles.heroStrip}>
           <Image source={heroSource} style={styles.heroImage} resizeMode="cover" />
+          <View style={styles.heroImageBrighten} pointerEvents="none" />
+          <View style={styles.heroImageContrast} pointerEvents="none" />
           <LinearGradient
-            colors={['rgba(0,0,0,0.12)', 'rgba(0,0,0,0.62)']}
+            colors={[
+              'transparent',
+              'rgba(0,0,0,0.03)',
+              'rgba(0,0,0,0.14)',
+              'rgba(0,0,0,0.28)',
+              'rgba(0,0,0,0.38)',
+            ]}
+            locations={[0, 0.25, 0.5, 0.78, 1]}
             style={StyleSheet.absoluteFill}
           />
           <LinearGradient
-            colors={['transparent', 'rgba(0,0,0,0.55)']}
-            start={{ x: 0.4, y: 0 }}
+            colors={['transparent', 'rgba(0,0,0,0.07)', 'rgba(0,0,0,0.28)']}
+            locations={[0, 0.55, 1]}
+            start={{ x: 0.2, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={StyleSheet.absoluteFill}
           />
@@ -214,7 +224,6 @@ const FavouriteCard = ({ item, theme, t, temperatureUnit, distanceUnit, locale, 
             <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('favourites.sunToday')}</Text>
             <Text style={[styles.statValue, { color: theme.text }]}>{sunTodayValue}</Text>
           </View>
-          <View style={[styles.statDivider, { backgroundColor: theme.border }]} />
           <View style={styles.statItem}>
             <Text style={[styles.statLabel, { color: theme.textSecondary }]}>{t('favourites.trend')}</Text>
             <Text style={[styles.statValue, styles.trendValue, { color: theme.text }]} numberOfLines={1}>
@@ -352,7 +361,7 @@ const FavouritesScreen = ({ navigation, route }) => {
       return withHero;
     } catch (error) {
       console.error('Failed to load favourites:', error);
-      Alert.alert(t('map.error'), 'Failed to load favourites');
+      Alert.alert(t('map.error'), t('favourites.loadFailed'));
       return [];
     } finally {
       setLoading(false);
@@ -550,7 +559,7 @@ const styles = StyleSheet.create({
     paddingBottom: 6,
   },
   sortChip: {
-    paddingHorizontal: 14,
+    paddingHorizontal: 15,
     paddingVertical: 7,
     borderRadius: 20,
     borderWidth: 1,
@@ -560,30 +569,30 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   swipeableContainer: {
-    marginBottom: 14,
+    marginBottom: 10,
   },
   swipeableChild: {
-    borderRadius: 16,
+    borderRadius: 19,
     overflow: 'hidden',
   },
   favouriteCard: {
-    borderRadius: 16,
+    borderRadius: 19,
     overflow: 'hidden',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 14,
+    elevation: 2,
   },
   deleteAction: {
     width: DELETE_ACTION_WIDTH,
     backgroundColor: '#E53935',
     justifyContent: 'center',
     alignItems: 'center',
-    borderTopRightRadius: 16,
-    borderBottomRightRadius: 16,
+    borderTopRightRadius: 19,
+    borderBottomRightRadius: 19,
   },
   heroStrip: {
-    height: 88,
+    height: 100,
     justifyContent: 'flex-end',
   },
   heroFallback: {
@@ -593,6 +602,15 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     width: '100%',
     height: '100%',
+  },
+  heroImageBrighten: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255,255,255,0.065)',
+  },
+  heroImageContrast: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(128,128,128,0.05)',
+    mixBlendMode: 'overlay',
   },
   heroContent: {
     flexDirection: 'row',
@@ -609,7 +627,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
   },
   locationName: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: '700',
     color: '#FFFFFF',
     textShadowColor: 'rgba(0,0,0,0.4)',
@@ -617,17 +635,17 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   locationMeta: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '500',
     marginTop: 2,
-    color: 'rgba(255,255,255,0.92)',
+    color: 'rgba(255,255,255,0.78)',
     textShadowColor: 'rgba(0,0,0,0.4)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
   temperature: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 20,
+    fontWeight: '600',
     marginLeft: 10,
     color: '#FFFFFF',
     textShadowColor: 'rgba(0,0,0,0.4)',
@@ -635,26 +653,22 @@ const styles = StyleSheet.create({
     textShadowRadius: 3,
   },
   cardBody: {
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 20,
+    paddingVertical: 16,
   },
   statsRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 32,
   },
   statItem: {
     flex: 1,
     alignItems: 'center',
   },
-  statDivider: {
-    width: 1,
-    height: 28,
-    opacity: 0.35,
-  },
   statLabel: {
     fontSize: 12,
     fontWeight: '500',
-    marginBottom: 4,
+    marginBottom: 6,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
   },

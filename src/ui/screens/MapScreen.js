@@ -811,6 +811,9 @@ const MapScreen = ({ navigation }) => {
       if (searchDebounceRef.current) {
         clearTimeout(searchDebounceRef.current);
       }
+      if (loadingPhaseTimerRef.current) {
+        clearInterval(loadingPhaseTimerRef.current);
+      }
     };
   }, []);
 
@@ -1661,8 +1664,9 @@ const MapScreen = ({ navigation }) => {
         d.isCurrentLocation || d.isCenterPoint || normalized.includes(d.condition?.toLowerCase())
       );
     }
-    return getVisibleMarkers(candidates, currentZoom, currentBounds, favouriteDestinations);
-  }, [mapViewport, displayDestinations, location, radius, favouriteDestinations, centerPoint, selectedConditions]);
+    return getVisibleMarkers(candidates, currentZoom, currentBounds);
+    // favouriteDestinations intentionally omitted: favourites render separately (renderedFavourites)
+  }, [mapViewport, displayDestinations, location, radius, centerPoint, selectedConditions]);
 
   // Favourites are rendered as dedicated markers further below. Detect them here
   // so the normal marker isn't drawn on top of the favourite marker (destinations

@@ -1,4 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 import { v4 as uuidv4 } from 'uuid';
 
 const TOKEN = process.env.EXPO_PUBLIC_MIXPANEL_TOKEN;
@@ -9,6 +10,8 @@ const TRACKING_ENABLED = !!TOKEN && !IS_DEV;
 
 const BASE_PROPERTIES = {
   app_environment: IS_DEV ? 'development' : 'production',
+  app_version: Constants.nativeApplicationVersion ?? Constants.expoConfig?.version ?? 'unknown',
+  app_build: Constants.nativeBuildVersion ?? 'unknown',
 };
 
 let distinctId = 'anonymous';

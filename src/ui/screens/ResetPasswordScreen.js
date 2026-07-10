@@ -36,9 +36,8 @@ const BRAND = {
 };
 
 export default function ResetPasswordScreen() {
-  const { updatePassword, cancelPasswordRecovery, user } = useAuth();
+  const { updatePassword, cancelPasswordRecovery } = useAuth();
   const { t } = useTranslation();
-  const resetEmail = user?.email?.toLowerCase() ?? null;
 
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -81,13 +80,13 @@ export default function ResetPasswordScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      mixpanel.track('Password Reset Screen Viewed', { email: resetEmail });
-    }, [resetEmail])
+      mixpanel.track('Password Reset Screen Viewed');
+    }, [])
   );
 
   const handleUpdatePassword = async () => {
     if (!password || !confirmPassword) {
-      mixpanel.track('Password Reset Attempted', { successful: false, reason: 'missing_fields', email: resetEmail });
+      mixpanel.track('Password Reset Attempted', { successful: false, reason: 'missing_fields' });
       Alert.alert(t('auth.error'), t('auth.fillAllFields'));
       return;
     }
@@ -98,7 +97,6 @@ export default function ResetPasswordScreen() {
       mixpanel.track('Password Reset Attempted', {
         successful: false,
         reason: password.length < MIN_PASSWORD_LENGTH ? 'password_too_short' : 'passwords_dont_match',
-        email: resetEmail,
       });
       return;
     }
@@ -111,7 +109,6 @@ export default function ResetPasswordScreen() {
       mixpanel.track('Password Reset Attempted', {
         successful: false,
         reason: error.message || 'unknown',
-        email: resetEmail,
       });
       const message =
         error.message === 'no_session'
@@ -121,14 +118,14 @@ export default function ResetPasswordScreen() {
             : t('auth.updatePasswordFailed');
       Alert.alert(t('auth.error'), message);
     } else {
-      mixpanel.track('Password Reset Attempted', { successful: true, email: resetEmail });
+      mixpanel.track('Password Reset Attempted', { successful: true });
       Alert.alert(
         t('auth.passwordUpdated'),
         t('auth.passwordUpdatedMessage'),
         [{
           text: 'OK',
           onPress: () => {
-            mixpanel.track('Password Reset Successful', { email: resetEmail });
+            mixpanel.track('Password Reset Successful');
             cancelPasswordRecovery();
           },
         }]

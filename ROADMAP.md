@@ -312,14 +312,88 @@ Jun–Jul 2026          Aug–Sep 2026          Q4 2026
 -- bestimmte regionen
 -- zum beispiel greek mythologie, ww1/ww2 spots, wüstenregionen usw
 
-## promos
+## promos & collections
 
--- promos, z.b. july 4th (best of us, oder top national parks ...), halloween (castle rock etc), 
--- button mit den shortcuts zu markern, ja mach pronmo. können einzelne orte oder collections sein.
--- button oben rechts, mit history der der promos, evtl auto grey out/ delete after x days
--- evtl auch best ofs , best of greece, best of france
--- oder thematisch: greek mythologiy, french wine regions, us deserts, snowbird refuges etc etc
+### system
+-- promo button mit shortcuts zu markern (einzelne orte oder collections), button oben rechts mit history, auto grey-out/delete after x days
+-- collections als trading cards (MTG-look): 63/88 aspect ratio, rarity-rahmen (common/rare gold/mythic schimmer), flavor-text, kategorie-farben. mythic = saisonal aktiv
+-- collectible-system: claim via GPS (ST_DWithin ≤2km) = free. manueller/retro-claim = PRO feature, reibung via quiz-frage (aus fact-feld generierbar, falsch = 24h sperre). kein foto-abgleich (overkill)
+-- zwei spielsysteme: free collections (panini-lücken) + progression/level-system (claim nur sequenziell, master-karte am ende)
+-- level-prototypen: Höhentherapie (10 level: baumwipfelpfad → verzasca-bungee/aiguille du midi, master "Schwindelfrei"), Ekeltherapie (haggis → surströmming, master "Eiserner Magen"). später: kälte-, dunkeltherapie
+-- claim-stufen: besucht (grau) / getan (gold, self-reported). angeln: besucht/GEFANGEN. bier: maß gehoben
+-- skins später: trading cards / EU wanderstock-wappen + heck-sticker / US NP-passport-stamps + state-map
+-- share = gerenderte karte als bild (view-shot) + app store link = viral loop. sun report integration ("deine 2026er deck")
+-- titel-lokalisierung via giggle_lang (de/en-us/en-gb getrennt)
+-- kuratierung: KEINE großstädte (ausnahme: unersetzbar), KEINE guide-klassiker (zweite reihe > erste: staglieno statt père lachaise), ferry_minutes statt insel-bann
+-- märkte getrennt bewerten: 90% US-user reisen US, EU-user EU. cross-market-gags wertlos
+
+### top 12 EU
+1. Wetter-Superlative
+2. Memento Mori (staglieno cover, joy division layer)
+3. Come Into the Light (licht-kirchen, uhrzeit/saison-content = wetter-USP)
+4. Painted by Masters (CDF/van gogh/cézanne, nebel-forecast-angle, cleo=CDF-rückenfigur)
+5. In Full Bloom (lavendel–heide feb–sep gestaffelt, superbloom-push)
+6. Cold War
+7. Turning Points (waterloo, verdun, westerplatte, sopron)
+8. The Floor is Lava! (ätna, stromboli, methana!, vulkaneifel)
+9. Bier in der Sonne (biergarten-wetter = push-material #1, forchheim kellerwald, andechs, weltenburg)
+10. Märchenwald (sababurg, wistman's wood, białowieża, hallerbos, fireflies)
+11. Majestic Ruins
+12. Lebendige Traditionen (4er-familie: Winter/Sommer/Odd Olympics/Wild Feasts — guča cover!, würde-skala 1-10 auf karten)
+
+### top 12 US
+1. Snowbird Refuges
+2. Turning Points (gettysburg-mechanik)
+3. Wetter-Superlative
+4. US Americana/Drive-Through
+5. Mystery/Conspiracy + Cryptids (akte-x-generation! mothman, tarantula-wanderung la junta)
+6. Movie/Screen Legends + VHS Generation (goonies/astoria, stand by me, twin peaks) + Period Romance sub (newport, biltmore — frauen 45-65!)
+7. Music Cities + Sleeve Notes (grunge-shift, weniger graceland)
+8. Space Race
+9. Old Europe in the New World (leavenworth, frankenmuth, solvang, tarpon springs — heritage-nostalgie)
+10. Lost Places
+11. Haunted Places + King-Country (stanley, myrtles, bangor)
+12. Cold War
+
+### außer konkurrenz (beide märkte, eigene jobs)
+-- Ode to a Good Boy / DE "Ehre, wem Ehre gebührt" — hunde-denkmäler (bobby, balto, gelert, sallie in gettysburg als easter egg). goldie-brand-content, has_dog-push
+-- Forever 14 — silly names (wank, fugging, shitterton, montcuq FR, boring/hell US). giggle_lang! foto-missionen ("Ausfahrt"-schild = onboarding-karte). schilder-ästhetik als card-art (illustration statt foto)
+-- Golden Hour — top sunsets + klarsicht-forecast = produkt-USP wörtlich. KEIN verona/paris-kitsch. valentins-sub feb
+
+### zweite reihe (nach launch, reihenfolge nach aufwand/fit)
+-- Land's End (leuchttürme + seebrücken, ostsee-cluster heimspiel)
+-- Sei gut zu Vögeln / Bird is the Word — birding (algarve-cluster!, kerkini pelikane, linum kraniche = heimspiel, bosque/platte river US). event-charakter, frauen-zielgruppe
+-- Höhlen/Underworld (hitzefrei-synergie, diros/melissani)
+-- Liquid Legends (islay, bourbon trail) + Slow Brew (kaffeehaus — wien/triest mit großstadt-check) + Last Orders (country pubs & inns, jamaica inn, sean's bar, luckenbach — übernachtbar!)
+-- Thermal/Hot Springs
+-- Gone Fishin' (MV-heimspiel, mörrum, ebro-wels, keys. lizenz = boomer's problem, standard-satz reicht)
+-- Garten-Meisterwerke (bad muskau, branitz-pyramide, quinta da regaleira, las pozas MX)
+-- Earn Your View (no-crowds hikes: ruta del cares, vikos, tara MNE + marathon-routen-sub)
+-- Screen Legends EU (bergdoktor, pilcher, bond-trail: verzasca/kotor/meteora)
+-- Elvis → in music cities gemergt (bad nauheim bleibt karte)
+-- Rock Stars (tierfelsen/bögen: elefant sardinien, belogradchik, étretat=monet-doppel) + Colossus (decebalus!, kelpies, spomeniks, stone faces)
+-- Holy Roads (vanlife-pilgerorte: nordkapp, tarifa, cabo da roca, quartzsite!, slab city. "vier ecken"-master-karte)
+-- Divine Intoxication (delphi-dämpfe, eleusis, nemea, andechs-wallfahrt, maribor-urrebe)
+-- Dare You (ekel-essen, skywalks, hängebrücken — teils in level-system)
+-- Swarm Season als event-familie (monarchs pacific grove = snowbird-geo!, tiszavirágzás, fireflies, bat flights)
+-- MTB-Meccas (finale ligure, moab, bentonville — e-MTB-boomer wachsend)
+-- Golf (größte lücke: st andrews, algarve, snowbird-geo-kern)
+-- Wild Swimming (aare bern, jubilee pool — GenX-frauen)
+-- Flohmärkte (braderie lille, 127 yard sale route), Bücherdörfer (hay-on-wye, wünsdorf=lost-place-doppel)
+-- Sweet Spots (werksführungen: kambly, ritter, ben&jerry's flavor graveyard!) + Named & Famous (dijon, parma, roquefort=höhlen-doppel)
+
+### event-jahresschiene (banner + mythic-fenster + limited card + 1 push pro event)
+-- feb: mandelblüte/valentinstag (golden hour) | apr: bluebells/tulpen | jun: fireflies/mittsommer/tiszavirágzás | aug: perseiden/guča | okt: HALLOWEEN (spooky-bundle: haunted+memento mori+cryptids+märchenwald, salem/sleepy hollow spots, limited card "halloween 2026", orange marker-dots) | nov: beaujolais | dez: krampus/moritzburg-aschenbrödel/weihnachtsmärkte
+-- festivals/almabtrieb etc = event-layer auf bestands-places (datum + when-tab), KEINE eigenen collections. events-tabelle später
+
+### tot (nicht wiederbeleben)
+
+-- foto-ikonen & album-cover als eigene collections (→ fact-layer "cover story" + sleeve-notes-sub)
+
 
 ## faves
 -- setting, always visible yes/no
+
+## neuer badge
+-- neuer badge: hidden gem, oder einfach attractuve, genaue regeln später
 
