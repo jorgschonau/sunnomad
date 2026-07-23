@@ -10,13 +10,17 @@
 require('dotenv').config();
 const { createClient } = require('@supabase/supabase-js');
 
-// Check Supabase config
-if (!process.env.SUPABASE_URL || !process.env.SUPABASE_ANON_KEY) {
+// Check Supabase config (service role key required for writes; anon key as local fallback)
+const SUPABASE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY;
+if (!process.env.SUPABASE_URL || !SUPABASE_KEY) {
   console.error('❌ Supabase not configured! Check .env file');
   process.exit(1);
 }
+if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+  console.warn('⚠️  No SUPABASE_SERVICE_ROLE_KEY set – using anon key (writes may fail due to RLS)');
+}
 
-const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY);
+const supabase = createClient(process.env.SUPABASE_URL, SUPABASE_KEY);
 
 const OPEN_METEO_API_KEY = process.env.OPEN_METEO_API_KEY || '';
 const OPEN_METEO_BASE_URL = OPEN_METEO_API_KEY
@@ -186,6 +190,7 @@ async function processBatch(places, batchNum, totalBatches) {
 
     if (upsertError) {
       console.error(`  ❌ Bulk upsert failed: ${upsertError.message}`);
+      process.exitCode = 1; // fail the workflow run – data was fetched but not saved
     }
   }
 
