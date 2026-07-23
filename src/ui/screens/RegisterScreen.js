@@ -17,9 +17,9 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { mixpanel } from '../../services/mixpanel';
+import { validateEmailInput, emailErrorKey } from '../../utils/emailValidation';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Brand colors (match LoginScreen)
@@ -67,12 +67,9 @@ export default function RegisterScreen({ navigation }) {
   );
 
   const validateEmail = (value) => {
-    if (!value.trim()) {
-      setEmailError(t('auth.fillAllFields'));
-      return false;
-    }
-    if (!EMAIL_REGEX.test(value.trim())) {
-      setEmailError(t('auth.invalidEmail'));
+    const result = validateEmailInput(value);
+    if (!result.valid) {
+      setEmailError(t(result.reason === 'empty_email' ? 'auth.fillAllFields' : emailErrorKey(result.reason)));
       return false;
     }
     setEmailError('');
@@ -87,7 +84,8 @@ export default function RegisterScreen({ navigation }) {
     }
 
     if (!validateEmail(email)) {
-      mixpanel.track('Sign Up Validation Failed', { reason: 'invalid_email' });
+      const emailCheck = validateEmailInput(email);
+      mixpanel.track('Sign Up Validation Failed', { reason: emailCheck.reason || 'invalid_email' });
       return;
     }
 
@@ -111,8 +109,9 @@ export default function RegisterScreen({ navigation }) {
 
     mixpanel.track('Sign Up Started');
     setLoading(true);
+    const emailCheck = validateEmailInput(email);
     const { error } = await signUp(
-      email.trim(),
+      emailCheck.email,
       password,
       username.trim(),
       displayName.trim() || username.trim()
@@ -120,9 +119,14 @@ export default function RegisterScreen({ navigation }) {
     setLoading(false);
 
     if (error) {
+      const isNetworkError = error.name === 'AbortError'
+        || /network|timed out|abort/i.test(error.message || '');
       let reason = 'unknown';
       let errorMessage = t('auth.tryAgain');
-      if (error.message?.includes('already registered')) {
+      if (isNetworkError) {
+        reason = 'network_error';
+        errorMessage = t('auth.networkError');
+      } else if (error.message?.includes('already registered')) {
         reason = 'email_exists';
         errorMessage = t('auth.emailAlreadyExists');
       } else if (error.message?.toLowerCase().includes('rate limit')) {
@@ -213,6 +217,7 @@ export default function RegisterScreen({ navigation }) {
               onBlur={() => email && validateEmail(email)}
               autoCapitalize="none"
               keyboardType="email-address"
+              textContentType="emailAddress"
               autoComplete="email"
               editable={!loading}
             />

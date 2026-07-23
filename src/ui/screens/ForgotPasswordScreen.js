@@ -17,8 +17,8 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { mixpanel } from '../../services/mixpanel';
+import { validateEmailInput, emailErrorKey } from '../../utils/emailValidation';
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 const BRAND = {
@@ -51,12 +51,9 @@ export default function ForgotPasswordScreen({ navigation }) {
   );
 
   const validateEmail = (value) => {
-    if (!value.trim()) {
-      setEmailError(t('auth.fillAllFields'));
-      return false;
-    }
-    if (!EMAIL_REGEX.test(value.trim())) {
-      setEmailError(t('auth.invalidEmail'));
+    const result = validateEmailInput(value);
+    if (!result.valid) {
+      setEmailError(t(result.reason === 'empty_email' ? 'auth.fillAllFields' : emailErrorKey(result.reason)));
       return false;
     }
     setEmailError('');
@@ -64,30 +61,32 @@ export default function ForgotPasswordScreen({ navigation }) {
   };
 
   const handleResetPassword = async () => {
-    const emailValue = email.trim().toLowerCase();
+    const emailCheck = validateEmailInput(email);
 
-    if (!validateEmail(email)) {
-      const reason = !email.trim() ? 'empty_email'
-        : !EMAIL_REGEX.test(email.trim()) ? 'invalid_email'
-        : 'validation_failed';
+    if (!emailCheck.valid) {
       mixpanel.track('Password Reset Email Attempted', {
         email_sent: false,
-        reason,
+        reason: emailCheck.reason,
       });
+      setEmailError(t(emailCheck.reason === 'empty_email' ? 'auth.fillAllFields' : emailErrorKey(emailCheck.reason)));
       return;
     }
 
     setLoading(true);
-    const { error } = await resetPassword(emailValue);
+    const { error } = await resetPassword(emailCheck.email);
     setLoading(false);
 
     if (error) {
+      const isNetworkError = error.name === 'AbortError'
+        || /network|timed out|abort/i.test(error.message || '');
       mixpanel.track('Password Reset Email Attempted', {
         email_sent: false,
-        reason: error.message || 'unknown',
+        reason: isNetworkError ? 'network_error' : (error.message || 'unknown'),
       });
       if (error.message === 'email_not_registered') {
         setEmailError(t('auth.emailNotRegistered'));
+      } else if (isNetworkError) {
+        Alert.alert(t('auth.error'), t('auth.networkError'));
       } else {
         Alert.alert(t('auth.error'), t('auth.resetPasswordFailed'));
       }
@@ -183,6 +182,7 @@ export default function ForgotPasswordScreen({ navigation }) {
               onBlur={() => email && validateEmail(email)}
               autoCapitalize="none"
               keyboardType="email-address"
+              textContentType="emailAddress"
               autoComplete="email"
               editable={!loading}
               autoFocus

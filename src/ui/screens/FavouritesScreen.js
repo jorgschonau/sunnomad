@@ -345,7 +345,9 @@ const FavouritesScreen = ({ navigation, route }) => {
     }
   }, []);
 
-  const loadFavourites = async () => {
+  // isActive guards against setState after the screen lost focus/unmounted
+  // while getFavourites/resolveListThumbUrls were still in flight.
+  const loadFavourites = async (isActive = () => true) => {
     const showSpinner = !hasLoadedRef.current;
     if (showSpinner) setLoading(true);
     try {
@@ -356,23 +358,25 @@ const FavouritesScreen = ({ navigation, route }) => {
         const heroUrl = thumbUrls.get(id);
         return heroUrl ? { ...fav, heroUrl } : fav;
       });
+      if (!isActive()) return withHero;
       setFavourites(withHero);
       hasLoadedRef.current = true;
       return withHero;
     } catch (error) {
       console.error('Failed to load favourites:', error);
-      Alert.alert(t('map.error'), t('favourites.loadFailed'));
+      if (isActive()) Alert.alert(t('map.error'), t('favourites.loadFailed'));
       return [];
     } finally {
-      setLoading(false);
+      if (isActive()) setLoading(false);
     }
   };
 
   useFocusEffect(
     useCallback(() => {
+      let active = true;
       const loc = resolveUserLocation();
       setUserLocation(loc);
-      loadFavourites().then((favs) => {
+      loadFavourites(() => active).then((favs) => {
         mixpanel.track('Favourites Opened', {
           favourites_count: favs.length,
           sort: sortKeyRef.current,
@@ -380,6 +384,9 @@ const FavouritesScreen = ({ navigation, route }) => {
           source: route.params?.source ?? 'direct',
         });
       });
+      return () => {
+        active = false;
+      };
     }, [route.params?.source])
   );
 

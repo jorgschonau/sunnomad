@@ -106,12 +106,15 @@ export default function ResetPasswordScreen() {
     setLoading(false);
 
     if (error) {
+      const isNetworkError = error.name === 'AbortError'
+        || /network|timed out|abort/i.test(error.message || '');
       mixpanel.track('Password Reset Attempted', {
         successful: false,
-        reason: error.message || 'unknown',
+        reason: isNetworkError ? 'network_error' : (error.message || 'unknown'),
       });
-      const message =
-        error.message === 'no_session'
+      const message = isNetworkError
+        ? t('auth.networkError')
+        : error.message === 'no_session'
           ? t('auth.recoveryLinkExpired')
           : error.message === 'same_password'
             ? t('auth.passwordSameAsOld')

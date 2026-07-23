@@ -11,6 +11,20 @@ if (__DEV__ && (!supabaseUrl || !supabaseAnonKey)) {
   console.warn('Supabase credentials not configured. Auth features will be disabled.');
 }
 
+// Without this, a dead/absent connection makes fetch hang on the OS-level TCP
+// timeout (30-60s+) before rejecting — the user just stares at a spinner.
+// Aborting after 10s surfaces "Network request timed out" much sooner.
+const REQUEST_TIMEOUT_MS = 10000;
+
+const fetchWithTimeout = (url, options = {}) => {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+
+  return fetch(url, { ...options, signal: controller.signal }).finally(() => {
+    clearTimeout(timeoutId);
+  });
+};
+
 // Create Supabase client with AsyncStorage for session persistence
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
@@ -18,6 +32,9 @@ export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: false,
+  },
+  global: {
+    fetch: fetchWithTimeout,
   },
 });
 

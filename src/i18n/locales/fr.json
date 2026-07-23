@@ -358,6 +358,7 @@
     "accountCreated": "Votre compte a été créé avec succès!",
     "confirmSignOut": "Voulez-vous vraiment vous déconnecter?",
     "invalidEmail": "Veuillez saisir une adresse email valide",
+    "autofillEmailPlaceholder": "Choisis ton e-mail dans les suggestions ou saisis-le manuellement",
     "emailAlreadyExists": "Un compte avec cet email existe déjà",
     "emailRateLimitExceeded": "Trop de demandes par e-mail. Attends quelques minutes et réessaie.",
     "forgotPasswordTitle": "Mot de passe oublié ?",

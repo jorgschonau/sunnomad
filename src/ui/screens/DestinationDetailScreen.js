@@ -777,8 +777,11 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       requestHeroTransition(fallbackHero, 0);
     }, 3000);
 
+    // Drop the response if the user switched destinations while it was in flight
+    let cancelled = false;
     getDedicatedHeroImage(placeObj).then(async (hero) => {
       clearTimeout(fallbackTimer);
+      if (cancelled) return;
       requestHeroTransition(hero, 0, hero.url !== DEFAULT_HERO_IMAGE_URL ? {
         event: 'Hero Shown',
         props: {
@@ -792,6 +795,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       } : null);
       if (__DEV__) {
         const list = await listDedicatedHeroImages(placeObj);
+        if (cancelled) return;
         setHeroList(list);
         const idx = list.findIndex((h) => h.url === hero.url);
         setHeroIndex(idx >= 0 ? idx : 0);
@@ -804,6 +808,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     }).catch(() => {});
 
     return () => {
+      cancelled = true;
       clearTimeout(fallbackTimer);
       stopHeroFadeAnim();
       pendingHeroTarget.current = null;
@@ -1047,6 +1052,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   }, []);
 
   // Show the "View photo" tooltip for ~2s, then fade it out
+  const heroTooltipHideTimerRef = useRef(null);
   const showHeroTooltip = useCallback((onDone) => {
     setHeroHintVisible(true);
     Animated.timing(heroHintAnim, {
@@ -1054,7 +1060,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       duration: 300,
       useNativeDriver: true,
     }).start();
-    setTimeout(() => {
+    clearTimeout(heroTooltipHideTimerRef.current);
+    heroTooltipHideTimerRef.current = setTimeout(() => {
       Animated.timing(heroHintAnim, {
         toValue: 0,
         duration: 400,
@@ -1064,6 +1071,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         if (onDone) onDone();
       });
     }, 2000);
+  }, []);
+
+  useEffect(() => {
+    return () => clearTimeout(heroTooltipHideTimerRef.current);
   }, []);
 
   // Dev: long-press the fullscreen button to reset the discovery hints

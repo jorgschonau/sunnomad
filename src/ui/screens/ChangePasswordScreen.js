@@ -105,12 +105,15 @@ export default function ChangePasswordScreen({ navigation }) {
     setLoading(false);
 
     if (error) {
+      const isNetworkError = error.name === 'AbortError'
+        || /network|timed out|abort/i.test(error.message || '');
       mixpanel.track('Change Password Attempted', {
         successful: false,
-        reason: error.message || 'unknown',
+        reason: isNetworkError ? 'network_error' : (error.message || 'unknown'),
       });
-      const message =
-        error.message === 'same_password'
+      const message = isNetworkError
+        ? t('auth.networkError')
+        : error.message === 'same_password'
           ? t('auth.passwordSameAsOld')
           : t('auth.updatePasswordFailed');
       Alert.alert(t('auth.error'), message);

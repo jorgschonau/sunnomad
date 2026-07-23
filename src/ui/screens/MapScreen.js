@@ -148,8 +148,12 @@ const DestinationMarker = React.memo(({
   const [imageLoaded, setImageLoaded] = useState(!hasImageBadge);
   const [isPulsing, setIsPulsing] = useState(false);
   const pulseAnim = useRef(new Animated.Value(0)).current;
+  const imageLoadTimerRef = useRef(null);
   const handleImageLoad = useCallback(() => {
-    setTimeout(() => setImageLoaded(true), 500);
+    imageLoadTimerRef.current = setTimeout(() => setImageLoaded(true), 500);
+  }, []);
+  useEffect(() => {
+    return () => clearTimeout(imageLoadTimerRef.current);
   }, []);
 
   // Marker views are snapshot-cached (tracksViewChanges=false). The key is stable
@@ -1814,7 +1818,11 @@ const MapScreen = ({ navigation }) => {
     const { latitude, longitude } = event.nativeEvent.coordinate;
     
     playTickSound();
-    mixpanel.track('Map Long Press', { latitude, longitude });
+    // Coarse coords only (~10km): exact GPS positions are location PII
+    mixpanel.track('Map Long Press', {
+      latitude: Math.round(latitude * 10) / 10,
+      longitude: Math.round(longitude * 10) / 10,
+    });
     
     const newCenter = {
       latitude,

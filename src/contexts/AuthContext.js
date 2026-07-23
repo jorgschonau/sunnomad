@@ -22,6 +22,9 @@ export const AuthProvider = ({ children }) => {
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
   const [recoveryLinkError, setRecoveryLinkError] = useState(null);
   const hadAuthenticatedUser = useRef(false);
+  // Tracks the currently authenticated user id synchronously, so in-flight
+  // profile loads can detect a logout/user switch and drop their stale result.
+  const activeUserIdRef = useRef(null);
   const isPasswordRecoveryRef = useRef(false);
   const recoveryCompletedRef = useRef(false);
   const handledRecoveryUrlRef = useRef(null);
@@ -34,6 +37,7 @@ export const AuthProvider = ({ children }) => {
     try {
       const { profile, error } = await profileService.getProfile(userId);
       if (error) throw error;
+      if (activeUserIdRef.current !== userId) return;
       setProfile(profile);
     } catch (error) {
       console.error('Failed to load profile:', error);
@@ -82,6 +86,7 @@ export const AuthProvider = ({ children }) => {
 
     setSession(recoverySession);
     setUser(recoverySession?.user ?? null);
+    activeUserIdRef.current = recoverySession?.user?.id ?? null;
     setIsPasswordRecovery(true);
     isPasswordRecoveryRef.current = true;
     return { error: null };
@@ -140,6 +145,7 @@ export const AuthProvider = ({ children }) => {
         if (session?.user) {
           setSession(session);
           setUser(session.user);
+          activeUserIdRef.current = session.user.id;
         }
       } catch (error) {
         console.error('Failed to initialize auth:', error);
@@ -168,6 +174,7 @@ export const AuthProvider = ({ children }) => {
 
       setSession(session);
       setUser(session?.user ?? null);
+      activeUserIdRef.current = session?.user?.id ?? null;
 
       if (session?.user) {
         hadAuthenticatedUser.current = true;
@@ -204,7 +211,8 @@ export const AuthProvider = ({ children }) => {
 
       setUser(user);
       setSession(session);
-      
+      activeUserIdRef.current = user?.id ?? null;
+
       if (user) {
         await loadProfile(user.id);
       }
@@ -224,7 +232,8 @@ export const AuthProvider = ({ children }) => {
 
       setUser(user);
       setSession(session);
-      
+      activeUserIdRef.current = user?.id ?? null;
+
       if (user) {
         await loadProfile(user.id);
       }
@@ -244,6 +253,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setProfile(null);
       setSession(null);
+      activeUserIdRef.current = null;
       mixpanel.track('Sign Out');
       await resetMixpanelIdentity();
 
@@ -290,6 +300,7 @@ export const AuthProvider = ({ children }) => {
       setUser(null);
       setProfile(null);
       setSession(null);
+      activeUserIdRef.current = null;
 
       return { error: null };
     } catch (error) {

@@ -17,9 +17,9 @@ import {
 import { useAuth } from '../../contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import { mixpanel } from '../../services/mixpanel';
+import { validateEmailInput, emailErrorKey, sanitizeEmailInput } from '../../utils/emailValidation';
 import Ionicons from '@expo/vector-icons/Ionicons';
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
 // Brand colors extracted from the SunNomad logo
@@ -57,13 +57,9 @@ export default function LoginScreen({ navigation }) {
   );
 
   const validateEmail = (value) => {
-    const trimmed = value.trim();
-    if (!trimmed) {
-      setEmailError(t('auth.enterEmail'));
-      return false;
-    }
-    if (!EMAIL_REGEX.test(trimmed)) {
-      setEmailError(t('auth.invalidEmail'));
+    const result = validateEmailInput(value);
+    if (!result.valid) {
+      setEmailError(t(emailErrorKey(result.reason)));
       return false;
     }
     setEmailError('');
@@ -82,14 +78,13 @@ export default function LoginScreen({ navigation }) {
   const trackValidationFailed = (reason, emailValue, passwordValue) => {
     mixpanel.track('Login Validation Failed', {
       reason,
-      email_filled: !!emailValue.trim(),
+      email_filled: !!sanitizeEmailInput(emailValue),
       password_filled: !!passwordValue,
     });
   };
 
   const handleLogin = async () => {
-    const trimmedEmail = email.trim();
-    const hasEmail = !!trimmedEmail;
+    const hasEmail = !!sanitizeEmailInput(email);
     const hasPassword = !!password;
 
     if (!hasEmail && !hasPassword) {
@@ -106,10 +101,11 @@ export default function LoginScreen({ navigation }) {
       return;
     }
 
-    if (!EMAIL_REGEX.test(trimmedEmail)) {
-      setEmailError(t('auth.invalidEmail'));
+    const emailCheck = validateEmailInput(email);
+    if (!emailCheck.valid) {
+      setEmailError(t(emailErrorKey(emailCheck.reason)));
       setPasswordError('');
-      trackValidationFailed('invalid_email', email, password);
+      trackValidationFailed(emailCheck.reason, email, password);
       return;
     }
 
@@ -124,13 +120,18 @@ export default function LoginScreen({ navigation }) {
     setPasswordError('');
     mixpanel.track('Login Started');
     setLoading(true);
-    const { error } = await signIn(email.trim(), password);
+    const { error } = await signIn(emailCheck.email, password);
     setLoading(false);
 
     if (error) {
-      mixpanel.track('Login Failed', { reason: 'invalid_credentials' });
-      const message =
-        error.message === 'Invalid login credentials'
+      const isNetworkError = error.name === 'AbortError'
+        || /network|timed out|abort/i.test(error.message || '');
+      mixpanel.track('Login Failed', {
+        reason: isNetworkError ? 'network_error' : 'invalid_credentials',
+      });
+      const message = isNetworkError
+        ? t('auth.networkError')
+        : error.message === 'Invalid login credentials'
           ? t('auth.checkCredentials')
           : error.message || t('auth.checkCredentials');
       Alert.alert(t('auth.loginFailed'), message);
@@ -182,6 +183,7 @@ export default function LoginScreen({ navigation }) {
               onBlur={() => email && validateEmail(email)}
               autoCapitalize="none"
               keyboardType="email-address"
+              textContentType="emailAddress"
               autoComplete="email"
               editable={!loading}
             />
