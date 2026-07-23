@@ -1,4 +1,5 @@
 import { supabase } from '../config/supabase';
+import { getHeroImageUri, prefetchHeroImageUris } from '../utils/heroImageDiskCache';
 
 const GENERIC_BUCKET_URL =
   'https://skkkoxdobvimqpfqzbdx.supabase.co/storage/v1/object/public/generic';
@@ -78,6 +79,35 @@ const heroCache = new Map();
 export function getCachedHeroImage(place) {
   const id = place?.id ?? null;
   return (id && heroCache.get(id)) || null;
+}
+
+/** Remember the hero the user last saw (browse or initial pick) for instant base on revisit. */
+export function rememberHeroImage(placeId, hero) {
+  if (placeId && hero?.url) heroCache.set(String(placeId), hero);
+}
+
+/** Resolve meta.url to a local file:// URI when cached on disk. */
+export async function resolveHeroMetaForDisplay(meta) {
+  if (!meta?.url) return meta;
+  const remoteUrl = meta.remoteUrl || (meta.url.startsWith('http') ? meta.url : null);
+  const sourceUrl = remoteUrl || meta.url;
+  const localUri = await getHeroImageUri(sourceUrl);
+  if (localUri === sourceUrl) return meta;
+  return { ...meta, url: localUri, remoteUrl: sourceUrl };
+}
+
+/** Warm on-disk cache for hero URLs (background). */
+export function prefetchHeroUrls(heroes, { excludeUrl = null } = {}) {
+  prefetchHeroImageUris(
+    (heroes || []).map((h) => h?.url).filter(Boolean),
+    { excludeUrl },
+  );
+}
+
+/** Download one hero URL to disk; returns display URI (file:// or remote fallback). */
+export async function prefetchHeroUrl(url) {
+  if (!url?.startsWith('http')) return url;
+  return getHeroImageUri(url);
 }
 
 function dedicatedRowToUrl(row) {

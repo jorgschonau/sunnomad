@@ -33,6 +33,10 @@ import {
   getHeroImage as getDedicatedHeroImage,
   getCachedHeroImage,
   listDedicatedHeroImages,
+  prefetchHeroUrl,
+  prefetchHeroUrls,
+  rememberHeroImage,
+  resolveHeroMetaForDisplay,
   DEFAULT_HERO_IMAGE_URL,
 } from '../../services/placeHeroImageService';
 import { getHeroImage } from '../../utils/heroImages';
@@ -222,6 +226,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const [heroIncomingMeta, setHeroIncomingMeta] = useState(null);
   const [heroList, setHeroList] = useState([]);
   const [heroIndex, setHeroIndex] = useState(0);
+  const heroIndexRef = React.useRef(0);
+  const heroCycleGeneration = React.useRef(0);
   const [devHeroNavVisible, setDevHeroNavVisible] = useState(true);
   // null = not loaded yet from storage; false = never used → pulse the button
   const [heroExpandUsed, setHeroExpandUsed] = useState(null);
@@ -272,6 +278,12 @@ const DestinationDetailScreen = ({ route, navigation }) => {
 
   useEffect(() => { heroBaseRef.current = heroBase; }, [heroBase]);
   useEffect(() => { heroIncomingMetaRef.current = heroIncomingMeta; }, [heroIncomingMeta]);
+  useEffect(() => { heroIndexRef.current = heroIndex; }, [heroIndex]);
+
+  const syncHeroIndex = useCallback((index) => {
+    heroIndexRef.current = index;
+    setHeroIndex(index);
+  }, []);
 
   const stopHeroFadeAnim = useCallback(() => {
     if (fadeAnimRef.current) {
@@ -279,6 +291,26 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       fadeAnimRef.current = null;
     }
   }, []);
+
+  const cancelHeroTransition = useCallback(() => {
+    pendingHeroTarget.current = null;
+    skipCrossfadeRequested.current = false;
+    stopHeroFadeAnim();
+    heroFadeRunning.current = false;
+    if (incomingLoadResolver.current) {
+      incomingLoadResolver.current();
+      incomingLoadResolver.current = null;
+    }
+    if (baseLoadResolver.current) {
+      baseLoadResolver.current();
+      baseLoadResolver.current = null;
+    }
+    baseLoadGeneration.current += 1;
+    setHeroIncomingMeta(null);
+    heroFadeAnim.setValue(1);
+    heroKenBurnsAnim.setValue(1);
+    heroBaseOpacityAnim.setValue(1);
+  }, [heroBaseOpacityAnim, heroFadeAnim, heroKenBurnsAnim, stopHeroFadeAnim]);
 
   const onHeroIncomingLoad = useCallback(() => {
     incomingLoadResolver.current?.();
@@ -305,15 +337,39 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     const incoming = heroIncomingMetaRef.current;
     const promote = incoming?.url ? incoming : heroBaseRef.current;
     if (promote?.url) {
+      const remoteUrl = promote.remoteUrl || (promote.url.startsWith('http') ? promote.url : null);
       setHeroBase(promote);
       setHeroMeta(promote);
-      lastFadedHeroUrl.current = promote.url;
+      lastFadedHeroUrl.current = remoteUrl || promote.url;
     }
     setHeroIncomingMeta(null);
     heroFadeAnim.setValue(1);
     heroKenBurnsAnim.setValue(1);
     heroBaseOpacityAnim.setValue(1);
   }, [heroBaseOpacityAnim, heroFadeAnim, heroKenBurnsAnim, stopHeroFadeAnim]);
+
+  const snapHeroTo = useCallback((targetMeta) => {
+    if (!targetMeta?.url) return;
+    stopHeroFadeAnim();
+    if (incomingLoadResolver.current) {
+      incomingLoadResolver.current();
+      incomingLoadResolver.current = null;
+    }
+    if (baseLoadResolver.current) {
+      baseLoadResolver.current();
+      baseLoadResolver.current = null;
+    }
+    baseLoadGeneration.current += 1;
+    setHeroIncomingMeta(null);
+    setHeroBase(targetMeta);
+    setHeroMeta(targetMeta);
+    const remoteUrl = targetMeta.remoteUrl || (targetMeta.url?.startsWith('http') ? targetMeta.url : targetMeta.url);
+    lastFadedHeroUrl.current = remoteUrl;
+    rememberHeroImage(effectivePlaceId, targetMeta.remoteUrl ? { ...targetMeta, url: targetMeta.remoteUrl } : targetMeta);
+    heroFadeAnim.setValue(1);
+    heroKenBurnsAnim.setValue(1);
+    heroBaseOpacityAnim.setValue(1);
+  }, [effectivePlaceId, heroBaseOpacityAnim, heroFadeAnim, heroKenBurnsAnim, stopHeroFadeAnim]);
 
   const shouldAbortCrossfade = useCallback(
     () => skipCrossfadeRequested.current || !!pendingHeroTarget.current,
@@ -332,7 +388,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     return { uri: meta.url };
   }, [destination]);
 
-  const waitForIncomingPaint = useCallback(() => new Promise((resolve) => {
+  const waitForIncomingPaint = useCallback((isLocalFile = false) => new Promise((resolve) => {
     let settled = false;
     const finish = () => {
       if (settled) return;
@@ -341,7 +397,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       resolve();
     };
     incomingLoadResolver.current = finish;
-    setTimeout(finish, HERO_INCOMING_LOAD_TIMEOUT_MS);
+    setTimeout(finish, isLocalFile ? 32 : HERO_INCOMING_LOAD_TIMEOUT_MS);
   }), []);
 
   const waitForBasePaint = useCallback((generation) => new Promise((resolve) => {
@@ -357,31 +413,30 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   }), []);
 
   const executeSingleCrossfade = useCallback(async (targetMeta) => {
-    const url = targetMeta?.url;
-    if (!url || url === lastFadedHeroUrl.current) {
-      setHeroBase(targetMeta);
-      setHeroMeta(targetMeta);
+    const remoteUrl = targetMeta?.remoteUrl
+      || (targetMeta?.url?.startsWith('http') ? targetMeta.url : null);
+    const displayMeta = await resolveHeroMetaForDisplay(targetMeta);
+
+    if (!remoteUrl || remoteUrl === lastFadedHeroUrl.current) {
+      setHeroBase(displayMeta);
+      setHeroMeta(displayMeta);
       setHeroIncomingMeta(null);
       heroBaseOpacityAnim.setValue(1);
-      lastFadedHeroUrl.current = url;
+      lastFadedHeroUrl.current = remoteUrl || targetMeta?.url;
+      rememberHeroImage(effectivePlaceId, remoteUrl ? { ...targetMeta, url: remoteUrl } : targetMeta);
       return 'done';
     }
 
-    if (url.startsWith('http')) {
-      try { await Image.prefetch(url); } catch (_) { /* still wait for onLoadEnd */ }
-    }
     if (abortIfSkipRequested()) return 'skipped';
 
     stopHeroFadeAnim();
     heroFadeAnim.setValue(0);
     heroKenBurnsAnim.setValue(HERO_KEN_BURNS_START);
     heroBaseOpacityAnim.setValue(1);
-    setHeroIncomingMeta(targetMeta);
+    const paintPromise = waitForIncomingPaint(displayMeta.url?.startsWith('file://'));
+    setHeroIncomingMeta(displayMeta);
 
-    await new Promise((r) => { requestAnimationFrame(() => requestAnimationFrame(r)); });
-    if (abortIfSkipRequested()) return 'skipped';
-
-    await waitForIncomingPaint();
+    await paintPromise;
     if (abortIfSkipRequested()) return 'skipped';
 
     const finished = await new Promise((resolve) => {
@@ -410,13 +465,18 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         resolve(animFinished);
       });
     });
-    if (!finished || abortIfSkipRequested()) return 'skipped';
+    if (!finished) {
+      if (!abortIfSkipRequested()) abortCurrentCrossfadeForSkip();
+      return 'skipped';
+    }
+    if (abortIfSkipRequested()) return 'skipped';
 
-    lastFadedHeroUrl.current = url;
-    setHeroMeta(targetMeta);
+    lastFadedHeroUrl.current = remoteUrl;
+    setHeroMeta(displayMeta);
+    rememberHeroImage(effectivePlaceId, { ...targetMeta, url: remoteUrl });
 
     const loadGen = ++baseLoadGeneration.current;
-    setHeroBase(targetMeta);
+    setHeroBase(displayMeta);
     await new Promise((r) => { requestAnimationFrame(() => requestAnimationFrame(r)); });
     if (abortIfSkipRequested()) return 'skipped';
 
@@ -429,7 +489,9 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     heroBaseOpacityAnim.setValue(1);
     return 'done';
   }, [
+    abortCurrentCrossfadeForSkip,
     abortIfSkipRequested,
+    effectivePlaceId,
     heroBaseOpacityAnim,
     heroFadeAnim,
     heroKenBurnsAnim,
@@ -441,17 +503,23 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const processPendingHeroTransition = useCallback(async () => {
     if (heroFadeRunning.current) return;
     heroFadeRunning.current = true;
-    skipCrossfadeRequested.current = false;
     try {
       while (pendingHeroTarget.current) {
         const job = pendingHeroTarget.current;
         pendingHeroTarget.current = null;
-        if (job.index != null) setHeroIndex(job.index);
+        // Reset per job: a leftover skip request from the previous crossfade
+        // must not abort this one (a new tap re-sets pendingHeroTarget anyway,
+        // which shouldAbortCrossfade also checks).
+        skipCrossfadeRequested.current = false;
+        if (job.index != null) syncHeroIndex(job.index);
 
         const result = await executeSingleCrossfade(job.meta);
-        if (result === 'skipped' || pendingHeroTarget.current) {
+        if (result === 'skipped') {
+          if (pendingHeroTarget.current) continue;
+          snapHeroTo(await resolveHeroMetaForDisplay(job.meta));
           continue;
         }
+        if (pendingHeroTarget.current) continue;
         if (job.tracking?.event) {
           mixpanel.track(job.tracking.event, job.tracking.props);
         }
@@ -462,19 +530,19 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         processPendingHeroTransition();
       }
     }
-  }, [executeSingleCrossfade]);
+  }, [executeSingleCrossfade, snapHeroTo, syncHeroIndex]);
 
   const requestHeroTransition = useCallback((meta, index = null, tracking = null) => {
     if (!meta?.url) return;
     pendingHeroTarget.current = { meta, index, tracking };
-    if (index != null) setHeroIndex(index);
+    if (index != null) syncHeroIndex(index);
     if (heroFadeRunning.current) {
       skipCrossfadeRequested.current = true;
       stopHeroFadeAnim();
       return;
     }
     processPendingHeroTransition();
-  }, [processPendingHeroTransition, stopHeroFadeAnim]);
+  }, [processPendingHeroTransition, stopHeroFadeAnim, syncHeroIndex]);
 
   const pulseAnim = React.useRef(new Animated.Value(1)).current;
   const vignetteAnim = React.useRef(new Animated.Value(0)).current;
@@ -753,14 +821,23 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   useEffect(() => {
     const placeObj = { id: effectivePlaceId, generic_key: destination.generic_key, name_en: destination.name_en };
     setHeroList([]);
+    heroIndexRef.current = 0;
+    heroCycleGeneration.current = 0;
     setHeroIndex(0);
     setHeroIncomingMeta(null);
     pendingHeroTarget.current = null;
     heroFadeRunning.current = false;
     stopHeroFadeAnim();
     lastFadedHeroUrl.current = null;
+    let cancelled = false;
     const cached = getCachedHeroImage(placeObj);
-    setHeroBase(cached);
+    if (cached?.url?.startsWith('http')) {
+      resolveHeroMetaForDisplay(cached).then((resolved) => {
+        if (!cancelled) setHeroBase(resolved);
+      });
+    } else {
+      setHeroBase(cached);
+    }
     setHeroMeta(null);
     heroFadeAnim.setValue(0);
     heroKenBurnsAnim.setValue(1);
@@ -778,7 +855,6 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     }, 3000);
 
     // Drop the response if the user switched destinations while it was in flight
-    let cancelled = false;
     getDedicatedHeroImage(placeObj).then(async (hero) => {
       clearTimeout(fallbackTimer);
       if (cancelled) return;
@@ -793,18 +869,12 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           hero_source: hero.hero_source,
         },
       } : null);
-      if (__DEV__) {
-        const list = await listDedicatedHeroImages(placeObj);
-        if (cancelled) return;
-        setHeroList(list);
-        const idx = list.findIndex((h) => h.url === hero.url);
-        setHeroIndex(idx >= 0 ? idx : 0);
-        list.forEach((h) => {
-          if (h.url?.startsWith('http') && h.url !== hero.url) {
-            Image.prefetch(h.url).catch(() => {});
-          }
-        });
-      }
+      const list = await listDedicatedHeroImages(placeObj);
+      if (cancelled) return;
+      setHeroList(list);
+      const idx = list.findIndex((h) => h.url === hero.url);
+      syncHeroIndex(idx >= 0 ? idx : 0);
+      prefetchHeroUrls(list, { excludeUrl: hero.url });
     }).catch(() => {});
 
     return () => {
@@ -816,7 +886,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       incomingLoadResolver.current = null;
       baseLoadResolver.current = null;
     };
-  }, [effectivePlaceId, requestHeroTransition, stopHeroFadeAnim, heroFadeAnim, heroKenBurnsAnim, heroBaseOpacityAnim]);
+  }, [effectivePlaceId, requestHeroTransition, stopHeroFadeAnim, heroFadeAnim, heroKenBurnsAnim, heroBaseOpacityAnim, syncHeroIndex]);
 
   useEffect(() => {
     stopStayImpressionFired.current = false;
@@ -1007,12 +1077,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         if (list.length < 2) return;
         const idx = list.findIndex((h) => h.url === heroMeta?.url);
         setHeroList(list);
-        setHeroIndex(idx >= 0 ? idx : 0);
-        list.forEach((h) => {
-          if (h.url?.startsWith('http') && h.url !== heroMeta?.url) {
-            Image.prefetch(h.url).catch(() => {});
-          }
-        });
+        syncHeroIndex(idx >= 0 ? idx : 0);
+        prefetchHeroUrls(list, { excludeUrl: heroMeta?.url });
       }).catch(() => {});
     }
     mixpanel.track('Hero Image Toggled', {
@@ -1042,7 +1108,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         useNativeDriver: true,
       }),
     ]).start();
-  }, [uiFocused, heroScaleAnim, vignetteAnim, heroExpandUsed, heroList.length, heroMeta]);
+  }, [uiFocused, heroScaleAnim, vignetteAnim, heroExpandUsed, heroList.length, heroMeta, syncHeroIndex]);
 
   useEffect(() => {
     AsyncStorage.getItem('heroExpandUsed').then((v) => {
@@ -1052,7 +1118,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   }, []);
 
   // Show the "View photo" tooltip for ~2s, then fade it out
-  const heroTooltipHideTimerRef = useRef(null);
+  const heroTooltipHideTimerRef = React.useRef(null);
   const showHeroTooltip = useCallback((onDone) => {
     setHeroHintVisible(true);
     Animated.timing(heroHintAnim, {
@@ -1385,21 +1451,38 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       ? (heroList[heroIndex] ?? heroMeta)
       : heroMeta);
 
-  const cycleHero = (delta, method = 'button') => {
+  const cycleHero = useCallback((delta, method = 'button') => {
     if (heroList.length < 2) return;
-    const next = (heroIndex + delta + heroList.length) % heroList.length;
+    const next = (heroIndexRef.current + delta + heroList.length) % heroList.length;
     const target = heroList[next];
-    requestHeroTransition(target, next, {
-      event: 'Hero Browsed',
-      props: {
+    const gen = ++heroCycleGeneration.current;
+
+    cancelHeroTransition();
+    prefetchHeroUrls([
+      heroList[(next + 1) % heroList.length],
+      heroList[(next - 1 + heroList.length) % heroList.length],
+    ]);
+
+    resolveHeroMetaForDisplay(target).then((displayMeta) => {
+      if (gen !== heroCycleGeneration.current) return;
+      syncHeroIndex(next);
+      snapHeroTo(displayMeta);
+      mixpanel.track('Hero Browsed', {
         place_id: effectivePlaceId,
         place_name: destination.name,
         direction: delta > 0 ? 'next' : 'prev',
         method,
         ...getHeroTrackingProps(target),
-      },
-    });
-  };
+      });
+    }).catch(() => {});
+  }, [
+    cancelHeroTransition,
+    destination.name,
+    effectivePlaceId,
+    heroList,
+    snapHeroTo,
+    syncHeroIndex,
+  ]);
 
   const heroIncomingSource = heroIncomingMeta ? heroMetaToSource(heroIncomingMeta) : null;
   const heroBaseSource = heroBase?.url && heroBase.url !== DEFAULT_HERO_IMAGE_URL
