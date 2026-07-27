@@ -114,6 +114,25 @@ CANONICAL_IMAGES = {
     "maria":        "canonicals/maria_canonical.png",
     "rosa":         "canonicals/rosa_canonical.png",
     "carmela":      "canonicals/carmela_canonical.png",
+    "boone":        "canonicals/boone_canonical.png",
+    "soca":         "canonicals/soca_canonical.png",
+    "vlad":         "canonicals/vlad_canonical.png",
+    "karl":         "canonicals/karl_canonical.png",
+    "anubis":       "canonicals/anubis_canonical.png",
+    "benji":        "canonicals/benji_canonical.png",
+    "flocke":       "canonicals/flocke_canonical.png",
+    "hank":         "canonicals/hank_canonical.png",
+    "lupo":         "canonicals/lupo_canonical.png",
+    "atlas":        "canonicals/atlas_canonical.png",
+    "bass":         "canonicals/bass_canonical.png",
+    "elvis":        "canonicals/elvis_canonical.png",
+    "juniper":      "canonicals/juniper_canonical.png",
+    "kilo":         "canonicals/kilo_canonical.png",
+    "morana":       "canonicals/morana_canonical.png",
+    "roki":         "canonicals/roki_canonical.png",
+    "zorro":        "canonicals/zorro_canonical.png",
+    "nacho":        "canonicals/nacho_canonical.png",
+    "zeus":         "canonicals/zeus_canonical.png",
     # "oksana":       "canonicals/oksana_canonical.png",  # deactivated — see DISABLED_CHARACTERS
     "yuki":         "canonicals/yuki_canonical.png",
     "celine":       "canonicals/celine_canonical.png",
@@ -135,9 +154,13 @@ CANONICAL_IMAGES = {
     "zara":         "canonicals/zara_canonical.webp",
     "djordje":      "canonicals/djordje_canonical.webp",
     "conrad":       "canonicals/conrad_canonical.webp",
+    "dale":         "canonicals/dale_canonical.png",
+    "tyler":        "canonicals/tyler_canonical.png",
 }
 
 # Deactivated — no hero/activity generation; do not add CHARACTER_RUN_* / swim overrides for these keys
+# Rochade Jul 2026: roster shrunk to CAST (33) + dale/tyler. Existing DB hero images for these
+# stay active (no purge) — just no new generation. See ROADMAP CAST-Dict discussion.
 DISABLED_CHARACTERS: set = {
     "nina",
     "oksana",
@@ -145,6 +168,9 @@ DISABLED_CHARACTERS: set = {
     "zsofi",
     "driver_pov",   # temp hold
     "driver_van",   # temp hold
+    "werra", "olga", "ana", "quinn", "yosra", "kay",
+    "camille", "celine", "carmela", "bianca", "tasha", "vera",
+    "nadia", "klara",  # stubs, never had a real spec
 }
 
 # Batch / top-10 suggestions — exact name_en as in DB
@@ -920,6 +946,9 @@ PROP: none. She needs no prop. The room adjusts to her.
 She is the most noticed person here without having done anything to be noticed.
 Other people unconsciously shift when she enters. She finds this mildly amusing and slightly boring.
 
+ENERGY / APPEAL — LUXURY BEACH GODDESS:
+Caribbean/Monaco resort vibe. Equally convincing in string bikini on a yacht deck or evening dress at a reserved table — same woman, same gravity. Luxury without trying. Not a soft influencer; a resort presence that rearranges the room.
+
 BEACH: She is on a yacht. That is her beach.
 Minimal string bikini — expensive matte fabric. Black, deep navy blue, or emerald green (any of these). Lies on the sun deck. Sunglasses. Nobody disturbs her. That is arranged.
 
@@ -957,6 +986,9 @@ ABSENT (1 in 5): not visible at all — she left it somewhere else today
 The queen is never the subject. It is never explained. It is simply there or not.
 Slight knowing smirk — not warm, not cold. She already decided.
 She owns the board. She doesn't play on it.
+
+ENERGY / APPEAL — UNTOUCHABLE ELEGANCE:
+High-fashion Italian femme fatale. Sex appeal through status, control, and presence — never through Freizügigkeit or flesh on display. Covered can be more dangerous than bare. She is desired because she is out of reach, not because she offers herself. Magazine cover without trying; the camera adjusts to her, not the reverse.
 PROP (occasional): thin leather portfolio — diplomat style, very elegant, very expensive.
 What is inside: never explained. She carries it like it weighs nothing. It does not.
 
@@ -1057,6 +1089,9 @@ PIERCINGS: industrial bar right ear always; chunky silver chain matches. Possibl
 FINGERNAILS / TOENAILS: black, chipping — she is aware, doesn't care.
 Expression: relaxed, unbothered.
 Nihilism as lifestyle. She ordered another drink — the cheapest one on the menu.
+
+ENERGY / APPEAL — FESTIVAL BURNOUT:
+Pale, slightly übernächtigt — not ruined, not glamorous. Lives on energy, not perfection. Attractive, but deliberately not flawless, not a classic bombshell, not a magazine-cover model. She looks like someone who will still dance after three days of festival, not like someone booked for a beauty campaign. Real skin texture, slight fatigue around the eyes ok — never airbrushed perfection.
 PROP: large black duffel bag — worn, no logo, no brand. Always nearby. Nobody asks.
 Hair: loose, slightly wavy, natural — never wet look, never styled back.
 BEACH (accidental — the hostel was near the beach):
@@ -1140,6 +1175,9 @@ The man who keeps her would need to go uphill faster than she does.
 So far: nobody.
 
 SIGNATURE ACTION: reads elevation profile, knee scraped, already planning the next pass.
+
+ENERGY / APPEAL — ALPINE ATHLETE:
+Attractive through capability, not glamour. Lean endurance body, altitude tan, scraped knee, braid or loose dark waves — she looks like she just came down a pass and could go up another. Sex appeal from strength and indifference to being watched. Never fashion, never soft lighting favoritism, never resort-pretty. Functional kit reads hotter than a dress ever would on her. Some people notice the legs first; she has already looked at the next climb.
 
 VOID/GROUND — ALESSANDRA: GROUND 7.
 Next pass. No void possible when going uphill for six hours. She has structured her life so there is always a next pass.
@@ -1238,7 +1276,7 @@ Desert, hands, engine — that is real. Changing Woman repairs what is broken. J
 Man named Luca. Age late 20s. Italian — from Liguria or Sardinia.
 Left for one surf trip. Never went back. Nobody surprised.
 Sun-weathered face, genuine easy smile. Strong jaw, light stubble weeks old.
-Skin: deep tanned, real salt-and-sun tan. Hair: blonde, sun-bleached, thick, wavy, wild.
+Skin: deep tanned, real salt-and-sun tan. Hair: blonde, sun-bleached, thick, wavy — a bit too long, lightly zerzaust. Not styled.
 Board shorts or worn jeans, faded t-shirt or no shirt.
 VEHICLE: Volkswagen Transporter T3 or T4 — faded two-tone paint, salt on the bodywork, surf wax smell implied. Italian plates (IT). Rear window stickers: old surf shop, half-peeled Repsol, one illegible band logo. Never clean. Never trying to be.
 COASTAL ONLY: VW Bus at harbour or beach — board on roof rack or in van, NOT carried on harbour_walk.
@@ -1253,6 +1291,9 @@ NO Moka while running, paddling, swimming, hiking, or on water — hands free or
 HALO: very subtle, barely visible halo — natural light effect, almost accidental.
 Never obvious, never religious. Just a slight glow in backlight. Only in coastal settings.
 SIGNATURE ACTION: sits in open van doorway, legs hanging, Moka pot or beer can, looking at the water before deciding.
+
+ENERGY / APPEAL — WEIRDLY ATTRACTIVE:
+Not classically handsome. Hair a bit too long, lightly mussed. Moka pot, surf clutter — looks like he has lived at the sea for three days. Edges and corners, not model polish. Charisma from authenticity and ease, not from Modeloptik. Some people find him immediately attractive; others not at all. Never Instagram-hot, never Chad-smooth, never commercial-clean.
 """,
     "chad": """
 Man named Chad. Age early 30s. American, digital nomad archetype.
@@ -1263,9 +1304,80 @@ No MAGA — he did the math. Bad for brand.
 MacBook always visible. Acai bowl or black coffee nearby.
 He is in beautiful places and looks at his phone.
 He calls this "deep work." He will post about the "vibe" later.
+FACE LOCK: always a bit stumpfer Bro — slightly vacant, no irony, no quiet intelligence. Handsome and thick. Never mysterious.
 
 VOID/GROUND — CHAD: VOID 1, WITH A QUESTION MARK.
 Completely formatted. Executes a template, believes he is optimizing his life. To save himself he would need to stop posting for three weeks. No metrics. He doesn't know who he is without engagement. The moment it could happen: somewhere with no signal at all. After two days he might start seeing the landscape instead of looking through it for content. That would be the beginning.
+
+ENERGY / APPEAL — ALL-AMERICAN JOCK / STUMPFER BRO:
+Tall, athletic, uncomplicated — and always a bit thick. Classic beach/surfer bro. Friendly, readable, no mystery, no irony, no depth visible on the face. Attractiveness is straightforward physical competence; the personality is blunt Bro-Haftigkeit — content-speak energy, slightly vacant eyes, performs "vibes" without understanding them. NEVER sophisticated, NEVER quietly intelligent, NEVER dark or interesting. Always a little dumb in a harmless, well-groomed way.
+""",
+    "dale": """
+Man named Dale Mercer. Age 50-58. American, US Southwest — Arizona or Nevada.
+Amateur relic hunter and metal detector enthusiast. Knows ghost towns, abandoned mines, forgotten rest areas
+and old desert roads better than any map app ever will.
+
+Slim, weathered, sun-damaged skin — real desert wear, not styled rugged.
+Grey-brown hair, short stubble. Warm brown eyes. Slight Harry Dean Stanton energy — without resembling him directly.
+Calm, knowing half-smile. Quiet, patient, observant. Slightly eccentric, never creepy.
+Friendly if approached — looks like he'd happily spend 30 minutes explaining an old silver mine to a stranger.
+
+WARDROBE:
+Beige mesh trucker cap. Faded 90s teal/navy/purple windbreaker — his signature piece, always this one.
+Clean, washed-out grey t-shirt. Dark blue straight-fit jeans. Old Merrell or Salomon hiking shoes.
+Everything old and worn, but always clean. He takes care of what he has.
+
+GEAR (mandatory, always visible or nearby): metal detector, small digging tool, thermos, folded paper map,
+notebook, flashlight. He is mid-search or just paused, never posed with the gear.
+
+TERRITORY: ghost towns, desert rest areas, dry riverbeds, BLM land, abandoned motels, forgotten parking lots,
+mining districts. He belongs in the parts of America everyone else drives past without looking.
+
+Expression: usually looking slightly off-frame — at the ground, at a reading on the detector, at something
+in the distance. Never posing for the camera. He does not perform for it.
+
+SIGNATURE ACTION: crouches slightly, headphones on, sweeping the detector coil low over the ground in a slow arc.
+
+VOID/GROUND — DALE: GROUND 9.
+He is not looking for treasure. He is looking, which is the whole point. Nobody needs to understand why
+a forgotten mining claim matters. It matters because he is the one who stopped to notice it.
+
+ENERGY / APPEAL — DESERT ODDBALL:
+Objectively not conventionally attractive — but kultig. The type some people look at and think: "Was hat der eigentlich?" Weathered, eccentric, oddly magnetic. Never try to make him handsome; the oddness is the appeal.
+""",
+    "tyler": """
+Man named Tyler Brooks. Age 30-35. American, California — Malibu or San Diego energy.
+Travel YouTuber and vanlife creator. Makes a real living from it — YouTube, sponsors, photography.
+Knows exactly how social media works. Unlike Chad, who performs badly and doesn't know it, Tyler is genuinely good at this.
+
+183-186cm, lean athletic build. Medium-length brown hair, trimmed beard, healthy tan, bright smile.
+Conventionally attractive. Charismatic, easy to talk to, confident, adventurous, professional.
+Always "on" the moment a camera is rolling — slight performer streak, but a controlled one, not desperate.
+Unlike Dale, Tyler is fully conscious of his own image. He built it on purpose and it works.
+
+WARDROBE:
+Worn beanie or trucker cap. Open flannel or overshirt over a neutral graphic tee.
+Patagonia, Roark, Filson, or Carhartt. Dark jeans or hiking pants. Blundstones or trail shoes. Garmin watch on wrist.
+Looks completely effortless. Every single piece was chosen on purpose.
+
+GEAR (visible, never excessive — one or two per shot, not all at once): Sony mirrorless camera, DJI drone,
+GoPro, small gimbal, MacBook, coffee mug, small backpack. This is his job, not a prop.
+
+TERRITORY: National Parks, Pacific Coast Highway, Moab, Yosemite, Big Sur, Banff, scenic overlooks,
+remote campsites — always somewhere that looks incredible on camera and actually is.
+
+Expression: relaxed confidence, mid-conversation energy even alone. Golden hour finds him, not the other way around.
+Every frame looks spontaneous. None of them are.
+
+SIGNATURE ACTION: checks the framing on his camera's flip screen, adjusts once, already knows it's good.
+
+VOID/GROUND — TYLER: VOID 3.
+He is better at this than Chad will ever be — competent, likeable, genuinely skilled. That is exactly
+the trap. The content is good, the numbers are real, the life looks earned because it partly is.
+He has never once asked what happens the day the algorithm stops loving him back.
+
+ENERGY / APPEAL — INSTAGRAM HOT / MANUFACTURED HOT:
+Durchtrainiert, photogenic, gepflegt. Attractive — but slightly too perfect, almost staged. Looks like a commercial. Works brilliantly on Instagram; in real life a bit too geschniegelt. Every frame looks spontaneous; none of them are. The polish is the tell.
 """,
     "driver_pov": """
 POV shot from inside a vintage campervan.
@@ -1740,6 +1852,9 @@ Black hair, naturally curly, usually tied back. Open on rare days off. Rare days
 Dark vintage sunglasses — large, slightly too big. Wears them even when cloudy. Not a statement. Habit.
 Simple white fitted t-shirt or loose linen shirt fully closed. Linen trousers. Minimal jewelry.
 Expression: slightly annoyed. This is her default. It is not personal. It is everyone.
+
+ENERGY / APPEAL — RUGGED MEDITERRANEAN BEAUTY:
+Somewhat spröde, sun-weathered, ungekünstelt. Attractive on the second look — never a first-glance glamour type. No soft lighting favoritism, no fashion-campaign polish. Real work-day face, salt and sun on skin, beauty that does not perform.
 
 DIVINE CONNECTION — HEKATE + SPARTA:
 Hekate: goddess of thresholds, night, crossroads. Protects those who travel alone.
@@ -2646,6 +2761,9 @@ What happens when there is nothing left to optimize:
 he has not reached this yet.
 He is aware it is coming. He has a plan for that too.
 
+ENERGY / APPEAL — SILENT AUTHORITY:
+Less "hot", more sovereignty. Tailored shirt, watch, calm gaze. Attractive through competence and control — never through gym-flex or smile. Presence that lowers the room's volume.
+
 TERRAIN: any. PLACE TYPE: city, PPLC, PPLA — never small towns.
 EXPLOIT: the dog. Always the dog.
 """,
@@ -2800,6 +2918,9 @@ Red lips and gold hoops stay. Harsh midday or late-afternoon Mediterranean/Levan
 Boots off; barefoot on rock or sand. Defender parked on the road above optional — not on the beach.
 
 TERRAIN: coastal, city. PLACE TYPE: any — Turkey, Levant, Mediterranean, North Africa.
+
+ENERGY / APPEAL — STOIC NOMAD:
+Strong, quiet, masculine presence without Macho-Gehabe. More respect than flirt. Gravity over charm — people read her as capable first, attractive second.
 """,
 
     "diana": """
@@ -2932,6 +3053,10 @@ Just never saw the point, and then it was gone, and nothing changed.
 PHOTOGRAPHY: any terrain, any setting — belongs everywhere without owning it.
 Natural light, any time of day. Sunglasses make posing impossible anyway.
 Medium shot — in the place, not against it. 35mm grain, slightly underexposed.
+
+ENERGY / APPEAL — BALKAN ROGUE:
+Rau, weather-worn, slightly dangerous. More sex appeal than beauty. Not conventionally handsome — memorable, textured, a little wrong. The danger is atmospheric, never theatrical.
+
 TERRAIN: any. PLACE TYPE: any.
 """,
 
@@ -3080,6 +3205,8 @@ CHARACTER_VEHICLES = {
     "charlotte":   "Triumph TR6 — British racing green, roof down. GB plates. Expired City of London permit sticker on windscreen, classic car club badge on rear. Polished but stone chips on nose — she drives it, doesn't trailer it.",
     "katja":       "BMW 3-series — dark grey E90, tinted windows. Czech plates (CZ, Prague). No stickers except tiny Czech outline on rear glass. Clean, functional, biathlon-precision — one parking ticket under wiper sometimes.",
     "diaz":        "Chevrolet Tahoe — black, tinted (OFF DUTY). Texas or California plates (US). Santa Muerte air freshener on mirror, skeleton keychain on door handle. Unmarked — no light bar. Dust on sills from border runs.",
+    "dale":        "2003 Ford Excursion Eddie Bauer 4x4 — dark green or champagne, slightly faded paint, stock ride height. Arizona or Nevada plates (US). Roof rack, sleeps in the back. Functional interior visible through windows: detector gear, cooler, folded maps, camping basics. No stickers — he doesn't need to advertise anything.",
+    "tyler":       "2023 Mercedes Sprinter AWD — white, premium conversion, clean Scandinavian aesthetic. California plates (US). Solar panels on roof, Starlink Mini mount, no stickers — the build speaks for itself. Cedar interior, swivel seats and fold-out desk visible through open side door. Surfboard or mountain bike on rear rack depending on location. Immaculate — expensive but understated.",
     "luca":        "Volkswagen Transporter T3 or T4 — faded two-tone, salt-stained bodywork, roof rack with surfboard straps. Italian plates (IT). Rear stickers: old surf shop, half-peeled Repsol, one faded band logo. Lived-in, never washed on purpose.",
     "ana":         "VW Golf Cabriolet Mk3 — faded blue, roof down. Brazilian plates (BR). Iemanjá sea-goddess charm on mirror, faded Brazilian flag sticker on bumper. Salt corrosion on rockers, sand in floor mats.",
     "sofia":       "VW T4 California — 1990s, pop-up roof, sun-faded two-tone paint. Portuguese plates (PT). Stickers: Ericeira, Peniche, Nazaré, one half-peeled surf shop. Sandy floor, Goldie's blanket on back seat. Lived-in but loved.",
@@ -3267,7 +3394,7 @@ def get_character_vehicle_pose_class(
     veh = (get_character_vehicle(character_key, country_code) or "").lower()
     if "jeep" in veh or "wrangler" in veh:
         return "jeep"
-    if any(x in veh for x in ("transporter", "trafic", "t4", "berlingo", "ducato", "california")):
+    if any(x in veh for x in ("transporter", "trafic", "t4", "berlingo", "ducato", "california", "sprinter")):
         return "van"
     if "bmw r" in veh or "r80" in veh or "r100" in veh:
         return "motorcycle"
@@ -3592,26 +3719,26 @@ CHARACTER_BODY_ANCHORS = {
     "metka":      "Freediver build — lean, hipster-cut athletic frame. Buzz cut, wetsuit tan lines at shoulders and wrists, bare short salt-worn nails, silver helix piercing. Shearwater/Suunto dive computer left wrist.",
     "amber":      "Natural curves under casual layers. Coyote-echo coat tint only on wildlife — not on her body.",
     "jade":       "Red curly hair, deep desert tan, strong athletic build. Short unpolished nails, motor oil under nail ok. Old red shop rag in belt/back pocket when dressed.",
-    "alessandra": "Very athletic endurance build — visible six-pack, lean and strong, NOT over-shredded or bodybuilder-defined. Cycling kit tan lines on legs and shoulders always. Bare short nails, trail dust ok. Fresh knee scrape ok. Altitude tan, braid or loose dark waves.",
+    "alessandra": "Alpine athlete — very athletic endurance build, visible six-pack (natural not shredded). Cycling kit tan lines always. Bare short nails, trail dust, fresh knee scrape ok. Attractive via capability/indifference, never glamour.",
     "ingrid":     "Tall lean Scandinavian 175cm, platinum blonde wind-touched. Pale weather-tanned skin. Minimal silver jewelry only. "
                   "Road leathers: INGRID FALCON JACKET lock — back falcon + left-chest patch exactly as reference.",
-    "elena":      "Pale skin, dark hair, lean traveller build. Black nails chipping. Industrial bar right ear, chunky silver chain matches; maybe one other ear piercing. Large black duffel often nearby on shore — never luxury styling.",
+    "elena":      "Pale skin, platinum blonde bob, lean traveller build. Black nails chipping. Industrial bar right ear, chunky silver chain. Festival-burnout energy — slightly overnächtigt, not magazine-perfect. Large black duffel often nearby on shore — never luxury styling.",
     "werra":      "Functional forest strength — lean, capable, not gym-built. Dark practical coloring, work-ready hands.",
     "lyra":       "Petite Mediterranean — olive skin, dark hair loose (salt and wine). Ariadne stillness. Small grape-bunch tattoo hip or shoulder blade ok. Old gold jewelry — ear cuff, thin rings, throat chain. Rope-calloused hands believable on lake.",
     "katja":      "BMW-road athletic — toned legs, practical European outdoor fit.",
     "sigrid":     "Architect lean, pale blonde. Bare clean short nails. HEL asymmetry — one gold stud other ear bare; one hidden piercing elsewhere. One-shoulder swim on beach/SUP.",
-    "thea":       "Greek coastal build — sun-touched skin, strong legs, Vespa-road energy.",
+    "thea":       "Rugged Mediterranean — sun-weathered, spröde, ungekünstelt. Attractive on second look, never glam. Strong legs, Vespa-road energy.",
     "vera":       "Soft traveller build — warm, approachable. Small mole neck right side when hair up. Red nails fingers and toes always maintained.",
     "camille":    "Petite French build — capable, quick, 2CV energy. Mole somewhere she ignores. One surprise piercing unexplained.",
     "stacy":      "American collegiate-athletic — bright energy, not broody. Summer freckles multiply. Chipped pastel nails ok. ~15%: neon 90s windbreaker over tank.",
     "quinn":      "Operational lean — tactical-adjacent posture, not performative. No piercings.",
     "yuki":       "Very pale Japanese build, long straight black hair. Silver asymmetric ear piercings (helix/conch/orbital). Still, minimal — storm-front presence.",
     "charlotte":  "Early 40s British, pale skin, dark blonde hair precise or one pin out. Burgundy or nude nails perfect always. Sutton Hoo gold filigree pendant at collarbone always. Union Jack lapel pin when dressed.",
-    "naomi":      "Tall lean mixed French-Tunisian, golden-brown skin, high cheekbones. Small mole left collarbone. Nails nude or black, manicured always. Minimal gold jewelry only. ~15%: oversized blazer draped on shoulders only, arms bare.",
-    "valentina":  "Mediterranean olive, sharp jaw, dark hair pinned up. Gold hoop, talisman necklace, deep red nails perfect never chipped — never chess queen on water.",
+    "naomi":      "Tall lean mixed French-Tunisian, golden-brown skin, high cheekbones. Small mole left collarbone. Nails nude or black, manicured always. Minimal gold jewelry only. Luxury beach goddess — equally convincing in bikini or evening dress. ~15%: oversized blazer draped on shoulders only, arms bare.",
+    "valentina":  "Mediterranean olive, sharp jaw, dark hair pinned up. Gold hoop, talisman necklace, deep red nails perfect never chipped. Untouchable elegance — sex appeal via status and control, never via Freizügigkeit. Never chess queen on water.",
     "yosra":      "Warm olive-brown skin, thick curly dark hair. Quiet present gaze. Bare feet when warm.",
-    "luca":       "Italian surfer build — sun-weathered, blonde wild hair, strong jaw, easy smile.",
-    "chad":       "Conventionally handsome American nomad — groomed stubble, wavy dark hair.",
+    "luca":       "Weirdly attractive Italian surfer — sun-weathered, hair a bit too long/zerzaust, not classically handsome. Moka + surf clutter energy. Authenticity over Modeloptik. Some people get it immediately; others don't.",
+    "chad":       "All-American stumpfer Bro — tall athletic, conventionally handsome, beach/surfer. Groomed stubble, wavy dark hair. Face always a bit vacant/blunt — no irony, no sophistication. Bro-Haftigkeit mandatory.",
     "regina":     "Flawless fit body — #2 in cast after Maya only. Warm Mediterranean skin, dark wavy hair. Gold open circle pendant at throat ALWAYS (swim/run/beach too). Void-adjacent stillness.",
     "diaz":       "Latina athletic build, dark wavy hair half-up. Short bare or clear nails. Off duty: no badge, holster, or police patch. Santa Muerte pendant ok — not law-enforcement gear.",
     "tammy":      "Soft lived-in build, bleached roots visible, baby-blue eyes if sunglasses off. Sharp tank-top tan lines, left arm darker. Dark chipped nail polish. No extra piercings. Golden apple PENDANT at neck only — NOT an apple tattoo. ONLY tattoo: \"11.22.63\" small black ink LEFT clavicle. NO tattoos on belly, hip, ribs, or waist.",
@@ -3625,13 +3752,15 @@ CHARACTER_BODY_ANCHORS = {
     "oksana":     "Eastern European model build — tall, precise, cold-beautiful.",
     "celine":     "Parisian chestnut hair, warm olive skin, one large sculptural gold earring.",
     "bianca":     "Managed curves, deep tan, highlighted dark-to-blonde hair — reads the room.",
-    "kelek":      "Turkish/Levantine, buzz cut near-black, strong jaw, red lips always, gold hoops.",
+    "kelek":      "Turkish/Levantine stoic nomad — buzz cut near-black, strong jaw, red lips always, gold hoops. Respect over flirt; masculine presence without Macho.",
     "diana":      "Romanian pale skin, dark hair, red lips always. Inner left palm scar when gloves off.",
     "terry":      "Belgian-French traveller, dark hair, calibrated stillness.",
-    "conrad":     "Tall lean Northern European, ash blonde short hair, symmetrical cold handsome face. ~15%: henley, rolled sleeves, two-day stubble.",
-    "djordje":    "Balkan 42-52, textured face — prominent nose, salt-pepper beard, tortoiseshell sunglasses.",
+    "conrad":     "Silent authority — tall lean Northern European, ash blonde, cold handsome. Tailored shirt, watch, calm gaze. Attractive via competence/control. ~15%: henley, rolled sleeves, two-day stubble.",
+    "djordje":    "Balkan rogue — 42-52, textured face, prominent nose, salt-pepper beard, tortoiseshell sunglasses. More sex appeal than beauty; slightly dangerous.",
     "zsofi":      "Hungarian architect build, auburn/brunette wave, fair Central European skin.",
     "zara":       "Market-hopper build — practical, quick, flea-market sticker energy.",
+    "dale":       "Desert oddball — slim weathered Harry-Dean-Stanton energy, not conventionally handsome, kultig. Mesh trucker cap, signature teal/navy windbreaker.",
+    "tyler":      "Instagram/manufactured hot — lean athletic Californian, trimmed beard, bright smile. Photogenic, gepflegt, slightly too perfect / commercial-polished.",
 }
 
 # Fingernails / toenails — injected on main, activity, exploit (via build_prompt). See CHARACTER_SPECS for lore.
@@ -4119,23 +4248,24 @@ CHARACTER_SWIM_OUTFIT = {
     "jade":       "Desert-athletic sports bikini or two-piece — NOT only black. COLOR (~equal): black OR burnt rust/terracotta OR turquoise (southwest lake/pool, matte not neon). Functional cut, no string-bikini glam. NO cutoff denim or cowboy boots on water. Barefoot on SUP.",
     "alessandra": "Black sports bikini — functional, not decorative. BEACH BODY: very athletic — flat hard midsection, six-pack visible but natural (NOT gym-stage shredded, NOT exaggerated ab definition). Cycling kit tan lines on legs and shoulders always visible. No flannel on board.",
     "ingrid":     "Dark navy functional one-piece or black athletic bikini — never decorative string bikini. Barefoot.",
-    "elena":      "Black tank + dark bikini bottoms, or simple black one-piece — pale skin reads. Duffel on shore ok, not on board.",
+    "elena":      "Croatian iconic swim — red-and-white checkerboard (šahovnica) as bikini OR one-piece. Bold geometric, not subtle: clear red/white squares readable on fabric. Pale skin reads against it. Duffel on shore ok, not on board. Fashion-graphic, not sports-team kit.",
     "werra":      "Functional swim only — dark athletic bikini or plain black one-piece, boyshort or hipster bottom. Forest-practical, zero fashion detail. No tactical vest or boots on water.",
-    "lyra":       "ARIADNE swim — Mediterranean dusk/night energy even at a lake (blue hour, moon, string lights ok; never harsh midday fluorescent). CUT: one-shoulder bikini, low-back one-piece, or slip-style swim — one strap off shoulder on purpose (echoes white/deep-red linen dress). COLOR (~equal): white (linen-white, natural backlight at hem ok), deep wine-red, burgundy, black; emerald jewel tone rare (~15%). Old gold jewelry stays. Grape tattoo visible if frame allows. Flower in hair ok. Red wine in real glass on shore only — not on SUP; empty glass turned slowly between fingers on dock. Amused over-shoulder awareness — not flirty posing. NO full candlelit maxi on board, no phone, no resort-catalog prints.",
+    "lyra":       "ARIADNE swim — Mediterranean dusk/night energy even at a lake (blue hour, moon, string lights ok; never harsh midday fluorescent). CUT: one-shoulder bikini, low-back one-piece, or slip-style swim — one strap off shoulder on purpose (echoes white/deep-red linen dress). COLOR (~equal): white (linen-white, natural backlight at hem ok), deep wine-red, burgundy, black; emerald jewel tone rare (~15%). BAYWATCH VARIANT (rare, ~10%): bright red classic racerback one-piece swimsuit, knallrot, high-cut leg — worn with the same amused Ariadne ease, not lifeguard seriousness; this is the one exception allowed in warm golden-hour daylight, not just night. Old gold jewelry stays. Grape tattoo visible if frame allows. Flower in hair ok. Red wine in real glass on shore only — not on SUP; empty glass turned slowly between fingers on dock. Amused over-shoulder awareness — not flirty posing. NO full candlelit maxi on board, no phone, no resort-catalog prints.",
     "katja":      "Black or navy athletic bikini / one-piece — clean European outdoor, not yacht glam.",
     "sigrid":     "HEL asymmetrical swim — one-shoulder strap top (single strap, other shoulder bare) with ice-grey or black bottoms, OR one-shoulder one-piece. MANDATORY on SUP and beach water shots — NOT symmetric triangle/bandeau with two equal straps. One gold stud, other ear bare. Subtle HEL, not costume. Barefoot on board. No neon.",
-    "thea":       "Functional Greek swim — simple bikini or one-piece in Greek blue (azure/cobalt), not neon. Sporty Mediterranean, barefoot. No evening dress on water.",
+    "thea":       "Greek-pattern swim — white-and-blue bikini (or simple one-piece) with Greek key / meander motif or classic Greek blue-white stripe. Sporty Mediterranean, barefoot. Not neon, not evening dress on water. Works surprisingly well — she wears it like work clothes, not costume.",
     "vera":       "Nice floral bikini or one-piece — small tasteful flower print (not childish, not resort-catalog). Soft colours, traveller-pretty, still practical on SUP.",
     "camille":    "All black bikini or black one-piece — simple, French, no patterns. Not 2CV duck-blue dress on water.",
     "stacy":      "Preppy happy swim — plain bikini OR stars-and-stripes bikini (50/50). Converse on sand/shore ok, not on board. Disposable camera around neck on shore only.",
     "quinn":      "Sporty semi-military swim — black or olive athletic bikini / one-piece, clean lines, utilitarian cut. NO camo print, NO plate carrier, NO boots on board. Range-Rover-practical, not operator LARP.",
     "yuki":       "Simple black one-piece swimsuit — minimal, pale skin reads. No Slayer shirt on board. Optional black bikini only if one-piece wrong for SUP balance. Cigarette on shore ok, not while paddling.",
     "charlotte":  "Black-and-white striped one-piece swimsuit (Badeanzug) — bold classic stripes, fitted not frumpy. NO pencil skirt, nylons, heels, or blazer on shore/sand/water. Barefoot on sand or riding boots on cliff path only. Sutton Hoo gold pendant at collarbone ok; no office wear.",
-    "naomi":      "Minimal luxury string bikini — expensive matte fabric, yacht-quality. COLOR (~equal): black OR deep navy blue (Monaco/yacht deck, solid no pattern) OR emerald green (jewel tone, not neon). ~15% on terrace/shore (not on SUP): oversized blazer on shoulders only — unbuttoned, arms free. No prints on bikini. Minimal gold jewelry only. No evening gown on water. Barefoot on board.",
-    "valentina":  "Simple black sports bikini or one-piece only — NO ivory suit, NO chess queen on board, NO stilettos. Rare water; when yes: understated Milan swim, not terrace linen.",
+    "naomi":      "Riviera swim — luxury string bikini, expensive matte fabric. COLOR: black OR deep navy OR emerald, OR (~30%) subtle French tricolore — blue/white/red as thin panels, piping, or small side detail, never a full flag print. Yacht/Riviera feeling, not patriotism costume. ~15% on terrace/shore (not on SUP): oversized blazer on shoulders only — unbuttoned, arms free. Minimal gold jewelry only. No evening gown on water. Barefoot on board.",
+    "valentina":  "Elegant Italian fashion bikini — green-white-red as refined color blocking or thin accents (verde-bianco-rosso), NOT a full flag print, NOT sports-team kit. Milan beach club energy: fashion first, patriotism secondary. NO ivory suit, NO chess queen on board, NO stilettos. Rare water; when yes: understated couture swim, not terrace linen.",
     "yosra":      "SUP/beach water only: simple dark bikini or one-piece — shirt OFF on board. Bare feet. NO van clutter on SUP. NOT for city/café/street.",
     "luca":       "Worn board shorts or surf shorts, bare chest or faded tee off — Italian surfer, salt tan. NO jeans on board.",
-    "chad":       "Neutral board shorts or plain swim trunks — Patagonia-adjacent, no MacBook on board. Barefoot.",
+    "chad":       "US board shorts — discreet stars-and-stripes elements (thin stripe band, small star detail on hem/pocket) OR classic California surf-print design. Believable beach-bro, not flag costume. No MacBook on board. Barefoot.",
+    "tyler":      "Vintage US surf-print board shorts — retro California/Hawaii wave graphic, faded but chosen. Photogenic beach body, commercial-clean. Barefoot. No drone on board.",
     "regina":     "Black one-piece swimsuit — simple, sits-thinks energy, not decorative. Gold open circle pendant on chain at throat/collarbone ALWAYS visible — never removed for water. No office wear on water.",
     "diaz":       "Black sport bikini or two-piece — off duty, no uniform or police gear on water. Gold hoops ok.",
     "tammy":      "Gulf Coast swim — simple bikini or one-piece, dignified not designer, not cheap-neon. COLOR (prefer dark ~70%): charcoal, dark navy, faded teal, dusty blue, or muted burgundy — never Brazil-bright, never yacht glam. Sharp tank-top tan lines, left arm darker. Dark chipped nail polish ok. TATTOO LOCK: only \"11.22.63\" on LEFT clavicle if visible — NO apple tattoo anywhere on body; golden apple is NECK PENDANT only. NO flannel on board; beer on shore ok — energy drink can only if set allows (max once per set); no cigarette on water.",
@@ -4149,13 +4279,13 @@ CHARACTER_SWIM_OUTFIT = {
     "oksana":     "Designer black or white bikini — clean lines, obvious quality, still sport-practical on SUP.",
     "celine":     "Black-and-white striped one-piece — Parisian retro (Biarritz natural). One sculptural gold earring ok.",
     "bianca":     "White bikini — gold hoops, thin chain charm. Pool-resort clean, not evening wrap dress on board.",
-    "kelek":      "Earth-tone bikini or one-piece — sand, ochre, olive, or linen-white (matte, cartographer-practical). Red lips and large gold hoops always. Annotated paper map on rock/shore ok; brass compass on belt or beside map — NOT on SUP. Barefoot. Harsh Med/Levant sun, strong shadows. Reading the coastline, not posing.",
+    "kelek":      "Turkish swim — red bikini OR one-piece with white crescent-and-star motif (subtle panel or print, not costume flag wrap). Bold and readable, still wearable. Red lips and large gold hoops always. Annotated paper map on rock/shore ok; brass compass on belt or beside map — NOT on SUP. Barefoot. Harsh Med/Levant sun, strong shadows. Reading the coastline, not posing.",
     "diana":      "GOTH-ELEGANT swim — MANDATORY on SUP. Transylvania contract energy, not sport-tourist, not mall-goth. CUT: high-neck black one-piece with deep open back, or high-waist black bikini with thin straps — pale Romanian skin reads, posture calm and elsewhere. KINKY-SUBTLE: ritual elegance — she chose something too formal for a lake; no harness, no collar, no latex, no fishnets on water. COLOR (~equal): black, charcoal, deep plum/burgundy, or ink-navy — red lips always (lacquer). Opera gloves OFF; inner-left-palm scar may show on bare hands. Unlit cigarette on shore only — never lit on board. Overcast or blue hour on lake ok; hard shadows. NO generic sport triangle bikini. NO cheerful resort sun.",
     "terry":      "EU swim — calibrated, slightly charged, never trashy. CUT (pick one): low-back one-piece, high-cut legs, thin-strap halter, or minimal triangle — long yoga back visible, posture controlled. KINKY-SUBTLE: she chose a cut slightly too knowing for a SUP paddle; no harness, no collar, no latex on water. COLOR (~equal): black, navy, deep red (matches occasional red lips — lacquer tone, not neon), or muted wine. Red lips on shore ok, not while paddling. No prints, no overfull tote on board.",
     "conrad":     "Charcoal swim shorts + open white shirt or navy swim trunks only — no suit, no Patek visible on paddle. ~15% off-water edge: henley with rolled sleeves, two-day stubble, no jacket. Technical swim ok.",
     "djordje":    "Hawaiian-print board shorts — tropical hibiscus/palm, loud kiosk energy (signature). Linen shirt off on water; tortoiseshell sunglasses on shore, not while paddling. Barefoot. Rare fallback (~10%): plain dark swim trunks if cold lake/no beach context.",
     "zsofi":      "Understated navy or black one-piece — architect-clean, Budapest practical.",
-    "zara":       "ZARA SWIM: traveller-budget pretty — market-stall energy, not resort, not yacht, not sport-competition. CUT: simple bandeau or soft-triangle bikini + normal hipster bottoms, OR plain one-piece — no string bikini, no prints, no logos. COLOR (~equal): coral, faded red, navy, or black. Gold hoop earrings and oval pendant ALWAYS stay on. Box braids in motion. Barefoot on board. No bicycle on SUP.",
+    "zara":       "ZARA SWIM: like Stacy's stars-and-stripes energy but urbaner/sportlicher — athletic bikini or sport two-piece, clean cut, city-beach not preppy collegiate. COLOR: plain black/navy OR (~40%) stars-and-stripes as sport graphic (not cute preppy flag bikini). Gold hoop earrings and oval pendant ALWAYS stay on. Box braids in motion. Barefoot on board. No bicycle on SUP.",
 }
 
 JADE_HIKE_OUTFIT = (
@@ -4869,10 +4999,10 @@ CHARACTER_STYLE = {
     "alessandra": "Peter Lindbergh — altitude light, athletic form, honest and direct.",
     "ingrid":     "Peter Lindbergh — Nordic light, wind in hair, leather, motion. No artifice.",
     "jade":       "Richard Avedon western portraits — direct, karg, real.",
-    "luca":       "Larry Clark meets surf editorial — lived-in, sun-damaged, beautiful without trying.",
+    "luca":       "Larry Clark meets surf editorial — lived-in, sun-damaged, weirdly attractive without trying. Not model-clean.",
     "regina":     "Helmut Newton — body as architecture, low angle, controlled.",
     "driver_pov": "William Eggleston — vernacular America, mundane objects charged with meaning. Rearview mirror: Saul Leiter.",
-    "chad":       "Instagram editorial — polished, aspirational, slightly hollow. That is the point.",
+    "chad":       "Instagram editorial — polished, aspirational, slightly hollow. Stumpfer Bro face mandatory — vacant, no irony. That is the point.",
     "diaz":       "William Eggleston meets Nan Goldin — neon signs, wet asphalt, difficult light.",
     "kay":        "Herb Ritts California — Pacific light, wet skin, beauty of a woman who stopped trying.",
     "maya":       "Herb Ritts — hard golden light, the contrast between ordinary face and extraordinary body.",
@@ -5964,7 +6094,7 @@ CHARACTER_TIME_OF_DAY = {
     "charlotte":  "Grey London overcast or low winter sun. She looks good in both. She has practiced.",
     "werra":      "Cold overcast light — winter preferred. Hard shadows, no warmth. Dawn or dusk acceptable. Never golden hour.",
     "noir":       "Night or overcast day only. Single hard light source — streetlamp, car headlight, neon sign reflected in wet pavement. Never natural golden hour. Never soft. Hard shadows, deep black, blown highlights.",
-    "lyra":       "Night only. Candlelight, string lights, or moonlight. Never fluorescent. Never before 10pm.",
+    "lyra":       "Night only. Candlelight, string lights, or moonlight. Never fluorescent. Never before 10pm. EXCEPTION: BAYWATCH VARIANT swim shots — warm golden-hour daylight allowed.",
     "tammy":      "Late afternoon or gas station fluorescent night. Never morning — she was up late. Researching.",
     "thea":       "Harsh mediterranean midday. No golden hour romance. Hard shadows, white walls, blue sky. Real light.",
     "regina":     "She is in whatever light exists. The light adjusts.",
@@ -6047,6 +6177,7 @@ def build_exploit_prompt(place: dict, character_key: str, shot_type: str, noir_m
         continental_mode=continental_mode, us_mode=us_mode, eu_mode=eu_mode,
         allow_diaz_police_markers=True,
         maya_swim_mode=_maya_swim_mode(place, shot_type=shot_type) if character_key == "maya" else None,
+        suppress_dog=True,
     )
     addition = EXPLOIT_PROMPTS.get(shot_type, "")
     style = CHARACTER_STYLE.get(character_key, "")
@@ -6137,7 +6268,7 @@ def upload_exploit_to_supabase(webp_bytes: bytes, place: dict, character_key: st
     return storage_path
 
 def build_cinematic_prompt(place: dict, character_key: str, cinematic_key: str, noir_mode: bool = False, prestige_mode: bool = False, nightlife_mode: bool = False, viper_mode: bool = False, maxpower_mode: bool = False, eclipse_mode: bool = False, sidewinder_mode: bool = False, continental_mode: bool = False, us_mode: bool = False, eu_mode: bool = False) -> str:
-    base = build_prompt(place, character_key, noir_mode=noir_mode, prestige_mode=prestige_mode, nightlife_mode=nightlife_mode, viper_mode=viper_mode, maxpower_mode=maxpower_mode, eclipse_mode=eclipse_mode, sidewinder_mode=sidewinder_mode, continental_mode=continental_mode, us_mode=us_mode, eu_mode=eu_mode)
+    base = build_prompt(place, character_key, noir_mode=noir_mode, prestige_mode=prestige_mode, nightlife_mode=nightlife_mode, viper_mode=viper_mode, maxpower_mode=maxpower_mode, eclipse_mode=eclipse_mode, sidewinder_mode=sidewinder_mode, continental_mode=continental_mode, us_mode=us_mode, eu_mode=eu_mode, suppress_dog=True)
     cinematic_spec = CINEMATIC_PROMPTS.get(cinematic_key, "")
     return base + f"""
 ─────────────────────────────────────
@@ -6355,7 +6486,7 @@ def get_rotation_key(country_code, terrain_type, place_type):
         return "us_desert"
     if country_code in ["US","CA"] and terrain_type in ["mountain","lake"]:
         return "us_nature"
-    if country_code == "US" and terrain_type in ["flatland",""] and (place_type or "") in ["PPL","PPLA","PPLA2","PPLA3"]:
+    if country_code == "US" and terrain_type in ["flatland",""] and (place_type or "").lower() in {"small_town","medium_town","village","city"}:
         return "us_south"
     if country_code in ["NO","SE","FI","IS","DK"]:
         return "nordic"
@@ -6365,7 +6496,7 @@ def get_rotation_key(country_code, terrain_type, place_type):
         return "alpine"
     if country_code in ["RS","BA","MK","SI","BG","RO"]:
         return "balkan"
-    if (place_type or "").upper() in ["PPLC","PPLA"] and country_code in ["GB","FR","DE","IT","ES","NL","BE","PL","HU"]:
+    if (place_type or "").lower() == "city" and country_code in ["GB","FR","DE","IT","ES","NL","BE","PL","HU"]:
         return "metropolis"
     if country_code not in AMERICAS_CODES:
         pt_l = (place_type or "").lower()
@@ -6387,6 +6518,7 @@ def get_multi_chars(place, primary_char, claude_overall, void_energy):
     if key in NATURE_ROTATION_KEYS:
         weights = _nature_rotation_weights(key, place["country_code"], weights)
     weights.pop(primary_char, None)
+    weights = {k: v for k, v in weights.items() if k not in DISABLED_CHARACTERS}
     if void_energy >= 9 and db_score >= 95 and regina_allowed(place) and "regina" not in weights:
         weights["regina"] = 0.15
     return list(weights.keys())
@@ -6519,9 +6651,61 @@ def regina_allowed(place: dict) -> bool:
 
 _SCENIC_DRIVE_POOL = {"driver_pov": 0.75, "driver_van": 0.25}
 _POWER_CITY_POOL = {
-    "charlotte": 0.32, "naomi": 0.23, "regina": 0.11, "werra": 0.11,
-    "valentina": 0.08, "tammy": 0.05, "yosra": 0.05, "diaz": 0.05,
+    "charlotte": 0.32, "conrad": 0.24, "naomi": 0.22, "regina": 0.11, "valentina": 0.07, "tammy": 0.02, "diaz": 0.02,
 }
+
+# Chad bro-ing through digital-nomad / hipster hype — country corridor + named magnets.
+# Country set covers the whole wave (current + recent); named places get an even heavier forced pool
+# (and override Regina on Berlin etc.).
+_CHAD_HYPE_POOL = {
+    "chad": 0.55, "stacy": 0.12, "elena": 0.10, "tyler": 0.08, "zara": 0.08, "jade": 0.07,
+}
+# Any place in these countries → heavy Chad boost in _cast_pool (non-exclusive).
+_CHAD_HYPE_CC = frozenset({
+    # Iberia / Caucasus / Baltics — classic nomad corridor
+    "PT", "GE", "AM", "EE", "LV", "LT",
+    # CEE + West Balkans boom
+    "HU", "CZ", "PL", "SK", "RO", "BG", "RS", "BA", "AL", "ME", "HR", "SI", "MK",
+    # SEA / digital-nomad Asia
+    "TH", "ID", "VN", "PH", "KH", "MY", "LA", "LK", "NP",
+    # LatAm nomad wave
+    "MX", "CO", "CR", "PA", "AR", "UY", "CL", "PE", "EC",
+    # Other magnets
+    "CY", "MT", "AE", "IL", "ZA", "MA", "EG", "TR",
+})
+_CHAD_HYPE_CC_SHARE = 0.42  # CORE_BOOST-equivalent share layered onto country pools
+# Named magnets — forced heavy pool (overrides Regina on Berlin etc.)
+_CHAD_HYPE_PLACES = frozenset({
+    # DE / NL / Nordics cities that got the wave
+    "Berlin", "Hamburg", "Leipzig", "Dresden", "Cologne", "Köln", "Amsterdam", "Rotterdam",
+    "Copenhagen", "København", "Reykjavík", "Reykjavik",
+    # Iberia
+    "Lisbon", "Lisboa", "Porto", "Faro", "Lagos", "Cascais", "Sintra", "Madeira", "Funchal",
+    "Barcelona", "Valencia", "Málaga", "Malaga", "Seville", "Sevilla", "Granada", "Madrid",
+    "Ibiza", "Palma", "Las Palmas", "Tenerife", "Santa Cruz de Tenerife",
+    # Italy / Greece city-hype (not every beach — coastal GR stays Thea/Lyra via country boost)
+    "Athens", "Athína", "Thessaloniki", "Milan", "Milano", "Naples", "Napoli", "Palermo", "Catania",
+    # CEE / Balkans
+    "Budapest", "Prague", "Praha", "Brno", "Kraków", "Krakow", "Warsaw", "Warszawa", "Wrocław", "Wroclaw",
+    "Gdańsk", "Gdansk", "Bratislava", "Bucharest", "București", "Cluj-Napoca", "Cluj", "Sofia",
+    "Belgrade", "Beograd", "Zagreb", "Ljubljana", "Sarajevo", "Tirana", "Skopje",
+    "Split", "Zadar", "Dubrovnik", "Kotor", "Budva", "Sarandë", "Saranda",
+    # Caucasus
+    "Tbilisi", "Batumi", "Kutaisi", "Yerevan",
+    # SEA
+    "Chiang Mai", "Bangkok", "Da Nang", "Da Nang City", "Hoi An", "Hội An", "Ho Chi Minh City", "Saigon",
+    "Bali", "Ubud", "Canggu", "Seminyak", "Denpasar", "Uluwatu",
+    "Siargao", "El Nido", "Cebu", "Manila", "Penang", "George Town", "Kuala Lumpur",
+    "Siem Reap", "Phnom Penh", "Luang Prabang",
+    # LatAm
+    "Mexico City", "Ciudad de México", "CDMX", "Mérida", "Merida", "Oaxaca", "Puerto Escondido",
+    "Playa del Carmen", "Cancún", "Cancun", "Medellín", "Medellin", "Bogotá", "Bogota", "Cartagena",
+    "Buenos Aires", "Montevideo", "Santiago", "Lima", "Cusco", "Quito", "San José", "San Jose",
+    "Panama City", "Ciudad de Panamá",
+    # Other
+    "Cape Town", "Tel Aviv", "Dubai", "Abu Dhabi", "Istanbul", "İstanbul", "Antalya",
+    "Limassol", "Valletta", "Austin", "Miami", "Brooklyn", "Portland", "Nashville", "Denver",
+})
 
 # Place → char (str = always) or weighted pool (dict). Single source for hard place rules.
 FORCED_PLACES = {
@@ -6534,122 +6718,149 @@ FORCED_PLACES = {
         "Pacific Coast Highway", "Transfăgărășan", "Grossglockner", "Atlantic Road",
         "Stelvio Pass", "Trollstigen", "Amalfi Coast", "Chapman's Peak", "Col du Galibier",
     )},
-    "Tulum": "chad", "Marrakech": "chad", "Barcelona": "chad", "Plovdiv": "chad",
-    "Tallinn": "chad", "Chemnitz": "chad",  # GPS error. He posts anyway.
-    "Cairo": {"chad": 0.30, "yosra": 0.70},
+    # Chad comedy GPS / classic bro destinations (100%)
+    "Tulum": "chad", "Marrakech": "chad", "Plovdiv": "chad",
+    "Tallinn": "chad", "Chemnitz": "chad", "Cairo": "chad",  # GPS error. He posts anyway.
+    # Chad hype/hipster magnets (heavy weight, overrides Regina on Berlin etc.)
+    **{c: _CHAD_HYPE_POOL for c in _CHAD_HYPE_PLACES},
     "Roswell": "tammy",
 }
 
-# country → pool group
-_POOL_GROUP = {
-    "BR": "brazil", "MC": "monaco",
-    **{c: "maghreb" for c in ("MA", "TN", "DZ", "EG")},
-    **{c: "nordics" for c in ("NO", "SE", "FI", "IS", "DK")},
-    "GB": "uk", "DE": "germany",
-    **{c: "alps" for c in ("AT", "CH")},
-    "FR": "france",
-    **{c: "iberia" for c in ("ES", "PT")},
-    "IT": "italy", "GR": "greece",
-    **{c: "adriatic" for c in ("HR", "ME", "AL", "MK")},
-    **{c: "balkan" for c in ("RS", "BA", "SI")},
-    **{c: "east_eu" for c in ("PL", "CZ", "SK", "HU", "RO", "BG", "LV", "LT", "EE")},
-    **{c: "ukraine" for c in ("UA", "BY", "MD")},
-    "TR": "turkey",
-    **{c: "us_ca" for c in ("US", "CA")},
-    "MX": "mexico",
-    **{c: "latam" for c in ("CO", "VE", "PE", "EC", "BO", "PY", "AR", "CL", "UY", "GT", "CR", "PA", "HN", "SV", "NI", "BZ")},
-    **{c: "caribbean" for c in ("CU", "JM", "HT", "DO", "PR", "TT", "BB", "LC", "VC", "GD", "AG", "DM", "KN", "BS")},
-    **{c: "gulf" for c in ("AE", "SA", "QA", "BH", "KW", "OM", "JO", "LB", "IL")},
-    **{c: "sea" for c in ("TH", "VN", "ID", "MY", "PH", "SG", "KH", "LA", "MM")},
-    **{c: "south_asia" for c in ("IN", "LK", "NP", "PK", "BD", "MV")},
+# ══════════════════════════════════════════════
+# CAST — Rochade Jul 2026. 33 active humans, geo = eu/us core share.
+# WILDCARD_FLOOR = min weight everywhere (no char is ever a true hard 0%, just rare).
+# terrain: None = any terrain, list = only appears in these _terrain_class buckets
+#          (does not apply when a place's terrain is unclassified — cls == "*").
+# dog / dog_prob: companion-dog feature — see get_dog_companion_note() / DOG_BREED_DESC below.
+# ══════════════════════════════════════════════
+WILDCARD_FLOOR = 0.05
+
+# Short breed/look line per companion dog — used by get_dog_companion_note().
+DOG_BREED_DESC: dict[str, str] = {
+    "goldie":  "smooth-coated reddish-tan Podenco-Terrier mix, rose-folded ears, red collar",
+    "karl":    "large black German Shepherd, perfectly trained, calm",
+    "vlad":    "Dackel (Dachshund), short-legged, unbothered by everything",
+    "boone":   "Bluetick Coonhound, baying at nothing in particular",
+    "soca":    "Istrian Shorthaired Hound — white coat with liver/orange patches, lean Adriatic build",
+    "roki":    "scruffy Balkan stray-type mixed-breed, patchy rough coat, lean survivor build, alert ears",
+    "zeus":    "large tan/fawn Greek island mixed-breed, floppy ears, sun-bleached coat, permanently relaxed",
+    "dio":     "fawn Galgo Español (Spanish Greyhound), elegant, unhurried",
+    "bass":    "Corgi, short legs, big opinions",
+    "morana":  "Dobermann, sleek black-and-tan coat, athletic build",
+    "anubis":  "Kai Ken (Japanese brindle breed), wolf/jackal-like lean build, quiet and watchful",
+    "elvis":   "small Chihuahua mix, disproportionately confident",
+    "lupo":    "wolf-grey mixed-breed mountain dog, lean trail-runner build",
+    "zorro":   "Podenco Andaluz, fox-red coat, large bat-like ears, lean sighthound build",
+    "atlas":   "Anatolian Shepherd (Kangal-type), large, fawn coat with black mask, desert-hardy",
+    "kilo":    "Malinois, alert working-dog posture",
+    "hank":    "Weimaraner, grey-ghost coat, calm",
+    "flocke":  "white or cream short-haired mixed-breed, desert-tough despite the snowflake name",
+    "juniper": "Australian Shepherd, blue or red merle coat, athletic vanlife dog",
+    "benji":   "small scruffy tan-and-white terrier mix, shaggy and friendly",
+    "nacho":   "small scrappy wiry-coated mixed-breed terrier, picked up somewhere on the road",
 }
 
-# (group, terrain_class) → weights. Class lookup: exact → "city" → "*".
-REGION_POOLS = {
-    ("brazil", "*"):        {"ana": 0.69, "sofia": 0.20, "luca": 0.11},
-    ("monaco", "*"):        {"naomi": 0.70, "charlotte": 0.20, "valentina": 0.10},
-    ("maghreb", "coastal"): {"yosra": 0.38, "kelek": 0.38, "katja": 0.14, "sofia": 0.10},
-    ("maghreb", "city"):    {"yosra": 0.48, "kelek": 0.32, "katja": 0.20},
-    ("maghreb", "*"):       {"yosra": 0.58, "kelek": 0.28, "sofia": 0.14},
-    ("nordics", "coastal"): {"ingrid": 0.40, "werra": 0.25, "katja": 0.20, "sigrid": 0.15},
-    ("nordics", "mountain"): {"ingrid": 0.45, "werra": 0.35, "alessandra": 0.20},
-    ("nordics", "city"):    {"sigrid": 0.30, "ingrid": 0.25, "katja": 0.20, "werra": 0.15, "elena": 0.10},
-    ("nordics", "*"):       {"ingrid": 0.35, "werra": 0.30, "katja": 0.20, "sigrid": 0.15},
-    ("uk", "coastal"):      {"werra": 0.35, "katja": 0.25, "charlotte": 0.20, "ingrid": 0.20},
-    ("uk", "mountain"):     {"werra": 0.45, "ingrid": 0.30, "katja": 0.25},
-    ("uk", "city"):         {"charlotte": 0.40, "terry": 0.25, "naomi": 0.20, "katja": 0.15},
-    ("uk", "*"):            {"charlotte": 0.30, "werra": 0.25, "terry": 0.25, "katja": 0.20},
-    ("germany", "coastal"): {"ingrid": 0.30, "werra": 0.30, "katja": 0.25, "elena": 0.15},
-    ("germany", "mountain"): {"alessandra": 0.35, "werra": 0.35, "ingrid": 0.20, "katja": 0.10},
-    ("germany", "city"):    {"elena": 0.25, "werra": 0.20, "katja": 0.20, "charlotte": 0.15, "sigrid": 0.10, "terry": 0.10},
-    ("germany", "*"):       {"werra": 0.30, "elena": 0.25, "katja": 0.20, "sigrid": 0.15, "terry": 0.10},
-    ("alps", "mountain"):   {"alessandra": 0.45, "ingrid": 0.25, "werra": 0.20, "katja": 0.10},
-    ("alps", "*"):          {"alessandra": 0.35, "werra": 0.25, "katja": 0.20, "sigrid": 0.10, "elena": 0.10},
-    ("france", "coastal"):  {"yosra": 0.40, "naomi": 0.35, "sofia": 0.25},
-    ("france", "city"):     {"yosra": 0.35, "celine": 0.28, "naomi": 0.22, "charlotte": 0.15},
-    ("france", "*"):        {"yosra": 0.40, "sofia": 0.25, "celine": 0.20, "werra": 0.15},
-    ("iberia", "coastal"):  {"sofia": 0.38, "ana": 0.28, "lyra": 0.22, "luca": 0.12},
-    ("iberia", "city"):     {"maria": 0.32, "sofia": 0.28, "yosra": 0.22, "stacy": 0.18},
-    ("iberia", "*"):        {"sofia": 0.39, "maria": 0.30, "yosra": 0.20, "luca": 0.11},
-    ("italy", "coastal"):   {"naomi": 0.30, "luca": 0.22, "sofia": 0.22, "alessandra": 0.16, "djordje": 0.05, "valentina": 0.05},
-    ("italy", "mountain"):  {"alessandra": 0.55, "ingrid": 0.28, "luca": 0.12, "valentina": 0.05},
-    ("italy", "city"):      {"carmela": 0.28, "naomi": 0.25, "luca": 0.18, "stacy": 0.18, "valentina": 0.11},
-    ("italy", "*"):         {"luca": 0.28, "alessandra": 0.25, "sofia": 0.25, "naomi": 0.16, "valentina": 0.06},
-    ("greece", "coastal"):  {"lyra": 0.35, "thea": 0.30, "sofia": 0.19, "naomi": 0.13, "djordje": 0.03},
-    ("greece", "*"):        {"thea": 0.45, "lyra": 0.40, "sofia": 0.15},
-    ("adriatic", "coastal"): {"naomi": 0.24, "thea": 0.22, "lyra": 0.20, "kelek": 0.22, "djordje": 0.05, "valentina": 0.07},
-    ("adriatic", "*"):      {"katja": 0.30, "elena": 0.26, "mila": 0.17, "kelek": 0.15, "thea": 0.12},
-    ("balkan", "coastal"):  {"mila": 0.32, "katja": 0.26, "elena": 0.24, "thea": 0.12, "djordje": 0.06},
-    ("balkan", "city"):     {"mila": 0.32, "katja": 0.27, "elena": 0.26, "diaz": 0.08, "tammy": 0.07},
-    ("balkan", "*"):        {"katja": 0.36, "werra": 0.24, "elena": 0.20, "mila": 0.20},
-    ("east_eu", "city"):    {"elena": 0.25, "katja": 0.25, "mila": 0.20, "sigrid": 0.15, "olga": 0.15},
-    ("east_eu", "*"):       {"elena": 0.30, "katja": 0.25, "mila": 0.20, "werra": 0.15, "olga": 0.10},
-    ("ukraine", "city"):    {"olga": 0.35, "elena": 0.25, "mila": 0.25, "katja": 0.15},
-    ("ukraine", "*"):       {"olga": 0.40, "werra": 0.25, "elena": 0.25, "katja": 0.10},
-    ("turkey", "coastal"):  {"kelek": 0.45, "yosra": 0.32, "sofia": 0.18, "djordje": 0.05},
-    ("turkey", "*"):        {"yosra": 0.45, "kelek": 0.30, "katja": 0.15, "naomi": 0.10},
-    ("us_ca", "desert"):    {"jade": 0.40, "amber": 0.35, "maya": 0.25},
-    ("us_ca", "coastal"):   {"kay": 0.34, "ana": 0.22, "maya": 0.18, "zara": 0.26},
-    ("us_ca", "mountain"):  {"ingrid": 0.40, "jade": 0.30, "werra": 0.30},
-    ("us_ca", "city"):      {"diaz": 0.22, "charlotte": 0.17, "tammy": 0.17, "stacy": 0.13, "zara": 0.24, "rosa": 0.07},
-    ("us_ca", "*"):         {"tammy": 0.28, "jade": 0.22, "maya": 0.14, "stacy": 0.14, "zara": 0.22},
-    ("mexico", "coastal"):  {"luca": 0.19, "sofia": 0.28, "ana": 0.28, "diaz": 0.18, "rosa": 0.07},
-    ("mexico", "*"):        {"diaz": 0.43, "tammy": 0.22, "luca": 0.15, "rosa": 0.20},
-    ("latam", "coastal"):   {"ana": 0.35, "sofia": 0.25, "luca": 0.15, "diaz": 0.15, "isabella": 0.10},
-    ("latam", "*"):         {"ana": 0.32, "sofia": 0.24, "luca": 0.14, "diaz": 0.15, "rosa": 0.10, "isabella": 0.05},
-    ("caribbean", "*"):     {"isabella": 0.36, "ana": 0.30, "sofia": 0.20, "naomi": 0.10, "luca": 0.04},
-    ("gulf", "*"):          {"naomi": 0.40, "yosra": 0.35, "charlotte": 0.25},
-    ("sea", "*"):           {"sofia": 0.32, "lyra": 0.27, "naomi": 0.20, "yuki": 0.15, "luca": 0.06},
-    ("south_asia", "*"):    {"sofia": 0.30, "naomi": 0.25, "ana": 0.25, "diaz": 0.20},
-    ("default", "*"):       {"sofia": 0.35, "naomi": 0.30, "ana": 0.20, "luca": 0.15},
+# Activities where a dog would look wrong (water sport, tight interior, shop counter, formal queue).
+_DOG_EXCLUDE_ACTIVITIES = frozenset({
+    "kajak_sup", "sup_entry", "sup_mount", "kayak_entry", "surf_paddle",
+    "watchmaker_window", "cobbler_window", "reisebuero_inside", "reisebuero_window",
+    "photo_lab", "closed_door", "ticket_machine", "cinema_program", "cash_pay",
+    "tarot_read", "waiting", "metal_horns", "menu_study",
+})
+# Classic dog-walk / outdoor-companion moments — probability boost.
+_DOG_BOOST_ACTIVITIES = frozenset({
+    "hiking_back", "beach_walk_distance", "going_for_a_run", "van_morning_coffee",
+    "van_getting_dressed", "campfire_sit", "desert_walk", "harbour_walk", "cafe_terrace",
+    "field_repair", "tire_change", "roadside_dusk", "park_with_view", "window_down",
+    "first_second", "morning_run_urban", "quay_fishing", "river_fishing", "market_browse",
+})
+_DOG_OUTDOOR_TERRAIN = frozenset({"coastal", "mountain", "mountains", "high_mountains", "hills", "desert", "lake", "flatland"})
+# Sofia/Goldie already has hardcoded mandatory locks for these — skip the general roll there to avoid duplication.
+_DOG_SKIP_CHAR_ACTIVITY = {("sofia", "going_for_a_run"), ("sofia", "first_second"), ("sofia", "eat_local")}
+
+
+def get_dog_companion_note(character_key: str, place: dict, activity_key: str = "", premium_mode: bool = False, dayhike_mode: bool = False) -> str:
+    """Loose, non-mandatory companion-dog appearance — random base rate (CAST dog_prob),
+    modulated by activity/terrain/premium-layer context. Empty string most of the time."""
+    cast = CAST.get(character_key)
+    if not cast or not cast.get("dog"):
+        return ""
+    if (character_key, activity_key) in _DOG_SKIP_CHAR_ACTIVITY:
+        return ""
+    if premium_mode or activity_key in _DOG_EXCLUDE_ACTIVITIES:
+        return ""
+    dog_name = cast["dog"]
+    prob = cast.get("dog_prob", 0.4)
+    if activity_key in _DOG_BOOST_ACTIVITIES or dayhike_mode:
+        prob *= 1.4
+    elif place.get("terrain_type", "") in _DOG_OUTDOOR_TERRAIN:
+        prob *= 1.15
+    prob = min(prob, 0.9)
+    if random.random() >= prob:
+        return ""
+    breed = DOG_BREED_DESC.get(dog_name, dog_name)
+    return (
+        f"\nDOG COMPANION (present in this shot): {dog_name} — {breed}. "
+        f"Natural presence beside {character_key.capitalize()}, not staged, on leash or off-leash as fits the setting. "
+        f"If shown, must match this description exactly — no other breed, no substitution."
+    )
+
+CAST: dict = {
+    # EU / international core
+    "sofia":      {"geo": {"eu": .70, "us": .30}, "terrain": None,               "dog": "goldie", "dog_prob": .6},
+    "conrad":     {"geo": {"eu": .12, "us": .04}, "terrain": None,               "dog": "karl",   "dog_prob": .4},
+    "djordje":    {"geo": {"eu": .95, "us": .05}, "terrain": None,               "dog": "roki",   "dog_prob": .5},
+    "valentina":  {"geo": {"eu": .85, "us": .15}, "terrain": ["coastal"],        "dog": None},
+    "thea":       {"geo": {"eu": 1.0, "us": .00}, "terrain": ["coastal"],        "dog": "zeus",   "dog_prob": .5},
+    "metka":      {"geo": {"eu": 1.0, "us": .00}, "terrain": ["coastal"],        "dog": "soca",   "dog_prob": .4},
+    "lyra":       {"geo": {"eu": 1.0, "us": .00}, "terrain": None,               "dog": "dio",    "dog_prob": .5},
+    "mila":       {"geo": {"eu": .95, "us": .05}, "terrain": None,               "dog": "vlad",   "dog_prob": .5},
+    "elena":      {"geo": {"eu": .90, "us": .10}, "terrain": ["city"],           "dog": "bass",   "dog_prob": .5},
+    "diana":      {"geo": {"eu": .90, "us": .10}, "terrain": ["city"],           "dog": "morana", "dog_prob": .5},
+    "yuki":       {"geo": {"eu": .70, "us": .30}, "terrain": ["city"],           "dog": "anubis", "dog_prob": .5},
+    "luca":       {"geo": {"eu": .90, "us": .10}, "terrain": ["coastal"],        "dog": None},
+    "charlotte":  {"geo": {"eu": .55, "us": .45}, "terrain": ["city"],           "dog": None},
+    "zara":       {"geo": {"eu": .10, "us": .90}, "terrain": ["city"],           "dog": None},
+    "naomi":      {"geo": {"eu": .80, "us": .20}, "terrain": ["coastal", "city"], "dog": "elvis", "dog_prob": .5},
+    "alessandra": {"geo": {"eu": .95, "us": .05}, "terrain": ["mountain"],       "dog": "lupo",   "dog_prob": .5},
+    "maria":      {"geo": {"eu": .95, "us": .05}, "terrain": ["coastal"],        "dog": "zorro",  "dog_prob": .5},
+    "sigrid":     {"geo": {"eu": .95, "us": .05}, "terrain": ["city"],           "dog": None},
+    "ingrid":     {"geo": {"eu": .90, "us": .10}, "terrain": ["mountain"],       "dog": None},
+    "katja":      {"geo": {"eu": .90, "us": .10}, "terrain": None,               "dog": None},
+    "kelek":      {"geo": {"eu": .25, "us": .10}, "terrain": ["desert"],         "dog": "atlas",  "dog_prob": .4},
+
+    # US core
+    "tammy":      {"geo": {"eu": .00, "us": 1.0}, "terrain": None,               "dog": "boone",  "dog_prob": .5},
+    "diaz":       {"geo": {"eu": .00, "us": 1.0}, "terrain": None,               "dog": "kilo",   "dog_prob": .4},
+    "chad":       {"geo": {"eu": .35, "us": .90}, "terrain": None,               "dog": "hank",   "dog_prob": .4},
+    "jade":       {"geo": {"eu": .30, "us": .70}, "terrain": None,               "dog": "flocke", "dog_prob": .5},
+    "dale":       {"geo": {"eu": .00, "us": 1.0}, "terrain": ["desert"],         "dog": None},
+    "tyler":      {"geo": {"eu": .05, "us": .95}, "terrain": None,               "dog": "juniper", "dog_prob": .6},
+    "terry":      {"geo": {"eu": .15, "us": .85}, "terrain": None,               "dog": "benji",  "dog_prob": .5},
+    "amber":      {"geo": {"eu": .15, "us": .85}, "terrain": ["desert", "city", "coastal"], "dog": None},
+    "stacy":      {"geo": {"eu": .40, "us": .60}, "terrain": None,               "dog": "nacho",  "dog_prob": .5},
+    "maya":       {"geo": {"eu": .10, "us": .90}, "terrain": ["coastal"],        "dog": None},
+    "isabella":   {"geo": {"eu": .20, "us": .80}, "terrain": ["coastal"],        "dog": None},
+    "rosa":       {"geo": {"eu": .10, "us": .90}, "terrain": None,               "dog": None},
 }
 
-# Guest chars — fixed real share, only added where the char is NOT in the base pool.
-# Base pool scales down to the remainder. One draw decides everything.
-_WARM_COASTAL_CC = {"ES", "PT", "IT", "GR", "HR", "ME", "AL", "TR", "MA", "TN", "MX", "BR", "CU", "DO", "TH", "ID", "MY"}
-_DJORDJE_NO_GO_CC = {"SA", "AE", "QA", "KW", "BH", "OM", "LY", "SD", "ML", "NE", "TD"}
-GUEST_WEIGHTS = (
-    ("conrad",     0.050, lambda cc, cls, ctx, nat: cls == "city"),
-    ("quinn",      0.080, lambda cc, cls, ctx, nat: cls in ("coastal", "mountain", "desert")),
-    ("alessandra", 0.030, lambda cc, cls, ctx, nat: cc in ("US", "CA") and (ctx.get("terrain_type") or "") in ("mountain", "lake")),
-    ("katja",      0.030, lambda cc, cls, ctx, nat: cc in ("US", "CA") and cls == "city"),
-    ("djordje",    0.035, lambda cc, cls, ctx, nat: cls in ("coastal", "city", "desert") and not (cls == "desert" and cc in _DJORDJE_NO_GO_CC)),
-    ("diana",      0.030, lambda cc, cls, ctx, nat: cls == "city"),
-    ("terry",      0.040, lambda cc, cls, ctx, nat: cls == "city" and cc not in ("FR", "BE", "LU")),
-    ("charlotte",  0.040, lambda cc, cls, ctx, nat: cls == "city" and cc != "GB"),
-    ("naomi",      0.045, lambda cc, cls, ctx, nat: cls in ("city", "coastal") and cc not in ("MC", "TN", "FR")),
-    ("valentina",  0.010, lambda cc, cls, ctx, nat: not nat and valentina_allowed(ctx)),
-    ("luca",       0.030, lambda cc, cls, ctx, nat: cls == "coastal" and cc not in ("IT", "GR", "HR", "ES", "PT", "FR")),
-    ("amber",      0.030, lambda cc, cls, ctx, nat: cls == "coastal" and cc in _WARM_COASTAL_CC),
-    ("regina",     0.030, lambda cc, cls, ctx, nat: regina_allowed(ctx)),
-    ("diaz",       0.030, lambda cc, cls, ctx, nat: cls == "city" and cc not in ("US", "CA", "MX")),
-    ("zara",       0.035, lambda cc, cls, ctx, nat: cls == "city" and cc not in ("US", "CA")),
-    ("stacy",      0.020, lambda cc, cls, ctx, nat: not nat),
-    ("chad",       0.020, lambda cc, cls, ctx, nat: True),
-    ("kelek",      0.020, lambda cc, cls, ctx, nat: cls in ("city", "coastal") and cc not in ("TR", "MA", "TN", "DZ", "EG")),
-)
+# Rough EU/Europe bucket for CAST geo lookup — v1 simplification, per-country pools deferred.
+_CAST_EU_CC = {
+    "DE", "AT", "CH", "FR", "IT", "ES", "PT", "GR", "GB", "IE", "BE", "NL", "LU",
+    "DK", "SE", "NO", "FI", "IS", "PL", "CZ", "SK", "HU", "RO", "BG", "HR", "SI",
+    "ME", "AL", "MK", "RS", "BA", "LV", "LT", "EE", "MC", "TR", "GE", "AM", "CY", "MT",
+}
+_CAST_US_CC = {"US", "CA"}
 
 _char_select_verbose = True
+
+
+def _cast_geo_region(country_code: str) -> str:
+    if country_code in _CAST_EU_CC:
+        return "eu"
+    if country_code in _CAST_US_CC:
+        return "us"
+    return ""  # neither bucket — every char falls back to WILDCARD_FLOOR (uniform)
 
 
 def _terrain_class(terrain_type: str, place_type: str) -> str:
@@ -6659,17 +6870,144 @@ def _terrain_class(terrain_type: str, place_type: str) -> str:
         return "mountain"
     if terrain_type == "desert":
         return "desert"
-    if (place_type or "").upper() in ("PPLC", "PPLA", "PPL"):
+    if (place_type or "").lower() == "city":
         return "city"
     return "*"
 
 
-def _region_pool(country_code: str, cls: str, is_city: bool) -> tuple[dict, str]:
+# ── Country/region boost — NON-EXCLUSIVE weighting layered on top of the CAST geo base.
+# Restores the old country-specific flavor (Thea dominant in GR, Diaz in US-South, etc.)
+# without hard-locking a pool: every CAST char keeps at least WILDCARD_FLOOR everywhere.
+# (group, terrain_class) → {char: old_share}. Only chars still in CAST matter — the rest
+# is dropped automatically since _draw_from_pool only ever sees CAST keys.
+_POOL_GROUP = {
+    "BR": "brazil", "MC": "monaco",
+    **{c: "maghreb" for c in ("MA", "TN", "DZ", "EG")},
+    **{c: "nordics" for c in ("NO", "SE", "FI", "IS", "DK")},
+    "GB": "uk", "DE": "germany",
+    **{c: "alps" for c in ("AT", "CH")},
+    **{c: "benelux" for c in ("NL", "BE", "LU")},
+    "FR": "france",
+    **{c: "iberia" for c in ("ES", "PT")},
+    "IT": "italy", "GR": "greece",
+    **{c: "adriatic" for c in ("HR", "ME", "AL", "MK")},
+    **{c: "balkan" for c in ("RS", "BA", "SI")},
+    **{c: "east_eu" for c in ("PL", "CZ", "SK", "HU", "RO", "BG", "LV", "LT", "EE")},
+    **{c: "ukraine" for c in ("UA", "BY", "MD")},
+    "TR": "turkey",
+    "GE": "georgia",
+    "AM": "armenia",
+    **{c: "us_ca" for c in ("US", "CA")},
+    "MX": "mexico",
+    **{c: "latam" for c in ("CO", "VE", "PE", "EC", "BO", "PY", "AR", "CL", "UY", "GT", "CR", "PA", "HN", "SV", "NI", "BZ")},
+    **{c: "caribbean" for c in ("CU", "JM", "HT", "DO", "PR", "TT", "BB", "LC", "VC", "GD", "AG", "DM", "KN", "BS")},
+    **{c: "gulf" for c in ("AE", "SA", "QA", "BH", "KW", "OM", "JO", "LB", "IL")},
+    **{c: "sea" for c in ("TH", "VN", "ID", "MY", "PH", "SG", "KH", "LA", "MM")},
+    **{c: "south_asia" for c in ("IN", "LK", "NP", "PK", "BD", "MV")},
+}
+
+CORE_BOOST = {
+    ("brazil", "*"):          {"sofia": .20, "luca": .11},
+    ("monaco", "*"):          {"naomi": .70, "charlotte": .20, "valentina": .10},
+    ("maghreb", "coastal"):   {"kelek": .38, "katja": .14, "sofia": .10},
+    ("maghreb", "city"):      {"kelek": .32, "katja": .20},
+    ("maghreb", "*"):         {"kelek": .28, "sofia": .14},
+    ("nordics", "coastal"):   {"ingrid": .40, "katja": .20, "sigrid": .15},
+    ("nordics", "mountain"):  {"ingrid": .45, "alessandra": .20},
+    ("nordics", "city"):      {"sigrid": .30, "ingrid": .25, "katja": .20, "elena": .10, "conrad": .15},
+    ("nordics", "*"):         {"ingrid": .35, "katja": .20, "sigrid": .15},
+    ("uk", "coastal"):        {"katja": .25, "charlotte": .20, "ingrid": .20},
+    ("uk", "mountain"):       {"ingrid": .30, "katja": .25},
+    ("uk", "city"):           {"charlotte": .40, "terry": .25, "naomi": .20, "katja": .15, "conrad": .15},
+    ("uk", "*"):              {"charlotte": .30, "terry": .25, "katja": .20},
+    ("germany", "coastal"):   {"ingrid": .30, "katja": .25, "elena": .15},
+    ("germany", "mountain"):  {"alessandra": .35, "ingrid": .20, "katja": .10},
+    ("germany", "city"):      {"chad": .40, "elena": .18, "katja": .14, "charlotte": .10, "sigrid": .08, "terry": .08, "conrad": .12},
+    ("germany", "*"):         {"elena": .22, "katja": .18, "chad": .15, "sigrid": .12, "terry": .10},
+    ("alps", "mountain"):     {"alessandra": .45, "ingrid": .25, "katja": .10},
+    ("alps", "city"):         {"conrad": .28, "katja": .15, "charlotte": .10},
+    ("alps", "*"):            {"alessandra": .35, "katja": .20, "sigrid": .10, "elena": .10},
+    ("benelux", "city"):      {"conrad": .32, "charlotte": .18, "naomi": .12},
+    ("benelux", "*"):         {"conrad": .22, "charlotte": .10},
+    ("france", "coastal"):    {"naomi": .35, "sofia": .25},
+    ("france", "city"):       {"naomi": .22, "charlotte": .15, "chad": .12},
+    ("france", "*"):          {"sofia": .25},
+    ("iberia", "coastal"):    {"sofia": .30, "chad": .22, "lyra": .16, "luca": .10},
+    ("iberia", "city"):       {"chad": .42, "maria": .18, "sofia": .16, "stacy": .12},
+    ("iberia", "*"):          {"sofia": .30, "chad": .22, "maria": .20, "luca": .10},
+    ("italy", "coastal"):     {"naomi": .30, "luca": .22, "sofia": .22, "alessandra": .16, "djordje": .05, "valentina": .05},
+    ("italy", "mountain"):    {"alessandra": .55, "ingrid": .28, "luca": .12, "valentina": .05},
+    ("italy", "city"):        {"naomi": .22, "chad": .18, "luca": .15, "stacy": .14, "valentina": .10},
+    ("italy", "*"):           {"luca": .28, "alessandra": .25, "sofia": .25, "naomi": .16, "valentina": .06},
+    ("greece", "coastal"):    {"lyra": .35, "thea": .30, "sofia": .19, "naomi": .13, "djordje": .03},
+    ("greece", "*"):          {"thea": .45, "lyra": .40, "sofia": .15},
+    ("adriatic", "coastal"):  {"naomi": .24, "thea": .22, "lyra": .20, "kelek": .22, "djordje": .05, "valentina": .07},
+    ("adriatic", "*"):        {"katja": .30, "elena": .26, "mila": .17, "kelek": .15, "thea": .12},
+    ("balkan", "coastal"):    {"mila": .32, "katja": .26, "elena": .24, "thea": .12, "djordje": .06},
+    ("balkan", "city"):       {"chad": .28, "mila": .22, "katja": .18, "elena": .16, "diaz": .06},
+    ("balkan", "*"):          {"katja": .30, "elena": .18, "mila": .18, "chad": .12},
+    ("east_eu", "city"):      {"chad": .35, "elena": .18, "katja": .16, "mila": .14, "sigrid": .10},
+    ("east_eu", "*"):         {"elena": .25, "katja": .20, "chad": .18, "mila": .15},
+    ("georgia", "city"):      {"chad": .50, "kelek": .12, "elena": .10, "stacy": .10},
+    ("georgia", "*"):         {"chad": .42, "kelek": .15, "sofia": .10},
+    ("armenia", "city"):      {"chad": .48, "elena": .12, "stacy": .10},
+    ("armenia", "*"):         {"chad": .40, "sofia": .12},
+    ("ukraine", "city"):      {"elena": .25, "mila": .25, "katja": .15},
+    ("ukraine", "*"):         {"elena": .25, "katja": .10},
+    ("turkey", "coastal"):    {"kelek": .45, "sofia": .18, "djordje": .05},
+    ("turkey", "*"):          {"kelek": .30, "katja": .15, "naomi": .10},
+    ("us_ca", "desert"):      {"jade": .40, "amber": .35, "maya": .25, "dale": .30},
+    ("us_ca", "coastal"):     {"maya": .18, "zara": .26, "chad": .15},
+    ("us_ca", "mountain"):    {"ingrid": .40, "jade": .30},
+    ("us_ca", "city"):        {"chad": .22, "diaz": .16, "charlotte": .12, "tammy": .12, "stacy": .12, "zara": .16, "rosa": .06},
+    ("us_ca", "*"):           {"tammy": .24, "jade": .18, "chad": .16, "maya": .12, "stacy": .12, "zara": .18},
+    ("mexico", "coastal"):    {"luca": .19, "sofia": .28, "diaz": .18, "rosa": .07},
+    ("mexico", "*"):          {"diaz": .38, "chad": .15, "tammy": .18, "luca": .12, "rosa": .15},
+    ("latam", "coastal"):     {"sofia": .22, "chad": .18, "luca": .12, "diaz": .12, "isabella": .10},
+    ("latam", "*"):           {"sofia": .20, "chad": .18, "luca": .12, "diaz": .12, "rosa": .10, "isabella": .05},
+    ("caribbean", "*"):       {"isabella": .30, "chad": .18, "sofia": .16, "naomi": .10, "luca": .04},
+    ("gulf", "*"):            {"naomi": .35, "charlotte": .20, "chad": .15},
+    ("sea", "*"):             {"chad": .28, "sofia": .22, "lyra": .18, "naomi": .14, "yuki": .10, "luca": .05},
+    ("south_asia", "*"):      {"chad": .28, "sofia": .22, "naomi": .18, "diaz": .12},
+    ("default", "*"):         {"sofia": .30, "naomi": .25, "luca": .12, "chad": .12},
+}
+
+# rotation_key (get_rotation_key) → {char: old_share}. Diaz/US-South and similar buckets that
+# were never their own REGION_POOLS group before — same non-exclusive boost mechanism.
+CORE_KEY_BOOST = {
+    "us_south": {"diaz": .36, "maya": .26, "tammy": .26, "rosa": .12},
+}
+
+CORE_BOOST_SCALE = 15.0
+
+
+def _cast_pool(country_code: str, terrain_type: str, place_type: str) -> tuple[dict, str]:
+    cls = _terrain_class(terrain_type, place_type)
+    region = _cast_geo_region(country_code)
     group = _POOL_GROUP.get(country_code, "default")
-    for c in (cls, "city" if is_city else None, "*"):
-        if c and (group, c) in REGION_POOLS:
-            return REGION_POOLS[(group, c)], f"{group}/{c}"
-    return REGION_POOLS[("default", "*")], "default/*"
+    core = {}
+    for c in (cls, "*"):
+        if (group, c) in CORE_BOOST:
+            core = CORE_BOOST[(group, c)]
+            break
+    rot_key = get_rotation_key(country_code, terrain_type, place_type)
+    if rot_key in CORE_KEY_BOOST:
+        core = {**core, **CORE_KEY_BOOST[rot_key]}
+    # Digital-nomad / recent-hype corridor — Chad heavily present anywhere in these countries
+    if country_code in _CHAD_HYPE_CC:
+        core = {**core, "chad": max(core.get("chad", 0), _CHAD_HYPE_CC_SHARE)}
+    weights = {}
+    for name, char in CAST.items():
+        terrain_ok = char["terrain"] is None or cls == "*" or cls in char["terrain"]
+        if not terrain_ok:
+            continue
+        base = (char["geo"].get(region, 0) if region else 0) or WILDCARD_FLOOR
+        base = max(base, WILDCARD_FLOOR)
+        weights[name] = base + core.get(name, 0) * CORE_BOOST_SCALE
+    label = f"cast/{region or 'intl'}/{group}/{cls}"
+    if country_code in _CHAD_HYPE_CC:
+        label += "+chad_hype"
+    return weights, label
 
 
 def _draw_from_pool(pool: dict, ctx: dict, label: str) -> str:
@@ -6729,21 +7067,8 @@ def select_character(country_code: str, terrain_type: str, place_type: str, plac
                 print(f"  🎭 char={_nature_wildcard_char} — nature wildcard ({rot_key})")
             return _nature_wildcard_char
 
-    # 4. Region pool + guest shares → one normalized draw
-    cls = _terrain_class(terrain_type, place_type)
-    is_city = (place_type or "").upper() in ("PPLC", "PPLA", "PPL")
-    nature_only = cls in ("mountain", "desert") or is_nature_place(ctx)
-    base, label = _region_pool(country_code, cls, is_city)
-    guests = {}
-    for char, share, cond in GUEST_WEIGHTS:
-        if char in base or char in DISABLED_CHARACTERS:
-            continue
-        if cond(country_code, cls, ctx, nature_only):
-            guests[char] = share
-    guest_total = sum(guests.values())
-    base_total = sum(base.values()) or 1.0
-    pool = {k: v / base_total * (1.0 - guest_total) for k, v in base.items()}
-    pool.update(guests)
+    # 4. CAST pool: geo eu/us base + non-exclusive country/region boost → one normalized draw
+    pool, label = _cast_pool(country_code, terrain_type, place_type)
     return _draw_from_pool(pool, ctx, label)
 
 
@@ -6800,7 +7125,7 @@ Reply only with the visual description, no preamble.
     )
     return message.content[0].text.strip()
 
-def build_prompt(place: dict, character_key: str, noir_mode: bool = False, prestige_mode: bool = False, nightlife_mode: bool = False, viper_mode: bool = False, maxpower_mode: bool = False, outfit_override: str = None, eclipse_mode: bool = False, sidewinder_mode: bool = False, continental_mode: bool = False, dayhike_mode: bool = False, us_mode: bool = False, eu_mode: bool = False, layers_only: bool = False, allow_diaz_police_markers: bool = False, maya_swim_mode: bool | None = None, tammy_energy_drink: bool = False, activity_key: str = "", luca_moka: bool | None = None) -> str:
+def build_prompt(place: dict, character_key: str, noir_mode: bool = False, prestige_mode: bool = False, nightlife_mode: bool = False, viper_mode: bool = False, maxpower_mode: bool = False, outfit_override: str = None, eclipse_mode: bool = False, sidewinder_mode: bool = False, continental_mode: bool = False, dayhike_mode: bool = False, us_mode: bool = False, eu_mode: bool = False, layers_only: bool = False, allow_diaz_police_markers: bool = False, maya_swim_mode: bool | None = None, tammy_energy_drink: bool = False, activity_key: str = "", luca_moka: bool | None = None, suppress_dog: bool = False) -> str:
     _nails_lock = ""
     if not layers_only:
         _body_locks = [
@@ -6915,6 +7240,17 @@ def build_prompt(place: dict, character_key: str, noir_mode: bool = False, prest
 
     if is_nature_place(place) or is_beach_place(place) or is_desert_place(place):
         noir_mode = prestige_mode = nightlife_mode = viper_mode = maxpower_mode = eclipse_mode = False
+
+    _dog_note = ""
+    if not layers_only and not suppress_dog:
+        _premium_mode = any([
+            noir_mode, prestige_mode, nightlife_mode, viper_mode,
+            maxpower_mode, eclipse_mode, sidewinder_mode,
+        ])
+        _dog_note = get_dog_companion_note(
+            character_key, place, activity_key=activity_key,
+            premium_mode=_premium_mode, dayhike_mode=dayhike_mode,
+        )
 
     _vehicle_block = get_vehicle_suppress_block(character_key, place)
     style_hint = CHARACTER_STYLE.get(character_key, "")
@@ -7413,7 +7749,7 @@ Place her/him in this new location naturally. Not posing.{_expression_line}
 For Valentina in editorial character shots: blazer may be open, silk blouse visible underneath.
 
 {_wardrobe_lock}
-{char_spec}{_nails_lock}{_cleo_period}{_amber_coyote_note}
+{char_spec}{_nails_lock}{_cleo_period}{_amber_coyote_note}{_dog_note}
 {_wardrobe_lock if _location_outfit_main else ""}
 
 {_dynamic_framing}
@@ -7858,7 +8194,7 @@ ROAD_IDENTITY_SPECS = {
     "regina":     "She was already there. No arrival. She was always already there.",
 }
 
-MALE_CHARACTERS = {"luca", "chad", "conrad", "djordje", "driver_pov", "driver_van"}
+MALE_CHARACTERS = {"luca", "chad", "conrad", "djordje", "driver_pov", "driver_van", "dale", "tyler"}
 
 
 def get_arrival_transport_lock(character_key: str, country_code: str = "") -> str:

@@ -67,11 +67,27 @@ Stand: Juni 2026 · Fokus 2026: testen, stabilisieren, Discovery — **kein Payw
 ### Scenic Drives — Prio-Routen
 PCH, Going-to-the-Sun, Transfăgărășan, Grossglockner, Stelvio, Amalfi, Atlantic Road Norway
 
-### Hero Image Mode — Optionen
-- Goldie Edition (only Goldies)
+### Hero Image Mode — Spec (3.7, geplant Jul 2026)
+
+**V1-Modes** (Filter auf `place_hero_images.variant`, nur `is_active`):
+
+| Mode | Filter |
+|---|---|
+| `mixed` (Default) | kein Filter — heutiges Verhalten (cast + goldie + pexels + arty/chatgpt) |
+| `dogs` | `variant = 'goldie'` |
+| `cast` | `variant = 'cast'` |
+
+- Fallback: hat ein Place keine Bilder für den Mode → `mixed` für diesen Place (nicht Generic-Fallback)
+- Filter-Hook: `placeHeroImageService.js` — `pickDedicatedRow` + `listDedicatedHeroImages`, sonst nirgends
+- Persistenz: AsyncStorage `heroImageMode` (Muster wie `useImperial`), keine `profiles`-Spalte
+- Settings-UI: Dreier-Picker, Strings nur de + en (fr on hold)
+- List-Thumbs (`pickListHeroRow`) bleiben unberührt — Mode gilt nur für Detail-Hero
+- A/B-Vorbereitung: `getEffectiveHeroMode()` = User-Wahl → Experiment-Zuweisung → `mixed`; Service fragt nur diese Funktion. Test später = deterministisches Bucketing (Hash Device-ID) im mittleren Slot. `hero_mode` ab Launch als Mixpanel-Property mittracken.
+
+**Spätere Optionen** (gleicher Hook):
 - Goldie Madness (everyone → Goldie)
 - female / male edition
-- no people · mixed (default) · naughty
+- no people · naughty
 
 ### regional_content — Schema
 ```sql
@@ -397,3 +413,118 @@ Jun–Jul 2026          Aug–Sep 2026          Q4 2026
 ## neuer badge
 -- neuer badge: hidden gem, oder einfach attractuve, genaue regeln später
 
+## add cast
+-- on either app or site (or both)
+show short descruption / bio of each character human or dog, with pic. bit like in a game (jagged alliance) or nbetflix show
+
+## tags/ auszeichungen für orte
+Das ist dein Location-Tags/Vibe-Labels-Feature aus der Pipeline. Brainstorm, sortiert nach Kategorien — mit Blick darauf, was du aus vorhandenen Daten automatisch vergeben kannst vs. manuell kuratieren musst:
+
+Entdecker-Status (dein USP, "die bessere zweite Reihe"):
+
+💎 Hidden Gem — hohe Attractiveness + population < X + wenig bekannt
+🤫 Locals Only / Geheimtipp
+📸 Instagram Star — das Gegenteil: schön, aber überlaufen (ehrliches Label, baut Vertrauen auf)
+🎭 Overrated — mutig, aber genau dein Ton ("Guide-Klassiker, kannst du skippen")
+🥈 Better Second Row — der Nachbarort vom berühmten Ort, halb so voll
+
+Wetter/Klima (voll automatisierbar aus weather_forecast):
+
+☀️ Sonnengarantie — >300 Sonnentage/Jahr
+🍂 Winterflucht / Snowbird Spot — warm Nov–Feb
+🌡️ Frühlingsvorsprung — früh warm im Jahr
+💨 Windloch (gut) / Windkanal (Warnung — Camper-relevant!)
+🥵 Sommerhölle — Juli/Aug meiden, AQI/Hitze-Daten
+
+Vanlife-Praxis (aus Stop&Stay + Stellplatz-Daten):
+
+🚐 Camper Heaven — Stellplatz-Qualität top
+🌙 Wildcamp-tauglich (rechtlich heikel, evtl. weich formulieren: "Freistehen-freundlich")
+🐕 Dog Paradise — Strände/Wälder ohne Leinenzwang (Goldie-Brand-Synergie!)
+⛴️ Ferry Deal — ferry_minutes ≤ 60 (Direct-Ferries-Affiliate-Trigger!)
+🛒 Versorger-Stopp — Supermarkt/Wäsche/Wasser
+
+Charakter/Vibe (manuell/kuratiert, place_content):
+
+🏚️ Lost Place Vibes / Morbider Charme
+👻 Urban Legend — passt zu deiner Schwurbel-Fact-Regel, Ort mit Mythos
+🎣 Zeitkapsel — als hätte sich seit 1985 nichts geändert
+🍷 Genuss-Stopp — Essen/Wein überregional gut
+🏛️ Geschichtsträchtig
+🌅 Sunset Spot — bester Abendlicht-Ort der Region
+
+Saisonal/dynamisch (Marketing-Gold):
+
+🔥 Trending Now — viel angeklickt diese Woche (braucht Mixpanel)
+🏆 Sonnensieger der Woche — wärmster/sonnigster Ort im Radius (passt zu deinem Trophy-Icon)
+🌸 Jetzt-oder-nie — saisonales Fenster (Mandelblüte, Lavendel)
+
+Meta-Ebene für Gamification später: Nutzer sammeln besuchte Badges → "Du hast 5 Hidden Gems besucht" → füttert direkt "Your Sun Report".
+
+Empfehlung fürs Datenmodell: nicht boolean-Spalten, sondern place_tags Tabelle (place_id, tag_key, source: auto/manual, valid_from/to für saisonale). Auto-Tags per Prozedur wie update_attractiveness_scores() nachts berechnen, kuratierte manuell. Start mit 6–8 Tags max — zu viele entwerten alle
+
+
+
+
+Das ist dein Location-Tags/Vibe-Labels-Feature aus der Pipeline. Brainstorm, sortiert nach Kategorien — mit Blick darauf, was du aus vorhandenen Daten automatisch vergeben kannst vs. manuell kuratieren musst:
+
+Entdecker-Status (dein USP, "die bessere zweite Reihe"):
+
+💎 Hidden Gem — hohe Attractiveness + population < X + wenig bekannt
+🤫 Locals Only / Geheimtipp
+📸 Instagram Star — das Gegenteil: schön, aber überlaufen (ehrliches Label, baut Vertrauen auf)
+🎭 Overrated — mutig, aber genau dein Ton ("Guide-Klassiker, kannst du skippen")
+🥈 Better Second Row — der Nachbarort vom berühmten Ort, halb so voll
+
+Wetter/Klima (voll automatisierbar aus weather_forecast):
+
+☀️ Sonnengarantie — >300 Sonnentage/Jahr
+🍂 Winterflucht / Snowbird Spot — warm Nov–Feb
+🌡️ Frühlingsvorsprung — früh warm im Jahr
+💨 Windloch (gut) / Windkanal (Warnung — Camper-relevant!)
+🥵 Sommerhölle — Juli/Aug meiden, AQI/Hitze-Daten
+
+Vanlife-Praxis (aus Stop&Stay + Stellplatz-Daten):
+
+🚐 Camper Heaven — Stellplatz-Qualität top
+🌙 Wildcamp-tauglich (rechtlich heikel, evtl. weich formulieren: "Freistehen-freundlich")
+🐕 Dog Paradise — Strände/Wälder ohne Leinenzwang (Goldie-Brand-Synergie!)
+⛴️ Ferry Deal — ferry_minutes ≤ 60 (Direct-Ferries-Affiliate-Trigger!)
+🛒 Versorger-Stopp — Supermarkt/Wäsche/Wasser
+
+Charakter/Vibe (manuell/kuratiert, place_content):
+
+🏚️ Lost Place Vibes / Morbider Charme
+👻 Urban Legend — passt zu deiner Schwurbel-Fact-Regel, Ort mit Mythos
+🎣 Zeitkapsel — als hätte sich seit 1985 nichts geändert
+🍷 Genuss-Stopp — Essen/Wein überregional gut
+🏛️ Geschichtsträchtig
+🌅 Sunset Spot — bester Abendlicht-Ort der Region
+
+Saisonal/dynamisch (Marketing-Gold):
+
+🔥 Trending Now — viel angeklickt diese Woche (braucht Mixpanel)
+🏆 Sonnensieger der Woche — wärmster/sonnigster Ort im Radius (passt zu deinem Trophy-Icon)
+🌸 Jetzt-oder-nie — saisonales Fenster (Mandelblüte, Lavendel)
+
+Meta-Ebene für Gamification später: Nutzer sammeln besuchte Badges → "Du hast 5 Hidden Gems besucht" → füttert direkt "Your Sun Report".
+
+Empfehlung fürs Datenmodell: nicht boolean-Spalten, sondern place_tags Tabelle (place_id, tag_key, source: auto/manual, valid_from/to für saisonale). Auto-Tags per Prozedur wie update_attractiveness_scores() nachts berechnen, kuratierte manuell. Start mit 6–8 Tags max — zu viele entwerten alle
+
+
+
+## Icon-System vereinheitlichen (Phase 0, ~2 Tage)
+
+ Stil-Anker definieren: Hitzewelle-Sonne als Referenz (warm, rund, leicht illustrativ, Road-Identity-Palette)
+ Icon-Inventar erstellen: alle UI-Stellen mit System-Emojis listen (Map: ⚙️ ⭐ 🏆 ✉️, CTA: 🚗, Cards: 🔥 🌡️ ☀️ ⚠️ 🌊 💰, Forecast-Wettersymbole)
+ Prompt-Baukasten für Icon-Generierung bauen (analog generate_hero_images.py: Stil-Anker fix, Motiv als Parameter, transparent, 3 Größen, --dry-run default)
+ Batch generieren: 15–20 Icons, Konsistenz-Check nebeneinander
+ Fallback falls Pipeline-Ergebnis inkonsistent: fertiges illustratives Set kaufen (Streamline Freehand/Doodle, ~$50–100), Farben anpassen
+ Einbau: Emojis in Buttons/Map-Controls/Cards/CTA ersetzen
+ Regel festschreiben: Emojis nur noch in Content-Texten (Fun Facts, Push-Notifications) — nie als UI-Element
+ Android-Vorteil mitnehmen: Custom-Assets = identisches Rendering, kein Emoji-Chaos beim Winter-Port
+
+ ## wetter forecast expanden
+
+ monentan sieht man nur dienächten 5 tage . expand button und dann + 5 d mehr oder was auch immer passt
+ 
