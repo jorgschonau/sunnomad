@@ -30,6 +30,7 @@ import json
 import os
 import re
 import sys
+import time
 from collections import Counter, defaultdict
 from pathlib import Path
 
@@ -399,7 +400,8 @@ def mirror_storage(place_filter: str | None, dry_run: bool) -> dict:
     ]
     db_by_path = {r["storage_path"]: r for r in db_rows if r.get("storage_path")}
 
-    stats = {"storage": len(storage_paths_list), "inserted": 0, "updated": 0, "deleted": 0, "skipped": 0}
+    stats = {"storage": len(storage_paths_list), "inserted": 0, "updated": 0, "deleted": 0,
+              "skipped": 0, "touched_place_ids": set()}
 
     for path in sorted(storage_paths_list):
         basename = path.rsplit("/", 1)[-1]
@@ -426,6 +428,7 @@ def mirror_storage(place_filter: str | None, dry_run: bool) -> dict:
                 updates["variant"] = variant
             if updates:
                 stats["updated"] += 1
+                stats["touched_place_ids"].add(place["id"])
                 if not dry_run:
                     sb.table("place_hero_images").update(updates).eq("id", existing["id"]).execute()
             continue
@@ -439,6 +442,7 @@ def mirror_storage(place_filter: str | None, dry_run: bool) -> dict:
             "is_active": False,
         }
         stats["inserted"] += 1
+        stats["touched_place_ids"].add(place["id"])
         if not dry_run:
             sb.table("place_hero_images").upsert(row, on_conflict="storage_path").execute()
         db_by_path[path] = row
@@ -448,6 +452,7 @@ def mirror_storage(place_filter: str | None, dry_run: bool) -> dict:
         if path in storage_paths:
             continue
         stats["deleted"] += 1
+        stats["touched_place_ids"].add(row.get("place_id"))
         if not dry_run:
             sb.table("place_hero_images").delete().eq("id", row["id"]).execute()
 
@@ -566,15 +571,24 @@ def main():
         action="store_true",
         help="Sync entire dedicated bucket ↔ DB (insert/update/delete orphans), then activate",
     )
+    parser.add_argument(
+        "--changed-only",
+        action="store_true",
+        help="Nach --mirror-storage nur die Orte re-aktivieren, deren Storage-Zeilen sich "
+             "geändert haben, statt alle ~3000. Ignoriert manuelle Änderungen an "
+             "hero_char_overrides.json für unveränderte Orte — dafür ohne Flag laufen lassen.",
+    )
     args = parser.parse_args()
 
     overrides = load_overrides()
     no_pexels = load_no_pexels()
     goldie_only_showcase = load_goldie_only_showcase()
 
+    touched_place_ids = None
     if args.mirror_storage:
         print(f"{'DRY RUN — ' if args.dry_run else ''}Mirror bucket `{STORAGE_BUCKET}/` (recursive) → place_hero_images\n")
         stats = mirror_storage(args.place, dry_run=args.dry_run)
+        touched_place_ids = stats["touched_place_ids"]
         print(
             f"\nStorage: {stats['storage']} files | "
             f"+{stats['inserted']} inserted | ~{stats['updated']} updated | "
@@ -587,23 +601,54 @@ def main():
         print("No places found.")
         sys.exit(1)
 
+    if args.changed_only:
+        if touched_place_ids is None:
+            print("--changed-only braucht --mirror-storage, ignoriere.")
+        else:
+            places = [p for p in places if p["id"] in touched_place_ids]
+            if not places:
+                print("Keine Storage-Änderungen -> nichts zu aktivieren.")
+                return
+
     print(f"{'DRY RUN — ' if args.dry_run else ''}Sync hero activation for {len(places)} place(s)\n")
 
     synced = skipped = 0
+    activated = deactivated = rotation_changes = 0
     total = len(places)
     for i, place in enumerate(places, 1):
-        result = sync_place(
-            place, overrides, no_pexels, args.char,
-            dry_run=args.dry_run, goldie_only_showcase=goldie_only_showcase,
-        )
+        # Bei ~3000 Orten reißt die Supabase-Verbindung gelegentlich ab; ein Ort
+        # ist idempotent, also einfach nochmal versuchen statt den Lauf zu killen.
+        for attempt in range(1, 5):
+            try:
+                result = sync_place(
+                    place, overrides, no_pexels, args.char,
+                    dry_run=args.dry_run, goldie_only_showcase=goldie_only_showcase,
+                )
+                break
+            except Exception as e:
+                if attempt == 4:
+                    raise
+                wait = min(5 * attempt, 30)
+                print(f"  {place.get('name_en')}: {type(e).__name__} -> retry in {wait}s "
+                      f"(Versuch {attempt})", flush=True)
+                time.sleep(wait)
         if result.get("skipped"):
             skipped += 1
+            deactivated += result.get("deactivated", 0) or 0
         else:
             synced += 1
+            deactivated += result.get("deactivated", 0) or 0
+            rotation_changes += result.get("changes", 0) or 0
+            if result.get("changes"):
+                activated += 1
         if i % 100 == 0 or i == total:
             print(f"  … {i}/{total} places processed", flush=True)
 
-    print(f"Done: {synced} place(s) synced, {skipped} skipped.")
+    print(
+        f"\nDone: {len(places)} place(s) checked, {activated} mit geänderter Rotation, "
+        f"{rotation_changes} Zeilen umgeschaltet, {deactivated} Bilder deaktiviert, "
+        f"{skipped} ohne aktives Set."
+    )
 
 
 if __name__ == "__main__":

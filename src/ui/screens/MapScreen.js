@@ -781,7 +781,9 @@ const MapScreen = ({ navigation }) => {
     // First time we get location: load immediately (no debounce). Later: debounce radius/center changes.
     if (!hasLoadedForLocationRef.current) {
       hasLoadedForLocationRef.current = true;
-      loadDestinations();
+      // A restored center point has no weather yet, so its origin temperature is still
+      // unknown here. The centerPointWeather effect below fires the load once it arrives.
+      if (!centerPoint || centerPointWeather) loadDestinations();
     } else {
       if (radiusDebounceTimer.current) clearTimeout(radiusDebounceTimer.current);
       radiusDebounceTimer.current = setTimeout(() => loadDestinations(), 500);
@@ -1429,10 +1431,12 @@ const MapScreen = ({ navigation }) => {
       const bScore = b.attractivenessScore || b.attractiveness_score || 50;
       if (Math.abs(aScore - bScore) > 2) return bScore - aScore;
       
-      // Secondary: Temperature (warmer is better)
-      const aTemp = a.temperature || 0;
-      const bTemp = b.temperature || 0;
-      if (Math.abs(aTemp - bTemp) > 2) return bTemp - aTemp;
+      // Secondary: Temperature (mode-aware: warm = warmer better, cold = colder better, all = skip)
+      if (reverseMode !== 'all') {
+        const aTemp = a.temperature || 0;
+        const bTemp = b.temperature || 0;
+        if (Math.abs(aTemp - bTemp) > 2) return reverseMode === 'cold' ? aTemp - bTemp : bTemp - aTemp;
+      }
       
       // Tertiary: Distance from user (closer is better)
       if (userLat && userLon) {
@@ -1572,7 +1576,8 @@ const MapScreen = ({ navigation }) => {
     const gridRank = (p) => {
       const attr = p.attractivenessScore || p.attractiveness_score || 50;
       const hasBadge = Array.isArray(p.badges) && p.badges.some(b => POSITIVE_BADGES.has(b)) ? 1 : 0;
-      const temp = p.temperature ?? 0;
+      // Mode-aware temperature tiebreak: cold mode prefers colder places, 'all' ignores temp
+      const temp = reverseMode === 'cold' ? -(p.temperature ?? 0) : reverseMode === 'all' ? 0 : (p.temperature ?? 0);
       return attr * 1000 + hasBadge * 100 + temp;
     };
     const gridMap = new Map();
@@ -1670,7 +1675,7 @@ const MapScreen = ({ navigation }) => {
     }
     return getVisibleMarkers(candidates, currentZoom, currentBounds);
     // favouriteDestinations intentionally omitted: favourites render separately (renderedFavourites)
-  }, [mapViewport, displayDestinations, location, radius, centerPoint, selectedConditions]);
+  }, [mapViewport, displayDestinations, location, radius, centerPoint, selectedConditions, reverseMode]);
 
   // Favourites are rendered as dedicated markers further below. Detect them here
   // so the normal marker isn't drawn on top of the favourite marker (destinations
@@ -1923,6 +1928,9 @@ const MapScreen = ({ navigation }) => {
     } catch (error) {
       if (__DEV__) console.warn('Failed to fetch center point weather:', error);
       setCenterPointWeather(null);
+      // Without center weather the effect below never fires, so an initial load that was
+      // deferred waiting for it would never happen — run it with the GPS origin instead.
+      if (hasLoadedForLocationRef.current) loadDestinations();
     }
   };
 

@@ -1,10 +1,23 @@
 # Git history (not needed for build — saves ~500 MB upload)
 .git
 
+# IMPORTANT: .easignore REPLACES .gitignore for EAS uploads, so everything
+# from .gitignore that matters must be listed here too.
+node_modules/
+.expo/
+.expo-shared/
+dist/
+web-build/
+npm-debug.*
+.DS_Store
+
 # Output / generated image directories (not used in app)
 pexels_output/
+pexels_output_old/
 unsplash_output/
+unsplash_output_old/
 output/
+output_old/
 canonicals/
 exploit_canonicals/
 image_check_results/

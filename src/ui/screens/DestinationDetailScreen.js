@@ -29,6 +29,14 @@ import { useUnits } from '../../contexts/UnitContext';
 import { formatTemperature, formatDistance, getTemperatureSymbol, getDistanceSymbol } from '../../utils/unitConversion';
 
 import { LinearGradient } from 'expo-linear-gradient';
+import { requireOptionalNativeModule } from 'expo-modules-core';
+
+// Native blur is only available once the dev client / app binary includes
+// expo-blur. Until then fall back to an opaque tint (no "Unimplemented
+// component" placeholder).
+const BlurView = requireOptionalNativeModule('ExpoBlurView')
+  ? require('expo-blur').BlurView
+  : null;
 import {
   getHeroImage as getDedicatedHeroImage,
   getCachedHeroImage,
@@ -111,7 +119,24 @@ const getDisplaySunnyStreak = (dest) => {
   return max;
 };
 
-const AnimatedBadgeCard = ({ index, destination, badge, isExpanded, onToggle, theme, overHero, children }) => {
+// Very subtle per-award card tints (~2-3% color on white) for peripheral
+// recognition. RGB only — alpha depends on whether native blur is available.
+const BADGE_CARD_TINTS = {
+  WORTH_THE_DRIVE: '255, 248, 238',        // warm → light orange
+  WORTH_THE_DRIVE_BUDGET: '255, 248, 238', // warm → light orange
+  WARM_AND_DRY: '245, 235, 220',           // dry → beige
+  BEACH_PARADISE: '238, 250, 251',         // beach → light turquoise
+  SUNNY_STREAK: '255, 250, 238',           // sunny → light yellow
+  WEATHER_MIRACLE: '253, 244, 248',        // dramatic → light pink
+  HEATWAVE: '255, 243, 237',               // hot → light red-orange
+  SNOW_KING: '240, 246, 253',              // cold → light blue
+  RAINY_DAYS: '241, 245, 247',             // rain → light gray-blue
+  WEATHER_CURSE: '242, 244, 245',          // warning → light gray
+  SPRING_AWAKENING: '242, 250, 240',       // spring → light green
+};
+const COOL_MODE_TINT = '240, 246, 253';    // cool trip → light blue
+
+const AnimatedBadgeCard = ({ index, destination, badge, isExpanded, onToggle, theme, overHero, tintColor, children }) => {
   const fadeAnim = React.useRef(new Animated.Value(0)).current;
   const slideAnim = React.useRef(new Animated.Value(50)).current;
   const scaleAnim = React.useRef(new Animated.Value(0.8)).current;
@@ -145,12 +170,15 @@ const AnimatedBadgeCard = ({ index, destination, badge, isExpanded, onToggle, th
     ]).start();
   }, [destination, badge]);
 
+  const tintRgb = tintColor || '245, 235, 220';
+  // Light blur only on iOS with the native module present; otherwise opaque tint
+  const useBlur = overHero && BlurView != null && Platform.OS === 'ios';
+
   return (
     <TouchableOpacity onPress={onToggle} activeOpacity={0.7}>
       <Animated.View
         style={[
-          styles.badgeCard,
-          { backgroundColor: overHero ? 'rgba(255,255,255,0.92)' : theme.background },
+          styles.badgeCardShadow,
           {
             opacity: fadeAnim,
             transform: [
@@ -160,10 +188,34 @@ const AnimatedBadgeCard = ({ index, destination, badge, isExpanded, onToggle, th
           }
         ]}
       >
-        {children}
-        <Text style={[styles.badgeExpandIndicator, { color: theme.textSecondary }]}>
-          {isExpanded ? '▲' : '▼'}
-        </Text>
+        <View
+          style={[
+            styles.badgeCard,
+            !overHero
+              ? { backgroundColor: theme.background }
+              : !useBlur
+              ? { backgroundColor: `rgba(${tintRgb}, 0.97)` }
+              : null,
+            Platform.OS === 'android' && { elevation: 4 },
+          ]}
+        >
+          {useBlur && (
+            <>
+              <BlurView intensity={60} tint="light" style={StyleSheet.absoluteFill} />
+              <View style={[StyleSheet.absoluteFill, { backgroundColor: `rgba(${tintRgb}, 0.80)` }]} />
+            </>
+          )}
+          {children}
+          <TouchableOpacity
+            onPress={onToggle}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            style={styles.badgeExpandTouchable}
+          >
+            <Text style={[styles.badgeExpandIndicator, { color: theme.textSecondary }]}>
+              {isExpanded ? '▲' : '▼'}
+            </Text>
+          </TouchableOpacity>
+        </View>
       </Animated.View>
     </TouchableOpacity>
   );
@@ -213,6 +265,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const [isFavourite, setIsFavourite] = useState(false);
   const [favouriteLoading, setFavouriteLoading] = useState(false);
   const [expandedBadges, setExpandedBadges] = useState({});
+  const [forecastExpanded, setForecastExpanded] = useState(false);
   const [favToast, setFavToast] = useState(null);
   const [uiFocused, setUiFocused] = useState(false);
   const [localBadges, setLocalBadges] = useState(destination?.badges || []);
@@ -271,6 +324,9 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   const incomingLoadResolver = React.useRef(null);
   const baseLoadResolver = React.useRef(null);
   const baseLoadGeneration = React.useRef(0);
+  // Bumped on cancel/place-switch; in-flight crossfades compare against it
+  // after every await and bail out instead of painting stale heroes.
+  const heroTransitionGeneration = React.useRef(0);
   const fadeAnimRef = React.useRef(null);
   const skipCrossfadeRequested = React.useRef(false);
   const heroBaseRef = React.useRef(null);
@@ -293,6 +349,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   }, []);
 
   const cancelHeroTransition = useCallback(() => {
+    heroTransitionGeneration.current += 1;
     pendingHeroTarget.current = null;
     skipCrossfadeRequested.current = false;
     stopHeroFadeAnim();
@@ -413,9 +470,12 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   }), []);
 
   const executeSingleCrossfade = useCallback(async (targetMeta) => {
+    const transitionGen = heroTransitionGeneration.current;
+    const isCancelled = () => transitionGen !== heroTransitionGeneration.current;
     const remoteUrl = targetMeta?.remoteUrl
       || (targetMeta?.url?.startsWith('http') ? targetMeta.url : null);
     const displayMeta = await resolveHeroMetaForDisplay(targetMeta);
+    if (isCancelled()) return 'cancelled';
 
     if (!remoteUrl || remoteUrl === lastFadedHeroUrl.current) {
       setHeroBase(displayMeta);
@@ -437,6 +497,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     setHeroIncomingMeta(displayMeta);
 
     await paintPromise;
+    if (isCancelled()) return 'cancelled';
     if (abortIfSkipRequested()) return 'skipped';
 
     const finished = await new Promise((resolve) => {
@@ -465,6 +526,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         resolve(animFinished);
       });
     });
+    if (isCancelled()) return 'cancelled';
     if (!finished) {
       if (!abortIfSkipRequested()) abortCurrentCrossfadeForSkip();
       return 'skipped';
@@ -478,9 +540,11 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     const loadGen = ++baseLoadGeneration.current;
     setHeroBase(displayMeta);
     await new Promise((r) => { requestAnimationFrame(() => requestAnimationFrame(r)); });
+    if (isCancelled()) return 'cancelled';
     if (abortIfSkipRequested()) return 'skipped';
 
     await waitForBasePaint(loadGen);
+    if (isCancelled()) return 'cancelled';
     if (abortIfSkipRequested()) return 'skipped';
 
     setHeroIncomingMeta(null);
@@ -514,9 +578,15 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         if (job.index != null) syncHeroIndex(job.index);
 
         const result = await executeSingleCrossfade(job.meta);
+        // Cancelled: a snap (cycleHero) or place switch superseded this job —
+        // never paint or track it.
+        if (result === 'cancelled') continue;
         if (result === 'skipped') {
           if (pendingHeroTarget.current) continue;
-          snapHeroTo(await resolveHeroMetaForDisplay(job.meta));
+          const gen = heroTransitionGeneration.current;
+          const displayMeta = await resolveHeroMetaForDisplay(job.meta);
+          if (gen !== heroTransitionGeneration.current) continue;
+          snapHeroTo(displayMeta);
           continue;
         }
         if (pendingHeroTarget.current) continue;
@@ -694,6 +764,8 @@ const DestinationDetailScreen = ({ route, navigation }) => {
             name: destination.name,
             description: place.weatherDescription || place.condition || '',
             forecast: forecastSlots,
+            // Absolute-indexed (index 0 = today) full range, for the expandable rows
+            forecastArrayAbs: forecastData.map(toForecastSlot),
           };
           
           convertedForecast.attractivenessScore =
@@ -822,7 +894,9 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     const placeObj = { id: effectivePlaceId, generic_key: destination.generic_key, name_en: destination.name_en };
     setHeroList([]);
     heroIndexRef.current = 0;
-    heroCycleGeneration.current = 0;
+    // Never reset to 0: stale cycleHero promises from the previous place could
+    // match a re-issued generation number and snap to the wrong hero.
+    heroCycleGeneration.current += 1;
     setHeroIndex(0);
     setHeroIncomingMeta(null);
     pendingHeroTarget.current = null;
@@ -872,13 +946,15 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       const list = await listDedicatedHeroImages(placeObj);
       if (cancelled) return;
       setHeroList(list);
-      const idx = list.findIndex((h) => h.url === hero.url);
+      const heroUrl = hero.remoteUrl || hero.url;
+      const idx = list.findIndex((h) => h.url === heroUrl);
       syncHeroIndex(idx >= 0 ? idx : 0);
-      prefetchHeroUrls(list, { excludeUrl: hero.url });
+      prefetchHeroUrls(list, { excludeUrl: heroUrl });
     }).catch(() => {});
 
     return () => {
       cancelled = true;
+      heroTransitionGeneration.current += 1;
       clearTimeout(fallbackTimer);
       stopHeroFadeAnim();
       pendingHeroTarget.current = null;
@@ -940,6 +1016,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
 
   // Date offset change: rebuild forecast slots + badges locally (no DB call needed)
   useEffect(() => {
+    setForecastExpanded(false);
     if (dateOffset === 0) {
       setForecast(initialForecast);
       setLocalBadges(destination.badges || []);
@@ -1073,12 +1150,16 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     // First fullscreen entry: load the variant list on demand so the user can swipe
     if (newFocused && heroList.length === 0) {
       const placeObj = { id: effectivePlaceId, generic_key: destination.generic_key, name_en: destination.name_en };
+      const gen = heroTransitionGeneration.current;
+      // heroMeta.url is a file:// URI once disk-cached; list entries stay remote
+      const currentHeroUrl = heroMeta?.remoteUrl || heroMeta?.url;
       listDedicatedHeroImages(placeObj).then((list) => {
+        if (gen !== heroTransitionGeneration.current) return; // place switched meanwhile
         if (list.length < 2) return;
-        const idx = list.findIndex((h) => h.url === heroMeta?.url);
+        const idx = list.findIndex((h) => h.url === currentHeroUrl);
         setHeroList(list);
         syncHeroIndex(idx >= 0 ? idx : 0);
-        prefetchHeroUrls(list, { excludeUrl: heroMeta?.url });
+        prefetchHeroUrls(list, { excludeUrl: currentHeroUrl });
       }).catch(() => {});
     }
     mixpanel.track('Hero Image Toggled', {
@@ -1372,14 +1453,43 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     return date.toLocaleDateString(dateLocale, { weekday: 'short', day: 'numeric', month: 'short' });
   };
 
-  // Build the 5 forecast rows with labels (used by UI + findBestDay)
-  const forecastRows = [
+  // Build the 5 base forecast rows with labels
+  const baseForecastRows = [
     { key: 'today', label: getForecastDayLabel(0), data: forecast?.forecast?.today },
     { key: 'tomorrow', label: getForecastDayLabel(1), data: forecast?.forecast?.tomorrow },
     { key: 'day3', label: getForecastDayLabel(2), data: forecast?.forecast?.day3 },
     { key: 'day4', label: getForecastDayLabel(3), data: forecast?.forecast?.day4 },
     { key: 'day5', label: getForecastDayLabel(4), data: forecast?.forecast?.day5 },
   ];
+
+  // Up to 5 days beyond the base 5 — capped so the card stays shorter than the
+  // screen and the toggle remains reachable. The 11–16 day tail is not shown here;
+  // it is reachable via the date filter instead.
+  // Read from the route param, not from state: forecast.forecastArray gets re-sliced
+  // on date change and is therefore relative to the selected day, while this stays
+  // indexed from today.
+  const absForecastArray = destination.forecastArray || forecast?.forecastArrayAbs || [];
+  const extraForecastRows = absForecastArray
+    .slice(dateOffset + 5, dateOffset + 10)
+    .map((entry, i) => ({
+      key: `extra${dateOffset + 5 + i}`,
+      label: getForecastDayLabel(5 + i),
+      data: entry ? {
+        condition: entry.condition,
+        temp: entry.high ?? entry.temp,
+        high: entry.high,
+        low: entry.low,
+        description: entry.description,
+        precipitation: entry.precipitation ?? 0,
+        sunshine_duration: entry.sunshine_duration ?? 0,
+      } : null,
+    }))
+    .filter(row => row.data);
+
+  // findBestDay + the UI both run on this, so the highlight re-scores when expanded
+  const forecastRows = forecastExpanded
+    ? [...baseForecastRows, ...extraForecastRows]
+    : baseForecastRows;
 
   /**
    * Find the best day from the visible forecast rows.
@@ -1504,8 +1614,12 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   };
   const heroDateLabel = formatDateLabel(dateOffset);
 
+  const devAttractivenessScore = __DEV__
+    ? (forecast?.attractivenessScore ?? forecast?.attractiveness_score ?? destination?.attractivenessScore ?? destination?.attractiveness_score ?? null)
+    : null;
+
   let devHeroFileName = null;
-  if (__DEV__ && uiFocused && activeHeroMeta) {
+  if (__DEV__ && activeHeroMeta) {
     if (activeHeroMeta.hero_image_name) {
       devHeroFileName = activeHeroMeta.hero_image_name;
     } else if (activeHeroMeta.url) {
@@ -1597,13 +1711,6 @@ const DestinationDetailScreen = ({ route, navigation }) => {
               ))}
             </View>
           )}
-          {devHeroFileName ? (
-            <View style={styles.devHeroFileName} pointerEvents="none">
-              <Text style={styles.devHeroFileNameText} numberOfLines={2}>
-                {devHeroFileName}
-              </Text>
-            </View>
-          ) : null}
           {heroHintVisible && (
             <Animated.View style={[styles.heroExpandTooltip, { opacity: heroHintAnim }]} pointerEvents="none">
               <Text style={styles.heroExpandTooltipText}>View photo</Text>
@@ -1876,7 +1983,79 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                 return t('badges.tapForDetails');
               };
               
+              // Uniform label/value rows for the expanded state
+              const getStatRows = () => {
+                if ((isWorthTheDrive && worthData) || (isWorthTheDriveBudget && worthBudgetData)) {
+                  const d = isWorthTheDrive ? worthData : worthBudgetData;
+                  return [
+                    { icon: '🌡️', label: t('badges.temperature'), value: `${fmtTemp(d.tempOrigin)} → ${fmtTemp(d.tempDest)} (${fmtTempDelta(d.tempDelta)})` },
+                    { icon: '🚗', label: t('badges.eta'), value: formatETA(d.eta) },
+                    { icon: '📍', label: t('badges.distanceLabel'), value: fmtDist(d.roadDistanceKm ?? destination.distance) },
+                  ];
+                }
+                if (isWarmAndDry && warmDryData) {
+                  return [
+                    { icon: '🌡️', label: t('badges.temperature'), value: `${fmtTemp(warmDryData.temp)}${warmDryData.tempRank && warmDryData.tempRank < 999 ? ` (${t('badges.rank')} #${warmDryData.tempRank})` : ''}` },
+                    { icon: '☀️', label: t('badges.conditions'), value: translateCondition(warmDryData.condition) },
+                    { icon: '💨', label: t('badges.windLabel'), value: t(getWindDescriptionKey(warmDryData.windSpeed)) },
+                  ];
+                }
+                if (isBeachParadise && beachData) {
+                  return [
+                    { icon: '🌡️', label: t('badges.temperature'), value: fmtTemp(beachData.temp) },
+                    { icon: '☀️', label: t('badges.conditions'), value: translateCondition(beachData.condition) },
+                    { icon: '💨', label: t('badges.windLabel'), value: t(getWindDescriptionKey(beachData.windSpeed)) },
+                  ];
+                }
+                if (isSunnyStreak) {
+                  return [
+                    { icon: '☀️', label: t('badges.sunnyDaysLabel'), value: t('badges.daysCount', { count: sunnyStreakData?.streakLength ?? getDisplaySunnyStreak(destination) }) },
+                    { icon: '🌡️', label: t('badges.avgTempLabel'), value: fmtTemp(sunnyStreakData?.avgTemp ?? destination.temperature ?? 0) },
+                  ];
+                }
+                if (isWeatherMiracle && miracleData) {
+                  return [
+                    { icon: '🌧️', label: t('badges.today'), value: `${fmtTemp(miracleData.todayTemp)}, ${translateCondition(miracleData.todayCondition)}` },
+                    { icon: '☀️', label: t('badges.soon'), value: `${fmtTemp(miracleData.futureTempMax)} (${fmtTempDelta(miracleData.tempGain)})` },
+                  ];
+                }
+                if (isHeatwave && heatwaveData) {
+                  return [
+                    { icon: '🔥', label: t('badges.hotDaysLabel'), value: t('badges.daysCount', { count: heatwaveData.hotDays }) },
+                    { icon: '🌡️', label: t('badges.avgTempLabel'), value: `${fmtTemp(heatwaveData.avgTemp)} (Max ${fmtTemp(heatwaveData.maxTemp)})` },
+                  ];
+                }
+                if (isSnowKing && snowKingData) {
+                  return [
+                    { icon: '❄️', label: t('badges.snowDaysLabel'), value: t('badges.daysCount', { count: getDisplaySnowDays(destination) }) },
+                    { icon: '📊', label: t('badges.snowfallLabel'), value: `${Math.round((snowKingData.totalSnowfall || 0) / 10)} cm` },
+                    { icon: '🌡️', label: t('badges.avgTempLabel'), value: fmtTemp(snowKingData.avgTemp) },
+                  ];
+                }
+                if (isRainyDays && rainyDaysData) {
+                  return [
+                    { icon: '🌧️', label: t('badges.rainyDaysLabel'), value: t('badges.daysCount', { count: getDisplayRainyDays(destination) }) },
+                    { icon: '💧', label: t('badges.heavyRain'), value: rainyDaysData.hasHeavyRain ? t('badges.heavyRainYes') : t('badges.heavyRainNo') },
+                  ];
+                }
+                if (isWeatherCurse && weatherCurseData) {
+                  return [
+                    { icon: '☀️', label: t('badges.today'), value: `${fmtTemp(weatherCurseData.todayTemp)}, ${translateCondition(weatherCurseData.todayCondition)}` },
+                    { icon: '⚠️', label: t('badges.soon'), value: `${fmtTemp(weatherCurseData.futureTempMin)}, ${translateCondition(weatherCurseData.futureCondition)}` },
+                  ];
+                }
+                if (isSpringAwakening && springAwakeningData) {
+                  return [
+                    { icon: '🌡️', label: t('badges.temperature'), value: fmtTemp(springAwakeningData.tempDest) },
+                    { icon: '☀️', label: t('badges.conditions'), value: translateCondition('sunny') },
+                    { icon: '💨', label: t('badges.windLabel'), value: '≤ 20 km/h' },
+                  ];
+                }
+                return [];
+              };
+              
               const isExpanded = expandedBadges[badge] || false;
+              const statRows = isExpanded ? getStatRows() : [];
 
               return (
                 <AnimatedBadgeCard
@@ -1898,8 +2077,13 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                   }}
                   theme={theme}
                   overHero
+                  tintColor={
+                    (isWorthTheDrive || isWorthTheDriveBudget) && reverseMode === 'cold'
+                      ? COOL_MODE_TINT
+                      : BADGE_CARD_TINTS[badge]
+                  }
                 >
-                      <View style={[styles.badgeIconContainer, { backgroundColor: metadata.color }]}>
+                      <View style={[styles.badgeIconContainer, { backgroundColor: typeof metadata.icon === 'string' ? metadata.color : '#F5F5F5' }]}>
                         {typeof metadata.icon === 'string' ? (
                           <Text style={styles.badgeCardIcon}>{metadata.icon}</Text>
                         ) : (
@@ -1931,146 +2115,20 @@ const DestinationDetailScreen = ({ route, navigation }) => {
                                 : t(`badges.${badge.toLowerCase().replace(/_/g, '')}Description`)}
                             </Text>
                             
-                            {/* Worth the Drive stats */}
-                            {isWorthTheDrive && worthData && (
-                        <View style={styles.badgeStats}>
-                          <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ {t('badges.temperature')}: {fmtTemp(worthData.tempOrigin)} → {fmtTemp(worthData.tempDest)} ({fmtTempDelta(worthData.tempDelta)})
-                          </Text>
-                          <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            💨 ETA: {formatETA(worthData.eta)} ({fmtDist(worthData.roadDistanceKm ?? destination.distance)})
-                          </Text>
-                        </View>
-                      )}
-                      
-                      {/* Worth the Drive Budget stats */}
-                      {isWorthTheDriveBudget && worthBudgetData && (
-                        <View style={styles.badgeStats}>
-                          <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ {t('badges.temperature')}: {fmtTemp(worthBudgetData.tempOrigin)} → {fmtTemp(worthBudgetData.tempDest)} ({fmtTempDelta(worthBudgetData.tempDelta)})
-                          </Text>
-                          <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            💨 ETA: {formatETA(worthBudgetData.eta)} ({fmtDist(worthBudgetData.roadDistanceKm ?? destination.distance)})
-                          </Text>
-                        </View>
-                      )}
-                      
-                      {/* Warm & Dry stats */}
-                      {isWarmAndDry && warmDryData && (
-                        <View style={styles.badgeStats}>
-                          <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ {t('badges.temperature')}: {fmtTemp(warmDryData.temp)}{warmDryData.tempRank && warmDryData.tempRank < 999 ? ` (${t('badges.rank')} #${warmDryData.tempRank})` : ''}
-                          </Text>
-                          <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            ☀️ {t('badges.conditions')}: {translateCondition(warmDryData.condition)}
-                          </Text>
-                          <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            💨 {t(getWindDescriptionKey(warmDryData.windSpeed))}
-                          </Text>
-                        </View>
-                      )}
-                      
-                      {/* Beach Paradise stats */}
-                      {isBeachParadise && beachData && (
-                        <View style={styles.badgeStats}>
-                          <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ {t('badges.temperature')}: {fmtTemp(beachData.temp)}
-                          </Text>
-                          <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            ☀️ {translateCondition(beachData.condition)}
-                          </Text>
-                          <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            💨 {t(getWindDescriptionKey(beachData.windSpeed))}
-                          </Text>
-                        </View>
-                      )}
-                      
-                      {/* Sunny Streak stats */}
-                      {isSunnyStreak && (
-                        <View style={styles.badgeStats}>
-                          <Text style={[styles.badgeStat, { color: metadata.color }]}>
-                            ☀️ {t('badges.sunshineStreak', { count: sunnyStreakData?.streakLength ?? getDisplaySunnyStreak(destination) })}
-                          </Text>
-                          <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            🌡️ Ø {fmtTemp(sunnyStreakData?.avgTemp ?? destination.temperature ?? 0)}
-                          </Text>
-                        </View>
-                      )}
-                      
-                      {/* Weather Miracle stats */}
-                      {isWeatherMiracle && miracleData && (
-                        <View style={styles.badgeStats}>
-                          <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            {t('badges.miracleDetail', { todayTemp: fmtTemp(miracleData.todayTemp), futureTemp: fmtTemp(miracleData.futureTempMax), gain: fmtTempDelta(miracleData.tempGain) })}
-                          </Text>
-                          <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            ☀️ {translateCondition(miracleData.todayCondition)} → {translateCondition(miracleData.futureCondition)}
-                          </Text>
-                        </View>
-                      )}
-                      
-                      {/* Heatwave stats */}
-                      {isHeatwave && heatwaveData && (
-                        <View style={styles.badgeStats}>
-                          <Text style={[styles.badgeStat, { color: metadata.color }]}>
-                            🔥 {t('badges.heatwaveDays', { count: heatwaveData.hotDays })}
-                          </Text>
-                          <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ Ø {fmtTemp(heatwaveData.avgTemp)} (Max {fmtTemp(heatwaveData.maxTemp)})
-                          </Text>
-                        </View>
-                      )}
-                      
-                      {/* Snow King stats */}
-                      {isSnowKing && snowKingData && (
-                        <View style={styles.badgeStats}>
-                          <Text style={[styles.badgeStat, { color: metadata.color }]}>
-                            ❄️ {t('badges.snowDaysCount', { count: getDisplaySnowDays(destination) })}
-                          </Text>
-                          <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            📊 {t('badges.totalSnowfall', { amount: Math.round((snowKingData.totalSnowfall || 0) / 10) })}
-                          </Text>
-                          <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ Ø {fmtTemp(snowKingData.avgTemp)}
-                          </Text>
-                        </View>
-                      )}
-                      
-                      {/* Rainy Days stats */}
-                      {isRainyDays && rainyDaysData && (
-                        <View style={styles.badgeStats}>
-                          <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            🌧️ {t('badges.rainyDaysCount', { count: getDisplayRainyDays(destination) })}
-                          </Text>
-                          <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            💧 {t('badges.heavyRain')}: {rainyDaysData.hasHeavyRain ? t('badges.heavyRainYes') : t('badges.heavyRainNo')}
-                          </Text>
-                        </View>
-                      )}
-                      
-                      {/* Weather Curse stats */}
-                      {isWeatherCurse && weatherCurseData && (
-                        <View style={styles.badgeStats}>
-                          <Text style={[styles.badgeStat, { color: '#4CAF50' }]}>
-                            {t('badges.curseToday', { temp: fmtTemp(weatherCurseData.todayTemp), condition: translateCondition(weatherCurseData.todayCondition) })}
-                          </Text>
-                          <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            {t('badges.curseSoon', { temp: fmtTemp(weatherCurseData.futureTempMin), condition: translateCondition(weatherCurseData.futureCondition) })}
-                          </Text>
-                        </View>
-                      )}
-                      
-                      {/* Spring Awakening stats */}
-                      {isSpringAwakening && springAwakeningData && (
-                        <View style={styles.badgeStats}>
-                          <Text style={[styles.badgeStat, { color: '#D65A2E' }]}>
-                            🌡️ {t('badges.temperature')}: {fmtTemp(springAwakeningData.tempDest)}
-                          </Text>
-                          <Text style={[styles.badgeStat, { color: theme.primary }]}>
-                            ☀️ {translateCondition('sunny')} · 💨 ≤ 20 km/h
-                          </Text>
-                        </View>
-                      )}
+                            {statRows.length > 0 && (
+                              <View style={styles.badgeStatRows}>
+                                {statRows.map((row) => (
+                                  <View key={row.label} style={styles.badgeStatRow}>
+                                    <Text style={[styles.badgeStatLabel, { color: theme.textSecondary }]}>
+                                      {row.icon}  {row.label}
+                                    </Text>
+                                    <Text style={[styles.badgeStatValue, { color: theme.text }]}>
+                                      {row.value}
+                                    </Text>
+                                  </View>
+                                ))}
+                              </View>
+                            )}
                           </>
                         )}
                       </View>
@@ -2170,6 +2228,37 @@ const DestinationDetailScreen = ({ route, navigation }) => {
               </View>
             );
           })}
+
+          {extraForecastRows.length > 0 && (
+            <TouchableOpacity
+              style={[styles.forecastToggle, { borderTopColor: theme.background }]}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: forecastExpanded }}
+              onPress={() => {
+                LayoutAnimation.easeInEaseOut();
+                setForecastExpanded((v) => !v);
+                mixpanel.track('Forecast Expanded', {
+                  place_id: effectivePlaceId,
+                  place_name: destination.name,
+                  date_offset: dateOffset,
+                  extra_days: extraForecastRows.length,
+                  expanded: !forecastExpanded,
+                });
+              }}
+            >
+              <Text style={[styles.forecastToggleText, { color: theme.textSecondary }]}>
+                {forecastExpanded
+                  ? t('destination.forecastLess')
+                  : t('destination.forecastMore', { count: extraForecastRows.length })}
+              </Text>
+              <MaterialIcons
+                name={forecastExpanded ? 'expand-less' : 'expand-more'}
+                size={20}
+                color={theme.textSecondary}
+              />
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Stop & Stay Card */}
@@ -2207,6 +2296,21 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         <Text style={styles.favToastText}>{favToast}</Text>
       </Animated.View>
     )}
+    {/* Dev-only: fixed screen-level overlay stack, rendered last so nothing can cover it */}
+    {__DEV__ && (devHeroFileName || devAttractivenessScore != null) ? (
+      <View style={styles.devOverlayStack} pointerEvents="none">
+        {devAttractivenessScore != null && (
+          <View style={styles.devAttractivenessPill}>
+            <Text style={styles.devAttractivenessText}>attr {devAttractivenessScore}</Text>
+          </View>
+        )}
+        {devHeroFileName ? (
+          <Text style={styles.devHeroFileNameText} numberOfLines={1}>
+            {devHeroFileName}
+          </Text>
+        ) : null}
+      </View>
+    ) : null}
 
     </View>
   );
@@ -2392,11 +2496,19 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 2,
   },
+  badgeCardShadow: {
+    marginBottom: 5,
+    borderRadius: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 12,
+  },
   badgeCard: {
     flexDirection: 'row',
     padding: 14,
     borderRadius: 12,
-    marginBottom: 5,
+    overflow: 'hidden',
   },
   badgeIconContainer: {
     width: 44,
@@ -2422,24 +2534,41 @@ const styles = StyleSheet.create({
     fontSize: 14,
     marginBottom: 8,
   },
-  badgeStats: {
-    marginTop: 4,
+  badgeStatRows: {
+    marginTop: 8,
   },
-  badgeStat: {
+  badgeStatRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 6,
+  },
+  badgeStatLabel: {
+    fontSize: 13,
+    marginRight: 12,
+  },
+  badgeStatValue: {
     fontSize: 14,
-    fontWeight: '500',
-    marginTop: 4,
+    fontWeight: '600',
+    flexShrink: 1,
+    textAlign: 'right',
   },
   badgeSummary: {
     fontSize: 15,
     fontWeight: '500',
     marginTop: 2,
   },
+  badgeExpandTouchable: {
+    position: 'absolute',
+    right: 4,
+    top: 4,
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   badgeExpandIndicator: {
     fontSize: 12,
-    position: 'absolute',
-    right: 16,
-    top: 20,
   },
   sectionTitle: {
     fontSize: 15,
@@ -2533,6 +2662,19 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     width: 110,
     textAlign: 'right',
+  },
+  forecastToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 12,
+    paddingBottom: 4,
+    borderTopWidth: 1,
+    gap: 4,
+  },
+  forecastToggleText: {
+    fontSize: 14,
+    fontWeight: '500',
   },
   actionsContainer: {
     gap: 12,
@@ -2671,24 +2813,37 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontVariant: ['tabular-nums'],
   },
-  devHeroFileName: {
+  // Dev-only: overlay stack pinned to the screen bottom-left, above Expo's Metro bar
+  devOverlayStack: {
     position: 'absolute',
-    left: 16,
-    right: 16,
-    bottom: 96,
-    zIndex: 11,
-    alignItems: 'center',
+    left: 12,
+    bottom: 42,
+    maxWidth: '75%',
+    zIndex: 9999,
+    alignItems: 'flex-start',
+    gap: 4,
   },
-  devHeroFileNameText: {
+  devAttractivenessPill: {
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  devAttractivenessText: {
     color: 'rgba(255, 255, 255, 0.92)',
     fontSize: 11,
     fontWeight: '600',
+    fontVariant: ['tabular-nums'],
+  },
+  devHeroFileNameText: {
+    color: 'rgba(255, 255, 255, 0.9)',
+    fontSize: 10,
+    fontWeight: '500',
     fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    textAlign: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.45)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.55)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
     overflow: 'hidden',
   },
   tapToShowPill: {

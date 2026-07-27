@@ -68,6 +68,7 @@ pexels_results.csv
 pexels_output/
 unsplash_output/
 image_check_results/
+pexels_audit/
 debug_import.mjs
 WEATHERBIT_SETUP.md
 .DS_Store

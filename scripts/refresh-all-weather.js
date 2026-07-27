@@ -250,7 +250,8 @@ async function main() {
     
     if (error) {
       console.error(`❌ Failed to fetch page ${page + 1}:`, error.message);
-      break;
+      // Continuing with a partial place list would silently leave the rest stale
+      process.exit(1);
     }
     
     if (pageData && pageData.length > 0) {
@@ -374,6 +375,10 @@ async function main() {
   console.log(`  📊 API Calls: ~${finalSuccess + totalFailed * (MAX_RETRIES + 1)}`);
   console.log(`  ⏱️  Duration: ${duration}s (${(finalSuccess / Math.max(duration, 1)).toFixed(1)} locations/sec)`);
   console.log('');
+
+  if (totalFailed > 0) {
+    process.exitCode = 1; // mark the CI run red — some places kept stale weather
+  }
 
   if (finalSuccess > 0) {
     console.log('🎉 Weather refresh complete!');

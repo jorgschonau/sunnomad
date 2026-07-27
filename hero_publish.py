@@ -22,6 +22,9 @@ def main():
     p.add_argument("--sync", action="store_true", help="Mirror cast/ + activate (default if neither flag)")
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--place", help="Limit to place name")
+    p.add_argument("--changed-only", action="store_true",
+                    help="Nur Orte mit tatsächlichen Storage-Änderungen re-aktivieren "
+                         "(schneller; siehe sync_hero_activation.py --help)")
     args = p.parse_args()
 
     do_norm = args.normalize
@@ -42,6 +45,8 @@ def main():
             sync.append("--dry-run")
         if args.place:
             sync.extend(["--place", args.place])
+        if args.changed_only:
+            sync.append("--changed-only")
         sys.exit(run(sync))
 
 

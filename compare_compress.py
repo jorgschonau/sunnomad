@@ -1,17 +1,31 @@
+import argparse
+import json
 import os
+
 import imagehash
 import numpy as np
-from PIL import Image, ImageFilter, ImageStat
+from PIL import Image
+
+from stock_image_score import place_key_from_filename, score_candidate
 
 UNSPLASH_DIR = "./unsplash_output"
 PEXELS_DIR   = "./pexels_output"
 OUTPUT_DIR   = "./output"
 TARGET_W, TARGET_H, TARGET_KB = 800, 1200, 80
-PHASH_THRESHOLD = 8  # < 8 = Duplikat, erhöhen wenn zu aggressiv
+PHASH_THRESHOLD = 8
+MIN_SCORE = 20  # unterhalb → kein output (lieber kein Bild als Müll)
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-# --- Global seen hashes (cross-place dedup) ---
+# --- Meta aus den Download-Scripts ---
+meta = {}
+for folder in [UNSPLASH_DIR, PEXELS_DIR]:
+    path = os.path.join(folder, "meta.json")
+    if os.path.exists(path):
+        with open(path) as f:
+            meta.update(json.load(f))
+
 global_seen = {}
+
 
 def is_duplicate(path):
     h = imagehash.phash(Image.open(path))
@@ -21,50 +35,35 @@ def is_duplicate(path):
     global_seen[h] = path
     return False, None
 
-def has_person(path, skin_threshold=0.18):
-    img = Image.open(path).convert("RGB").resize((100, 100))
-    pixels = list(img.getdata())
-    skin = sum(1 for r,g,b in pixels
-               if r > 95 and g > 40 and b > 20
-               and max(r,g,b) - min(r,g,b) > 15
-               and r > g and r > b)
-    return (skin / len(pixels)) > skin_threshold
 
-def cityscape_score(path):
-    img_gray = Image.open(path).convert("L").resize((100, 150))
-    arr = np.array(img_gray)
-    edges = np.array(Image.fromarray(arr).filter(ImageFilter.FIND_EDGES))
+def grade_hero(img):
+    """Dezenter Teal&Orange-Look: kühle Schatten, warme Lichter,
+    sanfte S-Kurve, Vibrance. Bewusst subtil — soll nachhelfen, nicht färben."""
+    arr = np.asarray(img, dtype=np.float32) / 255.0
+    lum = (arr[..., 0] * 0.299 + arr[..., 1] * 0.587 + arr[..., 2] * 0.114)[..., None]
 
-    top    = edges[:50, :]
-    middle = edges[50:100, :]
-    bottom = edges[100:, :]
+    # Split-Toning
+    shadows = np.clip(1.0 - lum * 2.2, 0.0, 1.0)
+    highlights = np.clip(lum * 2.2 - 1.2, 0.0, 1.0)
+    teal = np.array([-0.020, 0.008, 0.030], dtype=np.float32)
+    orange = np.array([0.035, 0.012, -0.028], dtype=np.float32)
+    arr = arr + shadows * teal + highlights * orange
 
-    top_density    = top.mean()
-    middle_density = middle.mean()
-    bottom_density = bottom.mean()
+    # Sanfte S-Kurve (20% smoothstep-Anteil)
+    arr = np.clip(arr, 0.0, 1.0)
+    arr = arr * 0.8 + (arr * arr * (3.0 - 2.0 * arr)) * 0.2
 
-    skyline_score      = bottom_density / (top_density + 1)
-    distribution_score = min(top_density, bottom_density) / (middle_density + 1)
+    # Vibrance: wenig gesättigte Pixel stärker anheben als bereits satte
+    sat = arr.max(axis=-1, keepdims=True) - arr.min(axis=-1, keepdims=True)
+    boost = 1.0 + 0.18 * (1.0 - np.clip(sat * 2.5, 0.0, 1.0))
+    arr = lum + (arr - lum) * boost
 
-    img_rgb = Image.open(path).convert("RGB").resize((100, 150))
-    top_rgb = np.array(img_rgb)[:50, :]
-    sky_bonus = (top_rgb.mean() / 255) * 5
+    return Image.fromarray((np.clip(arr, 0.0, 1.0) * 255).astype(np.uint8))
 
-    return (skyline_score * 8) + (distribution_score * 5) + sky_bonus
-
-def score_image(path):
-    img = Image.open(path).convert("RGB")
-    stat = ImageStat.Stat(img)
-    w, h = img.size
-
-    ratio_score      = 10 if h > w else 0
-    brightness_score = 10 - abs(stat.mean[0] - 130) / 13
-    contrast_score   = min(stat.stddev[0] / 10, 10)
-    city_score       = cityscape_score(path) * 3
-
-    return ratio_score + brightness_score + contrast_score + city_score
 
 def convert_to_webp(src, dst):
+    from PIL import ImageFilter
+
     with Image.open(src) as img:
         img = img.convert("RGB")
         ratio = max(TARGET_W / img.width, TARGET_H / img.height)
@@ -73,6 +72,7 @@ def convert_to_webp(src, dst):
         left = (nw - TARGET_W) // 2
         top  = (nh - TARGET_H) // 2
         img = img.crop((left, top, left + TARGET_W, top + TARGET_H))
+        img = grade_hero(img)
         img = img.filter(ImageFilter.UnsharpMask(radius=1, percent=80, threshold=3))
 
         lo, hi, mid = 10, 95, 50
@@ -86,48 +86,70 @@ def convert_to_webp(src, dst):
 
         return os.path.getsize(dst) / 1024
 
-def get_place_key(filename):
-    name = os.path.splitext(filename)[0]
-    for suffix in ["_unspl", "_pexels_1", "_pexels_2", "_pexels_3"]:
-        if name.endswith(suffix):
-            return name[: -len(suffix)]
-    return name
 
-# --- Collect files grouped by place ---
-places = {}
-for folder in [UNSPLASH_DIR, PEXELS_DIR]:
-    for fname in os.listdir(folder):
-        if not fname.lower().endswith((".webp", ".jpg", ".jpeg", ".png")):
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--force", action="store_true",
+                        help="Orte neu bewerten, für die output/ schon ein Bild hat "
+                             "(z.B. nach Änderungen an der Scoring-Logik)")
+    args = parser.parse_args()
+
+    places = {}
+    for folder in [UNSPLASH_DIR, PEXELS_DIR]:
+        if not os.path.isdir(folder):
             continue
-        key = get_place_key(fname)
-        places.setdefault(key, []).append(os.path.join(folder, fname))
+        for fname in os.listdir(folder):
+            if not fname.lower().endswith((".webp", ".jpg", ".jpeg", ".png")):
+                continue
+            key = place_key_from_filename(fname)
+            places.setdefault(key, []).append(os.path.join(folder, fname))
 
-# --- Process ---
-skipped_all, processed = 0, 0
-for key, candidates in sorted(places.items()):
-    scored = []
-    for path in candidates:
-        dup, dup_of = is_duplicate(path)
-        if dup:
-            print(f"  SKIP (dup of {os.path.basename(dup_of)}): {os.path.basename(path)}")
+    skipped_all, processed, rejected_low, already_done = 0, 0, 0, 0
+    for key, candidates in sorted(places.items()):
+        if not args.force and os.path.exists(os.path.join(OUTPUT_DIR, f"{key}_pexels_1.webp")):
+            already_done += 1
             continue
-        if has_person(path):
-            print(f"  SKIP (person): {os.path.basename(path)}")
+
+        candidates.sort(
+            key=lambda p: not meta.get(os.path.basename(p), {}).get("relevant", False)
+        )
+
+        scored = []
+        for path in candidates:
+            dup, dup_of = is_duplicate(path)
+            if dup:
+                print(f"  SKIP (dup of {os.path.basename(dup_of)}): {os.path.basename(path)}")
+                continue
+
+            info = meta.get(os.path.basename(path), {})
+            s, tags = score_candidate(path, info)
+            scored.append((s, path, tags))
+            tag_str = f" [{', '.join(tags)}]" if tags else ""
+            print(f"  scored {os.path.basename(path)}: {s:.1f}{tag_str}")
+
+        if not scored:
+            print(f"{key}: ALL filtered — skipping\n")
+            skipped_all += 1
             continue
-        s = score_image(path)
-        scored.append((s, path))
-        print(f"  scored {os.path.basename(path)}: {s:.1f}")
 
-    if not scored:
-        print(f"{key}: ALL filtered — skipping")
-        skipped_all += 1
-        continue
+        scored.sort(reverse=True)
+        best_score, best_path, best_tags = scored[0]
 
-    scored.sort(reverse=True)
-    best_score, best_path = scored[0]
-    dst = os.path.join(OUTPUT_DIR, f"{key}_pexels_1.webp")
-    kb  = convert_to_webp(best_path, dst)
-    print(f"✓ {key}: {os.path.basename(best_path)} → {kb:.0f}kb (score={best_score:.1f})\n")
-    processed += 1
+        if best_score < MIN_SCORE:
+            print(f"{key}: best score {best_score:.1f} < {MIN_SCORE} — rejected\n")
+            rejected_low += 1
+            continue
 
-print(f"\nDone: {processed} processed, {skipped_all} fully skipped")
+        dst = os.path.join(OUTPUT_DIR, f"{key}_pexels_1.webp")
+        kb  = convert_to_webp(best_path, dst)
+        print(f"✓ {key}: {os.path.basename(best_path)} → {kb:.0f}kb (score={best_score:.1f})\n")
+        processed += 1
+
+    print(
+        f"\nDone: {processed} processed, {already_done} already in output/, "
+        f"{skipped_all} no candidates, {rejected_low} rejected (score too low)"
+    )
+
+
+if __name__ == "__main__":
+    main()

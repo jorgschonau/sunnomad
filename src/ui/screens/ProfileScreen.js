@@ -15,30 +15,52 @@ import { useTranslation } from 'react-i18next';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { getFavourites } from '../../usecases/favouritesUsecases';
 import { mixpanel } from '../../services/mixpanel';
+import { getFakeLevel, resolveIronicBadges } from '../../utils/ironicProgress';
 
 export default function ProfileScreen({ navigation }) {
   const { user, profile, signOut, deleteAccount, isAuthenticated } = useAuth();
   const { theme } = useTheme();
   const { t } = useTranslation();
   const [favouriteCount, setFavouriteCount] = useState(0);
+  const [ironicBadges, setIronicBadges] = useState([]);
   const ironicStreakKey = useMemo(
     () => `profile.ironicStreak${1 + Math.floor(Math.random() * 4)}`,
     []
   );
+  const fakeLevel = useMemo(
+    () => getFakeLevel(profile?.app_open_count),
+    [profile?.app_open_count]
+  );
 
   useFocusEffect(
     useCallback(() => {
+      let active = true;
       mixpanel.track('Profile Opened');
       const loadCount = async () => {
+        let favCount = 0;
         try {
           const favs = await getFavourites();
-          setFavouriteCount(favs.length);
+          favCount = favs.length;
         } catch {
-          setFavouriteCount(0);
+          favCount = 0;
         }
+        if (!active) return;
+        setFavouriteCount(favCount);
+
+        const { badges, newlyEarned } = await resolveIronicBadges({
+          appOpens: profile?.app_open_count,
+          favouriteCount: favCount,
+          memberSince: profile?.created_at,
+        });
+        if (!active) return;
+        setIronicBadges(badges);
+        newlyEarned.forEach((id) => mixpanel.track('Ironic Badge Unlocked', { badge: id }));
       };
       loadCount();
-    }, [])
+      return () => {
+        active = false;
+      };
+    }, [profile?.app_open_count, profile?.created_at])
   );
 
   const handleSignOut = () => {
@@ -125,6 +147,14 @@ export default function ProfileScreen({ navigation }) {
           )}
         </View>
         <Text style={styles.displayName}>{profile?.display_name || user?.email}</Text>
+        <Text style={styles.fakeLevel}>
+          {t('profile.fakeLevelLine', { level: fakeLevel.level, name: t(fakeLevel.nameKey) })}
+        </Text>
+        {fakeLevel.nextNameKey && (
+          <Text style={styles.fakeLevelNext}>
+            {t('profile.fakeLevelNext', { name: t(fakeLevel.nextNameKey) })}
+          </Text>
+        )}
         {profile?.app_open_count > 0 && (
           <Text style={styles.ironicStreak}>
             {t(ironicStreakKey, { count: profile.app_open_count })}
@@ -153,28 +183,53 @@ export default function ProfileScreen({ navigation }) {
           <Text style={styles.statValue}>{formatMemberSince()}</Text>
         </View>
 
-        <View style={styles.statDivider} />
-
-        <View style={styles.statRow}>
-          <View style={styles.statIconContainer}>
-            <Ionicons name="mail-outline" size={20} color={theme.primary} />
-          </View>
-          <Text style={styles.statEmail} numberOfLines={1}>{user?.email}</Text>
-        </View>
       </View>
+
+      {/* Ironic Badges */}
+      {ironicBadges.length > 0 && (
+        <View style={styles.badgesSection}>
+          <View style={styles.badgesTitleRow}>
+            <Text style={styles.sectionTitle}>{t('profile.badgesTitle')}</Text>
+            <Text style={styles.badgesCount}>
+              {t('profile.badgesUnlockedCount', {
+                earned: ironicBadges.filter((b) => b.earned).length,
+                total: ironicBadges.length,
+              })}
+            </Text>
+          </View>
+          <View style={styles.badgesCard}>
+            {ironicBadges.map((badge, i) => (
+              <View key={badge.id}>
+                {i > 0 && <View style={styles.statDivider} />}
+                <View style={[styles.badgeRow, !badge.earned && styles.badgeRowLocked]}>
+                  <View style={styles.statIconContainer}>
+                    <Ionicons
+                      name={badge.earned ? badge.icon : 'lock-closed-outline'}
+                      size={20}
+                      color={badge.earned ? theme.primary : theme.textSecondary}
+                    />
+                  </View>
+                  <View style={styles.badgeTextContainer}>
+                    <Text style={styles.badgeName}>{t(badge.nameKey)}</Text>
+                    {badge.earned && (
+                      <Text style={styles.badgeDesc}>{t(badge.descKey)}</Text>
+                    )}
+                  </View>
+                </View>
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
 
       {/* Actions */}
       <View style={styles.actionsSection}>
         <Text style={styles.sectionTitle}>{t('profile.actions')}</Text>
 
-        <TouchableOpacity
-          style={styles.outlineButton}
-          onPress={() => Alert.alert(t('settings.comingSoon'), t('profile.featureComingSoon'))}
-        >
+        <View style={styles.outlineButton}>
           <Ionicons name="mail-outline" size={20} color={theme.primary} style={styles.actionIcon} />
-          <Text style={styles.outlineButtonText}>{t('profile.changeEmail')}</Text>
-          <Ionicons name="chevron-forward" size={18} color={theme.textSecondary} />
-        </TouchableOpacity>
+          <Text style={styles.emailText} numberOfLines={1}>{user?.email}</Text>
+        </View>
 
         <TouchableOpacity
           style={styles.outlineButton}
@@ -303,6 +358,19 @@ const createStyles = (theme) =>
       marginTop: 6,
       textAlign: 'center',
     },
+    fakeLevel: {
+      fontSize: 14,
+      fontWeight: '700',
+      color: theme.primary,
+      marginTop: 8,
+      textAlign: 'center',
+    },
+    fakeLevelNext: {
+      fontSize: 12,
+      color: theme.textSecondary,
+      marginTop: 2,
+      textAlign: 'center',
+    },
 
     // ── Stats Card ──
     statsCard: {
@@ -337,16 +405,66 @@ const createStyles = (theme) =>
       fontWeight: '700',
       color: theme.text,
     },
-    statEmail: {
+    emailText: {
       flex: 1,
       fontSize: 15,
       color: theme.text,
-      marginLeft: 8,
     },
     statDivider: {
       height: 1,
       backgroundColor: theme.border || 'rgba(0,0,0,0.06)',
       marginHorizontal: 18,
+    },
+
+    // ── Ironic Badges ──
+    badgesSection: {
+      marginTop: 28,
+      paddingHorizontal: 20,
+    },
+    badgesTitleRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'baseline',
+    },
+    badgesCount: {
+      fontSize: 12,
+      color: theme.textSecondary,
+      marginBottom: 12,
+      marginRight: 4,
+    },
+    badgesCard: {
+      backgroundColor: theme.cardBackground || theme.surface,
+      borderRadius: 16,
+      paddingVertical: 4,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.06,
+      shadowRadius: 8,
+      elevation: 2,
+    },
+    badgeRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: 12,
+      paddingHorizontal: 18,
+    },
+    badgeRowLocked: {
+      opacity: 0.45,
+    },
+    badgeTextContainer: {
+      flex: 1,
+      marginLeft: 8,
+    },
+    badgeName: {
+      fontSize: 15,
+      fontWeight: '600',
+      color: theme.text,
+    },
+    badgeDesc: {
+      fontSize: 12,
+      fontStyle: 'italic',
+      color: theme.textSecondary,
+      marginTop: 2,
     },
 
     // ── Actions ──
