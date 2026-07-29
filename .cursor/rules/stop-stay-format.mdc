@@ -1,0 +1,48 @@
+---
+description: Stop & Stay place_content stay_* must use Label: Name – Details
+alwaysApply: true
+---
+
+# Stop & Stay: stay text format
+
+When writing or updating `place_content.stay_de` / `stay_en` (or suggesting SQL/CSV for them):
+
+## Required format
+
+One section per line (or newline-separated sections), always with a colon after the label:
+
+```
+Beste Option: Campsite Name (optional note) – price, facilities, distance
+Alternative: Other Campsite – details
+Freistehen: not permitted – short reason
+```
+
+English:
+
+```
+Best option: Campsite Name (optional note) – price, facilities, distance
+Alternative: Other Campsite – details
+Freestanding: not permitted – short reason
+```
+
+## Forbidden (breaks StopStayCard parsing)
+
+Do **not** put the label alone on one line and the name/details on following lines:
+
+```
+Beste Option (außerhalb der Festivalwoche)
+Wohnmobilstellplatz Landgasthof Wacken, Gasthaus vor Ort
+4 Plätze, kein Strom
+```
+
+## Labels the UI understands
+
+- `Beste Option` / `Best option`
+- `Alternative` / `Alternativ`
+- `Freistehen` / `Freestanding` / `Wildcampen` / `Wild camping` / `Free camping` (and close variants)
+
+## Links
+
+- `camping_link_1` → Beste Option campsite (official site, or `null` for Google Maps fallback)
+- `camping_link_2` → Alternative campsite
+- Never `alpacacamping.de` / `.com` (see no-alpacacamping-links rule)

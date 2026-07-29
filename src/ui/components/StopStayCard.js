@@ -150,6 +150,40 @@ const StopStayCard = ({ destination, lang, onContentReady }) => {
     return names.sort((a, b) => a.startIndex - b.startIndex);
   };
 
+  // Collapse schrott multi-line blocks ("Label\nName\nDetails") into standard
+  // "Label: Name – Details" so the card renders the same as other places.
+  const normalizeStayText = (stayText) => {
+    if (!stayText) return stayText;
+    const labelLineRe = /^(Beste Option|Best [Oo]ption|Alternative|Alternativ|Wildcampen|Wildcamping|Wild camping|Wildes Campen|Wildes Zelten|Freies Camping|Free camping|Free Camping|Freistehen|Freistehend|Freestanding)\s*(?:\([^)]*\))?\s*$/i;
+    const lines = stayText.split('\n');
+    const out = [];
+    let i = 0;
+    while (i < lines.length) {
+      const raw = lines[i];
+      const line = raw.trim();
+      if (!line) { i++; continue; }
+      if (labelLineRe.test(line)) {
+        const label = line;
+        const parts = [];
+        i++;
+        while (i < lines.length) {
+          const next = lines[i].trim();
+          if (!next) { i++; break; }
+          if (labelLineRe.test(next)) break;
+          parts.push(next);
+          i++;
+        }
+        if (parts.length === 0) out.push(`${label}:`);
+        else if (parts.length === 1) out.push(`${label}: ${parts[0]}`);
+        else out.push(`${label}: ${parts[0]} – ${parts.slice(1).join(', ')}`);
+      } else {
+        out.push(line);
+        i++;
+      }
+    }
+    return out.join('\n');
+  };
+
   // Parse "Label: Name – details" lines into structured blocks
   const parseStayBlocks = (stayText) => {
     if (!stayText) return [];
@@ -159,8 +193,8 @@ const StopStayCard = ({ destination, lang, onContentReady }) => {
       'Alternative', 'Alternativ',
       'Wildcampen', 'Wildcamping', 'Wild camping', 'Wildes Campen', 'Wildes Zelten',
       'Freies Camping', 'Free camping', 'Free Camping',
-      'Freistehen', 'Freistehend',
-      'Beste Option', 'Best option',
+      'Freistehen', 'Freistehend', 'Freestanding',
+      'Beste Option', 'Best option', 'Best Option',
     ];
     const escaped = sectionKeywords.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|');
     // Match ". Keyword:" or "). – Keyword:" or ". – Keyword:" or " – Keyword:"
@@ -168,7 +202,7 @@ const StopStayCard = ({ destination, lang, onContentReady }) => {
       `(?:[.)]+\\s*[–—-]?\\s+|[–—-]\\s+)(${escaped}):`,
       'g'
     );
-    const normalized = stayText.replace(keywordPattern, (_, kw) => `\n${kw}:`);
+    const normalized = normalizeStayText(stayText).replace(keywordPattern, (_, kw) => `\n${kw}:`);
 
     return normalized.split('\n').filter(Boolean).map((line, index) => {
       const colonIdx = line.indexOf(':');
@@ -426,7 +460,8 @@ const StopStayCard = ({ destination, lang, onContentReady }) => {
   };
 
   // Use stay_en for keyword detection; fall back to current-lang stay if stay_en absent
-  const stayForExtraction = data.stay_en || data.stay || '';
+  // Normalize schrott multi-line first so "Beste Option\nName" still extracts.
+  const stayForExtraction = normalizeStayText(data.stay_en || data.stay || '');
 
   const campsite1Name = extractCampsiteName(stayForExtraction, 'best option:', 'beste option:');
   const campsite2Name = extractCampsiteName(stayForExtraction, 'alternative:');
