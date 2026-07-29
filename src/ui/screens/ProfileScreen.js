@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -7,6 +7,7 @@ import {
   ScrollView,
   Alert,
   Image,
+  Animated,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useAuth } from '../../contexts/AuthContext';
@@ -17,12 +18,154 @@ import { getFavourites } from '../../usecases/favouritesUsecases';
 import { mixpanel } from '../../services/mixpanel';
 import { getFakeLevel, resolveIronicBadges } from '../../utils/ironicProgress';
 
+const SPARKLES = [
+  { dx: -16, dy: -14, delay: 0, size: 11 },
+  { dx: 15, dy: -12, delay: 70, size: 13 },
+  { dx: -12, dy: 13, delay: 130, size: 10 },
+  { dx: 14, dy: 11, delay: 40, size: 12 },
+  { dx: 2, dy: -18, delay: 100, size: 10 },
+  { dx: 18, dy: 1, delay: 160, size: 9 },
+];
+
+function IronicBadgeRow({ badge, isNew, styles, theme, t }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const highlightOpacity = useRef(new Animated.Value(isNew ? 0.16 : 0)).current;
+  const sparkleProgress = useRef(SPARKLES.map(() => new Animated.Value(0))).current;
+
+  useEffect(() => {
+    if (!isNew) return undefined;
+    highlightOpacity.setValue(0.16);
+    sparkleProgress.forEach((v) => v.setValue(0));
+
+    const pulse = Animated.loop(
+      Animated.sequence([
+        Animated.timing(scale, { toValue: 1.18, duration: 320, useNativeDriver: true }),
+        Animated.timing(scale, { toValue: 1, duration: 320, useNativeDriver: true }),
+      ]),
+      { iterations: 3 }
+    );
+    const sparkleBurst = Animated.stagger(
+      50,
+      sparkleProgress.map((v, i) =>
+        Animated.sequence([
+          Animated.delay(SPARKLES[i].delay),
+          Animated.timing(v, { toValue: 1, duration: 900, useNativeDriver: true }),
+        ])
+      )
+    );
+    // Second lighter burst after first settles
+    const sparkleBurst2 = Animated.sequence([
+      Animated.delay(1100),
+      Animated.parallel(
+        sparkleProgress.map((v) =>
+          Animated.sequence([
+            Animated.timing(v, { toValue: 0, duration: 0, useNativeDriver: true }),
+            Animated.timing(v, { toValue: 1, duration: 850, useNativeDriver: true }),
+          ])
+        )
+      ),
+    ]);
+    const fade = Animated.sequence([
+      Animated.delay(2600),
+      Animated.timing(highlightOpacity, { toValue: 0, duration: 700, useNativeDriver: true }),
+    ]);
+    pulse.start();
+    sparkleBurst.start();
+    sparkleBurst2.start();
+    fade.start();
+    return () => {
+      pulse.stop();
+      sparkleBurst.stop();
+      sparkleBurst2.stop();
+      fade.stop();
+      scale.setValue(1);
+    };
+  }, [isNew, scale, highlightOpacity, sparkleProgress]);
+
+  return (
+    <View style={[styles.badgeRow, !badge.earned && styles.badgeRowLocked]}>
+      {isNew && (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.badgeRowHighlight,
+            { backgroundColor: theme.primary, opacity: highlightOpacity },
+          ]}
+        />
+      )}
+      <View style={styles.badgeIconWrap}>
+        <Animated.View style={[styles.statIconContainer, { transform: [{ scale }] }]}>
+          <Ionicons
+            name={badge.earned ? badge.icon : 'lock-closed-outline'}
+            size={20}
+            color={badge.earned ? theme.primary : theme.textSecondary}
+          />
+        </Animated.View>
+        {isNew &&
+          SPARKLES.map((s, i) => {
+            const p = sparkleProgress[i];
+            return (
+              <Animated.View
+                key={i}
+                pointerEvents="none"
+                style={[
+                  styles.sparkle,
+                  {
+                    opacity: p.interpolate({
+                      inputRange: [0, 0.2, 0.7, 1],
+                      outputRange: [0, 1, 1, 0],
+                    }),
+                    transform: [
+                      {
+                        translateX: p.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, s.dx],
+                        }),
+                      },
+                      {
+                        translateY: p.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: [0, s.dy],
+                        }),
+                      },
+                      {
+                        scale: p.interpolate({
+                          inputRange: [0, 0.3, 1],
+                          outputRange: [0.3, 1.15, 0.4],
+                        }),
+                      },
+                      {
+                        rotate: p.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ['0deg', '55deg'],
+                        }),
+                      },
+                    ],
+                  },
+                ]}
+              >
+                <Ionicons name="sparkles" size={s.size} color={theme.primary} />
+              </Animated.View>
+            );
+          })}
+      </View>
+      <View style={styles.badgeTextContainer}>
+        <Text style={[styles.badgeName, isNew && styles.badgeNameNew]}>{t(badge.nameKey)}</Text>
+        {badge.earned && (
+          <Text style={styles.badgeDesc}>{t(badge.descKey)}</Text>
+        )}
+      </View>
+    </View>
+  );
+}
+
 export default function ProfileScreen({ navigation }) {
   const { user, profile, signOut, deleteAccount, isAuthenticated } = useAuth();
   const { theme } = useTheme();
   const { t } = useTranslation();
   const [favouriteCount, setFavouriteCount] = useState(0);
   const [ironicBadges, setIronicBadges] = useState([]);
+  const [newlyEarnedIds, setNewlyEarnedIds] = useState([]);
   const ironicStreakKey = useMemo(
     () => `profile.ironicStreak${1 + Math.floor(Math.random() * 4)}`,
     []
@@ -31,6 +174,12 @@ export default function ProfileScreen({ navigation }) {
     () => getFakeLevel(profile?.app_open_count),
     [profile?.app_open_count]
   );
+
+  useEffect(() => {
+    if (newlyEarnedIds.length === 0) return undefined;
+    const timer = setTimeout(() => setNewlyEarnedIds([]), 4000);
+    return () => clearTimeout(timer);
+  }, [newlyEarnedIds]);
 
   useFocusEffect(
     useCallback(() => {
@@ -54,7 +203,10 @@ export default function ProfileScreen({ navigation }) {
         });
         if (!active) return;
         setIronicBadges(badges);
-        newlyEarned.forEach((id) => mixpanel.track('Ironic Badge Unlocked', { badge: id }));
+        if (newlyEarned.length > 0) {
+          setNewlyEarnedIds(newlyEarned);
+          newlyEarned.forEach((id) => mixpanel.track('Ironic Badge Unlocked', { badge: id }));
+        }
       };
       loadCount();
       return () => {
@@ -201,21 +353,13 @@ export default function ProfileScreen({ navigation }) {
             {ironicBadges.map((badge, i) => (
               <View key={badge.id}>
                 {i > 0 && <View style={styles.statDivider} />}
-                <View style={[styles.badgeRow, !badge.earned && styles.badgeRowLocked]}>
-                  <View style={styles.statIconContainer}>
-                    <Ionicons
-                      name={badge.earned ? badge.icon : 'lock-closed-outline'}
-                      size={20}
-                      color={badge.earned ? theme.primary : theme.textSecondary}
-                    />
-                  </View>
-                  <View style={styles.badgeTextContainer}>
-                    <Text style={styles.badgeName}>{t(badge.nameKey)}</Text>
-                    {badge.earned && (
-                      <Text style={styles.badgeDesc}>{t(badge.descKey)}</Text>
-                    )}
-                  </View>
-                </View>
+                <IronicBadgeRow
+                  badge={badge}
+                  isNew={newlyEarnedIds.includes(badge.id)}
+                  styles={styles}
+                  theme={theme}
+                  t={t}
+                />
               </View>
             ))}
           </View>
@@ -451,6 +595,20 @@ const createStyles = (theme) =>
     badgeRowLocked: {
       opacity: 0.45,
     },
+    badgeRowHighlight: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    badgeIconWrap: {
+      width: 32,
+      height: 28,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    sparkle: {
+      position: 'absolute',
+      left: 10,
+      top: 4,
+    },
     badgeTextContainer: {
       flex: 1,
       marginLeft: 8,
@@ -459,6 +617,10 @@ const createStyles = (theme) =>
       fontSize: 15,
       fontWeight: '600',
       color: theme.text,
+    },
+    badgeNameNew: {
+      color: theme.primary,
+      fontWeight: '700',
     },
     badgeDesc: {
       fontSize: 12,
