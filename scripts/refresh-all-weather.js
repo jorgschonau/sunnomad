@@ -26,10 +26,33 @@ const OPEN_METEO_API_KEY = process.env.OPEN_METEO_API_KEY || '';
 const OPEN_METEO_BASE_URL = OPEN_METEO_API_KEY
   ? 'https://customer-api.open-meteo.com/v1'
   : 'https://api.open-meteo.com/v1';
-const BATCH_SIZE = 30; // Process 30 locations in parallel (avoids late-batch timeouts)
-const RATE_LIMIT_DELAY = 500; // 500ms between batches
-const MAX_RETRIES = 2; // Retry failed places twice
-const FETCH_TIMEOUT = 15000; // 15s timeout per request
+const BATCH_SIZE = 50; // Multi-location: one HTTP call per batch
+const RATE_LIMIT_DELAY = 1000; // 1s between batches
+const MAX_RETRIES = 2; // Retry failed places twice (end of run)
+const FETCH_ATTEMPTS = 3; // Per-request attempts with backoff
+const FETCH_TIMEOUT = 45000; // Multi-location responses are larger
+const DAILY_VARS = [
+  'weather_code',
+  'temperature_2m_max',
+  'temperature_2m_min',
+  'precipitation_sum',
+  'rain_sum',
+  'snowfall_sum',
+  'precipitation_probability_max',
+  'wind_speed_10m_max',
+  'sunrise',
+  'sunset',
+  'sunshine_duration',
+  'relative_humidity_2m_mean',
+].join(',');
+
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function formatFetchError(error) {
+  if (error.name === 'AbortError') return 'Request timeout';
+  const cause = error.cause?.code || error.cause?.message || error.cause;
+  return cause ? `${error.message} (${cause})` : error.message;
+}
 
 /**
  * Weather code mapping
@@ -78,53 +101,55 @@ const getWeatherIcon = (code) => {
 };
 
 /**
- * Fetch weather for one location (16-day daily forecast, no current block)
+ * One Open-Meteo call for N locations (comma-separated lat/lon).
+ * Returns array of forecast objects in the same order as `places`.
  */
-async function fetchWeather(place) {
+async function fetchWeatherBatch(places) {
   const params = new URLSearchParams({
-    latitude: place.latitude,
-    longitude: place.longitude,
-    daily: [
-      'weather_code',
-      'temperature_2m_max',
-      'temperature_2m_min',
-      'precipitation_sum',
-      'rain_sum',
-      'snowfall_sum',
-      'precipitation_probability_max',
-      'wind_speed_10m_max',
-      'sunrise',
-      'sunset',
-      'sunshine_duration',
-      'relative_humidity_2m_mean',
-    ].join(','),
+    latitude: places.map((p) => p.latitude).join(','),
+    longitude: places.map((p) => p.longitude).join(','),
+    daily: DAILY_VARS,
     forecast_days: 16,
     timezone: 'auto',
   });
 
   const apiKeyParam = OPEN_METEO_API_KEY ? `&apikey=${OPEN_METEO_API_KEY}` : '';
   const url = `${OPEN_METEO_BASE_URL}/forecast?${params}${apiKeyParam}`;
-  
-  // Add timeout using AbortController
-  const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
-  
-  try {
-    const response = await fetch(url, { signal: controller.signal });
-    clearTimeout(timeoutId);
-    
-    if (!response.ok) {
-      throw new Error(`API error: ${response.status}`);
+
+  let lastError;
+  for (let attempt = 1; attempt <= FETCH_ATTEMPTS; attempt++) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT);
+    try {
+      const response = await fetch(url, { signal: controller.signal });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
+      const data = await response.json();
+      const results = Array.isArray(data) ? data : [data];
+      if (results.length !== places.length) {
+        throw new Error(`Expected ${places.length} results, got ${results.length}`);
+      }
+      return results;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      lastError = error;
+      if (attempt < FETCH_ATTEMPTS) {
+        await sleep(1000 * Math.pow(2, attempt - 1)); // 1s, 2s
+      }
     }
-    
-    return await response.json();
-  } catch (error) {
-    clearTimeout(timeoutId);
-    if (error.name === 'AbortError') {
-      throw new Error('Request timeout');
-    }
-    throw error;
   }
+
+  throw new Error(formatFetchError(lastError));
+}
+
+/** Single-place fallback when multi-location batch fails entirely */
+async function fetchWeather(place) {
+  const [result] = await fetchWeatherBatch([place]);
+  return result;
 }
 
 /**
@@ -156,26 +181,41 @@ function buildForecastRecords(placeId, daily, fetchedAt) {
 }
 
 /**
- * Process one batch of places
+ * Process one batch of places (one multi-location API call; per-place fallback on total failure)
  */
 async function processBatch(places, batchNum, totalBatches) {
   console.log(`📦 Batch ${batchNum}/${totalBatches} (${places.length} places)...`);
 
   const fetchedAt = new Date().toISOString();
   let allRecords = [];
+  let results;
 
-  const results = await Promise.all(
-    places.map(async (place) => {
+  try {
+    const forecasts = await fetchWeatherBatch(places);
+    results = places.map((place, i) => {
+      const data = forecasts[i];
+      if (!data?.daily) {
+        console.error(`  ❌ FAILED: ${place.name_en} (ID: ${place.id}) - missing daily data`);
+        return { success: false, name: place.name_en, id: place.id, error: 'missing daily data' };
+      }
+      const records = buildForecastRecords(place.id, data.daily, fetchedAt);
+      return { success: true, name: place.name_en, temp: data.daily.temperature_2m_max?.[0], records };
+    });
+  } catch (batchError) {
+    console.warn(`  ⚠️  Multi-location failed (${batchError.message}) – falling back per place`);
+    results = [];
+    for (const place of places) {
       try {
         const data = await fetchWeather(place);
         const records = buildForecastRecords(place.id, data.daily, fetchedAt);
-        return { success: true, name: place.name_en, temp: data.daily.temperature_2m_max?.[0], records };
+        results.push({ success: true, name: place.name_en, temp: data.daily.temperature_2m_max?.[0], records });
       } catch (error) {
         console.error(`  ❌ FAILED: ${place.name_en} (ID: ${place.id}) - ${error.message}`);
-        return { success: false, name: place.name_en, id: place.id, error: error.message };
+        results.push({ success: false, name: place.name_en, id: place.id, error: error.message });
       }
-    })
-  );
+      await sleep(200);
+    }
+  }
 
   // Collect all records from successful fetches
   for (const r of results) {
@@ -275,8 +315,8 @@ async function main() {
   }
 
   console.log(`✅ Found ${places.length} places`);
-  console.log(`📊 Expected API calls: ${places.length} (1 per location)`);
-  console.log(`⏱️  Estimated time: ~${Math.ceil(places.length / BATCH_SIZE * (RATE_LIMIT_DELAY / 1000))}s\n`);
+  console.log(`📊 Expected API calls: ~${Math.ceil(places.length / BATCH_SIZE)} (multi-location, ${BATCH_SIZE}/call)`);
+  console.log(`⏱️  Estimated time: ~${Math.ceil(places.length / BATCH_SIZE * (RATE_LIMIT_DELAY / 1000 + 2))}s\n`);
 
   // 2. Process in batches
   const batches = [];
@@ -318,7 +358,7 @@ async function main() {
       console.log(`\n🔄 Retry ${retry}/${MAX_RETRIES}: ${allFailedPlaces.length} failed places...`);
       await new Promise(resolve => setTimeout(resolve, 3000)); // 3s delay before retry
       
-      const RETRY_BATCH_SIZE = 15; // Smaller batches for retries
+      const RETRY_BATCH_SIZE = 25; // Multi-location batches for retries
       const retryBatches = [];
       for (let i = 0; i < allFailedPlaces.length; i += RETRY_BATCH_SIZE) {
         retryBatches.push(allFailedPlaces.slice(i, i + RETRY_BATCH_SIZE));
