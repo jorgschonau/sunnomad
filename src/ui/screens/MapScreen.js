@@ -2623,7 +2623,7 @@ const MapScreen = ({ navigation }) => {
             borderColor: 'rgba(0,0,0,0.07)',
             shadowColor: '#000',
           }]}
-          onPress={() => navigation.navigate('Feedback')}
+          onPress={() => navigation.navigate('Feedback', { source: 'map' })}
           accessibilityLabel="Feedback senden"
           accessibilityRole="button"
           accessibilityHint="Send feedback to the SunNomad team"

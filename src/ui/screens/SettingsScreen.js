@@ -193,7 +193,7 @@ const SettingsScreen = ({ navigation }) => {
             styles.settingItem,
             { backgroundColor: theme.surface, borderBottomColor: theme.background }
           ]}
-          onPress={() => navigation.navigate('Feedback')}
+          onPress={() => navigation.navigate('Feedback', { source: 'settings' })}
         >
           <Text style={styles.settingItemFlag}>💬</Text>
           <View style={{ flex: 1 }}>
@@ -208,13 +208,23 @@ const SettingsScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity onPress={() => Linking.openURL('https://sunnomad.app/privacy')}>
+      <TouchableOpacity
+        onPress={() => {
+          mixpanel.track('Legal Link Tapped', { link: 'privacy' });
+          Linking.openURL('https://sunnomad.app/privacy');
+        }}
+      >
         <Text style={[styles.attribution, { color: theme.textTertiary }]}>
           Privacy Policy
         </Text>
       </TouchableOpacity>
 
-      <TouchableOpacity onPress={() => Linking.openURL('https://sunnomad.app/terms')}>
+      <TouchableOpacity
+        onPress={() => {
+          mixpanel.track('Legal Link Tapped', { link: 'terms' });
+          Linking.openURL('https://sunnomad.app/terms');
+        }}
+      >
         <Text style={[styles.attribution, { color: theme.textTertiary }]}>
           Terms of Use
         </Text>

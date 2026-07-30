@@ -67,6 +67,7 @@ export default function ForgotPasswordScreen({ navigation }) {
       mixpanel.track('Password Reset Email Attempted', {
         email_sent: false,
         reason: emailCheck.reason,
+        email: emailCheck.email,
       });
       setEmailError(t(emailCheck.reason === 'empty_email' ? 'auth.fillAllFields' : emailErrorKey(emailCheck.reason)));
       return;
@@ -82,6 +83,7 @@ export default function ForgotPasswordScreen({ navigation }) {
       mixpanel.track('Password Reset Email Attempted', {
         email_sent: false,
         reason: isNetworkError ? 'network_error' : (error.message || 'unknown'),
+        email: emailCheck.email,
       });
       if (error.message === 'email_not_registered') {
         setEmailError(t('auth.emailNotRegistered'));
@@ -91,7 +93,10 @@ export default function ForgotPasswordScreen({ navigation }) {
         Alert.alert(t('auth.error'), t('auth.resetPasswordFailed'));
       }
     } else {
-      mixpanel.track('Password Reset Email Attempted', { email_sent: true });
+      mixpanel.track('Password Reset Email Attempted', {
+        email_sent: true,
+        email: emailCheck.email,
+      });
       setEmailSent(true);
     }
   };

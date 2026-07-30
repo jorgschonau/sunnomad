@@ -85,7 +85,7 @@ function FeedbackSuccessView({ theme, t, onBack }) {
   );
 }
 
-export default function FeedbackScreen({ navigation }) {
+export default function FeedbackScreen({ navigation, route }) {
   const { t } = useTranslation();
   const { theme } = useTheme();
   const { user } = useAuth();
@@ -98,8 +98,10 @@ export default function FeedbackScreen({ navigation }) {
 
   useFocusEffect(
     React.useCallback(() => {
-      mixpanel.track('Feedback Opened');
-    }, [])
+      mixpanel.track('Feedback Opened', {
+        source: route.params?.source ?? 'direct',
+      });
+    }, [route.params?.source])
   );
 
   useEffect(() => {
