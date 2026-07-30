@@ -75,7 +75,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
     // Query 1: Get places
     let placesQuery = supabase
       .from('places')
-      .select('id, name_en, name_de, name_fr, latitude, longitude, country_code, place_type, image_region, generic_key, population, attractiveness_score, dem, state_name')
+      .select('id, name_en, name_de, name_fr, latitude, longitude, country_code, place_type, image_region, generic_key, population, attractiveness_score, dem, state_name, terrain_type')
       .eq('is_active', true);
     
     if (latMin !== undefined) {
@@ -89,7 +89,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
     const diversityQuery = latMin !== undefined
       ? supabase
           .from('places')
-          .select('id, name_en, name_de, name_fr, latitude, longitude, country_code, place_type, image_region, generic_key, population, attractiveness_score, dem, state_name')
+          .select('id, name_en, name_de, name_fr, latitude, longitude, country_code, place_type, image_region, generic_key, population, attractiveness_score, dem, state_name, terrain_type')
           .eq('is_active', true)
           .gte('latitude', latMin).lte('latitude', latMax)
           .gte('longitude', lonMin).lte('longitude', lonMax)
@@ -304,6 +304,7 @@ export const getPlacesWithWeather = async (filters = {}) => {
           generic_key: place.generic_key,
           population: place.population,
           elevation: place.dem ?? null,
+          terrain_type: place.terrain_type || null,
           attractiveness_score: place.attractiveness_score,
           attractivenessScore: place.attractiveness_score,
           state_name: place.state_name || null,
@@ -407,7 +408,7 @@ export const getPlaceDetail = async (placeId, locale = 'en') => {
     // Get place (separate query - no FK needed)
     const { data: place, error: placeError } = await supabase
       .from('places')
-      .select('id, name_en, name_de, name_fr, latitude, longitude, country_code, place_type, image_region, generic_key, population, attractiveness_score, dem, state_name')
+      .select('id, name_en, name_de, name_fr, latitude, longitude, country_code, place_type, image_region, generic_key, population, attractiveness_score, dem, state_name, terrain_type')
       .eq('id', placeId)
       .maybeSingle();
 
@@ -449,6 +450,7 @@ export const getPlaceDetail = async (placeId, locale = 'en') => {
       generic_key: place.generic_key,
       population: place.population,
       elevation: place.dem ?? null,
+      terrain_type: place.terrain_type || null,
       state_name: place.state_name || null,
       attractiveness_score: place.attractiveness_score,
       temperature: weather.temp_max != null ? Math.round(weather.temp_max) : null,
@@ -541,6 +543,7 @@ function adaptPlaceToDestination(place, locale = 'en') {
     place_type: place.place_type || null,
     image_region: place.image_region || null,
     generic_key: place.generic_key || null,
+    terrain_type: place.terrain_type || null,
 
     // Weather data (from database)
     condition,
@@ -569,6 +572,7 @@ function adaptPlaceToDestination(place, locale = 'en') {
     
     // Attractiveness score
     attractivenessScore: place.attractiveness_score ?? 50,
+    attractiveness_score: place.attractiveness_score ?? 50,
     population: place.population || 0,
     elevation: place.dem ?? null,
     state_name: place.state_name || null,

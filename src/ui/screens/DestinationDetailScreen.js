@@ -891,7 +891,16 @@ const DestinationDetailScreen = ({ route, navigation }) => {
   }, [destination.lat, destination.lon]);
 
   useEffect(() => {
-    const placeObj = { id: effectivePlaceId, generic_key: destination.generic_key, name_en: destination.name_en };
+    const placeObj = {
+      id: effectivePlaceId,
+      generic_key: destination.generic_key,
+      name_en: destination.name_en,
+      place_type: destination.place_type || destination.placeType,
+      image_region: destination.image_region,
+      country_code: destination.country_code || destination.countryCode,
+      attractiveness_score: destination.attractiveness_score ?? destination.attractivenessScore,
+      terrain_type: destination.terrain_type || destination.terrainType,
+    };
     setHeroList([]);
     heroIndexRef.current = 0;
     // Never reset to 0: stale cycleHero promises from the previous place could
@@ -2188,13 +2197,18 @@ const DestinationDetailScreen = ({ route, navigation }) => {
           
           {/* Best Day Highlight */}
           {bestDay && (
-            <View style={[styles.bestDayContainer, { backgroundColor: 'rgba(245, 240, 230, 0.8)', borderColor: 'rgba(180, 160, 120, 0.3)' }]}>
+            <View style={[
+              styles.bestDayContainer,
+              reverseMode === 'cold'
+                ? { backgroundColor: 'rgba(240, 246, 253, 0.9)', borderColor: 'rgba(140, 180, 220, 0.4)' }
+                : { backgroundColor: 'rgba(245, 240, 230, 0.8)', borderColor: 'rgba(180, 160, 120, 0.3)' },
+            ]}>
               <Text style={styles.bestDayIcon}>✦</Text>
               <View style={styles.bestDayContent}>
-                <Text style={styles.bestDayLabel}>
+                <Text style={[styles.bestDayLabel, reverseMode === 'cold' && { color: '#5A7A9A' }]}>
                   {reverseMode === 'cold' ? t('badges.coolestDay') : t('badges.warmestDay')}
                 </Text>
-                <Text style={styles.bestDayValue}>
+                <Text style={[styles.bestDayValue, reverseMode === 'cold' && { color: '#3D5A73' }]}>
                   {bestDay.label} ({formatTemperature(bestDay.temp, temperatureUnit)}, {translateCondition(bestDay.condition)})
                 </Text>
               </View>
@@ -2206,23 +2220,24 @@ const DestinationDetailScreen = ({ route, navigation }) => {
             const isBestDay = bestDay && day.key === bestDay.key;
             const isLast = index === forecastRows.length - 1;
             const hasData = day.data != null;
+            const bestDayAccent = reverseMode === 'cold' ? '#5A7A9A' : '#7A6B55';
             return (
               <View
                 key={day.key}
                 style={[
                   styles.forecastItem,
                   { borderBottomColor: isLast ? 'transparent' : theme.background },
-                  isBestDay && styles.forecastItemSelected,
+                  isBestDay && (reverseMode === 'cold' ? styles.forecastItemSelectedCold : styles.forecastItemSelected),
                   !hasData && { opacity: 0.4 },
                 ]}
               >
-                <Text style={[styles.forecastDay, { color: isBestDay ? '#7A6B55' : theme.text }]}>
+                <Text style={[styles.forecastDay, { color: isBestDay ? bestDayAccent : theme.text }]}>
                   {day.label}
                 </Text>
                 <View style={styles.forecastIconWrap}>
                   <Text style={styles.forecastIcon}>{hasData ? getWeatherIcon(day.data.condition) : '—'}</Text>
                 </View>
-                <Text style={[styles.forecastTemp, { color: isBestDay ? '#7A6B55' : theme.textSecondary, fontWeight: isBestDay ? '600' : '500' }]}>
+                <Text style={[styles.forecastTemp, { color: isBestDay ? bestDayAccent : theme.textSecondary, fontWeight: isBestDay ? '600' : '500' }]}>
                   {hasData ? `${formatTemperature(day.data.high, temperatureUnit, false)}\u00A0/\u00A0${formatTemperature(day.data.low, temperatureUnit)}` : '—'}
                 </Text>
               </View>
@@ -2642,6 +2657,13 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderLeftWidth: 1.5,
     borderLeftColor: 'rgba(160, 130, 75, 0.35)',
+    paddingLeft: 6,
+  },
+  forecastItemSelectedCold: {
+    backgroundColor: 'rgba(240, 246, 253, 0.85)',
+    borderRadius: 8,
+    borderLeftWidth: 1.5,
+    borderLeftColor: 'rgba(140, 180, 220, 0.5)',
     paddingLeft: 6,
   },
   forecastDay: {

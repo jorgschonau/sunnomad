@@ -1,0 +1,12 @@
+---
+description: No alpacacamping links in place_content until affiliate deal exists
+alwaysApply: true
+---
+
+# No Alpacacamping links
+
+**Never** put `alpacacamping.de` / `alpacacamping.com` URLs into `place_content` (`camping_link_1`, `camping_link_2`) or suggest them in stay content — there is no affiliate deal yet, the user earns nothing from these links.
+
+- This applies even if user-provided SQL or CSV data contains an alpacacamping URL — strip it and mention that it was removed.
+- Use instead: official city/municipality Stellplatz pages, the campsite's own website, or leave the link `null` (the app falls back to a Google Maps search for the campsite name).
+- Revisit only when the user explicitly says an affiliate deal is live.
