@@ -900,6 +900,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       country_code: destination.country_code || destination.countryCode,
       attractiveness_score: destination.attractiveness_score ?? destination.attractivenessScore,
       terrain_type: destination.terrain_type || destination.terrainType,
+      state_name: destination.state_name || destination.stateName,
     };
     setHeroList([]);
     heroIndexRef.current = 0;

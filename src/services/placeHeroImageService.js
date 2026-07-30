@@ -55,9 +55,41 @@ const BACKWATER_TERRAIN_RULES = {
   backwater_eu_south_ferramenta: { exclude: ['desert', 'coastal', 'lake'] },
   backwater_eu_south_petanque: { exclude: ['desert'] },
   backwater_eu_east_shepherd: { exclude: ['desert', 'coastal'] },
+  backwater_eu_east_square_day: { exclude: ['desert', 'coastal', 'lake'] },
+  backwater_eu_east_kiosk: { exclude: ['desert', 'coastal', 'lake'] },
+  backwater_eu_east_burek_stand: { exclude: ['desert', 'coastal', 'lake'] },
+  backwater_eu_east_kafeneio: { exclude: ['desert', 'coastal', 'lake'] },
+  backwater_eu_east_adriatic_quay: { require: ['coastal'] },
+  backwater_eu_east_orthodox_church: { exclude: ['desert', 'coastal', 'lake'] },
   backwater_na_logging_stop: { exclude: ['desert', 'coastal'] },
   backwater_na_last_chance_gas: { require: ['desert', 'flatland'] },
   backwater_na_rodeo_arena: { exclude: ['coastal', 'lake'] },
+};
+
+/** Soft preference by stem — narrow the terrain-filtered pool, then stable-pick. */
+const BACKWATER_PREF_COUNTRIES = {
+  backwater_eu_east_kafeneio: ['GR'],
+  backwater_eu_east_adriatic_quay: ['HR', 'ME', 'AL', 'BA'],
+  backwater_eu_east_burek_stand: ['BA', 'RS', 'MK'],
+  backwater_eu_east_orthodox_church: ['RO', 'BG', 'RS', 'MK', 'BA'],
+};
+const BACKWATER_PREF_STATES = {
+  backwater_na_lobster_pier: [
+    'Maine', 'New Hampshire', 'Massachusetts', 'Rhode Island', 'Connecticut',
+  ],
+  backwater_na_south_porch: [
+    'Alabama', 'Arkansas', 'Florida', 'Georgia', 'Kentucky', 'Louisiana',
+    'Mississippi', 'North Carolina', 'South Carolina', 'Tennessee', 'Texas',
+    'Virginia', 'West Virginia', 'Oklahoma',
+  ],
+  backwater_na_peach_stand: [
+    'Alabama', 'Arkansas', 'Florida', 'Georgia', 'Kentucky', 'Louisiana',
+    'Mississippi', 'North Carolina', 'South Carolina', 'Tennessee', 'Texas',
+    'Virginia', 'West Virginia', 'Oklahoma',
+  ],
+  backwater_na_logging_stop: [
+    'Washington', 'Oregon', 'Idaho', 'Montana', 'Alaska', 'British Columbia',
+  ],
 };
 
 function isGoldieOnlyPlace(place) {
@@ -88,6 +120,47 @@ function backwaterMatchesTerrain(storagePath, terrain) {
   if (rule.require?.length && !rule.require.includes(t)) return false;
   if (rule.exclude?.length && rule.exclude.includes(t)) return false;
   return true;
+}
+
+function stablePoolIndex(seed, len) {
+  if (len <= 1) return 0;
+  let h = 2166136261;
+  const s = String(seed || '0');
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0) % len;
+}
+
+function backwaterHintScore(stem, place) {
+  const cc = String(place?.country_code || place?.countryCode || '').toUpperCase();
+  const state = String(place?.state_name || place?.stateName || '').trim().toLowerCase();
+  let score = 0;
+  const countries = BACKWATER_PREF_COUNTRIES[stem];
+  if (countries?.includes(cc)) score += 2;
+  const states = BACKWATER_PREF_STATES[stem];
+  if (state && states?.some((s) => s.toLowerCase() === state)) score += 2;
+  return score;
+}
+
+/** Prefer hint-matching stems, then stable hash — no random rotation. */
+function pickBackwaterRow(pool, place) {
+  let best = -1;
+  const top = [];
+  for (const row of pool) {
+    const score = backwaterHintScore(backwaterStem(row.storage_path), place);
+    if (score > best) {
+      best = score;
+      top.length = 0;
+      top.push(row);
+    } else if (score === best) {
+      top.push(row);
+    }
+  }
+  const seed = place?.id || place?.name_en || place?.name || '';
+  const index = stablePoolIndex(seed, top.length);
+  return { row: top[index], index };
 }
 
 /** @returns {string|null} generic_hero_images.generic_key for backwater pool */
@@ -123,15 +196,21 @@ async function heroFromGenericKey(genericKey, place, heroSource) {
   if (!generic?.length) return null;
 
   let pool = generic;
+  let index;
+  let pick;
+
   if (heroSource === 'backwater') {
     const terrain = place?.terrain_type || place?.terrainType;
     const filtered = generic.filter((row) => backwaterMatchesTerrain(row.storage_path, terrain));
     pool = filtered.length ? filtered : generic.filter((row) => !BACKWATER_TERRAIN_RULES[backwaterStem(row.storage_path)]);
     if (!pool.length) return null;
+    ({ row: pick, index } = pickBackwaterRow(pool, place));
+  } else {
+    index = stablePoolIndex(place?.id || place?.name_en || '', pool.length);
+    pick = pool[index];
   }
 
-  const index = Math.floor(Math.random() * pool.length);
-  const path = String(pool[index].storage_path || '').replace(/^\/+/, '');
+  const path = String(pick?.storage_path || '').replace(/^\/+/, '');
   if (!path) return null;
 
   const url = `${GENERIC_BUCKET_URL}/${path}`;
@@ -328,7 +407,7 @@ export async function getDedicatedHeroUrl(placeId) {
 /**
  * Hero image URL: dedicated → backwater (village/small_town, attr < 80) → place generic_key → default.
  * Always resolves fresh (variant rotation); remembers the result per place id for transitions.
- * @param {{ id?: string|null, generic_key?: string|null, name_en?: string|null, place_type?: string|null, image_region?: string|null, country_code?: string|null, attractiveness_score?: number|null, terrain_type?: string|null }} place
+ * @param {{ id?: string|null, generic_key?: string|null, name_en?: string|null, place_type?: string|null, image_region?: string|null, country_code?: string|null, attractiveness_score?: number|null, terrain_type?: string|null, state_name?: string|null }} place
  * @returns {Promise<{ url: string, hero_variant: string|null, hero_variant_index: number|null, hero_source: string }>}
  */
 export async function getHeroImage(place) {
