@@ -73,6 +73,9 @@ debug_import.mjs
 WEATHERBIT_SETUP.md
 .DS_Store
 
+# Local planning — never push
+ROADMAP.md
+
 # macOS
 .DS_Store
 .ds_store

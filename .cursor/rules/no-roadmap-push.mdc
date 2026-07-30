@@ -1,0 +1,10 @@
+---
+description: Never commit or push ROADMAP.md or stale planning docs
+alwaysApply: true
+---
+
+# No ROADMAP / stale docs in git
+
+- **Never** `git add`, commit, or push `ROADMAP.md` — local planning only (gitignored).
+- Do not commit other root `*.md` planning/migration notes unless the user explicitly asks.
+- Keep in git: `README.md`, `APP_STORE_CONNECT.md`, and files under `.agents/` / `.cursor/` when needed for tooling.
