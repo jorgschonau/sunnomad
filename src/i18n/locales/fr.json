@@ -4,7 +4,6 @@
     "title": "SunNomad",
     "back": "Retour",
     "destinationDetails": "Détails de la destination",
-    "community": "Communauté",
     "settings": "Paramètres",
     "favourites": "Favoris"
   },
@@ -204,7 +203,6 @@
     "language": "Langue",
     "account": "Compte",
     "preferences": "Préférences",
-    "comingSoon": "Bientôt disponible",
     "units": "Unités",
     "distanceUnit": "Distance",
     "temperatureUnit": "Température",
@@ -369,9 +367,6 @@
     "resetEmailSentMessage": "Vérifie ta boîte mail",
     "resetPasswordFailed": "Impossible d'envoyer l'email. Réessaie.",
     "resendEmail": "Renvoyer"
-  },
-  "communityScreen": {
-    "description": "Partagez vos lieux préférés, découvrez les recommandations d'autres voyageurs et connectez-vous à la communauté."
   },
   "profile": {
     "accountInfo": "Informations du compte",

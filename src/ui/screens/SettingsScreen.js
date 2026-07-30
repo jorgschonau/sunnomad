@@ -214,6 +214,12 @@ const SettingsScreen = ({ navigation }) => {
         </Text>
       </TouchableOpacity>
 
+      <TouchableOpacity onPress={() => Linking.openURL('https://sunnomad.app/terms')}>
+        <Text style={[styles.attribution, { color: theme.textTertiary }]}>
+          Terms of Use
+        </Text>
+      </TouchableOpacity>
+
       <Text style={[styles.attribution, { color: theme.textTertiary }]}>
         Weather data by Open-Meteo.com
       </Text>

@@ -23,7 +23,6 @@ Sentry.init({
 initMixpanel().then(() => mixpanel.track('App Opened'));
 import MapScreen from './src/ui/screens/MapScreen';
 import SettingsScreen from './src/ui/screens/SettingsScreen';
-import CommunityScreen from './src/ui/screens/CommunityScreen';
 const DestinationDetailScreen = React.lazy(() => import('./src/ui/screens/DestinationDetailScreen'));
 
 function DestinationDetailRoute(props) {
@@ -140,14 +139,6 @@ function MainNavigator() {
         component={SettingsScreen}
         options={{
           title: t('app.settings'),
-          headerBackTitle: t('app.back'),
-        }}
-      />
-      <AppStack.Screen
-        name="Community"
-        component={CommunityScreen}
-        options={{
-          title: t('app.community'),
           headerBackTitle: t('app.back'),
         }}
       />

@@ -4,7 +4,6 @@
     "title": "SunNomad",
     "back": "Zurück",
     "destinationDetails": "Ziel-Details",
-    "community": "Community",
     "settings": "Einstellungen",
     "favourites": "Favoriten"
   },
@@ -215,7 +214,6 @@
     "language": "Sprache",
     "account": "Konto",
     "preferences": "Einstellungen",
-    "comingSoon": "Demnächst verfügbar",
     "units": "Einheiten",
     "distanceUnit": "Entfernung",
     "temperatureUnit": "Temperatur",
@@ -434,9 +432,6 @@
     "updatePasswordFailed": "Passwort konnte nicht aktualisiert werden. Bitte versuche es erneut.",
     "passwordSameAsOld": "Das neue Passwort muss sich vom alten unterscheiden.",
     "recoveryLinkExpired": "Dieser Link ist abgelaufen. Bitte fordere einen neuen an."
-  },
-  "communityScreen": {
-    "description": "Teile deine Lieblingsorte, entdecke Empfehlungen von anderen Reisenden und vernetze dich mit der Community."
   },
   "profile": {
     "title": "Profil anzeigen",

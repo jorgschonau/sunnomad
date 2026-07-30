@@ -7,7 +7,6 @@ import Toast from 'react-native-toast-message';
 
 import MapScreen from './src/ui/screens/MapScreen';
 import SettingsScreen from './src/ui/screens/SettingsScreen';
-import CommunityScreen from './src/ui/screens/CommunityScreen';
 import DestinationDetailScreen from './src/ui/screens/DestinationDetailScreen';
 import FavouritesScreen from './src/ui/screens/FavouritesScreen';
 import LoginScreen from './src/ui/screens/LoginScreen';
@@ -65,14 +64,6 @@ function AppNavigator() {
           component={SettingsScreen}
           options={{
             title: t('app.settings'),
-            headerBackTitle: t('app.back'),
-          }}
-        />
-        <Stack.Screen
-          name="Community"
-          component={CommunityScreen}
-          options={{
-            title: t('app.community'),
             headerBackTitle: t('app.back'),
           }}
         />

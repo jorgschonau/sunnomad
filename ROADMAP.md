@@ -128,7 +128,7 @@ CREATE TABLE regional_content (
 | Android / Web | Evaluate |
 | Historic Sites | battlegrounds, temples — DB-Insert |
 | Weekend Escape Generator | Berlin, 5h, Van, Sonne → komplette Route |
-| ~~Community Tab~~ ✅ | Stub „Coming Soon“ existiert bereits (`CommunityScreen.js`) |
+| Community Tab | gestrichen (lange / für immer) — Screen + i18n entfernt |
 
 ---
 
@@ -527,4 +527,25 @@ Empfehlung fürs Datenmodell: nicht boolean-Spalten, sondern place_tags Tabelle 
  ## wetter forecast expanden
 
  monentan sieht man nur dienächten 5 tage . expand button und dann + 5 d mehr oder was auch immer passt
+
+ ## badges/ notifications postive/ negative events
+ -- ähnlich der normalen badges, trophies, format, design muss evtl etwas angepasst werde
+ -- warunung wie wildfires, ferstival (wacken mega voll, pamplona bull run , may yes, maybe no), evtl auch postive, kirschblütenfest, whatever
+ -- auch trophycards auf destionation screen
+
+ ## additional info
+
+ -- somewhere on detail page, either symbols on heoro page, or seperate section
+
+ -- currency, schengen, eu, 
+ Travel Essentials section on Place Detail screen
+--Add country-level fuel prices (diesel/petrol, daily update)
+--Display currency, EU and Schengen status
+--Add compact Pet Travel info (requirements, paperwork, restrictions)
+--Show border notes where relevant (e.g. EU ↔ non-EU)
+--Add cost level indicator (€–€€€)
+--Add overnight friendliness (car/van friendliness)
+Add wild camping legality / practical enforcement
+--Keep the section high-signal only — no plug types, driving side, speed units, smoking rules or other trivial country facts.
+-- die meisten sind auf country/region ebene, ergo nicht individel für jeden ort (relevant für db struktur)
  
