@@ -14,6 +14,7 @@ npm-debug.*
 # Output / generated image directories (not used in app)
 pexels_output/
 pexels_output_old/
+pexels_audit/
 unsplash_output/
 unsplash_output_old/
 output/
@@ -21,6 +22,11 @@ output_old/
 canonicals/
 exploit_canonicals/
 image_check_results/
+
+# One-off image-gen / prompt experiment scripts (not used in app)
+*.sh
+App.complex-unfixable.js
+supabase/.temp/
 
 # Large asset subdirectories not referenced in app code
 assets/destinations/dedicated/
