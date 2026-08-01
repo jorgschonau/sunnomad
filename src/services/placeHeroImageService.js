@@ -37,55 +37,111 @@ const BACKWATER_BY_IMAGE_REGION = {
  * require = place terrain must be one of these; exclude = must not be.
  */
 const BACKWATER_TERRAIN_RULES = {
+  // --- require coastal ---
   backwater_eu_south_harbor: { require: ['coastal'] },
   backwater_eu_south_harbor_ferry: { require: ['coastal'] },
   backwater_eu_south_harbor_quay: { require: ['coastal'] },
   backwater_eu_north_dune_path: { require: ['coastal'] },
   backwater_eu_north_crab_dock: { require: ['coastal'] },
+  backwater_eu_east_adriatic_quay: { require: ['coastal'] },
+  backwater_na_lobster_pier: { require: ['coastal'] },
+  // --- require lake ---
   backwater_eu_north_lake_volvo: { require: ['lake'] },
   backwater_eu_north_lake_ferry: { require: ['lake'] },
   backwater_na_lakeside_lodge: { require: ['lake'] },
-  backwater_na_lobster_pier: { require: ['coastal'] },
-  backwater_na_south_porch: { exclude: ['coastal', 'lake', 'desert'] },
+  // --- require desert/flatland ---
+  backwater_na_last_chance_gas: { require: ['desert', 'flatland'] },
+  // --- inland lifestyle / street (no coastal/lake/desert) ---
   backwater_eu_north_canal_lock: { exclude: ['desert', 'high_mountains'] },
-  backwater_eu_north_misty_lane: { exclude: ['desert'] },
-  backwater_eu_north_farmstand: { exclude: ['desert'] },
+  backwater_eu_north_misty_lane: { exclude: ['desert', 'coastal'] },
+  backwater_eu_north_farmstand: { exclude: ['desert', 'coastal', 'lake'] },
+  backwater_eu_north_bakery: { exclude: ['desert', 'coastal', 'lake'] },
+  backwater_eu_north_biergarten: { exclude: ['desert', 'coastal', 'lake'] },
+  backwater_eu_north_biergarten_mugs: { exclude: ['desert', 'coastal', 'lake'] },
+  backwater_eu_north_metzgerei: { exclude: ['desert', 'coastal', 'lake'] },
+  backwater_eu_north_train_platform: { exclude: ['desert'] },
+  backwater_eu_north_roadtrip_couple: { exclude: ['desert', 'coastal', 'lake'] },
+  backwater_eu_north_bread_run: { exclude: ['desert', 'coastal', 'lake'] },
+  backwater_eu_north_inn_yard: { exclude: ['desert', 'coastal', 'lake'] },
+  backwater_eu_north_cottage_hof: { exclude: ['desert', 'coastal', 'lake'] },
   backwater_eu_south_olive_harvest: { exclude: ['desert', 'coastal', 'lake'] },
   backwater_eu_south_ape_alley: { exclude: ['desert', 'coastal', 'lake'] },
   backwater_eu_south_ferramenta: { exclude: ['desert', 'coastal', 'lake'] },
   backwater_eu_south_petanque: { exclude: ['desert'] },
+  backwater_eu_south_edicola: { exclude: ['desert', 'coastal', 'lake'] },
+  backwater_eu_south_garage: { exclude: ['desert', 'coastal', 'lake'] },
+  backwater_eu_south_pueblo_cards: { exclude: ['desert', 'coastal', 'lake'] },
+  backwater_eu_south_net_plaza: { exclude: ['desert', 'coastal', 'lake'] },
+  backwater_eu_south_wine_crate: { exclude: ['desert', 'coastal', 'lake'] },
   backwater_eu_east_shepherd: { exclude: ['desert', 'coastal'] },
   backwater_eu_east_square_day: { exclude: ['desert', 'coastal', 'lake'] },
+  backwater_eu_east_square_night: { exclude: ['desert', 'coastal', 'lake'] },
+  backwater_eu_east_kneipe_night: { exclude: ['desert', 'coastal', 'lake'] },
   backwater_eu_east_kiosk: { exclude: ['desert', 'coastal', 'lake'] },
   backwater_eu_east_burek_stand: { exclude: ['desert', 'coastal', 'lake'] },
   backwater_eu_east_kafeneio: { exclude: ['desert', 'coastal', 'lake'] },
-  backwater_eu_east_adriatic_quay: { require: ['coastal'] },
   backwater_eu_east_orthodox_church: { exclude: ['desert', 'coastal', 'lake'] },
+  backwater_na_south_porch: { exclude: ['coastal', 'lake', 'desert'] },
   backwater_na_logging_stop: { exclude: ['desert', 'coastal'] },
-  backwater_na_last_chance_gas: { require: ['desert', 'flatland'] },
   backwater_na_rodeo_arena: { exclude: ['coastal', 'lake'] },
+  backwater_na_grain_street: { exclude: ['coastal', 'lake', 'desert'] },
+  backwater_na_feed_store: { exclude: ['coastal', 'lake', 'desert'] },
+  backwater_na_peach_stand: { exclude: ['coastal', 'lake', 'desert'] },
+  backwater_na_amtrak_station: { exclude: ['coastal', 'lake'] },
+  backwater_na_baseball_field: { exclude: ['coastal', 'lake', 'desert'] },
+  backwater_na_general_store: { exclude: ['coastal', 'lake', 'desert'] },
+  backwater_na_porch_net: { exclude: ['desert', 'high_mountains'] },
+  backwater_na_bbq_patio: { exclude: ['coastal', 'lake', 'desert'] },
 };
 
 /** Soft preference by stem — narrow the terrain-filtered pool, then stable-pick. */
 const BACKWATER_PREF_COUNTRIES = {
+  // Balkan (eu_east pool)
   backwater_eu_east_kafeneio: ['GR'],
   backwater_eu_east_adriatic_quay: ['HR', 'ME', 'AL', 'BA'],
   backwater_eu_east_burek_stand: ['BA', 'RS', 'MK'],
   backwater_eu_east_orthodox_church: ['RO', 'BG', 'RS', 'MK', 'BA'],
+  // EU north lifestyle
+  backwater_eu_north_biergarten: ['DE', 'AT', 'CH'],
+  backwater_eu_north_biergarten_mugs: ['DE', 'AT', 'CH'],
+  backwater_eu_north_metzgerei: ['DE', 'AT', 'CH'],
+  backwater_eu_north_bakery: ['DE', 'AT', 'CH', 'NL', 'BE', 'FR'],
+  backwater_eu_north_bread_run: ['DE', 'AT', 'CH', 'NL', 'BE', 'FR'],
+  backwater_eu_north_inn_yard: ['DE', 'AT', 'CH', 'NL', 'BE'],
+  backwater_eu_north_cottage_hof: ['DE', 'DK', 'SE', 'NO', 'NL', 'BE'],
+  backwater_eu_north_roadtrip_couple: ['FR', 'BE', 'NL', 'DE', 'GB', 'IE'],
+  backwater_eu_north_farmstand: ['DE', 'AT', 'CH', 'FR', 'NL', 'BE'],
+  // EU south lifestyle
+  backwater_eu_south_net_plaza: ['IT', 'ES', 'PT', 'FR', 'HR', 'GR'],
+  backwater_eu_south_wine_crate: ['IT', 'ES', 'PT', 'FR'],
+  backwater_eu_south_petanque: ['FR'],
+  backwater_eu_south_olive_harvest: ['IT', 'ES', 'PT', 'GR'],
+  backwater_eu_south_ape_alley: ['IT'],
+  backwater_eu_south_ferramenta: ['IT'],
+  backwater_eu_south_edicola: ['IT'],
+  backwater_eu_south_pueblo_cards: ['ES', 'PT'],
 };
+const US_SOUTH = [
+  'Alabama', 'Arkansas', 'Florida', 'Georgia', 'Kentucky', 'Louisiana',
+  'Mississippi', 'North Carolina', 'South Carolina', 'Tennessee', 'Texas',
+  'Virginia', 'West Virginia', 'Oklahoma',
+];
+const US_MIDWEST = [
+  'Illinois', 'Indiana', 'Iowa', 'Kansas', 'Michigan', 'Minnesota',
+  'Missouri', 'Nebraska', 'North Dakota', 'Ohio', 'South Dakota', 'Wisconsin',
+];
 const BACKWATER_PREF_STATES = {
   backwater_na_lobster_pier: [
     'Maine', 'New Hampshire', 'Massachusetts', 'Rhode Island', 'Connecticut',
   ],
-  backwater_na_south_porch: [
-    'Alabama', 'Arkansas', 'Florida', 'Georgia', 'Kentucky', 'Louisiana',
-    'Mississippi', 'North Carolina', 'South Carolina', 'Tennessee', 'Texas',
-    'Virginia', 'West Virginia', 'Oklahoma',
-  ],
-  backwater_na_peach_stand: [
-    'Alabama', 'Arkansas', 'Florida', 'Georgia', 'Kentucky', 'Louisiana',
-    'Mississippi', 'North Carolina', 'South Carolina', 'Tennessee', 'Texas',
-    'Virginia', 'West Virginia', 'Oklahoma',
+  backwater_na_south_porch: US_SOUTH,
+  backwater_na_peach_stand: US_SOUTH,
+  backwater_na_bbq_patio: US_SOUTH,
+  backwater_na_general_store: [...US_MIDWEST, ...US_SOUTH],
+  backwater_na_porch_net: [
+    ...US_SOUTH,
+    'Maine', 'New Hampshire', 'Massachusetts', 'Rhode Island', 'Connecticut',
+    'New York', 'Pennsylvania', 'Maryland', 'Delaware',
   ],
   backwater_na_logging_stop: [
     'Washington', 'Oregon', 'Idaho', 'Montana', 'Alaska', 'British Columbia',
@@ -237,6 +293,35 @@ function pickDedicatedRow(dedicated, place) {
   return goldieRows[0] ?? dedicated[0];
 }
 
+/** Pexels / stock landscape — not cast or curated artwork. */
+function isStockDedicatedRow(row) {
+  const path = String(row?.storage_path || '').toLowerCase();
+  const variant = String(row?.variant || '').toLowerCase();
+  if (variant === 'cast' || variant === 'goldie' || row?.character) return false;
+  if (variant === 'pexels' || path.includes('/pexels/') || path.startsWith('pexels/')) return true;
+  if (variant === 'unsplash' || variant === 'stock' || variant === 'landscape') return true;
+  if (path.includes('unsplash') || path.includes('/landscape/')) return true;
+  return false;
+}
+
+function isStockOnlyDedicated(rows) {
+  return !!rows?.length && rows.every(isStockDedicatedRow);
+}
+
+async function maybeBackwaterHero(place) {
+  return heroFromGenericKey(backwaterKeyForPlace(place), place, 'backwater');
+}
+
+/** Stock-only dedicated + backwater-eligible → mix rural into the rotate pool. */
+async function withBackwaterIfStockOnly(dedicatedRows, place, dedicatedHeroes) {
+  if (!isStockOnlyDedicated(dedicatedRows) || !backwaterKeyForPlace(place)) {
+    return dedicatedHeroes;
+  }
+  const backwaterHero = await maybeBackwaterHero(place);
+  if (!backwaterHero) return dedicatedHeroes;
+  return [...dedicatedHeroes, backwaterHero];
+}
+
 function heroImageNameFromPath(path) {
   if (!path) return null;
   const base = String(path).split('/').pop() || path;
@@ -259,14 +344,14 @@ function dedicatedRowToHero(row) {
   });
 }
 
-/** Dev: all active dedicated hero images for a place, sorted by sort_order. */
+/** Active dedicated heroes for a place (+ backwater when stock-only Käffer). */
 export async function listDedicatedHeroImages(place) {
   const id = place?.id ?? null;
   if (!id) return [];
 
   const { data, error } = await supabase
     .from('place_hero_images')
-    .select('storage_path, variant, sort_order')
+    .select('storage_path, variant, sort_order, character')
     .eq('place_id', id)
     .eq('is_active', true)
     .order('sort_order', { ascending: true });
@@ -276,7 +361,8 @@ export async function listDedicatedHeroImages(place) {
     return [];
   }
 
-  return (data ?? []).map(dedicatedRowToHero).filter(Boolean);
+  const heroes = (data ?? []).map(dedicatedRowToHero).filter(Boolean);
+  return withBackwaterIfStockOnly(data, place, heroes);
 }
 
 // Last resolved hero per place id (session-only). Not used to skip the lookup (variant
@@ -405,8 +491,9 @@ export async function getDedicatedHeroUrl(placeId) {
 }
 
 /**
- * Hero image URL: dedicated → backwater (village/small_town, attr < 80) → place generic_key → default.
- * Always resolves fresh (variant rotation); remembers the result per place id for transitions.
+ * Hero image URL: dedicated (cast/curated exclusive; stock-only mixes backwater) →
+ * backwater (village/small_town, attr < 80) → place generic_key → default.
+ * Remembers the result per place id for transitions.
  * @param {{ id?: string|null, generic_key?: string|null, name_en?: string|null, place_type?: string|null, image_region?: string|null, country_code?: string|null, attractiveness_score?: number|null, terrain_type?: string|null, state_name?: string|null }} place
  * @returns {Promise<{ url: string, hero_variant: string|null, hero_variant_index: number|null, hero_source: string }>}
  */
@@ -424,23 +511,35 @@ async function resolveHeroImage(place) {
   if (id) {
     const { data: dedicated, error } = await supabase
       .from('place_hero_images')
-      .select('storage_path, variant, sort_order')
+      .select('storage_path, variant, sort_order, character')
       .eq('place_id', id)
       .eq('is_active', true);
 
     if (error && __DEV__) {
       console.warn('place_hero_images (dedicated):', error.message);
     } else if (dedicated?.length) {
-      const pick = pickDedicatedRow(dedicated, place);
-      const hero = dedicatedRowToHero(pick);
-      if (hero) {
-        if (__DEV__) console.log('[getHeroImage] branch: dedicated, url:', hero.url, 'name_en:', place?.name_en);
-        return hero;
+      if (isStockOnlyDedicated(dedicated) && backwaterKeyForPlace(place)) {
+        const dedicatedHeroes = dedicated.map(dedicatedRowToHero).filter(Boolean);
+        const pool = await withBackwaterIfStockOnly(dedicated, place, dedicatedHeroes);
+        if (pool.length) {
+          const hero = pool[Math.floor(Math.random() * pool.length)];
+          if (__DEV__) {
+            console.log('[getHeroImage] branch: stock+backwater, source:', hero.hero_source, 'name_en:', place?.name_en);
+          }
+          return hero;
+        }
+      } else {
+        const pick = pickDedicatedRow(dedicated, place);
+        const hero = dedicatedRowToHero(pick);
+        if (hero) {
+          if (__DEV__) console.log('[getHeroImage] branch: dedicated, url:', hero.url, 'name_en:', place?.name_en);
+          return hero;
+        }
       }
     }
   }
 
-  const backwaterHero = await heroFromGenericKey(backwaterKeyForPlace(place), place, 'backwater');
+  const backwaterHero = await maybeBackwaterHero(place);
   if (backwaterHero) return backwaterHero;
 
   const genericHero = await heroFromGenericKey(genericKey, place, 'generic');

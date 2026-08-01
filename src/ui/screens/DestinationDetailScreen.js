@@ -1159,7 +1159,17 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     }
     // First fullscreen entry: load the variant list on demand so the user can swipe
     if (newFocused && heroList.length === 0) {
-      const placeObj = { id: effectivePlaceId, generic_key: destination.generic_key, name_en: destination.name_en };
+      const placeObj = {
+        id: effectivePlaceId,
+        generic_key: destination.generic_key,
+        name_en: destination.name_en,
+        place_type: destination.place_type || destination.placeType,
+        image_region: destination.image_region,
+        country_code: destination.country_code || destination.countryCode,
+        attractiveness_score: destination.attractiveness_score ?? destination.attractivenessScore,
+        terrain_type: destination.terrain_type || destination.terrainType,
+        state_name: destination.state_name || destination.stateName,
+      };
       const gen = heroTransitionGeneration.current;
       // heroMeta.url is a file:// URI once disk-cached; list entries stay remote
       const currentHeroUrl = heroMeta?.remoteUrl || heroMeta?.url;
