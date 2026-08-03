@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -7,9 +7,9 @@ import {
   ScrollView,
   Alert,
   Image,
-  Animated,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useAuth } from '../../contexts/AuthContext';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useTranslation } from 'react-i18next';
@@ -18,156 +18,12 @@ import { getFavourites } from '../../usecases/favouritesUsecases';
 import { mixpanel } from '../../services/mixpanel';
 import { getFakeLevel, resolveIronicBadges } from '../../utils/ironicProgress';
 
-const SPARKLES = [
-  { dx: -16, dy: -14, delay: 0, size: 11 },
-  { dx: 15, dy: -12, delay: 70, size: 13 },
-  { dx: -12, dy: 13, delay: 130, size: 10 },
-  { dx: 14, dy: 11, delay: 40, size: 12 },
-  { dx: 2, dy: -18, delay: 100, size: 10 },
-  { dx: 18, dy: 1, delay: 160, size: 9 },
-];
-
-function IronicBadgeRow({ badge, isNew, styles, theme, t }) {
-  const scale = useRef(new Animated.Value(1)).current;
-  const highlightOpacity = useRef(new Animated.Value(isNew ? 0.16 : 0)).current;
-  const sparkleProgress = useRef(SPARKLES.map(() => new Animated.Value(0))).current;
-
-  useEffect(() => {
-    if (!isNew) return undefined;
-    highlightOpacity.setValue(0.16);
-    sparkleProgress.forEach((v) => v.setValue(0));
-
-    const pulse = Animated.loop(
-      Animated.sequence([
-        Animated.timing(scale, { toValue: 1.18, duration: 320, useNativeDriver: true }),
-        Animated.timing(scale, { toValue: 1, duration: 320, useNativeDriver: true }),
-      ]),
-      { iterations: 3 }
-    );
-    const sparkleBurst = Animated.stagger(
-      50,
-      sparkleProgress.map((v, i) =>
-        Animated.sequence([
-          Animated.delay(SPARKLES[i].delay),
-          Animated.timing(v, { toValue: 1, duration: 900, useNativeDriver: true }),
-        ])
-      )
-    );
-    // Second lighter burst after first settles
-    const sparkleBurst2 = Animated.sequence([
-      Animated.delay(1100),
-      Animated.parallel(
-        sparkleProgress.map((v) =>
-          Animated.sequence([
-            Animated.timing(v, { toValue: 0, duration: 0, useNativeDriver: true }),
-            Animated.timing(v, { toValue: 1, duration: 850, useNativeDriver: true }),
-          ])
-        )
-      ),
-    ]);
-    const fade = Animated.sequence([
-      Animated.delay(2600),
-      Animated.timing(highlightOpacity, { toValue: 0, duration: 700, useNativeDriver: true }),
-    ]);
-    pulse.start();
-    sparkleBurst.start();
-    sparkleBurst2.start();
-    fade.start();
-    return () => {
-      pulse.stop();
-      sparkleBurst.stop();
-      sparkleBurst2.stop();
-      fade.stop();
-      scale.setValue(1);
-    };
-  }, [isNew, scale, highlightOpacity, sparkleProgress]);
-
-  return (
-    <View style={[styles.badgeRow, !badge.earned && !badge.showProgress && styles.badgeRowLocked]}>
-      {isNew && (
-        <Animated.View
-          pointerEvents="none"
-          style={[
-            styles.badgeRowHighlight,
-            { backgroundColor: theme.primary, opacity: highlightOpacity },
-          ]}
-        />
-      )}
-      <View style={styles.badgeIconWrap}>
-        <Animated.View style={[styles.statIconContainer, { transform: [{ scale }] }]}>
-          <Ionicons
-            name={badge.earned ? badge.icon : 'lock-closed-outline'}
-            size={20}
-            color={badge.earned ? theme.primary : theme.textSecondary}
-          />
-        </Animated.View>
-        {isNew &&
-          SPARKLES.map((s, i) => {
-            const p = sparkleProgress[i];
-            return (
-              <Animated.View
-                key={i}
-                pointerEvents="none"
-                style={[
-                  styles.sparkle,
-                  {
-                    opacity: p.interpolate({
-                      inputRange: [0, 0.2, 0.7, 1],
-                      outputRange: [0, 1, 1, 0],
-                    }),
-                    transform: [
-                      {
-                        translateX: p.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, s.dx],
-                        }),
-                      },
-                      {
-                        translateY: p.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: [0, s.dy],
-                        }),
-                      },
-                      {
-                        scale: p.interpolate({
-                          inputRange: [0, 0.3, 1],
-                          outputRange: [0.3, 1.15, 0.4],
-                        }),
-                      },
-                      {
-                        rotate: p.interpolate({
-                          inputRange: [0, 1],
-                          outputRange: ['0deg', '55deg'],
-                        }),
-                      },
-                    ],
-                  },
-                ]}
-              >
-                <Ionicons name="sparkles" size={s.size} color={theme.primary} />
-              </Animated.View>
-            );
-          })}
-      </View>
-      <View style={styles.badgeTextContainer}>
-        <Text style={[styles.badgeName, isNew && styles.badgeNameNew]}>{t(badge.nameKey)}</Text>
-        {(badge.earned || badge.showProgress) && (
-          <Text style={styles.badgeDesc}>
-            {badge.descParams ? t(badge.descKey, badge.descParams) : t(badge.descKey)}
-          </Text>
-        )}
-      </View>
-    </View>
-  );
-}
-
 export default function ProfileScreen({ navigation }) {
   const { user, profile, signOut, deleteAccount, isAuthenticated } = useAuth();
   const { theme } = useTheme();
   const { t } = useTranslation();
   const [favouriteCount, setFavouriteCount] = useState(0);
-  const [ironicBadges, setIronicBadges] = useState([]);
-  const [newlyEarnedIds, setNewlyEarnedIds] = useState([]);
+  const [badgeProgress, setBadgeProgress] = useState(null);
   const ironicStreakKey = useMemo(
     () => `profile.ironicStreak${1 + Math.floor(Math.random() * 4)}`,
     []
@@ -176,12 +32,6 @@ export default function ProfileScreen({ navigation }) {
     () => getFakeLevel(profile?.app_open_count),
     [profile?.app_open_count]
   );
-
-  useEffect(() => {
-    if (newlyEarnedIds.length === 0) return undefined;
-    const timer = setTimeout(() => setNewlyEarnedIds([]), 4000);
-    return () => clearTimeout(timer);
-  }, [newlyEarnedIds]);
 
   useFocusEffect(
     useCallback(() => {
@@ -198,17 +48,19 @@ export default function ProfileScreen({ navigation }) {
         if (!active) return;
         setFavouriteCount(favCount);
 
-        const { badges, newlyEarned } = await resolveIronicBadges({
-          appOpens: profile?.app_open_count,
-          favouriteCount: favCount,
-          memberSince: profile?.created_at,
-        });
+        const { badges } = await resolveIronicBadges(
+          {
+            appOpens: profile?.app_open_count,
+            favouriteCount: favCount,
+            memberSince: profile?.created_at,
+          },
+          { persist: false }
+        );
         if (!active) return;
-        setIronicBadges(badges);
-        if (newlyEarned.length > 0) {
-          setNewlyEarnedIds(newlyEarned);
-          newlyEarned.forEach((id) => mixpanel.track('Ironic Badge Unlocked', { badge: id }));
-        }
+        setBadgeProgress({
+          earned: badges.filter((b) => b.earned).length,
+          total: badges.length,
+        });
       };
       loadCount();
       return () => {
@@ -287,23 +139,29 @@ export default function ProfileScreen({ navigation }) {
       showsVerticalScrollIndicator={false}
       showsHorizontalScrollIndicator={false}
     >
-      {/* Header: Avatar + Name */}
-      <View style={styles.header}>
-        <View style={styles.avatarContainer}>
+      <LinearGradient
+        colors={[theme.primaryDark || theme.primary, theme.primary, theme.primaryLight || theme.primary]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.banner}
+      >
+        <View style={styles.avatarRing}>
           {profile?.avatar_url ? (
             <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
           ) : (
             <View style={styles.avatarPlaceholder}>
               <Text style={styles.avatarText}>
-                {profile?.display_name?.[0]?.toUpperCase() || '?'}
+                {profile?.display_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?'}
               </Text>
             </View>
           )}
         </View>
         <Text style={styles.displayName}>{profile?.display_name || user?.email}</Text>
-        <Text style={styles.fakeLevel}>
-          {t('profile.fakeLevelLine', { level: fakeLevel.level, name: t(fakeLevel.nameKey) })}
-        </Text>
+        <View style={styles.levelPill}>
+          <Text style={styles.fakeLevel}>
+            {t('profile.fakeLevelLine', { level: fakeLevel.level, name: t(fakeLevel.nameKey) })}
+          </Text>
+        </View>
         {fakeLevel.nextNameKey && (
           <Text style={styles.fakeLevelNext}>
             {t('profile.fakeLevelNext', { name: t(fakeLevel.nextNameKey) })}
@@ -314,13 +172,13 @@ export default function ProfileScreen({ navigation }) {
             {t(ironicStreakKey, { count: profile.app_open_count })}
           </Text>
         )}
-      </View>
+      </LinearGradient>
 
       {/* Stats Card */}
       <View style={styles.statsCard}>
         <TouchableOpacity style={styles.statRow} onPress={() => navigation.navigate('Favourites', { source: 'profile' })}>
-          <View style={styles.statIconContainer}>
-            <Ionicons name="star-outline" size={20} color={theme.primary} />
+          <View style={[styles.statIconBubble, { backgroundColor: `${theme.primary}18` }]}>
+            <Ionicons name="star" size={18} color={theme.primary} />
           </View>
           <Text style={styles.statLabel}>{t('profile.favourites')}</Text>
           <Text style={styles.statValue}>{favouriteCount}</Text>
@@ -329,44 +187,34 @@ export default function ProfileScreen({ navigation }) {
 
         <View style={styles.statDivider} />
 
+        <TouchableOpacity
+          style={styles.statRow}
+          onPress={() => {
+            mixpanel.track('Achievements Teaser Tapped', { source: 'profile' });
+            navigation.navigate('Achievements');
+          }}
+        >
+          <View style={[styles.statIconBubble, { backgroundColor: `${theme.primary}18` }]}>
+            <Ionicons name="trophy" size={18} color={theme.primary} />
+          </View>
+          <Text style={styles.statLabel}>{t('profile.badgesTitle')}</Text>
+          <Text style={[styles.statValue, { color: theme.primary }]}>
+            {badgeProgress ? `${badgeProgress.earned}/${badgeProgress.total}` : '—'}
+          </Text>
+          <Ionicons name="chevron-forward" size={16} color={theme.textSecondary} style={{ marginLeft: 6 }} />
+        </TouchableOpacity>
+
+        <View style={styles.statDivider} />
+
         <View style={styles.statRow}>
-          <View style={styles.statIconContainer}>
-            <Ionicons name="calendar-outline" size={20} color={theme.primary} />
+          <View style={[styles.statIconBubble, { backgroundColor: `${theme.primary}18` }]}>
+            <Ionicons name="calendar" size={18} color={theme.primary} />
           </View>
           <Text style={styles.statLabel}>{t('profile.memberSince')}</Text>
           <Text style={styles.statValue}>{formatMemberSince()}</Text>
         </View>
 
       </View>
-
-      {/* Ironic Badges */}
-      {ironicBadges.length > 0 && (
-        <View style={styles.badgesSection}>
-          <View style={styles.badgesTitleRow}>
-            <Text style={styles.sectionTitle}>{t('profile.badgesTitle')}</Text>
-            <Text style={styles.badgesCount}>
-              {t('profile.badgesUnlockedCount', {
-                earned: ironicBadges.filter((b) => b.earned).length,
-                total: ironicBadges.length,
-              })}
-            </Text>
-          </View>
-          <View style={styles.badgesCard}>
-            {ironicBadges.map((badge, i) => (
-              <View key={badge.id}>
-                {i > 0 && <View style={styles.statDivider} />}
-                <IronicBadgeRow
-                  badge={badge}
-                  isNew={newlyEarnedIds.includes(badge.id)}
-                  styles={styles}
-                  theme={theme}
-                  t={t}
-                />
-              </View>
-            ))}
-          </View>
-        </View>
-      )}
 
       {/* Actions */}
       <View style={styles.actionsSection}>
@@ -419,7 +267,9 @@ const createStyles = (theme) =>
       backgroundColor: theme.background,
     },
     scrollContent: {
+      paddingTop: 12,
       paddingBottom: 40,
+      paddingHorizontal: 20,
     },
 
     // ── Not logged in ──
@@ -459,92 +309,110 @@ const createStyles = (theme) =>
       fontWeight: 'bold',
     },
 
-    // ── Header ──
-    header: {
+    // ── Banner ──
+    banner: {
+      borderRadius: 16,
+      paddingVertical: 16,
+      paddingHorizontal: 18,
+      marginBottom: 14,
       alignItems: 'center',
-      paddingTop: 32,
-      paddingBottom: 24,
-      paddingHorizontal: 20,
+      overflow: 'hidden',
     },
-    avatarContainer: {
-      marginBottom: 16,
+    avatarRing: {
+      width: 64,
+      height: 64,
+      borderRadius: 32,
+      padding: 2,
+      backgroundColor: 'rgba(255,255,255,0.35)',
+      marginBottom: 8,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
     avatar: {
-      width: 80,
-      height: 80,
-      borderRadius: 40,
+      width: 60,
+      height: 60,
+      borderRadius: 30,
     },
     avatarPlaceholder: {
-      width: 80,
-      height: 80,
-      borderRadius: 40,
-      backgroundColor: theme.primary,
+      width: 60,
+      height: 60,
+      borderRadius: 30,
+      backgroundColor: 'rgba(255,255,255,0.22)',
       justifyContent: 'center',
       alignItems: 'center',
-      shadowColor: theme.primary,
-      shadowOffset: { width: 0, height: 3 },
-      shadowOpacity: 0.25,
-      shadowRadius: 6,
-      elevation: 4,
     },
     avatarText: {
-      fontSize: 32,
-      fontWeight: 'bold',
+      fontSize: 24,
+      fontWeight: '800',
       color: '#FFFFFF',
     },
     displayName: {
-      fontSize: 22,
-      fontWeight: 'bold',
-      color: theme.text,
-    },
-    ironicStreak: {
-      fontSize: 13,
-      fontStyle: 'italic',
-      color: theme.textSecondary,
-      marginTop: 6,
+      fontSize: 20,
+      fontWeight: '800',
+      color: '#FFFFFF',
       textAlign: 'center',
+      letterSpacing: -0.3,
+    },
+    levelPill: {
+      marginTop: 8,
+      paddingHorizontal: 10,
+      paddingVertical: 4,
+      borderRadius: 10,
+      backgroundColor: 'rgba(255,255,255,0.2)',
     },
     fakeLevel: {
-      fontSize: 14,
+      fontSize: 12,
       fontWeight: '700',
-      color: theme.primary,
-      marginTop: 8,
+      color: '#FFFFFF',
       textAlign: 'center',
     },
     fakeLevelNext: {
-      fontSize: 12,
-      color: theme.textSecondary,
-      marginTop: 2,
+      fontSize: 11,
+      color: 'rgba(255,255,255,0.8)',
+      marginTop: 4,
       textAlign: 'center',
+    },
+    ironicStreak: {
+      fontSize: 12,
+      fontStyle: 'italic',
+      color: 'rgba(255,255,255,0.85)',
+      marginTop: 6,
+      textAlign: 'center',
+      lineHeight: 16,
+      paddingHorizontal: 4,
     },
 
     // ── Stats Card ──
     statsCard: {
       backgroundColor: theme.cardBackground || theme.surface,
       borderRadius: 16,
-      marginHorizontal: 20,
       paddingVertical: 8,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.06,
-      shadowRadius: 8,
-      elevation: 2,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.border || 'rgba(0,0,0,0.08)',
+      shadowColor: theme.primary,
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.08,
+      shadowRadius: 12,
+      elevation: 3,
     },
     statRow: {
       flexDirection: 'row',
       alignItems: 'center',
       paddingVertical: 14,
-      paddingHorizontal: 18,
+      paddingHorizontal: 16,
     },
-    statIconContainer: {
-      width: 32,
+    statIconBubble: {
+      width: 36,
+      height: 36,
+      borderRadius: 18,
       alignItems: 'center',
+      justifyContent: 'center',
     },
     statLabel: {
       flex: 1,
       fontSize: 15,
       color: theme.textSecondary,
-      marginLeft: 8,
+      marginLeft: 12,
     },
     statValue: {
       fontSize: 15,
@@ -562,79 +430,9 @@ const createStyles = (theme) =>
       marginHorizontal: 18,
     },
 
-    // ── Ironic Badges ──
-    badgesSection: {
-      marginTop: 28,
-      paddingHorizontal: 20,
-    },
-    badgesTitleRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'baseline',
-    },
-    badgesCount: {
-      fontSize: 12,
-      color: theme.textSecondary,
-      marginBottom: 12,
-      marginRight: 4,
-    },
-    badgesCard: {
-      backgroundColor: theme.cardBackground || theme.surface,
-      borderRadius: 16,
-      paddingVertical: 4,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.06,
-      shadowRadius: 8,
-      elevation: 2,
-    },
-    badgeRow: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingVertical: 12,
-      paddingHorizontal: 18,
-    },
-    badgeRowLocked: {
-      opacity: 0.45,
-    },
-    badgeRowHighlight: {
-      ...StyleSheet.absoluteFillObject,
-    },
-    badgeIconWrap: {
-      width: 32,
-      height: 28,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    sparkle: {
-      position: 'absolute',
-      left: 10,
-      top: 4,
-    },
-    badgeTextContainer: {
-      flex: 1,
-      marginLeft: 8,
-    },
-    badgeName: {
-      fontSize: 15,
-      fontWeight: '600',
-      color: theme.text,
-    },
-    badgeNameNew: {
-      color: theme.primary,
-      fontWeight: '700',
-    },
-    badgeDesc: {
-      fontSize: 12,
-      fontStyle: 'italic',
-      color: theme.textSecondary,
-      marginTop: 2,
-    },
-
     // ── Actions ──
     actionsSection: {
       marginTop: 28,
-      paddingHorizontal: 20,
     },
     sectionTitle: {
       fontSize: 13,
@@ -652,6 +450,8 @@ const createStyles = (theme) =>
       borderRadius: 12,
       padding: 16,
       marginBottom: 10,
+      borderWidth: StyleSheet.hairlineWidth,
+      borderColor: theme.border || 'rgba(0,0,0,0.08)',
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 1 },
       shadowOpacity: 0.04,

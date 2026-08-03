@@ -23,6 +23,11 @@ import { BadgeMetadata, DestinationBadge, filterWarmDryIfHeatwave } from '../../
 import { playTickSound, playMediumHaptic } from '../../utils/soundUtils';
 import { trackMapViews, trackDetailView } from '../../services/placesService';
 import { mixpanel } from '../../services/mixpanel';
+import {
+  trackRadiusChanged,
+  trackCenterMethod,
+  trackRefMode,
+} from '../../utils/ironicProgress';
 import { hybridSearch, ensurePlaceInDB } from '../../services/hybridSearchService';
 import { getPlaceDetail, fetchExtendedForecast } from '../../services/placesWeatherService';
 import { getPlaceName } from '../../utils/localization';
@@ -1258,6 +1263,7 @@ const MapScreen = ({ navigation }) => {
     setRadius(newRadius);
     playTickSound();
     mixpanel.track('Radius Changed', { radius_km: newRadius, direction: 'increase' });
+    trackRadiusChanged(newRadius).catch(() => {});
   };
 
   const handleRadiusDecrease = async () => {
@@ -1267,6 +1273,7 @@ const MapScreen = ({ navigation }) => {
     setRadius(newRadius);
     playTickSound();
     mixpanel.track('Radius Changed', { radius_km: newRadius, direction: 'decrease' });
+    trackRadiusChanged(newRadius).catch(() => {});
   };
 
   const handleRadiusSelect = async (newRadius) => {
@@ -1274,6 +1281,7 @@ const MapScreen = ({ navigation }) => {
     setShowRadiusMenu(false);
     playTickSound();
     mixpanel.track('Radius Changed', { radius_km: newRadius, direction: 'select' });
+    trackRadiusChanged(newRadius).catch(() => {});
   };
 
   const finishOnboarding = async (event) => {
@@ -1828,7 +1836,8 @@ const MapScreen = ({ navigation }) => {
       latitude: Math.round(latitude * 10) / 10,
       longitude: Math.round(longitude * 10) / 10,
     });
-    
+    trackCenterMethod('longPress').catch(() => {});
+
     const newCenter = {
       latitude,
       longitude,
@@ -1988,6 +1997,7 @@ const MapScreen = ({ navigation }) => {
     }
     playMediumHaptic();
     mixpanel.track('Reference Mode Changed', { mode: 'gps' });
+    trackRefMode('gps').catch(() => {});
     setCenterPoint(null);
     setCenterPointWeather(null);
     AsyncStorage.removeItem('mapCenterPoint').catch(error => {
@@ -2007,6 +2017,7 @@ const MapScreen = ({ navigation }) => {
     if (!saved?.center) return;
     playMediumHaptic();
     mixpanel.track('Reference Mode Changed', { mode: 'manual' });
+    trackRefMode('manual').catch(() => {});
     setCenterPoint(saved.center);
     setCenterPointWeather(saved.weather || null);
     AsyncStorage.setItem('mapCenterPoint', JSON.stringify(saved.center)).catch(error => {
@@ -2066,6 +2077,7 @@ const MapScreen = ({ navigation }) => {
     Keyboard.dismiss();
     playTickSound();
     mixpanel.track('Search Used', { query: item.name || item.label, source: item.source || 'local' });
+    trackCenterMethod('search').catch(() => {});
 
     // If Google place, auto-add to DB first (fire-and-forget for the insert, but we need coords)
     if (item.source === 'google') {

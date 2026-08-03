@@ -51,7 +51,12 @@ import { getHeroImage } from '../../utils/heroImages';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import StopStayCard from '../components/StopStayCard';
 import { mixpanel } from '../../services/mixpanel';
-import { markCharacterDiscovered } from '../../utils/ironicProgress';
+import {
+  markCharacterDiscovered,
+  trackDetailViewed,
+  trackDriveThereTapped,
+  trackWeatherBadgesSeen,
+} from '../../utils/ironicProgress';
 
 const HERO_CROSSFADE_MS = 1200;
 const HERO_FADE_EASING = Easing.bezier(0.22, 1, 0.36, 1);
@@ -915,6 +920,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         distance_km: destination.distance,
         source: viewSource,
       });
+      trackDetailViewed({
+        countryCode: destination.countryCode || destination.country_code,
+        distanceKm: destination.distance,
+      }).catch(() => {});
     });
     return () => {
       cancelled = true;
@@ -1055,6 +1064,12 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       return next;
     });
   }, []);
+
+  // Weather trophies on the detail card → ironic achievement progress
+  useEffect(() => {
+    if (!readyForDetails || !localBadges?.length) return;
+    trackWeatherBadgesSeen(localBadges).catch(() => {});
+  }, [readyForDetails, localBadges]);
 
   // Date offset change: rebuild forecast slots + badges locally (no DB call needed)
   useEffect(() => {
@@ -1345,6 +1360,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         distance_km: destination.distance,
         ...getHeroTrackingProps(),
       });
+      trackDriveThereTapped().catch(() => {});
       await openInMaps(destination, NavigationProvider.AUTO);
     } catch (error) {
       Alert.alert(

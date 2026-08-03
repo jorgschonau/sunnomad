@@ -6,10 +6,12 @@ import {
   ScrollView,
   TouchableOpacity,
   Linking,
+  Image,
 } from 'react-native';
 import Constants from 'expo-constants';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUnits } from '../../contexts/UnitContext';
@@ -63,11 +65,14 @@ const SettingsScreen = ({ navigation }) => {
         } catch {
           favCount = 0;
         }
-        const { badges } = await resolveIronicBadges({
-          appOpens: profile?.app_open_count,
-          favouriteCount: favCount,
-          memberSince: profile?.created_at,
-        });
+        const { badges } = await resolveIronicBadges(
+          {
+            appOpens: profile?.app_open_count,
+            favouriteCount: favCount,
+            memberSince: profile?.created_at,
+          },
+          { persist: false }
+        );
         if (!active) return;
         setBadgeProgress({
           earned: badges.filter((b) => b.earned).length,
@@ -114,7 +119,15 @@ const SettingsScreen = ({ navigation }) => {
               style={[styles.settingItem, styles.rowBorder, rowBorder]}
               onPress={() => navigation.navigate('Profile')}
             >
-              <Text style={styles.settingItemFlag}>👤</Text>
+              {profile?.avatar_url ? (
+                <Image source={{ uri: profile.avatar_url }} style={styles.profileAvatar} />
+              ) : (
+                <View style={[styles.profileAvatar, styles.profileAvatarFallback, { backgroundColor: theme.primary }]}>
+                  <Text style={styles.profileAvatarInitial}>
+                    {(profile?.display_name || user?.email || '?')[0].toUpperCase()}
+                  </Text>
+                </View>
+              )}
               <View style={{ flex: 1 }}>
                 <Text style={[styles.settingItemText, { color: theme.text }]}>
                   {profile?.display_name || user?.email}
@@ -130,10 +143,12 @@ const SettingsScreen = ({ navigation }) => {
               style={styles.settingItem}
               onPress={() => {
                 mixpanel.track('Achievements Teaser Tapped', { source: 'settings' });
-                navigation.navigate('Profile');
+                navigation.navigate('Achievements');
               }}
             >
-              <Text style={styles.settingItemFlag}>🏆</Text>
+              <View style={[styles.rowIconBubble, { backgroundColor: `${theme.primary}22` }]}>
+                <Ionicons name="trophy" size={18} color={theme.primary} />
+              </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.settingItemText, { color: theme.text }]}>
                   {t('profile.badgesTitle')}
@@ -361,6 +376,29 @@ const styles = StyleSheet.create({
   settingItemFlag: {
     fontSize: 26,
     marginRight: 14,
+  },
+  profileAvatar: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 14,
+  },
+  profileAvatarFallback: {
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  profileAvatarInitial: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  rowIconBubble: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    marginRight: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   settingItemText: {
     flex: 1,

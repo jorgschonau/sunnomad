@@ -44,6 +44,7 @@ import RegisterScreen from './src/ui/screens/RegisterScreen';
 import ForgotPasswordScreen from './src/ui/screens/ForgotPasswordScreen';
 import ResetPasswordScreen from './src/ui/screens/ResetPasswordScreen';
 import ProfileScreen from './src/ui/screens/ProfileScreen';
+import AchievementsScreen from './src/ui/screens/AchievementsScreen';
 import ChangePasswordScreen from './src/ui/screens/ChangePasswordScreen';
 import FeedbackScreen from './src/ui/screens/FeedbackScreen';
 
@@ -163,6 +164,14 @@ function MainNavigator() {
         component={ProfileScreen}
         options={{
           title: t('profile.title', 'Profile'),
+          headerBackTitle: t('app.back'),
+        }}
+      />
+      <AppStack.Screen
+        name="Achievements"
+        component={AchievementsScreen}
+        options={{
+          title: t('profile.badgesTitle'),
           headerBackTitle: t('app.back'),
         }}
       />
