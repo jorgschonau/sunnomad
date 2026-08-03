@@ -51,6 +51,7 @@ import { getHeroImage } from '../../utils/heroImages';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import StopStayCard from '../components/StopStayCard';
 import { mixpanel } from '../../services/mixpanel';
+import { markCharacterDiscovered } from '../../utils/ironicProgress';
 
 const HERO_CROSSFADE_MS = 1200;
 const HERO_FADE_EASING = Easing.bezier(0.22, 1, 0.36, 1);
@@ -294,6 +295,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       hero_variant: h?.hero_variant ?? null,
       hero_variant_index: h?.hero_variant_index ?? null,
       hero_source: h?.hero_source ?? 'local',
+      character: h?.character ?? null,
     };
   };
   const [heroHintVisible, setHeroHintVisible] = useState(false);
@@ -716,31 +718,61 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         try {
           const lat = destination.lat ?? destination.latitude;
           const lon = destination.lon ?? destination.longitude;
-          __DEV__ && console.log('[resolvePlace] no UUID, trying lookup. lat:', lat, 'lon:', lon, 'name:', destination.name);
-          if (lat != null && lon != null) {
+          const cleanName = (destination.name || '').replace(/^[📍⊕★]\s?/g, '').trim();
+          const countryCode = (destination.countryCode || destination.country_code || '').toUpperCase() || null;
+          __DEV__ && console.log('[resolvePlace] no UUID, trying lookup. lat:', lat, 'lon:', lon, 'name:', cleanName, 'country:', countryCode);
+
+          const pickBestPlaceMatch = (rows) => {
+            if (!rows?.length) return null;
+            const norm = (s) => (s || '').trim().toLowerCase();
+            const target = norm(cleanName);
+            const exact = rows.filter((r) => norm(r.name_en) === target);
+            const pool = exact.length ? exact : rows;
+            if (countryCode) {
+              const ccMatch = pool.find((r) => (r.country_code || '').toUpperCase() === countryCode);
+              if (ccMatch) return ccMatch;
+            }
+            return pool[0];
+          };
+
+          if (cleanName) {
+            let nameQuery = supabase
+              .from('places')
+              .select('id, name_en, country_code')
+              .eq('is_active', true)
+              .ilike('name_en', cleanName);
+            if (countryCode) nameQuery = nameQuery.eq('country_code', countryCode);
+            const { data: exactRows, error: exactErr } = await nameQuery.limit(5);
+            __DEV__ && console.log('[resolvePlace] exact name result:', exactRows, 'error:', exactErr);
+            const exactPick = pickBestPlaceMatch(exactRows);
+            if (exactPick?.id) resolvedId = exactPick.id;
+          }
+
+          if (!(/^[0-9a-f]{8}-/i.test(resolvedId)) && lat != null && lon != null) {
             const { data, error } = await supabase
               .from('places')
-              .select('id, name_en')
+              .select('id, name_en, country_code')
+              .eq('is_active', true)
               .gte('latitude', lat - 0.05)
               .lte('latitude', lat + 0.05)
               .gte('longitude', lon - 0.05)
               .lte('longitude', lon + 0.05)
-              .limit(1);
+              .limit(10);
             __DEV__ && console.log('[resolvePlace] coord result:', data, 'error:', error);
-            if (data?.[0]?.id) resolvedId = data[0].id;
+            const coordPick = pickBestPlaceMatch(data);
+            if (coordPick?.id) resolvedId = coordPick.id;
           }
-          if (!(/^[0-9a-f]{8}-/i.test(resolvedId))) {
-            const cleanName = (destination.name || '').replace(/^[📍⊕★]\s?/g, '').trim();
-            __DEV__ && console.log('[resolvePlace] coord miss, trying name:', cleanName);
-            if (cleanName) {
-              const { data, error } = await supabase
-                .from('places')
-                .select('id, name_en')
-                .ilike('name_en', `%${cleanName}%`)
-                .limit(1);
-              __DEV__ && console.log('[resolvePlace] name result:', data, 'error:', error);
-              if (data?.[0]?.id) resolvedId = data[0].id;
-            }
+
+          if (!(/^[0-9a-f]{8}-/i.test(resolvedId)) && cleanName) {
+            const { data, error } = await supabase
+              .from('places')
+              .select('id, name_en, country_code')
+              .eq('is_active', true)
+              .ilike('name_en', `%${cleanName}%`)
+              .limit(10);
+            __DEV__ && console.log('[resolvePlace] fuzzy name result:', data, 'error:', error);
+            const fuzzyPick = pickBestPlaceMatch(data);
+            if (fuzzyPick?.id) resolvedId = fuzzyPick.id;
           }
           __DEV__ && console.log('[resolvePlace] final resolvedId:', resolvedId);
         } catch (e) {
@@ -1177,10 +1209,22 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         if (gen !== heroTransitionGeneration.current) return; // place switched meanwhile
         if (list.length < 2) return;
         const idx = list.findIndex((h) => h.url === currentHeroUrl);
+        const resolvedIdx = idx >= 0 ? idx : 0;
         setHeroList(list);
-        syncHeroIndex(idx >= 0 ? idx : 0);
+        syncHeroIndex(resolvedIdx);
         prefetchHeroUrls(list, { excludeUrl: currentHeroUrl });
+        // List may carry character when cached heroMeta did not
+        if (list[resolvedIdx]?.character) {
+          markCharacterDiscovered(list[resolvedIdx].character).catch(() => {});
+        }
       }).catch(() => {});
+    }
+    if (newFocused) {
+      const current =
+        (heroList.length > 0 ? heroList[heroIndexRef.current] : null) ?? heroMeta;
+      if (current?.character) {
+        markCharacterDiscovered(current.character).catch(() => {});
+      }
     }
     mixpanel.track('Hero Image Toggled', {
       place_id: effectivePlaceId,
@@ -1209,7 +1253,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         useNativeDriver: true,
       }),
     ]).start();
-  }, [uiFocused, heroScaleAnim, vignetteAnim, heroExpandUsed, heroList.length, heroMeta, syncHeroIndex]);
+  }, [uiFocused, heroScaleAnim, vignetteAnim, heroExpandUsed, heroList, heroMeta, syncHeroIndex]);
 
   useEffect(() => {
     AsyncStorage.getItem('heroExpandUsed').then((v) => {
@@ -1597,6 +1641,10 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       if (gen !== heroCycleGeneration.current) return;
       syncHeroIndex(next);
       snapHeroTo(displayMeta);
+      // Dev can browse outside fullscreen; only fullscreen views count as discovered
+      if (uiFocused && target?.character) {
+        markCharacterDiscovered(target.character).catch(() => {});
+      }
       mixpanel.track('Hero Browsed', {
         place_id: effectivePlaceId,
         place_name: destination.name,
@@ -1612,6 +1660,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     heroList,
     snapHeroTo,
     syncHeroIndex,
+    uiFocused,
   ]);
 
   const heroIncomingSource = heroIncomingMeta ? heroMetaToSource(heroIncomingMeta) : null;
@@ -1721,7 +1770,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       )}
       {hasHero && (
         <>
-          {uiFocused && heroList.length > 1 && (
+          {(uiFocused || __DEV__) && heroList.length > 1 && (
             <View style={styles.heroDotsRow} pointerEvents="none">
               {heroList.map((h, i) => (
                 <View
@@ -1750,7 +1799,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
               />
             </Pressable>
           </Animated.View>
-          {heroList.length > 1 && (uiFocused || (__DEV__ && devHeroNavVisible)) && (
+          {heroList.length > 1 && (uiFocused || __DEV__) && (
             <>
               <Pressable
                 onPress={() => cycleHero(-1, 'button')}
@@ -1768,7 +1817,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
               </Pressable>
             </>
           )}
-          {__DEV__ && heroList.length > 1 && (
+          {__DEV__ && devHeroNavVisible && heroList.length > 1 && (
               <Pressable
                 onPress={toggleDevHeroNav}
                 style={styles.devHeroCounter}

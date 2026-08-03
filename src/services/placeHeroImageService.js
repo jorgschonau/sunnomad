@@ -13,6 +13,10 @@ const GOLDIE_ONLY_PLACE_NAMES = new Set(['Dogtown', 'Dublin', 'Dresden']);
 
 /** Käffer / backwater pool — only when no dedicated hero. */
 const BACKWATER_PLACE_TYPES = new Set(['village', 'small_town', 'hamlet', 'isolated']);
+/** Parks / remote landscape — separate wild pool (no attr cap). */
+const BACKWATER_WILD_PLACE_TYPES = new Set([
+  'national_park', 'natural_park', 'nature_reserve', 'mountain', 'scenic_drive', 'natural_feature',
+]);
 /** Skip scenic/high-attr Käffer — backwater is for the ordinary ones. */
 const BACKWATER_MAX_ATTR = 80;
 const BACKWATER_LATAM = new Set([
@@ -222,6 +226,10 @@ function pickBackwaterRow(pool, place) {
 /** @returns {string|null} generic_hero_images.generic_key for backwater pool */
 function backwaterKeyForPlace(place) {
   const pt = String(place?.place_type || place?.placeType || '').toLowerCase();
+
+  // Parks / remote landscape — not the village Käffer pool
+  if (BACKWATER_WILD_PLACE_TYPES.has(pt)) return 'backwater_wild';
+
   if (!BACKWATER_PLACE_TYPES.has(pt)) return null;
 
   const attr = place?.attractiveness_score ?? place?.attractivenessScore ?? 0;
@@ -329,8 +337,14 @@ function heroImageNameFromPath(path) {
   return dot >= 0 ? base.slice(0, dot) : base;
 }
 
-function heroResult(url, { hero_variant = null, hero_variant_index = null, hero_source = 'default', hero_image_name = null } = {}) {
-  return { url, hero_variant, hero_variant_index, hero_source, hero_image_name };
+function heroResult(url, {
+  hero_variant = null,
+  hero_variant_index = null,
+  hero_source = 'default',
+  hero_image_name = null,
+  character = null,
+} = {}) {
+  return { url, hero_variant, hero_variant_index, hero_source, hero_image_name, character };
 }
 
 function dedicatedRowToHero(row) {
@@ -341,6 +355,7 @@ function dedicatedRowToHero(row) {
     hero_variant_index: row.sort_order ?? null,
     hero_source: 'dedicated',
     hero_image_name: heroImageNameFromPath(path),
+    character: row.character ?? null,
   });
 }
 
@@ -492,7 +507,7 @@ export async function getDedicatedHeroUrl(placeId) {
 
 /**
  * Hero image URL: dedicated (cast/curated exclusive; stock-only mixes backwater) →
- * backwater (village/small_town, attr < 80) → place generic_key → default.
+ * backwater (Käffer attr < 80, or parks/wild) → place generic_key → default.
  * Remembers the result per place id for transitions.
  * @param {{ id?: string|null, generic_key?: string|null, name_en?: string|null, place_type?: string|null, image_region?: string|null, country_code?: string|null, attractiveness_score?: number|null, terrain_type?: string|null, state_name?: string|null }} place
  * @returns {Promise<{ url: string, hero_variant: string|null, hero_variant_index: number|null, hero_source: string }>}

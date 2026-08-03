@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,11 +8,14 @@ import {
   Linking,
 } from 'react-native';
 import Constants from 'expo-constants';
+import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUnits } from '../../contexts/UnitContext';
 import { mixpanel } from '../../services/mixpanel';
+import { getFavourites } from '../../usecases/favouritesUsecases';
+import { resolveIronicBadges } from '../../utils/ironicProgress';
 
 // Native binary values — expoConfig ios.buildNumber is stale with EAS remote versioning.
 const APP_VERSION = Constants.nativeApplicationVersion
@@ -43,6 +46,41 @@ const SettingsScreen = ({ navigation }) => {
   const { theme, currentTheme, changeTheme } = useTheme();
   const { isAuthenticated, user, profile } = useAuth();
   const { useImperial, setUseImperial } = useUnits();
+  const [badgeProgress, setBadgeProgress] = useState(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      if (!isAuthenticated) {
+        setBadgeProgress(null);
+        return undefined;
+      }
+      let active = true;
+      (async () => {
+        let favCount = 0;
+        try {
+          const favs = await getFavourites();
+          favCount = favs.length;
+        } catch {
+          favCount = 0;
+        }
+        const { badges } = await resolveIronicBadges({
+          appOpens: profile?.app_open_count,
+          favouriteCount: favCount,
+          memberSince: profile?.created_at,
+        });
+        if (!active) return;
+        setBadgeProgress({
+          earned: badges.filter((b) => b.earned).length,
+          total: badges.length,
+        });
+      })().catch(() => {
+        if (active) setBadgeProgress(null);
+      });
+      return () => {
+        active = false;
+      };
+    }, [isAuthenticated, profile?.app_open_count, profile?.created_at])
+  );
 
   const handleSelectLanguage = (langCode) => {
     if (i18n.language === langCode) return;
@@ -65,6 +103,53 @@ const SettingsScreen = ({ navigation }) => {
       showsVerticalScrollIndicator={false}
       showsHorizontalScrollIndicator={false}
     >
+      {isAuthenticated && (
+        <View style={styles.sectionBlock}>
+          <Text style={[styles.sectionTitle, { color: theme.textTertiary }]}>
+            {t('settings.account')}
+          </Text>
+          <View style={[styles.card, { backgroundColor: theme.surface }]}>
+            <TouchableOpacity
+              activeOpacity={0.65}
+              style={[styles.settingItem, styles.rowBorder, rowBorder]}
+              onPress={() => navigation.navigate('Profile')}
+            >
+              <Text style={styles.settingItemFlag}>👤</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.settingItemText, { color: theme.text }]}>
+                  {profile?.display_name || user?.email}
+                </Text>
+                <Text style={[styles.settingItemSubtext, { color: theme.textSecondary }]}>
+                  {t('profile.title', 'View Profile')}
+                </Text>
+              </View>
+              <Text style={[styles.arrow, { color: theme.textSecondary }]}>›</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              activeOpacity={0.65}
+              style={styles.settingItem}
+              onPress={() => {
+                mixpanel.track('Achievements Teaser Tapped', { source: 'settings' });
+                navigation.navigate('Profile');
+              }}
+            >
+              <Text style={styles.settingItemFlag}>🏆</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.settingItemText, { color: theme.text }]}>
+                  {t('profile.badgesTitle')}
+                </Text>
+                <Text style={[styles.settingItemSubtext, { color: theme.primary }]}>
+                  {badgeProgress
+                    ? t('profile.badgesUnlockedCount', badgeProgress)
+                    : t('settings.achievementsTeaserHint')}
+                </Text>
+              </View>
+              <Text style={[styles.arrow, { color: theme.textSecondary }]}>›</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
       <View style={styles.sectionBlock}>
         <Text style={[styles.sectionTitle, { color: theme.textTertiary }]}>
           {t('settings.theme')}
@@ -176,32 +261,6 @@ const SettingsScreen = ({ navigation }) => {
           })}
         </View>
       </View>
-
-      {isAuthenticated && (
-        <View style={styles.sectionBlock}>
-          <Text style={[styles.sectionTitle, { color: theme.textTertiary }]}>
-            {t('settings.account')}
-          </Text>
-          <View style={[styles.card, { backgroundColor: theme.surface }]}>
-            <TouchableOpacity
-              activeOpacity={0.65}
-              style={styles.settingItem}
-              onPress={() => navigation.navigate('Profile')}
-            >
-              <Text style={styles.settingItemFlag}>👤</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.settingItemText, { color: theme.text }]}>
-                  {profile?.display_name || user?.email}
-                </Text>
-                <Text style={[styles.settingItemSubtext, { color: theme.textSecondary }]}>
-                  {t('profile.title', 'View Profile')}
-                </Text>
-              </View>
-              <Text style={[styles.arrow, { color: theme.textSecondary }]}>›</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
 
       <View style={styles.sectionBlock}>
         <Text style={[styles.sectionTitle, { color: theme.textTertiary }]}>

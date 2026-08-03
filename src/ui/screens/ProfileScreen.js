@@ -83,7 +83,7 @@ function IronicBadgeRow({ badge, isNew, styles, theme, t }) {
   }, [isNew, scale, highlightOpacity, sparkleProgress]);
 
   return (
-    <View style={[styles.badgeRow, !badge.earned && styles.badgeRowLocked]}>
+    <View style={[styles.badgeRow, !badge.earned && !badge.showProgress && styles.badgeRowLocked]}>
       {isNew && (
         <Animated.View
           pointerEvents="none"
@@ -151,8 +151,10 @@ function IronicBadgeRow({ badge, isNew, styles, theme, t }) {
       </View>
       <View style={styles.badgeTextContainer}>
         <Text style={[styles.badgeName, isNew && styles.badgeNameNew]}>{t(badge.nameKey)}</Text>
-        {badge.earned && (
-          <Text style={styles.badgeDesc}>{t(badge.descKey)}</Text>
+        {(badge.earned || badge.showProgress) && (
+          <Text style={styles.badgeDesc}>
+            {badge.descParams ? t(badge.descKey, badge.descParams) : t(badge.descKey)}
+          </Text>
         )}
       </View>
     </View>
