@@ -69,10 +69,11 @@ export const hybridSearch = async (query, center, language = 'de') => {
  */
 async function searchDB(query, center, language = 'en') {
   try {
+    const pattern = `%${query}%`;
     const { data, error } = await supabase
       .from('places')
       .select('id, name_en, name_de, name_fr, latitude, longitude, place_type, country_code, attractiveness_score')
-      .ilike('name_en', `%${query}%`)
+      .or(`name_en.ilike."${pattern}",name_de.ilike."${pattern}",name_fr.ilike."${pattern}"`)
       .eq('is_active', true)
       .order('attractiveness_score', { ascending: false, nullsFirst: false })
       .limit(10);
