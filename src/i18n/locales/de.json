@@ -230,7 +230,11 @@
     "millimeters": "Millimeter (mm)",
     "inches": "Inches (in)",
     "feedback": "Feedback",
-    "feedbackPrompt": "Wir freuen uns über dein Feedback"
+    "feedbackPrompt": "Wir freuen uns über dein Feedback",
+    "privacyPolicy": "Datenschutz",
+    "termsOfUse": "Nutzungsbedingungen",
+    "weatherAttribution": "Wetterdaten von Open-Meteo.com",
+    "version": "Version {{version}} · Build {{build}}"
   },
   "feedbackScreen": {
     "title": "Feedback",

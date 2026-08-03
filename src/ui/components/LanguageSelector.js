@@ -5,7 +5,7 @@ import i18n from '../../i18n';
 
 const LANGUAGES = [
   { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-  { code: 'en', name: 'English', flag: '🇬🇧' },
+  { code: 'en', name: 'English', flag: '🇺🇸' },
   // { code: 'fr', name: 'Français', flag: '🇫🇷' }, // temporarily disabled
 ];
 

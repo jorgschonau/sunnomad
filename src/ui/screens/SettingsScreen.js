@@ -7,15 +7,22 @@ import {
   TouchableOpacity,
   Linking,
 } from 'react-native';
+import Constants from 'expo-constants';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeProvider';
 import { useAuth } from '../../contexts/AuthContext';
 import { useUnits } from '../../contexts/UnitContext';
 import { mixpanel } from '../../services/mixpanel';
 
+// Native binary values — expoConfig ios.buildNumber is stale with EAS remote versioning.
+const APP_VERSION = Constants.nativeApplicationVersion
+  ?? Constants.expoConfig?.version
+  ?? '?';
+const APP_BUILD = Constants.nativeBuildVersion ?? '—';
+
 const LANGUAGES = [
   { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-  { code: 'en', name: 'English', flag: '🇬🇧' },
+  { code: 'en', name: 'English', flag: '🇺🇸' },
   // { code: 'fr', name: 'Français', flag: '🇫🇷' }, // temporarily disabled
 ];
 
@@ -27,8 +34,8 @@ const THEMES = [
 ];
 
 const UNIT_OPTIONS = [
-  { id: 'metric', label: 'km / °C', icon: '🌡️' },
-  { id: 'imperial', label: 'mi / °F', icon: '🌡️' },
+  { id: 'metric', label: 'km / °C' },
+  { id: 'imperial', label: 'mi / °F' },
 ];
 
 const SettingsScreen = ({ navigation }) => {
@@ -43,197 +50,217 @@ const SettingsScreen = ({ navigation }) => {
     mixpanel.track('Settings Changed', { setting: 'language', value: langCode });
   };
 
-  const currentLanguage = LANGUAGES.find(lang => lang.code === i18n.language) || LANGUAGES[0];
-
   const handleSelectTheme = (themeId) => {
     if (currentTheme === themeId) return;
     changeTheme(themeId);
     mixpanel.track('Settings Changed', { setting: 'theme', value: themeId });
   };
 
+  const rowBorder = { borderBottomColor: theme.background };
+
   return (
     <ScrollView
       style={[styles.container, { backgroundColor: theme.background }]}
+      contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
       showsHorizontalScrollIndicator={false}
     >
-      <View style={[styles.section, { backgroundColor: theme.surface }]}>
-        <Text style={[styles.sectionTitle, { backgroundColor: theme.background, color: theme.text }]}>
+      <View style={styles.sectionBlock}>
+        <Text style={[styles.sectionTitle, { color: theme.textTertiary }]}>
           {t('settings.theme')}
         </Text>
-        
-        {THEMES.map((themeOption) => (
-          <TouchableOpacity
-            key={themeOption.id}
-            style={[
-              styles.settingItem,
-              { backgroundColor: theme.surface, borderBottomColor: theme.background },
-              currentTheme === themeOption.id && { backgroundColor: theme.background }
-            ]}
-            onPress={() => handleSelectTheme(themeOption.id)}
-          >
-            <Text style={styles.settingItemFlag}>{themeOption.icon}</Text>
-            <Text style={[
-              styles.settingItemText,
-              { color: theme.textSecondary },
-              currentTheme === themeOption.id && { fontWeight: '700', color: theme.primary }
-            ]}>
-              {t(themeOption.nameKey)}
-            </Text>
-            {currentTheme === themeOption.id && (
-              <Text style={[styles.checkmark, { color: theme.primary }]}>✓</Text>
-            )}
-          </TouchableOpacity>
-        ))}
+        <View style={[styles.card, { backgroundColor: theme.surface }]}>
+          {THEMES.map((themeOption, index) => {
+            const selected = currentTheme === themeOption.id;
+            const isLast = index === THEMES.length - 1;
+            return (
+              <TouchableOpacity
+                key={themeOption.id}
+                activeOpacity={0.65}
+                style={[
+                  styles.settingItem,
+                  !isLast && [styles.rowBorder, rowBorder],
+                  selected && { backgroundColor: theme.background },
+                ]}
+                onPress={() => handleSelectTheme(themeOption.id)}
+              >
+                <Text style={styles.settingItemFlag}>{themeOption.icon}</Text>
+                <Text style={[
+                  styles.settingItemText,
+                  { color: theme.textSecondary },
+                  selected && { fontWeight: '700', color: theme.primary },
+                ]}>
+                  {t(themeOption.nameKey)}
+                </Text>
+                {selected && (
+                  <Text style={[styles.checkmark, { color: theme.primary }]}>✓</Text>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
 
-      <View style={[styles.section, { backgroundColor: theme.surface }]}>
-        <Text style={[styles.sectionTitle, { backgroundColor: theme.background, color: theme.text }]}>
+      <View style={styles.sectionBlock}>
+        <Text style={[styles.sectionTitle, { color: theme.textTertiary }]}>
           {t('settings.language')}
         </Text>
-        
-        {LANGUAGES.map((lang) => (
-          <TouchableOpacity
-            key={lang.code}
-            style={[
-              styles.settingItem,
-              { backgroundColor: theme.surface, borderBottomColor: theme.background },
-              i18n.language === lang.code && { backgroundColor: theme.background }
-            ]}
-            onPress={() => handleSelectLanguage(lang.code)}
-          >
-            <Text style={styles.settingItemFlag}>{lang.flag}</Text>
-            <Text style={[
-              styles.settingItemText,
-              { color: theme.textSecondary },
-              i18n.language === lang.code && { fontWeight: '700', color: theme.primary }
-            ]}>
-              {lang.name}
-            </Text>
-            {i18n.language === lang.code && (
-              <Text style={[styles.checkmark, { color: theme.primary }]}>✓</Text>
-            )}
-          </TouchableOpacity>
-        ))}
+        <View style={[styles.card, { backgroundColor: theme.surface }]}>
+          {LANGUAGES.map((lang, index) => {
+            const selected = i18n.language === lang.code;
+            const isLast = index === LANGUAGES.length - 1;
+            return (
+              <TouchableOpacity
+                key={lang.code}
+                activeOpacity={0.65}
+                style={[
+                  styles.settingItem,
+                  !isLast && [styles.rowBorder, rowBorder],
+                  selected && { backgroundColor: theme.background },
+                ]}
+                onPress={() => handleSelectLanguage(lang.code)}
+              >
+                <Text style={styles.settingItemFlag}>{lang.flag}</Text>
+                <Text style={[
+                  styles.settingItemText,
+                  { color: theme.textSecondary },
+                  selected && { fontWeight: '700', color: theme.primary },
+                ]}>
+                  {lang.name}
+                </Text>
+                {selected && (
+                  <Text style={[styles.checkmark, { color: theme.primary }]}>✓</Text>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
 
-      <View style={[styles.section, { backgroundColor: theme.surface }]}>
-        <Text style={[styles.sectionTitle, { backgroundColor: theme.background, color: theme.text }]}>
+      <View style={styles.sectionBlock}>
+        <Text style={[styles.sectionTitle, { color: theme.textTertiary }]}>
           {t('settings.units')}
         </Text>
-        
-        {UNIT_OPTIONS.map((option) => {
-          const isSelected = option.id === 'imperial' ? useImperial : !useImperial;
-          return (
-            <TouchableOpacity
-              key={option.id}
-              style={[
-                styles.settingItem,
-                { backgroundColor: theme.surface, borderBottomColor: theme.background },
-                isSelected && { backgroundColor: theme.background }
-              ]}
-              onPress={() => {
-                const next = option.id === 'imperial';
-                if (useImperial === next) return;
-                setUseImperial(next);
-                mixpanel.track('Settings Changed', { setting: 'units', value: option.id });
-              }}
-            >
-              <Text style={styles.settingItemFlag}>{option.icon}</Text>
-              <Text style={[
-                styles.settingItemText,
-                { color: theme.textSecondary },
-                isSelected && { fontWeight: '700', color: theme.primary }
-              ]}>
-                {option.label}
-              </Text>
-              {isSelected && (
-                <Text style={[styles.checkmark, { color: theme.primary }]}>✓</Text>
-              )}
-            </TouchableOpacity>
-          );
-        })}
+        <View style={[styles.card, { backgroundColor: theme.surface }]}>
+          {UNIT_OPTIONS.map((option, index) => {
+            const selected = option.id === 'imperial' ? useImperial : !useImperial;
+            const isLast = index === UNIT_OPTIONS.length - 1;
+            return (
+              <TouchableOpacity
+                key={option.id}
+                activeOpacity={0.65}
+                style={[
+                  styles.settingItem,
+                  !isLast && [styles.rowBorder, rowBorder],
+                  selected && { backgroundColor: theme.background },
+                ]}
+                onPress={() => {
+                  const next = option.id === 'imperial';
+                  if (useImperial === next) return;
+                  setUseImperial(next);
+                  mixpanel.track('Settings Changed', { setting: 'units', value: option.id });
+                }}
+              >
+                <Text style={[
+                  styles.settingItemText,
+                  { color: theme.textSecondary },
+                  selected && { fontWeight: '700', color: theme.primary },
+                ]}>
+                  {option.label}
+                </Text>
+                {selected && (
+                  <Text style={[styles.checkmark, { color: theme.primary }]}>✓</Text>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
       </View>
 
-      {/* Account Section */}
-      <View style={[styles.section, { backgroundColor: theme.surface }]}>
-        <Text style={[styles.sectionTitle, { backgroundColor: theme.background, color: theme.text }]}>
-          {t('settings.account')}
+      {isAuthenticated && (
+        <View style={styles.sectionBlock}>
+          <Text style={[styles.sectionTitle, { color: theme.textTertiary }]}>
+            {t('settings.account')}
+          </Text>
+          <View style={[styles.card, { backgroundColor: theme.surface }]}>
+            <TouchableOpacity
+              activeOpacity={0.65}
+              style={styles.settingItem}
+              onPress={() => navigation.navigate('Profile')}
+            >
+              <Text style={styles.settingItemFlag}>👤</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.settingItemText, { color: theme.text }]}>
+                  {profile?.display_name || user?.email}
+                </Text>
+                <Text style={[styles.settingItemSubtext, { color: theme.textSecondary }]}>
+                  {t('profile.title', 'View Profile')}
+                </Text>
+              </View>
+              <Text style={[styles.arrow, { color: theme.textSecondary }]}>›</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      )}
+
+      <View style={styles.sectionBlock}>
+        <Text style={[styles.sectionTitle, { color: theme.textTertiary }]}>
+          {t('settings.feedback')}
         </Text>
-        
-        {isAuthenticated ? (
+        <View style={[styles.card, { backgroundColor: theme.surface }]}>
           <TouchableOpacity
-            style={[
-              styles.settingItem,
-              { backgroundColor: theme.surface, borderBottomColor: theme.background }
-            ]}
-            onPress={() => navigation.navigate('Profile')}
+            activeOpacity={0.65}
+            style={styles.settingItem}
+            onPress={() => navigation.navigate('Feedback', { source: 'settings' })}
           >
-            <Text style={styles.settingItemFlag}>👤</Text>
+            <Text style={styles.settingItemFlag}>💬</Text>
             <View style={{ flex: 1 }}>
               <Text style={[styles.settingItemText, { color: theme.text }]}>
-                {profile?.display_name || user?.email}
+                {t('settings.feedbackPrompt')}
               </Text>
-              <Text style={[styles.settingItemSubtext, { color: theme.textSecondary }]}>
-                {t('profile.title', 'View Profile')}
+              <Text style={[styles.settingItemSubtext, { color: theme.primary }]}>
+                hola@sunnomad.app
               </Text>
             </View>
             <Text style={[styles.arrow, { color: theme.textSecondary }]}>›</Text>
           </TouchableOpacity>
-        ) : null}
+        </View>
       </View>
 
-      <View style={[styles.section, { backgroundColor: theme.surface }]}>
-        <Text style={[styles.sectionTitle, { backgroundColor: theme.background, color: theme.text }]}>
-          {t('settings.feedback')}
-        </Text>
+      <View style={styles.footer}>
+        <View style={styles.legalRow}>
+          <TouchableOpacity
+            onPress={() => {
+              mixpanel.track('Legal Link Tapped', { link: 'privacy' });
+              Linking.openURL('https://sunnomad.app/privacy');
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+          >
+            <Text style={[styles.legalLink, { color: theme.textSecondary }]}>
+              {t('settings.privacyPolicy')}
+            </Text>
+          </TouchableOpacity>
+          <Text style={[styles.legalDivider, { color: theme.textTertiary }]}>·</Text>
+          <TouchableOpacity
+            onPress={() => {
+              mixpanel.track('Legal Link Tapped', { link: 'terms' });
+              Linking.openURL('https://sunnomad.app/terms');
+            }}
+            hitSlop={{ top: 8, bottom: 8, left: 4, right: 4 }}
+          >
+            <Text style={[styles.legalLink, { color: theme.textSecondary }]}>
+              {t('settings.termsOfUse')}
+            </Text>
+          </TouchableOpacity>
+        </View>
 
-        <TouchableOpacity
-          style={[
-            styles.settingItem,
-            { backgroundColor: theme.surface, borderBottomColor: theme.background }
-          ]}
-          onPress={() => navigation.navigate('Feedback', { source: 'settings' })}
-        >
-          <Text style={styles.settingItemFlag}>💬</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.settingItemText, { color: theme.text }]}>
-              {t('settings.feedbackPrompt')}
-            </Text>
-            <Text style={[styles.settingItemSubtext, { color: theme.primary }]}>
-              hola@sunnomad.app
-            </Text>
-          </View>
-          <Text style={[styles.arrow, { color: theme.textSecondary }]}>›</Text>
-        </TouchableOpacity>
+        <Text style={[styles.meta, { color: theme.textTertiary }]}>
+          {t('settings.weatherAttribution')}
+        </Text>
+        <Text style={[styles.meta, { color: theme.textTertiary }]}>
+          {t('settings.version', { version: APP_VERSION, build: APP_BUILD })}
+        </Text>
       </View>
-
-      <TouchableOpacity
-        onPress={() => {
-          mixpanel.track('Legal Link Tapped', { link: 'privacy' });
-          Linking.openURL('https://sunnomad.app/privacy');
-        }}
-      >
-        <Text style={[styles.attribution, { color: theme.textTertiary }]}>
-          Privacy Policy
-        </Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity
-        onPress={() => {
-          mixpanel.track('Legal Link Tapped', { link: 'terms' });
-          Linking.openURL('https://sunnomad.app/terms');
-        }}
-      >
-        <Text style={[styles.attribution, { color: theme.textTertiary }]}>
-          Terms of Use
-        </Text>
-      </TouchableOpacity>
-
-      <Text style={[styles.attribution, { color: theme.textTertiary }]}>
-        Weather data by Open-Meteo.com
-      </Text>
-
     </ScrollView>
   );
 };
@@ -242,62 +269,86 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  section: {
-    marginTop: 24,
-    paddingVertical: 8,
+  content: {
+    paddingTop: 8,
+    paddingBottom: 16,
+  },
+  sectionBlock: {
+    marginTop: 20,
+    paddingHorizontal: 16,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    fontSize: 13,
+    fontWeight: '600',
+    letterSpacing: 0.3,
+    textTransform: 'uppercase',
+    marginBottom: 8,
+    marginLeft: 4,
+  },
+  card: {
+    borderRadius: 12,
+    overflow: 'hidden',
   },
   settingItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 20,
-    minHeight: 72,
-    borderBottomWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    minHeight: 56,
+  },
+  rowBorder: {
+    borderBottomWidth: StyleSheet.hairlineWidth,
   },
   settingItemFlag: {
-    fontSize: 32,
-    marginRight: 16,
+    fontSize: 26,
+    marginRight: 14,
   },
   settingItemText: {
     flex: 1,
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: '500',
   },
   checkmark: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: 'bold',
   },
   settingItemSubtext: {
-    fontSize: 14,
-    marginTop: 4,
+    fontSize: 13,
+    marginTop: 2,
   },
   arrow: {
-    fontSize: 32,
+    fontSize: 26,
     fontWeight: '300',
   },
-  placeholderItem: {
-    paddingHorizontal: 20,
-    paddingVertical: 32,
+  footer: {
     alignItems: 'center',
+    paddingTop: 28,
+    paddingBottom: 48,
+    paddingHorizontal: 24,
+    gap: 10,
   },
-  placeholderText: {
-    fontSize: 18,
-    fontStyle: 'italic',
+  legalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    marginBottom: 6,
   },
-  attribution: {
+  legalLink: {
+    fontSize: 13,
+    fontWeight: '500',
+  },
+  legalDivider: {
+    fontSize: 13,
+    marginHorizontal: 10,
+    opacity: 0.55,
+  },
+  meta: {
     fontSize: 12,
     textAlign: 'center',
-    marginTop: 32,
-    marginBottom: 24,
-    opacity: 0.5,
+    lineHeight: 16,
+    opacity: 0.65,
   },
 });
 
 export default SettingsScreen;
-
