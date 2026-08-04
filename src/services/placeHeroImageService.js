@@ -96,6 +96,10 @@ const BACKWATER_TERRAIN_RULES = {
   backwater_na_general_store: { exclude: ['coastal', 'lake', 'desert'] },
   backwater_na_porch_net: { exclude: ['desert', 'high_mountains'] },
   backwater_na_bbq_patio: { exclude: ['coastal', 'lake', 'desert'] },
+  // wild / parks
+  backwater_wild_wind_ridge: { exclude: ['coastal', 'desert'] },
+  backwater_wild_radar_dome: { exclude: ['coastal', 'desert'] },
+  backwater_wild_rail_dogs: { exclude: ['coastal', 'desert', 'flatland'] },
 };
 
 /** Soft preference by stem — narrow the terrain-filtered pool, then stable-pick. */
@@ -124,6 +128,10 @@ const BACKWATER_PREF_COUNTRIES = {
   backwater_eu_south_ferramenta: ['IT'],
   backwater_eu_south_edicola: ['IT'],
   backwater_eu_south_pueblo_cards: ['ES', 'PT'],
+  // wild / parks (soft — same global pool)
+  backwater_wild_rail_dogs: ['DE', 'AT', 'CH', 'NO', 'SE', 'CA', 'US'],
+  backwater_wild_wind_ridge: ['DE', 'DK', 'NL', 'GB', 'ES', 'US'],
+  backwater_wild_radar_dome: ['NO', 'SE', 'IS', 'CA', 'US', 'GB'],
 };
 const US_SOUTH = [
   'Alabama', 'Arkansas', 'Florida', 'Georgia', 'Kentucky', 'Louisiana',
