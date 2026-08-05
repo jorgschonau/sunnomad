@@ -1,0 +1,14 @@
+---
+description: Memory — is_active may later drive seasonal image visibility
+alwaysApply: true
+---
+
+# Hero images: seasonal `is_active` (deferred)
+
+## Memory only — not shipping now
+
+User may later **extend, redesign, or kill** this. Do **not** build a seasonal scheduler or change sync/activation for it unless explicitly asked.
+
+Idea to keep in mind: `place_images.is_active` could gate by season, not only quality/dupes.
+
+Example: **Wacken** — summer festival OK; winter empty / tote Hose not. Toggle `is_active` out of season rather than delete rows.

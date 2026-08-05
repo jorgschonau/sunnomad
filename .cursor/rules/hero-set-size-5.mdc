@@ -1,0 +1,24 @@
+---
+description: Targeted cast sets default to 5 images unless user says otherwise
+alwaysApply: true
+---
+
+# Hero pipeline: set size = 5
+
+## User rule (standing)
+
+When the user asks for a place/character **set** (e.g. "Sedona mit diaz", "Big Sur set"), default is **5 pics**.
+
+- Do **not** suggest a single-shot or 3-shot set unless they explicitly say fewer (`1x`, `nur main`, `activity-only`, `window_down`, etc.).
+- Targeted `--character` runs **fill to 5** in code: budget 5, arrival on, multiple activities, farshot reserved on nature/vast — not score-gated 3.
+- Keep dry-run default; no `--no-dry-run` unless they ask for upload.
+
+## Command shape
+
+```bash
+python3 generate_hero_images.py --us --safe --character CHAR \
+  --only-ids PLACE_UUID \
+  --include-existing-cast --limit 1
+```
+
+(EU: `--eu --safe` instead of `--us --safe` as appropriate.)

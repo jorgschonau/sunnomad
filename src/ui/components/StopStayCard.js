@@ -11,8 +11,71 @@ import { useTranslation } from 'react-i18next';
 import { supabase } from '../../config/supabase';
 import { mixpanel } from '../../services/mixpanel';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const StopStayCard = ({ destination, lang, onContentReady }) => {
+/** Center pins / Open-Meteo markers often lack a UUID — resolve via name or coords. */
+async function resolvePlaceId(destination) {
+  const direct = destination?.placeId || destination?.id;
+  if (direct && UUID_RE.test(String(direct))) return direct;
+
+  const cleanName = (destination?.name || destination?.name_en || '')
+    .replace(/^[📍⊕★]\s?/g, '').trim();
+  const lat = destination?.lat ?? destination?.latitude;
+  const lon = destination?.lon ?? destination?.longitude;
+  const countryCode = (destination?.countryCode || destination?.country_code || '').toUpperCase() || null;
+
+  const pick = (rows) => {
+    if (!rows?.length) return null;
+    const target = cleanName.toLowerCase();
+    const exact = rows.filter((r) => (r.name_en || '').toLowerCase() === target);
+    const pool = exact.length ? exact : rows;
+    if (countryCode) {
+      const ccMatch = pool.find((r) => (r.country_code || '').toUpperCase() === countryCode);
+      if (ccMatch) return ccMatch.id;
+    }
+    return pool[0]?.id || null;
+  };
+
+  if (cleanName) {
+    let nameQuery = supabase
+      .from('places')
+      .select('id, name_en, country_code')
+      .eq('is_active', true)
+      .ilike('name_en', cleanName);
+    if (countryCode) nameQuery = nameQuery.eq('country_code', countryCode);
+    const { data: exactRows } = await nameQuery.limit(5);
+    const exactPick = pick(exactRows);
+    if (exactPick) return exactPick;
+  }
+
+  if (lat != null && lon != null) {
+    const { data: coordRows } = await supabase
+      .from('places')
+      .select('id, name_en, country_code')
+      .eq('is_active', true)
+      .gte('latitude', lat - 0.05)
+      .lte('latitude', lat + 0.05)
+      .gte('longitude', lon - 0.05)
+      .lte('longitude', lon + 0.05)
+      .limit(10);
+    const coordPick = pick(coordRows);
+    if (coordPick) return coordPick;
+  }
+
+  if (cleanName) {
+    const { data: fuzzyRows } = await supabase
+      .from('places')
+      .select('id, name_en, country_code')
+      .eq('is_active', true)
+      .ilike('name_en', `%${cleanName}%`)
+      .limit(10);
+    return pick(fuzzyRows);
+  }
+
+  return null;
+}
+
+const StopStayCard = ({ destination, placeId: placeIdProp, lang, onContentReady }) => {
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('stay');
   const [data, setData] = useState(null);
@@ -20,7 +83,7 @@ const StopStayCard = ({ destination, lang, onContentReady }) => {
   const [error, setError] = useState(null);
   const contentReadySent = useRef(false);
 
-  const placeId = destination?.placeId || destination?.id;
+  const placeId = placeIdProp || destination?.placeId || destination?.id;
   const placeName = destination?.name || destination?.name_en;
 
   useEffect(() => {
@@ -63,20 +126,36 @@ const StopStayCard = ({ destination, lang, onContentReady }) => {
   };
 
   useEffect(() => {
-    const placeId = destination?.placeId || destination?.id;
-    if (placeId && lang) {
-      fetchPlaceDetail(placeId);
-    }
-  }, [destination, lang]);
+    let cancelled = false;
+    const langCode = (lang || 'de').split('-')[0];
 
-  const fetchPlaceDetail = async (placeId) => {
+    (async () => {
+      setLoading(true);
+      setError(null);
+      const direct = placeIdProp || destination?.placeId || destination?.id;
+      const resolved = (direct && UUID_RE.test(String(direct)))
+        ? direct
+        : await resolvePlaceId(destination);
+      if (cancelled) return;
+      if (!resolved) {
+        setData(null);
+        setLoading(false);
+        return;
+      }
+      await fetchPlaceDetail(resolved, langCode);
+    })();
+
+    return () => { cancelled = true; };
+  }, [destination, placeIdProp, lang]);
+
+  const fetchPlaceDetail = async (resolvedPlaceId, langCode) => {
     try {
       setLoading(true);
       setError(null);
       
       const { data: result, error: rpcError } = await supabase.rpc('get_place_detail', {
-        p_place_id: placeId,
-        p_lang: lang
+        p_place_id: resolvedPlaceId,
+        p_lang: langCode,
       });
 
       if (rpcError) {

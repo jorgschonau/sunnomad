@@ -31,6 +31,10 @@ KNOWN_CHARACTERS = (
     "diaz", "stacy", "kay", "thea", "tammy", "lyra", "werra", "olga", "nina",
     "mila", "quinn", "maria", "rosa", "carmela", "yuki", "celine", "amber",
     "camille", "cleo", "diana", "kelek", "terry", "vera", "metka", "tasha", "zara",
+    "dale", "tyler", "skyler",
+    "karl", "vlad", "boone", "soca", "roki", "zeus", "dio", "bass", "morana",
+    "anubis", "elvis", "lupo", "zorro", "atlas", "kilo", "hank", "flocke",
+    "juniper", "benji", "nacho",
 )
 
 def get_supabase():

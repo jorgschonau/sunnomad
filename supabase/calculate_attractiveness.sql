@@ -1,5 +1,7 @@
 -- 2026-06-02: Attractiveness score recalculation
+-- 2026-08-05: natural_feature base, large villages (pop>=4k), wiki_score blend
 -- Run after bulk imports/enrichment. Only updates attractiveness_score (no raw column).
+-- manual_adjustment unchanged (US city downrank, beach boosts, icon tweaks).
 
 WITH schlafstaedte AS (
   SELECT p.id
@@ -28,10 +30,13 @@ SET attractiveness_score = LEAST(
           WHEN p.place_type = 'city'           THEN 80
           WHEN p.place_type = 'medium_town'    THEN 70
           WHEN p.place_type = 'small_town'     THEN 55
+          WHEN p.place_type = 'village'
+            AND p.population >= 4000           THEN 55
           WHEN p.place_type = 'village'        THEN 45
           WHEN p.place_type = 'national_park'  THEN 78
           WHEN p.place_type = 'natural_park'   THEN 70
           WHEN p.place_type = 'nature_reserve' THEN 72
+          WHEN p.place_type = 'natural_feature' THEN 72
           WHEN p.place_type = 'beach'          THEN 75
           WHEN p.place_type = 'mountain'       THEN 60
           WHEN p.place_type = 'scenic_drive'   THEN 65
@@ -62,8 +67,9 @@ SET attractiveness_score = LEAST(
               ELSE 1.0 END)
             ELSE 0 END)
         + (CASE WHEN p.terrain_type = 'flatland'
-            AND p.place_type NOT IN ('national_park', 'natural_park', 'nature_reserve', 'scenic_drive')
+            AND p.place_type NOT IN ('national_park', 'natural_park', 'nature_reserve', 'natural_feature', 'scenic_drive')
             THEN -5 ELSE 0 END)
+        + COALESCE(p.wiki_score, 0)
         + (CASE WHEN p.place_type = 'beach' AND p.terrain_type = 'lake' THEN -15 ELSE 0 END)
         + (CASE
             WHEN p.population > 50000

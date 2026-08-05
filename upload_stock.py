@@ -11,6 +11,8 @@ import time
 from dotenv import load_dotenv
 from supabase import create_client
 
+from pexels_blacklist import load_blacklist, slug_from_filename
+
 load_dotenv()
 
 supabase = create_client(
@@ -21,6 +23,7 @@ supabase = create_client(
 BUCKET = "dedicated"
 PREFIX = "pexels"
 OUT_DIR = "output"
+BANNED = load_blacklist()
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--force", action="store_true", help="Vorhandene Dateien überschreiben (upsert)")
@@ -35,11 +38,17 @@ while True:
         break
     offset += 1000
 print(f"{len(existing)} Dateien bereits im Bucket unter {PREFIX}/")
+if BANNED:
+    print(f"{len(BANNED)} Slugs permanent blacklisted — werden nicht hochgeladen")
 
 files = sorted(f for f in os.listdir(OUT_DIR) if f.endswith(".webp"))
-uploaded, skipped, errors = 0, 0, 0
+uploaded, skipped, errors, banned_n = 0, 0, 0, 0
 
 for i, fname in enumerate(files, 1):
+    slug = slug_from_filename(fname)
+    if slug and slug in BANNED:
+        banned_n += 1
+        continue
     if not args.force and fname in existing:
         skipped += 1
         continue
@@ -71,4 +80,5 @@ for i, fname in enumerate(files, 1):
             else:
                 time.sleep(5 * attempt)
 
-print(f"\nFertig: {uploaded} hochgeladen, {skipped} übersprungen, {errors} Fehler")
+print(f"\nFertig: {uploaded} hochgeladen, {skipped} übersprungen, "
+      f"{banned_n} blacklisted, {errors} Fehler")

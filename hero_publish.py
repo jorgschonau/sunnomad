@@ -19,7 +19,8 @@ def run(cmd: list[str]) -> int:
 def main():
     p = argparse.ArgumentParser(description="Normalize local output and/or sync cast/ → Supabase")
     p.add_argument("--normalize", action="store_true", help="Fix ~/sunnomad_output filenames")
-    p.add_argument("--sync", action="store_true", help="Mirror cast/ + activate (default if neither flag)")
+    p.add_argument("--upload", action="store_true", help="Upload cast/ via API upsert (not Dashboard)")
+    p.add_argument("--sync", action="store_true", help="Mirror cast/ + activate (default if no other flag)")
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--place", help="Limit to place name")
     p.add_argument("--changed-only", action="store_true",
@@ -28,7 +29,8 @@ def main():
     args = p.parse_args()
 
     do_norm = args.normalize
-    do_sync = args.sync or not args.normalize
+    do_upload = args.upload
+    do_sync = args.sync or (not args.normalize and not args.upload)
 
     if do_norm:
         norm = [sys.executable, str(ROOT / "normalize_output_names.py")]
@@ -36,8 +38,17 @@ def main():
             norm.append("--apply")
         if run(norm) != 0:
             sys.exit(1)
-        if do_sync and not args.dry_run:
-            print("Upload ~/sunnomad_output/*.webp → Supabase dedicated/cast/ then continuing…\n")
+
+    if do_upload:
+        upload = [sys.executable, str(ROOT / "upload_cast.py")]
+        if args.dry_run:
+            print("\n(dry-run: skip upload)\n")
+        elif run(upload) != 0:
+            sys.exit(1)
+        do_sync = True
+
+    if do_norm and do_sync and not args.dry_run and not do_upload:
+        print("Danach: python3 hero_publish.py --upload --sync  (nicht Dashboard — erzeugt (1)-Dupes)\n")
 
     if do_sync:
         sync = [sys.executable, str(ROOT / "sync_hero_activation.py"), "--mirror-storage"]

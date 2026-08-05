@@ -5,12 +5,11 @@ Stufen (einzeln aufrufbar, Ergebnisse landen in pexels_audit/):
   python3 audit_pexels.py fetch              # DB-Rows + Bilder in den Cache holen
   python3 audit_pexels.py clip               # CLIP-Vorfilter, gratis, rankt Verdächtige
   python3 audit_pexels.py vision --limit 300 # Vision-Urteil nur für die Top-Verdächtigen
-  python3 audit_pexels.py sheet              # HTML-Sichtung, schreibt rejects.txt
-  python3 audit_pexels.py apply              # Dry-Run; mit --apply wird deaktiviert
+  python3 audit_pexels.py review             # CLIP-Interface (Schätzwerte, kein Vision)
+  python3 audit_pexels.py apply --apply      # Markierte deaktivieren
 
-`sheet` zeigt nur, was noch eine Entscheidung braucht: Urteil bad/unsure, laut DB
-aktiv, Ort nicht in `_no_pexels`. Bereits deaktivierte Bilder tauchen nicht wieder
-auf — `is_active` wird live aus der DB gelesen, nicht aus rows.json.
+`review` = Browser-Grid der CLIP-Verdächtigen. Rot vorausgewählt ab Score 0.7.
+Speichern → rejects.txt → apply.
 
 `apply` setzt is_active=false UND trägt den Ort in `_no_pexels`
 (hero_char_overrides.json) ein. Beides ist nötig, weil sync_hero_activation.py
@@ -424,6 +423,7 @@ def stage_vision(args):
             ],
         }
 
+        last_err = "unknown"
         for attempt in range(1, 5):
             try:
                 resp = requests.post(
@@ -433,6 +433,7 @@ def stage_vision(args):
                     timeout=60,
                 )
                 if resp.status_code in (429, 500, 502, 503, 529):
+                    last_err = f"HTTP {resp.status_code}"
                     time.sleep(min(5 * attempt, 30))
                     continue
                 resp.raise_for_status()
@@ -448,24 +449,41 @@ def stage_vision(args):
                     "clip_top": c["top"],
                 }
             except Exception as e:
+                last_err = f"{type(e).__name__}: {e}"
                 if attempt == 4:
-                    return row, {"verdict": "error", "reason": f"{type(e).__name__}: {e}"}
+                    break
                 time.sleep(min(5 * attempt, 30))
+        return row, {"verdict": "error", "reason": last_err}
 
+    # Sequentiell + as_completed: ThreadPool.map hat hier schon mehrfach gehängt
+    # (Rate-Limit / Connection), ohne sichtbaren Fortschritt.
+    from concurrent.futures import as_completed
     with ThreadPoolExecutor(max_workers=args.workers) as pool:
-        for n, (row, verdict) in enumerate(pool.map(judge, todo), 1):
-            with lock:
-                out[str(row["hero_id"])] = verdict
-                counts[verdict["verdict"]] = counts.get(verdict["verdict"], 0) + 1
-                if verdict["verdict"] == "bad":
-                    print(f"  BAD  {row['name_en']} ({row['place_type']}): {verdict['reason']}")
-                if n % 50 == 0:
-                    VISION_PATH.write_text(json.dumps(out, ensure_ascii=False, indent=1))
-                    print(f"  ... {n}/{len(todo)}", flush=True)
+        futures = {pool.submit(judge, item): item for item in todo}
+        for n, fut in enumerate(as_completed(futures), 1):
+            try:
+                result = fut.result(timeout=180)
+            except Exception as e:
+                item = futures[fut]
+                row = item[1]
+                result = row, {"verdict": "error", "reason": f"{type(e).__name__}: {e}"}
+            if not result:
+                continue
+            row, verdict = result
+            out[str(row["hero_id"])] = verdict
+            counts[verdict["verdict"]] = counts.get(verdict["verdict"], 0) + 1
+            if verdict["verdict"] == "bad":
+                print(f"  BAD  {row['name_en']} ({row['place_type']}): {verdict['reason']}",
+                      flush=True)
+            if n % 10 == 0 or n == len(todo):
+                VISION_PATH.write_text(json.dumps(out, ensure_ascii=False, indent=1))
+                print(f"  ... {n}/{len(todo)}  "
+                      f"(bad={counts['bad']} ok={counts['ok']} unsure={counts['unsure']} "
+                      f"err={counts['error']})", flush=True)
 
     VISION_PATH.write_text(json.dumps(out, ensure_ascii=False, indent=1))
-    print(f"\nFertig -> {VISION_PATH}")
-    print("  " + " | ".join(f"{k}: {v}" for k, v in counts.items() if v))
+    print(f"\nFertig -> {VISION_PATH}", flush=True)
+    print("  " + " | ".join(f"{k}: {v}" for k, v in counts.items() if v), flush=True)
 
 
 # --- Stufe: sheet ---------------------------------------------------------
@@ -527,27 +545,49 @@ def stage_sheet(args):
     clip = load_json(CLIP_PATH, {})
     vision = load_json(VISION_PATH, {})
 
+    from pexels_blacklist import load_blacklist, slug_from_filename
+    banned = load_blacklist()
+    banned_examples = []
+    for r in rows:
+        slug = slug_from_filename(r.get("storage_path") or "")
+        if slug and slug in banned:
+            c = clip.get(str(r["hero_id"]), {})
+            banned_examples.append((c.get("suspicion", 0), r["name_en"], c.get("top", "?")))
+    banned_examples.sort(reverse=True)
+
     candidates = open_rows(rows, include_inactive=not args.active_only)
     hidden = len(rows) - len(candidates)
 
+    ignore_vision = getattr(args, "ignore_vision", False)
     wanted = None if args.verdict == "all" else {v.strip() for v in args.verdict.split(",")}
+
+    # CLIP-Tops, die für Orte fast immer Klopper sind — auch bei niedriger
+    # Gesamtsuspicion in die Review aufnehmen (Namens-Kollisionen).
+    ALWAYS_FLAG_TOPS = {"animal", "portrait", "people", "food", "product",
+                        "graphic", "indoor", "abstract", "closeup"}
 
     items = []
     for row in candidates:
         hid = str(row["hero_id"])
-        v = vision.get(hid)
+        v = None if ignore_vision else vision.get(hid)
         c = clip.get(hid, {})
         verdict = v["verdict"] if v else None
         if wanted is not None and (verdict or "none") not in wanted:
             continue
-        if args.min_suspicion and c.get("suspicion", 0) < args.min_suspicion and not v:
+        sus = c.get("suspicion", 0.0)
+        top = c.get("top", "?")
+        force = ignore_vision and top in ALWAYS_FLAG_TOPS and sus >= 0.25
+        if args.min_suspicion and sus < args.min_suspicion and not v and not force:
             continue
+        # Force-Flag: Suspicion für Sortierung/Preselect anheben
+        if force and sus < args.preselect_suspicion:
+            sus = max(sus, args.preselect_suspicion)
         items.append({
             "row": row,
             "verdict": verdict,
             "reason": (v or {}).get("reason", ""),
-            "suspicion": c.get("suspicion", 0.0),
-            "top": c.get("top", "?"),
+            "suspicion": sus,
+            "top": top,
         })
 
     items.sort(key=lambda it: (
@@ -566,9 +606,14 @@ def stage_sheet(args):
         row = it["row"]
         verdict = it["verdict"] or "—"
         cls = it["verdict"] if it["verdict"] in CARD_ORDER else "error"
-        sel = " sel" if (it["verdict"] == "bad" and not args.no_preselect) else ""
+        preselect = (
+            it["verdict"] == "bad"
+            or (it["verdict"] is None and it["suspicion"] >= args.preselect_suspicion)
+        )
+        sel = " sel" if (preselect and not args.no_preselect) else ""
         sib = f" · {row['siblings']}x" if row["siblings"] > 1 else ""
         inactive = "" if row["is_active"] else " · inaktiv"
+        tag = verdict if it["verdict"] else it["top"]
         cards.append(f"""
 <div class="card{sel}" data-hero="{row['hero_id']}" data-name="{esc(row['name_en'])}" data-file="{esc(row['file'])}">
   <img src="cache/{esc(row['file'])}" loading="lazy">
@@ -576,17 +621,31 @@ def stage_sheet(args):
     <div class="name">{esc(row['name_en'])}<span class="check"></span></div>
     <div class="sub">{esc(row['country_code'])} · {esc(row['place_type'])}{sib}{inactive}</div>
     <div class="sub">clip {it['suspicion']:.2f} · {esc(it['top'])}</div>
-    <span class="tag {cls}">{esc(verdict)}</span>
+    <span class="tag {cls}">{esc(tag)}</span>
     <div class="sub">{esc(it['reason'])}</div>
   </div>
 </div>""")
 
-    n_bad = sum(1 for it in items if it["verdict"] == "bad")
+    n_sel = sum(1 for it in items if (
+        it["verdict"] == "bad"
+        or (it["verdict"] is None and it["suspicion"] >= args.preselect_suspicion)
+    ) and not args.no_preselect)
+    ex = ", ".join(f"{n} ({t})" for _, n, t in banned_examples[:8])
+    # Garantiert die bekannten Namens-Klopper nennen, falls blacklisted
+    must = [n for n in ("Alice", "Eagle Pass", "Eagle Mountain", "Chihuahua", "Red Deer")
+            if any(n == e[1] for e in banned_examples)]
+    if must:
+        ex = ", ".join(must) + (", " + ex if ex else "")
+    banned_note = (
+        f"{len(banned)} bereits permanent gesperrt — nicht gezeigt"
+        + (f": {ex}…" if ex else "")
+    )
     html = f"""<!doctype html><meta charset="utf-8"><title>Pexels-Audit</title>
 <style>{SHEET_CSS}</style>
 <div class="bar">
-  <h1>Pexels-Audit — {len(items)} Bilder, {n_bad} als "bad" eingestuft</h1>
-  <div class="sub">Klick = als schlecht markieren (rot). "bad" ist vorausgewählt.</div>
+  <h1>Pexels-Audit — {len(items)} Verdächtige, {n_sel} vorausgewählt</h1>
+  <div class="sub">Klick = umschalten. Rot = löschen. Speichern, dann apply.</div>
+  <div class="sub" style="color:#fca5a5;margin-top:4px">{esc(banned_note)}</div>
   <div style="margin-top:8px">
     <button id="save">Rejects speichern (<span id="count">0</span>)</button>
     <button class="ghost" id="none">Auswahl leeren</button>
@@ -600,6 +659,9 @@ def stage_sheet(args):
     print(f"{len(items)} Karten -> {SHEET_PATH}")
     if hidden:
         print(f"{hidden} bereits erledigte Bilder ausgeblendet (deaktiviert oder _no_pexels)")
+    if banned:
+        print(f"{len(banned)} permanent blacklisted — z.B. {ex}")
+        print("(Alice, Eagle Pass & Co. fehlen absichtlich: schon endgültig gelöscht)")
 
     if args.no_serve:
         print("Ohne Server: Auswahl landet als Download in ~/Downloads/rejects.txt")
@@ -713,28 +775,66 @@ def stage_apply(args):
     current = list(overrides.get("_no_pexels") or [])
     new_names = [n for n in sorted(by_name) if n not in current]
 
+    from pexels_blacklist import add_slugs, purge_local, slug_from_filename
+    slugs = set()
+    for _, path, _, _, _ in found:
+        s = slug_from_filename(path or "")
+        if s:
+            slugs.add(s)
+    # auch aus rejects.txt Dateinamen, falls DB-Row schon weg
+    for line in REJECTS_PATH.read_text().splitlines():
+        parts = line.split("\t")
+        if len(parts) >= 3:
+            s = slug_from_filename(parts[2])
+            if s:
+                slugs.add(s)
+
     if not args.apply:
-        print(f"\nDRY RUN — würde {len(found)} Rows auf is_active=false setzen")
+        print(f"\nDRY RUN — würde {len(found)} Rows löschen (Storage + DB)")
         print(f"DRY RUN — würde {len(new_names)} Namen in _no_pexels ergänzen: "
               f"{', '.join(new_names) if new_names else '—'}")
+        print(f"DRY RUN — würde {len(slugs)} Slugs permanent blacklisten: "
+              f"{', '.join(sorted(slugs)[:8])}{'…' if len(slugs) > 8 else ''}")
         print("\nMit --apply ausführen.")
         conn.close()
         return
 
+    # Storage weg — sonst holt der nächste Sync die Datei wieder in die DB
+    from supabase import create_client
+    sb = create_client(
+        os.environ["SUPABASE_URL"],
+        os.environ.get("SUPABASE_SERVICE_ROLE_KEY", os.environ["SUPABASE_ANON_KEY"]),
+    )
+    paths = [path for _, path, _, _, _ in found if path]
+    for i in range(0, len(paths), 100):
+        chunk = paths[i : i + 100]
+        try:
+            sb.storage.from_("dedicated").remove(chunk)
+        except Exception as e:
+            print(f"  Storage-Fehler: {e}")
+    print(f"{len(paths)} Storage-Dateien gelöscht")
+
     cur.execute(
-        "UPDATE place_hero_images SET is_active = false WHERE id = ANY(%s)",
+        "DELETE FROM place_hero_images WHERE id = ANY(%s)",
         (hero_ids,),
     )
-    updated = cur.rowcount
+    deleted = cur.rowcount
     conn.commit()
     conn.close()
 
     overrides["_no_pexels"] = current + new_names
     OVERRIDES_PATH.write_text(json.dumps(overrides, ensure_ascii=False, indent=2) + "\n")
 
-    print(f"\n{updated} Rows deaktiviert")
+    new_slugs = add_slugs(slugs)
+    purged = []
+    for s in sorted(slugs):
+        purged.extend(purge_local(s))
+
+    print(f"\n{deleted} DB-Rows gelöscht")
     print(f"{len(new_names)} Namen in _no_pexels ergänzt ({OVERRIDES_PATH.name})")
-    print("Die Orte fallen jetzt auf ein generisches Hero zurück.")
+    print(f"{len(new_slugs)} neue Slugs permanent blacklisted → pexels_audit/blacklist_slugs.txt")
+    print(f"{len(purged)} lokale Dateien gelöscht")
+    print("Diese Orte bekommen nie wieder Stock — auch nicht nach release.")
 
 
 # --- Stufe: release -------------------------------------------------------
@@ -747,30 +847,44 @@ def stage_release(args):
     """Verworfene Orte wieder für download_pexel.py freigeben.
 
     Löscht Row + Storage-Datei + lokale Kandidaten und nimmt den Ort aus
-    `_no_pexels`. Danach greift die normale Pipeline wieder:
-      download_pexel.py --relevant-only  ->  compare_compress.py
-      ->  upload_stock.py  ->  hero_publish.py --sync
+    `_no_pexels` — AUßER Orte deren image_slug auf der permanenten Blacklist steht
+    (pexels_audit/blacklist_slugs.txt). Die bleiben für immer gesperrt.
     """
     from supabase import create_client
+    from pexels_blacklist import load_blacklist
 
+    permanent = load_blacklist()
     overrides = json.loads(OVERRIDES_PATH.read_text())
-    names = [n for n in (overrides.get("_no_pexels") or []) if n not in KEEP_BLACKLISTED]
-    if not names:
-        sys.exit("Keine freizugebenden Orte in _no_pexels.")
+    keep = set(KEEP_BLACKLISTED)
 
     conn = db_conn()
     cur = conn.cursor()
+    # Welche Namen haben blacklisted Slugs? Die bleiben in _no_pexels.
+    if permanent:
+        cur.execute(
+            "SELECT name_en, image_slug FROM places WHERE image_slug = ANY(%s)",
+            (list(permanent),),
+        )
+        for name_en, slug in cur.fetchall():
+            keep.add(name_en)
+
+    names = [n for n in (overrides.get("_no_pexels") or []) if n not in keep]
+    if not names:
+        conn.close()
+        sys.exit("Keine freizugebenden Orte (Rest ist permanent blacklisted).")
+
     cur.execute(
         """
         SELECT phi.id, phi.storage_path, p.name_en, p.image_slug
         FROM place_hero_images phi JOIN places p ON p.id = phi.place_id
         WHERE p.name_en = ANY(%s) AND phi.storage_path ILIKE 'pexels/%%'
+          AND COALESCE(p.image_slug, '') <> ALL(%s)
         """,
-        (names,),
+        (names, list(permanent) or [""]),
     )
     targets = cur.fetchall()
 
-    slugs = sorted({slug for _, _, _, slug in targets if slug})
+    slugs = sorted({slug for _, _, _, slug in targets if slug and slug not in permanent})
     local = [
         p
         for slug in slugs
@@ -778,10 +892,9 @@ def stage_release(args):
         for p in Path(d).glob(f"{slug}_pexels_*.webp")
     ]
 
-    print(f"{len(names)} Orte freigeben")
+    print(f"{len(names)} Orte freigeben ({len(keep)} permanent gesperrt)")
     print(f"  {len(targets)} DB-Rows + Storage-Dateien löschen")
     print(f"  {len(local)} lokale Kandidaten löschen (pexels_output/, output/)")
-    print(f"  {len(names)} Namen aus _no_pexels entfernen")
 
     if not args.apply:
         print("\nDRY RUN — mit --apply ausführen.")
@@ -814,10 +927,11 @@ def stage_release(args):
         p.unlink(missing_ok=True)
     print(f"{len(local)} lokale Dateien gelöscht")
 
-    overrides["_no_pexels"] = [n for n in (overrides.get("_no_pexels") or [])
-                               if n in KEEP_BLACKLISTED]
+    overrides["_no_pexels"] = sorted(
+        {n for n in (overrides.get("_no_pexels") or []) if n in keep}
+    )
     OVERRIDES_PATH.write_text(json.dumps(overrides, ensure_ascii=False, indent=2) + "\n")
-    print(f"_no_pexels zurückgesetzt auf {overrides['_no_pexels']}")
+    print(f"_no_pexels behält {len(overrides['_no_pexels'])} permanente Einträge")
     print("\nJetzt: python3 download_pexel.py --relevant-only")
 
 
@@ -848,12 +962,30 @@ def main():
     p.add_argument("--verdict", default="bad,unsure",
                    help="Welche Urteile zeigen: bad,unsure (Default) | all | none | ok")
     p.add_argument("--min-suspicion", type=float, default=0.0)
+    p.add_argument("--preselect-suspicion", type=float, default=0.7,
+                   help="Ohne Vision-Urteil: ab diesem CLIP-Score vorauswählen")
     p.add_argument("--active-only", action="store_true", default=True)
     p.add_argument("--no-preselect", action="store_true",
-                   help='"bad" nicht vorauswählen')
+                   help="nichts vorauswählen")
     p.add_argument("--no-serve", action="store_true")
     p.add_argument("--port", type=int, default=8765)
     p.set_defaults(func=stage_sheet)
+
+    p = sub.add_parser("review", help="CLIP-Interface: Verdächtige durchklicken (kein Vision)")
+    p.add_argument("--min-suspicion", type=float, default=0.5)
+    p.add_argument("--preselect-suspicion", type=float, default=0.7)
+    p.add_argument("--limit", type=int)
+    p.add_argument("--port", type=int, default=8765)
+    p.add_argument("--no-serve", action="store_true")
+    def _review(a):
+        # Vision komplett ignorieren — auch error/ok-Einträge aus abgebrochenen
+        # Läufen dürfen CLIP-Verdächtige nicht ausblenden (Alice US-Bug).
+        a.verdict = "all"
+        a.active_only = True
+        a.no_preselect = False
+        a.ignore_vision = True
+        stage_sheet(a)
+    p.set_defaults(func=_review)
 
     p = sub.add_parser("apply", help="Rejects deaktivieren (Dry-Run ohne --apply)")
     p.add_argument("--apply", action="store_true", help="Wirklich schreiben")

@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Linking,
-  Image,
 } from 'react-native';
 import Constants from 'expo-constants';
 import { useFocusEffect } from '@react-navigation/native';
@@ -119,15 +118,9 @@ const SettingsScreen = ({ navigation }) => {
               style={[styles.settingItem, styles.rowBorder, rowBorder]}
               onPress={() => navigation.navigate('Profile')}
             >
-              {profile?.avatar_url ? (
-                <Image source={{ uri: profile.avatar_url }} style={styles.profileAvatar} />
-              ) : (
-                <View style={[styles.profileAvatar, styles.profileAvatarFallback, { backgroundColor: theme.primary }]}>
-                  <Text style={styles.profileAvatarInitial}>
-                    {(profile?.display_name || user?.email || '?')[0].toUpperCase()}
-                  </Text>
-                </View>
-              )}
+              <View style={[styles.profileAvatar, styles.profileAvatarFallback, { backgroundColor: theme.primary }]}>
+                <Ionicons name="sunny" size={22} color="#FFFFFF" />
+              </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.settingItemText, { color: theme.text }]}>
                   {profile?.display_name || user?.email}
@@ -386,11 +379,6 @@ const styles = StyleSheet.create({
   profileAvatarFallback: {
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  profileAvatarInitial: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#FFFFFF',
   },
   rowIconBubble: {
     width: 36,

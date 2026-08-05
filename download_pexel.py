@@ -406,6 +406,11 @@ meta = load_meta()
 not_found_slugs = set(meta.get("_not_found", []))
 no_relevant_slugs = set(meta.get("_no_relevant", []))
 
+from pexels_blacklist import load_blacklist
+blacklisted = load_blacklist()
+if blacklisted:
+    print(f"Permanente Blacklist: {len(blacklisted)} Slugs (werden übersprungen)")
+
 # Schon bearbeitete Orte zählen nicht gegen --limit:
 # lokale Kandidaten vorhanden, als NOT FOUND gemerkt, oder (im --relevant-only
 # Modus) schon ohne echten Treffer geprüft — sonst wählt die nach Attraktivität
@@ -419,7 +424,8 @@ if slug_filter is not None:
               f"oder Bild noch vorhanden): {', '.join(sorted(fehlend)[:5])} ...")
 rows = [
     r for r in rows
-    if not os.path.exists(os.path.join(OUT_DIR, f"{r[2]}_pexels_1.webp"))
+    if r[2] not in blacklisted
+    and not os.path.exists(os.path.join(OUT_DIR, f"{r[2]}_pexels_1.webp"))
     and (args.retry_not_found or r[2] not in not_found_slugs)
     and (args.retry_not_found or r[2] not in no_relevant_slugs)
 ]

@@ -2356,6 +2356,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         <View onLayout={(e) => { stopStayCardY.current = e.nativeEvent.layout.y; }}>
           <StopStayCard
             destination={destination}
+            placeId={effectivePlaceId}
             lang={i18n.language}
             onContentReady={handleStopStayContentReady}
           />

@@ -1,0 +1,26 @@
+---
+description: Scenic drives = driving (window_down + cruise_through), never beach/bikini
+alwaysApply: true
+---
+
+# Scenic drives: driving, not bathing
+
+## User rule (standing)
+
+For `place_type == scenic_drive` (Atlantic Road, Amalfi, PCH, Stelvio, …):
+
+1. **Always drive** — character sets include **`window_down`** and **`cruise_through`** (when `cruise_through_ok`; bare alpine/desert passes may drop cruise and keep window_down).
+2. **No swim / bikini / bathing** — no beach acts, no swimwear outfits, no Maya body-swim inject. Road clothes only.
+3. Do **not** suggest beach/SUP/kayak/towel activities or bikini framing for these places.
+
+Enforced in `generate_hero_images.py` (`pick_activity`, nature-pack scenic branch, outfit + swimwear gates).
+
+## Commands
+
+Prefer full character sets (fill to 5). Force only when debugging:
+
+```bash
+python3 generate_hero_images.py --eu --safe --character CHAR \
+  --only-ids PLACE_UUID \
+  --include-existing-cast --limit 1
+```

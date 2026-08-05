@@ -3,8 +3,9 @@ import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   Animated,
+  TouchableOpacity,
+  Platform,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -15,6 +16,26 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { getFavourites } from '../../usecases/favouritesUsecases';
 import { mixpanel } from '../../services/mixpanel';
 import { resolveIronicBadges } from '../../utils/ironicProgress';
+
+// Dev only: left/right arrows + filename on banner
+const HEADER_PREVIEW_SWITCH = __DEV__;
+
+const ACHIEVEMENTS_HEADER_IMAGES = [
+  require('../../../assets/achievements_header_1.jpg'),
+  require('../../../assets/achievements_header_2.jpg'),
+  require('../../../assets/achievements_header_3.jpg'),
+  require('../../../assets/achievements_header_4.jpg'),
+  require('../../../assets/achievements_header_5.jpg'),
+];
+const ACHIEVEMENTS_HEADER_NAMES = [
+  'achievements_header_1.jpg',
+  'achievements_header_2.jpg',
+  'achievements_header_3.jpg',
+  'achievements_header_4.jpg',
+  'achievements_header_5.jpg',
+];
+const BANNER_PARALLAX = 28;
+const BANNER_MIN_HEIGHT = 196;
 
 const SPARKLES = [
   { dx: -16, dy: -14, delay: 0, size: 11 },
@@ -40,7 +61,7 @@ function IronicBadgeRow({ badge, isNew, styles, theme, t }) {
         Animated.timing(scale, { toValue: 1.18, duration: 320, useNativeDriver: true }),
         Animated.timing(scale, { toValue: 1, duration: 320, useNativeDriver: true }),
       ]),
-      { iterations: 3 }
+      { iterations: 6 }
     );
     const sparkleBurst = Animated.stagger(
       50,
@@ -52,28 +73,41 @@ function IronicBadgeRow({ badge, isNew, styles, theme, t }) {
       )
     );
     const sparkleBurst2 = Animated.sequence([
-      Animated.delay(1100),
+      Animated.delay(1400),
       Animated.parallel(
         sparkleProgress.map((v) =>
           Animated.sequence([
             Animated.timing(v, { toValue: 0, duration: 0, useNativeDriver: true }),
-            Animated.timing(v, { toValue: 1, duration: 850, useNativeDriver: true }),
+            Animated.timing(v, { toValue: 1, duration: 900, useNativeDriver: true }),
+          ])
+        )
+      ),
+    ]);
+    const sparkleBurst3 = Animated.sequence([
+      Animated.delay(3200),
+      Animated.parallel(
+        sparkleProgress.map((v) =>
+          Animated.sequence([
+            Animated.timing(v, { toValue: 0, duration: 0, useNativeDriver: true }),
+            Animated.timing(v, { toValue: 1, duration: 900, useNativeDriver: true }),
           ])
         )
       ),
     ]);
     const fade = Animated.sequence([
-      Animated.delay(2600),
-      Animated.timing(highlightOpacity, { toValue: 0, duration: 700, useNativeDriver: true }),
+      Animated.delay(6000),
+      Animated.timing(highlightOpacity, { toValue: 0, duration: 900, useNativeDriver: true }),
     ]);
     pulse.start();
     sparkleBurst.start();
     sparkleBurst2.start();
+    sparkleBurst3.start();
     fade.start();
     return () => {
       pulse.stop();
       sparkleBurst.stop();
       sparkleBurst2.stop();
+      sparkleBurst3.stop();
       fade.stop();
       scale.setValue(1);
     };
@@ -81,9 +115,25 @@ function IronicBadgeRow({ badge, isNew, styles, theme, t }) {
 
   const showIcon = badge.earned || badge.showProgress;
   const iconName = showIcon ? badge.icon : 'lock-closed-outline';
-  const iconColor = badge.earned || badge.showProgress
+  const progressCount = badge.descParams?.count;
+  const inProgress =
+    !badge.earned &&
+    !!badge.showProgress &&
+    typeof progressCount === 'number' &&
+    progressCount > 0;
+  const iconColor = badge.earned || inProgress
     ? theme.primary
     : (theme.textTertiary || theme.textSecondary);
+
+  const progressTotal = badge.descParams?.total;
+  const showProgressBar =
+    typeof progressCount === 'number' &&
+    typeof progressTotal === 'number' &&
+    progressTotal > 0 &&
+    (badge.earned || badge.showProgress);
+  const progressRatio = showProgressBar
+    ? Math.min(1, Math.max(0, progressCount / progressTotal))
+    : 0;
 
   return (
     <View style={[styles.badgeRow, badge.earned && styles.badgeRowEarned]}>
@@ -101,7 +151,7 @@ function IronicBadgeRow({ badge, isNew, styles, theme, t }) {
           style={[
             styles.iconBubble,
             badge.earned && styles.iconBubbleEarned,
-            badge.showProgress && !badge.earned && styles.iconBubbleProgress,
+            inProgress && styles.iconBubbleProgress,
             { transform: [{ scale }] },
           ]}
         >
@@ -159,16 +209,34 @@ function IronicBadgeRow({ badge, isNew, styles, theme, t }) {
         <Text
           style={[
             styles.badgeName,
-            !badge.earned && !badge.showProgress && styles.badgeNameLocked,
-            (badge.earned || isNew) && styles.badgeNameEarned,
+            badge.earned || isNew
+              ? styles.badgeNameEarned
+              : inProgress
+                ? styles.badgeNameProgress
+                : styles.badgeNameLocked,
           ]}
         >
           {t(badge.nameKey)}
         </Text>
         {(badge.earned || badge.showProgress) && (
-          <Text style={[styles.badgeDesc, badge.showProgress && !badge.earned && styles.badgeDescProgress]}>
+          <Text style={[styles.badgeDesc, inProgress && styles.badgeDescProgress]}>
             {badge.descParams ? t(badge.descKey, badge.descParams) : t(badge.descKey)}
           </Text>
+        )}
+        {showProgressBar && (
+          <View style={styles.progressTrack}>
+            <View
+              style={[
+                styles.progressFill,
+                {
+                  width: `${progressRatio * 100}%`,
+                  backgroundColor: badge.earned
+                    ? theme.primary
+                    : theme.primaryLight || theme.primary,
+                },
+              ]}
+            />
+          </View>
         )}
       </View>
     </View>
@@ -181,17 +249,21 @@ export default function AchievementsScreen() {
   const { t } = useTranslation();
   const [ironicBadges, setIronicBadges] = useState([]);
   const [newlyEarnedIds, setNewlyEarnedIds] = useState([]);
+  const [headerIndex, setHeaderIndex] = useState(0);
   const styles = useMemo(() => createStyles(theme), [theme]);
 
   useEffect(() => {
     if (newlyEarnedIds.length === 0) return undefined;
-    const timer = setTimeout(() => setNewlyEarnedIds([]), 4000);
+    const timer = setTimeout(() => setNewlyEarnedIds([]), 8000);
     return () => clearTimeout(timer);
   }, [newlyEarnedIds]);
 
   useFocusEffect(
     useCallback(() => {
       let active = true;
+      if (!HEADER_PREVIEW_SWITCH) {
+        setHeaderIndex(Math.floor(Math.random() * ACHIEVEMENTS_HEADER_IMAGES.length));
+      }
       const load = async () => {
         let favCount = 0;
         try {
@@ -228,53 +300,136 @@ export default function AchievementsScreen() {
   );
 
   const earnedCount = ironicBadges.filter((b) => b.earned).length;
+  const earlyBadges = ironicBadges.filter((b) => b.group !== 'later');
+  const laterBadges = ironicBadges.filter((b) => b.group === 'later');
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const bannerImageTranslateY = scrollY.interpolate({
+    inputRange: [-80, 0, 180],
+    outputRange: [-BANNER_PARALLAX * 0.6, 0, BANNER_PARALLAX],
+    extrapolate: 'clamp',
+  });
+  const bannerImageScale = scrollY.interpolate({
+    inputRange: [-80, 0],
+    outputRange: [1.08, 1],
+    extrapolate: 'clamp',
+  });
+
+  const renderBadgeCard = (badges) => (
+    <View style={styles.badgesCard}>
+      {badges.map((badge, i) => (
+        <View key={badge.id}>
+          {i > 0 && <View style={styles.divider} />}
+          <IronicBadgeRow
+            badge={badge}
+            isNew={newlyEarnedIds.includes(badge.id)}
+            styles={styles}
+            theme={theme}
+            t={t}
+          />
+        </View>
+      ))}
+    </View>
+  );
 
   return (
-    <ScrollView
+    <Animated.ScrollView
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
       showsHorizontalScrollIndicator={false}
+      scrollEventThrottle={16}
+      onScroll={Animated.event(
+        [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+        { useNativeDriver: true }
+      )}
     >
-      <LinearGradient
-        colors={[theme.primaryDark || theme.primary, theme.primary, theme.primaryLight || theme.primary]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.banner}
-      >
-        <View style={styles.bannerIconWrap}>
-          <Ionicons name="trophy" size={28} color="#FFFFFF" />
-        </View>
-        <Text style={styles.bannerTitle}>{t('profile.badgesBannerTitle')}</Text>
-        <Text style={styles.bannerSubtitle}>{t('profile.badgesBannerSubtitle')}</Text>
-        {ironicBadges.length > 0 ? (
-          <View style={styles.bannerScorePill}>
-            <Text style={styles.bannerScoreText}>
-              {earnedCount} / {ironicBadges.length} {t('profile.badgesUnlockedSuffix')}
-            </Text>
+      <View style={styles.banner}>
+        <Animated.Image
+          source={ACHIEVEMENTS_HEADER_IMAGES[headerIndex]}
+          style={[
+            styles.bannerImage,
+            {
+              transform: [
+                { translateY: bannerImageTranslateY },
+                { scale: bannerImageScale },
+              ],
+            },
+          ]}
+          resizeMode="cover"
+        />
+        <LinearGradient
+          pointerEvents="none"
+          colors={['rgba(0,0,0,0.04)', 'rgba(0,0,0,0.12)', 'rgba(0,0,0,0.32)']}
+          locations={[0, 0.4, 1]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.bannerScrim}
+        />
+        <View style={styles.bannerContent}>
+          <View style={styles.bannerTitleRow}>
+            <Ionicons name="trophy" size={16} color="#FFFFFF" style={styles.bannerTitleIcon} />
+            <Text style={styles.bannerTitle}>{t('profile.badgesBannerTitle')}</Text>
           </View>
-        ) : (
-          <Text style={styles.bannerHint}>{t('settings.achievementsTeaserHint')}</Text>
-        )}
-      </LinearGradient>
-
-      {ironicBadges.length > 0 && (
-        <View style={styles.badgesCard}>
-          {ironicBadges.map((badge, i) => (
-            <View key={badge.id}>
-              {i > 0 && <View style={styles.divider} />}
-              <IronicBadgeRow
-                badge={badge}
-                isNew={newlyEarnedIds.includes(badge.id)}
-                styles={styles}
-                theme={theme}
-                t={t}
-              />
+          <Text style={styles.bannerSubtitle}>
+            {t('profile.badgesBannerSubtitle')}
+          </Text>
+          {ironicBadges.length > 0 ? (
+            <View style={styles.bannerScorePill}>
+              <Text style={styles.bannerScoreText}>
+                {earnedCount} / {ironicBadges.length} {t('profile.badgesUnlockedSuffix')}
+              </Text>
             </View>
-          ))}
+          ) : (
+            <Text style={styles.bannerHint}>{t('settings.achievementsTeaserHint')}</Text>
+          )}
+        </View>
+        {HEADER_PREVIEW_SWITCH && (
+          <>
+            <TouchableOpacity
+              style={[styles.headerNavBtn, styles.headerNavLeft]}
+              onPress={() =>
+                setHeaderIndex(
+                  (i) =>
+                    (i - 1 + ACHIEVEMENTS_HEADER_IMAGES.length) %
+                    ACHIEVEMENTS_HEADER_IMAGES.length
+                )
+              }
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.headerNavBtn, styles.headerNavRight]}
+              onPress={() =>
+                setHeaderIndex((i) => (i + 1) % ACHIEVEMENTS_HEADER_IMAGES.length)
+              }
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Ionicons name="chevron-forward" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+            <View style={styles.headerFilePill} pointerEvents="none">
+              <Text style={styles.headerFileText}>
+                {headerIndex + 1}/{ACHIEVEMENTS_HEADER_IMAGES.length}{' '}
+                {ACHIEVEMENTS_HEADER_NAMES[headerIndex]}
+              </Text>
+            </View>
+          </>
+        )}
+      </View>
+
+      {earlyBadges.length > 0 && (
+        <View style={styles.badgeSection}>
+          <Text style={styles.sectionTitle}>{t('profile.badgesGroupEarly')}</Text>
+          {renderBadgeCard(earlyBadges)}
         </View>
       )}
-    </ScrollView>
+      {laterBadges.length > 0 && (
+        <View style={styles.badgeSection}>
+          <Text style={styles.sectionTitle}>{t('profile.badgesGroupLater')}</Text>
+          {renderBadgeCard(laterBadges)}
+        </View>
+      )}
+    </Animated.ScrollView>
   );
 }
 
@@ -291,20 +446,43 @@ const createStyles = (theme) =>
     },
     banner: {
       borderRadius: 16,
-      paddingVertical: 16,
-      paddingHorizontal: 18,
       marginBottom: 14,
-      alignItems: 'center',
       overflow: 'hidden',
+      backgroundColor: '#1a1a1a',
+      minHeight: BANNER_MIN_HEIGHT,
     },
-    bannerIconWrap: {
-      width: 44,
-      height: 44,
-      borderRadius: 22,
-      backgroundColor: 'rgba(255,255,255,0.18)',
+    bannerImage: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: -BANNER_PARALLAX,
+      height: BANNER_MIN_HEIGHT + BANNER_PARALLAX * 2,
+      width: '100%',
+    },
+    bannerScrim: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    bannerContent: {
+      minHeight: BANNER_MIN_HEIGHT,
+      paddingTop: 22,
+      paddingBottom: 16,
+      paddingHorizontal: 18,
+      alignItems: 'center',
+      justifyContent: 'flex-start',
+      zIndex: 1,
+    },
+    bannerTitleRow: {
+      flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: 8,
+      gap: 7,
+      paddingHorizontal: 4,
+    },
+    bannerTitleIcon: {
+      marginTop: 1,
+      textShadowColor: 'rgba(0,0,0,0.45)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 4,
     },
     bannerTitle: {
       fontSize: 20,
@@ -312,17 +490,20 @@ const createStyles = (theme) =>
       color: '#FFFFFF',
       textAlign: 'center',
       letterSpacing: -0.3,
+      textShadowColor: 'rgba(0,0,0,0.45)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 4,
     },
     bannerSubtitle: {
-      marginTop: 4,
+      marginTop: 12,
       fontSize: 13,
-      lineHeight: 17,
+      lineHeight: 19,
       color: 'rgba(255,255,255,0.88)',
       textAlign: 'center',
       paddingHorizontal: 4,
     },
     bannerScorePill: {
-      marginTop: 10,
+      marginTop: 'auto',
       paddingHorizontal: 14,
       paddingVertical: 8,
       borderRadius: 12,
@@ -334,10 +515,57 @@ const createStyles = (theme) =>
       color: '#FFFFFF',
     },
     bannerHint: {
-      marginTop: 16,
+      marginTop: 'auto',
       fontSize: 13,
       color: 'rgba(255,255,255,0.8)',
       textAlign: 'center',
+    },
+    headerNavBtn: {
+      position: 'absolute',
+      top: '50%',
+      marginTop: -18,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: 'rgba(0,0,0,0.45)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 2,
+    },
+    headerNavLeft: {
+      left: 8,
+    },
+    headerNavRight: {
+      right: 8,
+    },
+    headerFilePill: {
+      position: 'absolute',
+      left: 10,
+      right: 10,
+      bottom: 8,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 8,
+      backgroundColor: 'rgba(0,0,0,0.55)',
+      zIndex: 2,
+    },
+    headerFileText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: '#FFFFFF',
+      textAlign: 'center',
+      fontFamily: Platform?.OS === 'ios' ? 'Menlo' : 'monospace',
+    },
+    badgeSection: {
+      marginBottom: 14,
+    },
+    sectionTitle: {
+      fontSize: 16,
+      fontWeight: '700',
+      color: theme.textSecondary,
+      marginBottom: 8,
+      marginLeft: 4,
+      letterSpacing: 0.2,
     },
     badgesCard: {
       backgroundColor: theme.cardBackground || theme.surface,
@@ -404,7 +632,11 @@ const createStyles = (theme) =>
     },
     badgeNameLocked: {
       fontWeight: '600',
-      color: theme.textSecondary,
+      color: theme.textTertiary || theme.textSecondary,
+    },
+    badgeNameProgress: {
+      fontWeight: '700',
+      color: theme.text,
     },
     badgeNameEarned: {
       color: theme.primaryDark || theme.primary,
@@ -421,5 +653,16 @@ const createStyles = (theme) =>
       fontStyle: 'normal',
       fontWeight: '500',
       color: theme.text,
+    },
+    progressTrack: {
+      marginTop: 8,
+      height: 4,
+      borderRadius: 2,
+      backgroundColor: theme.border ? `${theme.border}55` : 'rgba(0,0,0,0.08)',
+      overflow: 'hidden',
+    },
+    progressFill: {
+      height: '100%',
+      borderRadius: 2,
     },
   });

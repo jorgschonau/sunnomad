@@ -1,12 +1,12 @@
-import React, { useState, useCallback, useMemo } from 'react';
+import React, { useState, useCallback, useMemo, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  ScrollView,
   Alert,
-  Image,
+  Animated,
+  Platform,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -18,12 +18,37 @@ import { getFavourites } from '../../usecases/favouritesUsecases';
 import { mixpanel } from '../../services/mixpanel';
 import { getFakeLevel, resolveIronicBadges } from '../../utils/ironicProgress';
 
+// Dev only: left/right arrows + filename on banner
+const HEADER_PREVIEW_SWITCH = __DEV__;
+
+const PROFILE_HEADER_IMAGES = [
+  require('../../../assets/profile_header_1.jpg'),
+  require('../../../assets/profile_header_2.jpg'),
+  require('../../../assets/profile_header_3.jpg'),
+  require('../../../assets/profile_header_4.jpg'),
+  require('../../../assets/profile_header_5.jpg'),
+  require('../../../assets/profile_header_6.jpg'),
+  require('../../../assets/profile_header_7.jpg'),
+];
+const PROFILE_HEADER_NAMES = [
+  'profile_header_1.jpg',
+  'profile_header_2.jpg',
+  'profile_header_3.jpg',
+  'profile_header_4.jpg',
+  'profile_header_5.jpg',
+  'profile_header_6.jpg',
+  'profile_header_7.jpg',
+];
+const BANNER_PARALLAX = 28;
+const BANNER_MIN_HEIGHT = 196;
+
 export default function ProfileScreen({ navigation }) {
   const { user, profile, signOut, deleteAccount, isAuthenticated } = useAuth();
   const { theme } = useTheme();
   const { t } = useTranslation();
   const [favouriteCount, setFavouriteCount] = useState(0);
   const [badgeProgress, setBadgeProgress] = useState(null);
+  const [headerIndex, setHeaderIndex] = useState(0);
   const ironicStreakKey = useMemo(
     () => `profile.ironicStreak${1 + Math.floor(Math.random() * 4)}`,
     []
@@ -36,6 +61,10 @@ export default function ProfileScreen({ navigation }) {
   useFocusEffect(
     useCallback(() => {
       let active = true;
+      if (!HEADER_PREVIEW_SWITCH) {
+        setHeaderIndex(Math.floor(Math.random() * PROFILE_HEADER_IMAGES.length));
+      }
+
       mixpanel.track('Profile Opened');
       const loadCount = async () => {
         let favCount = 0;
@@ -113,6 +142,17 @@ export default function ProfileScreen({ navigation }) {
   };
 
   const styles = useMemo(() => createStyles(theme), [theme]);
+  const scrollY = useRef(new Animated.Value(0)).current;
+  const bannerImageTranslateY = scrollY.interpolate({
+    inputRange: [-80, 0, 180],
+    outputRange: [-BANNER_PARALLAX * 0.6, 0, BANNER_PARALLAX],
+    extrapolate: 'clamp',
+  });
+  const bannerImageScale = scrollY.interpolate({
+    inputRange: [-80, 0],
+    outputRange: [1.08, 1],
+    extrapolate: 'clamp',
+  });
 
   if (!isAuthenticated) {
     return (
@@ -133,46 +173,89 @@ export default function ProfileScreen({ navigation }) {
   }
 
   return (
-    <ScrollView
+    <Animated.ScrollView
       style={styles.container}
       contentContainerStyle={styles.scrollContent}
       showsVerticalScrollIndicator={false}
       showsHorizontalScrollIndicator={false}
+      scrollEventThrottle={16}
+      onScroll={Animated.event(
+        [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+        { useNativeDriver: true }
+      )}
     >
-      <LinearGradient
-        colors={[theme.primaryDark || theme.primary, theme.primary, theme.primaryLight || theme.primary]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.banner}
-      >
-        <View style={styles.avatarRing}>
-          {profile?.avatar_url ? (
-            <Image source={{ uri: profile.avatar_url }} style={styles.avatar} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Text style={styles.avatarText}>
-                {profile?.display_name?.[0]?.toUpperCase() || user?.email?.[0]?.toUpperCase() || '?'}
-              </Text>
-            </View>
+      <View style={styles.banner}>
+        <Animated.Image
+          source={PROFILE_HEADER_IMAGES[headerIndex]}
+          style={[
+            styles.bannerImage,
+            {
+              transform: [
+                { translateY: bannerImageTranslateY },
+                { scale: bannerImageScale },
+              ],
+            },
+          ]}
+          resizeMode="cover"
+        />
+        <LinearGradient
+          pointerEvents="none"
+          colors={['rgba(0,0,0,0.04)', 'rgba(0,0,0,0.12)', 'rgba(0,0,0,0.32)']}
+          locations={[0, 0.4, 1]}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.bannerScrim}
+        />
+        <View style={styles.bannerContent}>
+          <Text style={styles.displayName}>{profile?.display_name || user?.email}</Text>
+          <View style={styles.levelPill}>
+            <Text style={styles.fakeLevel}>
+              {t('profile.fakeLevelLine', { level: fakeLevel.level, name: t(fakeLevel.nameKey) })}
+            </Text>
+          </View>
+          {fakeLevel.nextNameKey && (
+            <Text style={styles.fakeLevelNext}>
+              {t('profile.fakeLevelNext', { name: t(fakeLevel.nextNameKey) })}
+            </Text>
+          )}
+          {profile?.app_open_count > 0 && (
+            <Text style={styles.ironicStreak}>
+              {t(ironicStreakKey, { count: profile.app_open_count })}
+            </Text>
           )}
         </View>
-        <Text style={styles.displayName}>{profile?.display_name || user?.email}</Text>
-        <View style={styles.levelPill}>
-          <Text style={styles.fakeLevel}>
-            {t('profile.fakeLevelLine', { level: fakeLevel.level, name: t(fakeLevel.nameKey) })}
-          </Text>
-        </View>
-        {fakeLevel.nextNameKey && (
-          <Text style={styles.fakeLevelNext}>
-            {t('profile.fakeLevelNext', { name: t(fakeLevel.nextNameKey) })}
-          </Text>
+        {HEADER_PREVIEW_SWITCH && (
+          <>
+            <TouchableOpacity
+              style={[styles.headerNavBtn, styles.headerNavLeft]}
+              onPress={() =>
+                setHeaderIndex(
+                  (i) =>
+                    (i - 1 + PROFILE_HEADER_IMAGES.length) % PROFILE_HEADER_IMAGES.length
+                )
+              }
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.headerNavBtn, styles.headerNavRight]}
+              onPress={() =>
+                setHeaderIndex((i) => (i + 1) % PROFILE_HEADER_IMAGES.length)
+              }
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Ionicons name="chevron-forward" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+            <View style={styles.headerFilePill} pointerEvents="none">
+              <Text style={styles.headerFileText}>
+                {headerIndex + 1}/{PROFILE_HEADER_IMAGES.length}{' '}
+                {PROFILE_HEADER_NAMES[headerIndex]}
+              </Text>
+            </View>
+          </>
         )}
-        {profile?.app_open_count > 0 && (
-          <Text style={styles.ironicStreak}>
-            {t(ironicStreakKey, { count: profile.app_open_count })}
-          </Text>
-        )}
-      </LinearGradient>
+      </View>
 
       {/* Stats Card */}
       <View style={styles.statsCard}>
@@ -256,7 +339,7 @@ export default function ProfileScreen({ navigation }) {
       <TouchableOpacity style={styles.signOutLink} onPress={handleDeleteAccount}>
         <Text style={styles.deleteAccountText}>{t('profile.deleteAccount')}</Text>
       </TouchableOpacity>
-    </ScrollView>
+    </Animated.ScrollView>
   );
 }
 
@@ -312,39 +395,30 @@ const createStyles = (theme) =>
     // ── Banner ──
     banner: {
       borderRadius: 16,
-      paddingVertical: 16,
-      paddingHorizontal: 18,
       marginBottom: 14,
-      alignItems: 'center',
       overflow: 'hidden',
+      backgroundColor: '#1a1a1a',
+      minHeight: BANNER_MIN_HEIGHT,
     },
-    avatarRing: {
-      width: 64,
-      height: 64,
-      borderRadius: 32,
-      padding: 2,
-      backgroundColor: 'rgba(255,255,255,0.35)',
-      marginBottom: 8,
+    bannerImage: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      top: -BANNER_PARALLAX,
+      height: BANNER_MIN_HEIGHT + BANNER_PARALLAX * 2,
+      width: '100%',
+    },
+    bannerScrim: {
+      ...StyleSheet.absoluteFillObject,
+    },
+    bannerContent: {
+      minHeight: BANNER_MIN_HEIGHT,
+      paddingTop: 22,
+      paddingBottom: 16,
+      paddingHorizontal: 18,
       alignItems: 'center',
-      justifyContent: 'center',
-    },
-    avatar: {
-      width: 60,
-      height: 60,
-      borderRadius: 30,
-    },
-    avatarPlaceholder: {
-      width: 60,
-      height: 60,
-      borderRadius: 30,
-      backgroundColor: 'rgba(255,255,255,0.22)',
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
-    avatarText: {
-      fontSize: 24,
-      fontWeight: '800',
-      color: '#FFFFFF',
+      justifyContent: 'flex-start',
+      zIndex: 1,
     },
     displayName: {
       fontSize: 20,
@@ -352,9 +426,12 @@ const createStyles = (theme) =>
       color: '#FFFFFF',
       textAlign: 'center',
       letterSpacing: -0.3,
+      textShadowColor: 'rgba(0,0,0,0.45)',
+      textShadowOffset: { width: 0, height: 1 },
+      textShadowRadius: 4,
     },
     levelPill: {
-      marginTop: 8,
+      marginTop: 12,
       paddingHorizontal: 10,
       paddingVertical: 4,
       borderRadius: 10,
@@ -369,17 +446,53 @@ const createStyles = (theme) =>
     fakeLevelNext: {
       fontSize: 11,
       color: 'rgba(255,255,255,0.8)',
-      marginTop: 4,
+      marginTop: 6,
       textAlign: 'center',
     },
     ironicStreak: {
       fontSize: 12,
       fontStyle: 'italic',
       color: 'rgba(255,255,255,0.85)',
-      marginTop: 6,
+      marginTop: 'auto',
       textAlign: 'center',
       lineHeight: 16,
       paddingHorizontal: 4,
+    },
+    headerNavBtn: {
+      position: 'absolute',
+      top: '50%',
+      marginTop: -18,
+      width: 36,
+      height: 36,
+      borderRadius: 18,
+      backgroundColor: 'rgba(0,0,0,0.45)',
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 2,
+    },
+    headerNavLeft: {
+      left: 8,
+    },
+    headerNavRight: {
+      right: 8,
+    },
+    headerFilePill: {
+      position: 'absolute',
+      left: 10,
+      right: 10,
+      bottom: 8,
+      paddingHorizontal: 10,
+      paddingVertical: 5,
+      borderRadius: 8,
+      backgroundColor: 'rgba(0,0,0,0.55)',
+      zIndex: 2,
+    },
+    headerFileText: {
+      fontSize: 11,
+      fontWeight: '600',
+      color: '#FFFFFF',
+      textAlign: 'center',
+      fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
     },
 
     // ── Stats Card ──

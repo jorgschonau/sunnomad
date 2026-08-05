@@ -7,6 +7,7 @@ import numpy as np
 from PIL import Image
 
 from stock_image_score import place_key_from_filename, score_candidate
+from pexels_blacklist import load_blacklist
 
 UNSPLASH_DIR = "./unsplash_output"
 PEXELS_DIR   = "./pexels_output"
@@ -104,8 +105,12 @@ def main():
             key = place_key_from_filename(fname)
             places.setdefault(key, []).append(os.path.join(folder, fname))
 
-    skipped_all, processed, rejected_low, already_done = 0, 0, 0, 0
+    skipped_all, processed, rejected_low, already_done, blacklisted_n = 0, 0, 0, 0, 0
+    banned = load_blacklist()
     for key, candidates in sorted(places.items()):
+        if key in banned:
+            blacklisted_n += 1
+            continue
         if not args.force and os.path.exists(os.path.join(OUTPUT_DIR, f"{key}_pexels_1.webp")):
             already_done += 1
             continue
@@ -147,7 +152,8 @@ def main():
 
     print(
         f"\nDone: {processed} processed, {already_done} already in output/, "
-        f"{skipped_all} no candidates, {rejected_low} rejected (score too low)"
+        f"{blacklisted_n} blacklisted, {skipped_all} no candidates, "
+        f"{rejected_low} rejected (score too low)"
     )
 
 

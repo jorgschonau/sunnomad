@@ -17,10 +17,29 @@ alwaysApply: true
 - Do not bundle "production" flags (`--no-dry-run`, sometimes `--no-review`) just because the task sounds like a batch or top-10 run.
 - Upload / DB / filename behavior for `--no-dry-run` only if the user asks — not proactively.
 
+## Framing — character small (mandatory)
+
+- Hero/activity shots: character **max ~25–30% frame height**; place dominates. Never medium/portrait crop of the char filling half the frame (esp. `sunset_wine`, beach overlooks, coastal mains).
+- Enforced in code via `MAIN_FRAMING_LOCK` / `ACTIVITY_FRAMING_LOCK` — default activity pct is 18–28%, not 50%.
+
+## Vehicle / shore cover-up (mandatory)
+
+- At the car/van/bike (`park_with_view`, `window_down`, tire/roadside/van beats): character is **arriving or leaving** — never 100% swimwear. Coastal default: transitional cover-up (beach shirt, beach dress, sarong over swim).
+- Beach **biergarten / sunset_beer / sunset_wine**: ~50% cover-up over swim (`SHORE_COVERUP_OUTFIT_LOCK`), ~50% beach/swim ok.
+
+## Batch place selection = live DB + local mains (mandatory)
+
+- **Always** suggest live DB selection for fill batches: `--safe --limit N`.
+- Explicit alias: `--missing-cast` (same query).
+- Skip = active human cast in `place_hero_images` **or** cast `*_main*.webp` already in `~/sunnomad_output` (dry-run counts as done).
+- **Never** suggest `/tmp/hero_batch_*.txt`, attractiveness ID dumps, or `--only-ids "$(cat …)"` for top-N fill — those go stale and re-queue places that already have cast.
+- `--only-ids` only for targeted regen of known UUIDs (with `--character` / `--place` / `--include-existing-cast` as needed).
+- Turkish `ı` in names must fold to `i` (slug); otherwise files won't match `image_slug` / sync.
+
 ## EU / US flags (separate from dry-run)
 
-- EU batch: `--safe --eu` only.
-- US batch: `--safe --us`.
+- EU batch: `--safe --eu --limit N` only.
+- US batch: `--safe --us --limit N`.
 - **Never suggest `--continental`** in batch commands — continental premium is auto-selected by `pick_premium_layer` (or not). Only add `--continental` if the user explicitly asks to force it.
 - Same for other premium flags (`--noir`, `--viper`, `--eclipse`, `--sidewinder`, etc.) — auto or user-request only, not in default batch suggestions.
 - Activities are on by default; use `--no-activities` to skip (do not add `--activity`).

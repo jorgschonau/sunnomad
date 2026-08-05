@@ -18,6 +18,17 @@ SHOT_MARKERS = (
 
 
 def ascii_fold(s: str) -> str:
+    """Fold to ASCII. Nordic ø/æ/å must map explicitly — NFKD does not decompose them."""
+    _NORDIC = str.maketrans({
+        "ø": "o", "Ø": "O",
+        "æ": "ae", "Æ": "AE",
+        "å": "a", "Å": "A",
+        "ä": "a", "Ä": "A",
+        "ö": "o", "Ö": "O",
+        "ü": "u", "Ü": "U",
+        "ß": "ss",
+    })
+    s = s.translate(_NORDIC)
     return unicodedata.normalize("NFKD", s).encode("ascii", "ignore").decode("ascii")
 
 
@@ -29,6 +40,7 @@ def has_shot_type(stem: str) -> bool:
 
 
 def clean_stem(stem: str) -> str:
+    stem = re.sub(r" \(\d+\)$", "", stem)
     if stem.lower().startswith("sunnomad_"):
         stem = stem[9:]
     stem = re.sub(r"_\d{6}$", "", stem)
@@ -81,6 +93,24 @@ def assign_unique_names(planned: list[tuple[Path, str]]) -> list[tuple[Path, str
     return result
 
 
+def fix_browser_dupes(folder: Path) -> int:
+    """Rename 'file (1).webp' → 'file.webp' or drop if target already exists."""
+    fixed = 0
+    for f in sorted(folder.glob("*.webp")):
+        m = re.match(r"^(.+) \(\d+\)$", f.stem)
+        if not m:
+            continue
+        target = folder / f"{m.group(1)}.webp"
+        if target.exists() and target != f:
+            f.unlink()
+            print(f"  deleted dupe {f.name}")
+        else:
+            f.rename(target)
+            print(f"  {f.name} -> {target.name}")
+        fixed += 1
+    return fixed
+
+
 def main():
     parser = argparse.ArgumentParser(description="Normalize sunnomad_output filenames")
     parser.add_argument("--apply", action="store_true", help="Rename files (default: dry-run)")
@@ -90,6 +120,10 @@ def main():
     folder = args.dir.expanduser()
     if not folder.is_dir():
         raise SystemExit(f"Not a directory: {folder}")
+
+    dupes = fix_browser_dupes(folder) if args.apply else 0
+    if not args.apply:
+        dupes = sum(1 for f in folder.glob("*.webp") if re.search(r" \(\d+\)\.webp$", f.name, re.I))
 
     existing = {f.name for f in folder.glob("*.webp")}
     raw_plan: list[tuple[Path, str]] = []
@@ -114,7 +148,10 @@ def main():
             dst = f"{stem}_{n}.{ext}"
         final.append((src, dst))
 
-    print(f"{'APPLY' if args.apply else 'DRY-RUN'} — {len(final)} renames in {folder}\n")
+    print(f"{'APPLY' if args.apply else 'DRY-RUN'} — {len(final)} renames in {folder}")
+    if dupes:
+        print(f"  browser dupes: {dupes}")
+    print()
     for src, dst in final[:40]:
         print(f"  {src.name}\n    -> {dst}")
     if len(final) > 40:

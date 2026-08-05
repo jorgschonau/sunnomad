@@ -65,21 +65,33 @@ export const hybridSearch = async (query, center, language = 'de') => {
 };
 
 /**
- * Search the places table by name, sorted by distance to center.
+ * Search the places table by name.
+ * Exact / prefix matches win over pure distance — otherwise a US map center
+ * drops "Berlin" DE after re-sorting the attractiveness top-N by distance.
  */
 async function searchDB(query, center, language = 'en') {
   try {
     const pattern = `%${query}%`;
+    const q = query.trim().toLowerCase();
     const { data, error } = await supabase
       .from('places')
       .select('id, name_en, name_de, name_fr, latitude, longitude, place_type, country_code, attractiveness_score')
       .or(`name_en.ilike."${pattern}",name_de.ilike."${pattern}",name_fr.ilike."${pattern}"`)
       .eq('is_active', true)
       .order('attractiveness_score', { ascending: false, nullsFirst: false })
-      .limit(10);
+      .limit(20);
 
     if (error) throw error;
     if (!data?.length) return [];
+
+    const matchRank = (p) => {
+      const names = [p.name_en, p.name_de, p.name_fr]
+        .filter(Boolean)
+        .map((n) => String(n).toLowerCase());
+      if (names.some((n) => n === q)) return 0;
+      if (names.some((n) => n.startsWith(q))) return 1;
+      return 2;
+    };
 
     return data.map(p => {
       const lat = parseFloat(p.latitude);
@@ -97,9 +109,18 @@ async function searchDB(query, center, language = 'en') {
         country_code: p.country_code,
         distLabel: dist > 0 ? `${Math.round(dist)} km` : '',
         _dist: dist,
+        _score: p.attractiveness_score || 0,
+        _rank: matchRank(p),
         source: 'db',
       };
-    }).sort((a, b) => a._dist - b._dist).slice(0, 8);
+    }).sort((a, b) => {
+      if (a._rank !== b._rank) return a._rank - b._rank;
+      // Exact/prefix: famous places first, then nearer
+      if (a._rank <= 1) {
+        if (b._score !== a._score) return b._score - a._score;
+      }
+      return a._dist - b._dist;
+    }).slice(0, 8);
   } catch (e) {
     if (__DEV__) console.warn('DB search failed:', e);
     return [];

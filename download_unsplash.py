@@ -265,10 +265,16 @@ conn.close()
 meta = load_meta()
 not_found_slugs = set(meta.get("_not_found", []))
 
+from pexels_blacklist import load_blacklist
+blacklisted = load_blacklist()
+if blacklisted:
+    print(f"Permanente Blacklist: {len(blacklisted)} Slugs (werden übersprungen)")
+
 total_db = len(rows)
 rows = [
     r for r in rows
-    if not os.path.exists(os.path.join(OUT_DIR, f"{r[2]}_unspl_1.webp"))
+    if r[2] not in blacklisted
+    and not os.path.exists(os.path.join(OUT_DIR, f"{r[2]}_unspl_1.webp"))
     and (args.retry_not_found or r[2] not in not_found_slugs)
 ]
 if args.only_missing:

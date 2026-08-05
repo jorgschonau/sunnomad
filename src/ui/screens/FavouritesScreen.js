@@ -9,6 +9,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  ImageBackground,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { useTranslation } from 'react-i18next';
@@ -27,6 +28,8 @@ import { calculateETA } from '../../domain/destinationBadge';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getCachedLocation, getPreloadResult } from '../../utils/locationPreload';
 import Ionicons from '@expo/vector-icons/Ionicons';
+
+const FAVOURITES_EMPTY_IMAGE = require('../../../assets/favourites_empty.jpg');
 
 const SORT_STORAGE_KEY = 'favouritesSort';
 const SORT_KEYS = ['recent', 'warmest', 'nearest', 'sun'];
@@ -483,19 +486,38 @@ const FavouritesScreen = ({ navigation, route }) => {
   ), [theme, t, temperatureUnit, distanceUnit, i18n.language, userLocation, queueDelete]);
 
   const renderEmptyState = () => (
-    <View style={styles.emptyContainer}>
-      <Text style={styles.emptyIcon}>⭐</Text>
-      <Text style={[styles.emptyTitle, { color: theme.text }]}>{t('favourites.empty')}</Text>
-      <Text style={[styles.emptyDescription, { color: theme.textSecondary }]}>
-        {t('favourites.emptyDescription')}
-      </Text>
-      <TouchableOpacity
-        style={[styles.backButton, { backgroundColor: theme.primary }]}
-        onPress={() => navigation.navigate('Map')}
-      >
-        <Text style={styles.backButtonText}>{t('destination.backToMap')}</Text>
-      </TouchableOpacity>
-    </View>
+    <ImageBackground
+      source={FAVOURITES_EMPTY_IMAGE}
+      style={styles.emptyContainer}
+      imageStyle={styles.emptyImage}
+      resizeMode="cover"
+    >
+      <View
+        style={[
+          styles.emptyScrim,
+          {
+            backgroundColor: theme.id === 'dark'
+              ? 'rgba(18, 18, 20, 0.78)'
+              : 'rgba(245, 245, 247, 0.72)',
+          },
+        ]}
+      />
+      <View style={styles.emptyContent}>
+        <View style={[styles.emptyIconBubble, { backgroundColor: `${theme.primary}22` }]}>
+          <Ionicons name="star-outline" size={36} color={theme.primary} />
+        </View>
+        <Text style={[styles.emptyTitle, { color: theme.text }]}>{t('favourites.empty')}</Text>
+        <Text style={[styles.emptyDescription, { color: theme.textSecondary }]}>
+          {t('favourites.emptyDescription')}
+        </Text>
+        <TouchableOpacity
+          style={[styles.backButton, { backgroundColor: theme.primary }]}
+          onPress={() => navigation.navigate('Map')}
+        >
+          <Text style={styles.backButtonText}>{t('destination.backToMap')}</Text>
+        </TouchableOpacity>
+      </View>
+    </ImageBackground>
   );
 
   if (loading) {
@@ -715,31 +737,48 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 32,
   },
-  emptyIcon: {
-    fontSize: 80,
-    marginBottom: 24,
+  emptyImage: {
+    opacity: 0.55,
+  },
+  emptyScrim: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  emptyContent: {
+    zIndex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 32,
+    paddingVertical: 24,
+    maxWidth: 360,
+  },
+  emptyIconBubble: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 20,
   },
   emptyTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-    marginBottom: 12,
+    fontSize: 22,
+    fontWeight: '700',
+    marginBottom: 10,
+    textAlign: 'center',
   },
   emptyDescription: {
-    fontSize: 16,
+    fontSize: 15,
     textAlign: 'center',
-    lineHeight: 24,
-    marginBottom: 32,
+    lineHeight: 22,
+    marginBottom: 28,
   },
   backButton: {
-    paddingVertical: 16,
-    paddingHorizontal: 32,
+    paddingVertical: 14,
+    paddingHorizontal: 28,
     borderRadius: 12,
   },
   backButtonText: {
     color: '#fff',
-    fontSize: 18,
+    fontSize: 16,
     fontWeight: '600',
   },
 });

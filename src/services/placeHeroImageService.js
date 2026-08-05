@@ -297,16 +297,18 @@ async function heroFromGenericKey(genericKey, place, heroSource) {
 }
 
 function pickDedicatedRow(dedicated, place) {
+  if (!dedicated?.length) return null;
+  const sorted = [...dedicated].sort(
+    (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0)
+  );
   if (!isGoldieOnlyPlace(place)) {
-    return dedicated[Math.floor(Math.random() * dedicated.length)];
+    return sorted[0];
   }
-  const goldieRows = dedicated
-    .filter(
-      (r) =>
-        r.variant === 'goldie' || String(r.storage_path || '').includes('/goldie/')
-    )
-    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
-  return goldieRows[0] ?? dedicated[0];
+  const goldieRows = sorted.filter(
+    (r) =>
+      r.variant === 'goldie' || String(r.storage_path || '').includes('/goldie/')
+  );
+  return goldieRows[0] ?? sorted[0];
 }
 
 /** Pexels / stock landscape — not cast or curated artwork. */
@@ -388,8 +390,8 @@ export async function listDedicatedHeroImages(place) {
   return withBackwaterIfStockOnly(data, place, heroes);
 }
 
-// Last resolved hero per place id (session-only). Not used to skip the lookup (variant
-// rotation stays random per open) — only as an instant base layer to cross-fade from.
+// Last resolved hero per place id (session-only). Not used to skip the lookup —
+// only as an instant base layer to cross-fade from. Open pick = lowest sort_order.
 const heroCache = new Map();
 
 /** Sync lookup of the last hero shown for this place, or null. */

@@ -12,6 +12,7 @@ import {
   Alert,
   ActivityIndicator,
   Image,
+  ImageBackground,
   Dimensions,
 } from 'react-native';
 import { useAuth } from '../../contexts/AuthContext';
@@ -21,6 +22,7 @@ import { validateEmailInput, emailErrorKey, sanitizeEmailInput } from '../../uti
 import Ionicons from '@expo/vector-icons/Ionicons';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const LOGIN_UNDERLAY = require('../../../assets/login_underlay.jpg');
 
 // Brand colors extracted from the SunNomad logo
 const BRAND = {
@@ -141,140 +143,158 @@ export default function LoginScreen({ navigation }) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <ImageBackground
+      source={LOGIN_UNDERLAY}
+      style={styles.underlay}
+      imageStyle={styles.underlayImage}
+      resizeMode="cover"
     >
-      {/* Decorative sunset accent strip at top */}
-      <View style={styles.accentStrip}>
-        <View style={styles.accentPink} />
-        <View style={styles.accentCoral} />
-        <View style={styles.accentOrange} />
-      </View>
-
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-        showsHorizontalScrollIndicator={false}
+      <View style={styles.underlayScrim} />
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        {/* Logo */}
-        <View style={styles.header}>
-          <Image
-            source={require('../../../assets/sunnomad-logo.png')}
-            style={styles.logoBanner}
-            resizeMode="contain"
-          />
+        {/* Decorative sunset accent strip at top */}
+        <View style={styles.accentStrip}>
+          <View style={styles.accentPink} />
+          <View style={styles.accentCoral} />
+          <View style={styles.accentOrange} />
         </View>
 
-        {/* Form Card */}
-        <View style={styles.formCard}>
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>{t('auth.email')}</Text>
-            <TextInput
-              style={[styles.input, emailError ? styles.inputError : null]}
-              placeholder={t('auth.emailPlaceholder')}
-              placeholderTextColor={BRAND.textMuted}
-              value={email}
-              onChangeText={(text) => {
-                setEmail(text);
-                if (emailError) validateEmail(text);
-              }}
-              onBlur={() => email && validateEmail(email)}
-              autoCapitalize="none"
-              keyboardType="email-address"
-              textContentType="emailAddress"
-              autoComplete="email"
-              editable={!loading}
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
+        >
+          {/* Logo */}
+          <View style={styles.header}>
+            <Image
+              source={require('../../../assets/sunnomad-logo.png')}
+              style={styles.logoBanner}
+              resizeMode="contain"
             />
-            {emailError ? (
-              <Text style={styles.errorText}>{emailError}</Text>
-            ) : null}
           </View>
 
-          <View style={styles.inputContainer}>
-            <Text style={styles.label}>{t('auth.password')}</Text>
-            <View style={[styles.input, styles.passwordContainer, passwordError ? styles.inputError : null]}>
+          {/* Form Card */}
+          <View style={styles.formCard}>
+            <View style={styles.inputContainer}>
+              <Text style={styles.label}>{t('auth.email')}</Text>
               <TextInput
-                style={styles.passwordInput}
-                placeholder={t('auth.passwordPlaceholder')}
+                style={[styles.input, emailError ? styles.inputError : null]}
+                placeholder={t('auth.emailPlaceholder')}
                 placeholderTextColor={BRAND.textMuted}
-                value={password}
+                value={email}
                 onChangeText={(text) => {
-                  setPassword(text);
-                  if (passwordError) validatePassword(text);
+                  setEmail(text);
+                  if (emailError) validateEmail(text);
                 }}
-                secureTextEntry={!showPassword}
-                autoComplete="password"
-                autoCorrect={false}
+                onBlur={() => email && validateEmail(email)}
+                autoCapitalize="none"
+                keyboardType="email-address"
+                textContentType="emailAddress"
+                autoComplete="email"
                 editable={!loading}
               />
-              <TouchableOpacity
-                style={styles.eyeButton}
-                onPress={() => setShowPassword(!showPassword)}
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-              >
-                <Ionicons
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={22}
-                  color={BRAND.textMuted}
+              {emailError ? (
+                <Text style={styles.errorText}>{emailError}</Text>
+              ) : null}
+            </View>
+
+            <View style={[styles.inputContainer, styles.passwordBlock]}>
+              <Text style={styles.label}>{t('auth.password')}</Text>
+              <View style={[styles.input, styles.passwordContainer, passwordError ? styles.inputError : null]}>
+                <TextInput
+                  style={styles.passwordInput}
+                  placeholder={t('auth.passwordPlaceholder')}
+                  placeholderTextColor={BRAND.textMuted}
+                  value={password}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    if (passwordError) validatePassword(text);
+                  }}
+                  secureTextEntry={!showPassword}
+                  autoComplete="password"
+                  autoCorrect={false}
+                  editable={!loading}
                 />
+                <TouchableOpacity
+                  style={styles.eyeButton}
+                  onPress={() => setShowPassword(!showPassword)}
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={22}
+                    color={BRAND.textMuted}
+                  />
+                </TouchableOpacity>
+              </View>
+              {passwordError ? (
+                <Text style={styles.errorText}>{passwordError}</Text>
+              ) : null}
+              <TouchableOpacity
+                style={styles.forgotPassword}
+                onPress={() => {
+                  mixpanel.track('Password Reset Link Tapped');
+                  navigation.navigate('ForgotPassword');
+                }}
+                disabled={loading}
+              >
+                <Text style={styles.forgotPasswordText}>
+                  {t('auth.forgotPassword')}
+                </Text>
               </TouchableOpacity>
             </View>
-            {passwordError ? (
-              <Text style={styles.errorText}>{passwordError}</Text>
-            ) : null}
+
+            <TouchableOpacity
+              style={[styles.button, loading && styles.buttonDisabled]}
+              onPress={handleLogin}
+              disabled={loading}
+              activeOpacity={0.85}
+            >
+              {loading ? (
+                <ActivityIndicator color={BRAND.white} />
+              ) : (
+                <Text style={styles.buttonText}>{t('auth.login')}</Text>
+              )}
+            </TouchableOpacity>
           </View>
 
-          <TouchableOpacity
-            style={styles.forgotPassword}
-            onPress={() => {
-              mixpanel.track('Password Reset Link Tapped');
-              navigation.navigate('ForgotPassword');
-            }}
-            disabled={loading}
-          >
-            <Text style={styles.forgotPasswordText}>
-              {t('auth.forgotPassword')}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.button, loading && styles.buttonDisabled]}
-            onPress={handleLogin}
-            disabled={loading}
-            activeOpacity={0.85}
-          >
-            {loading ? (
-              <ActivityIndicator color={BRAND.white} />
-            ) : (
-              <Text style={styles.buttonText}>{t('auth.login')}</Text>
-            )}
-          </TouchableOpacity>
-        </View>
-
-        {/* Footer */}
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>{t('auth.noAccount')}</Text>
-          <TouchableOpacity
-            onPress={() => {
-              mixpanel.track('Sign Up Link Tapped');
-              navigation.navigate('Register');
-            }}
-            disabled={loading}
-          >
-            <Text style={styles.linkText}>{t('auth.signUp')}</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+          {/* Footer */}
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>{t('auth.noAccount')}</Text>
+            <TouchableOpacity
+              onPress={() => {
+                mixpanel.track('Sign Up Link Tapped');
+                navigation.navigate('Register');
+              }}
+              disabled={loading}
+            >
+              <Text style={styles.linkText}>{t('auth.signUp')}</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </ImageBackground>
   );
 }
 
 const styles = StyleSheet.create({
+  underlay: {
+    flex: 1,
+    backgroundColor: '#2A1F18',
+  },
+  underlayImage: {
+    opacity: 0.92,
+  },
+  underlayScrim: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(245, 230, 211, 0.28)',
+  },
   container: {
     flex: 1,
-    backgroundColor: BRAND.cream,
+    backgroundColor: 'transparent',
   },
 
   // --- Decorative sunset accent ---
@@ -306,7 +326,7 @@ const styles = StyleSheet.create({
   // --- Header / Logo ---
   header: {
     alignItems: 'center',
-    marginBottom: 48,
+    marginBottom: 66,
     marginTop: 20,
   },
   logoBanner: {
@@ -316,19 +336,22 @@ const styles = StyleSheet.create({
 
   // --- Form Card ---
   formCard: {
-    backgroundColor: BRAND.white,
+    backgroundColor: 'rgba(255, 255, 255, 0.94)',
     borderRadius: 18,
     paddingHorizontal: 24,
     paddingTop: 32,
-    paddingBottom: 28,
+    paddingBottom: 36,
     shadowColor: BRAND.shadow,
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.07,
+    shadowOpacity: 0.1,
     shadowRadius: 14,
     elevation: 3,
   },
   inputContainer: {
     marginBottom: 24,
+  },
+  passwordBlock: {
+    marginBottom: 0,
   },
   label: {
     fontSize: 14,
@@ -383,8 +406,8 @@ const styles = StyleSheet.create({
   // --- Forgot Password ---
   forgotPassword: {
     alignSelf: 'flex-end',
-    marginBottom: 28,
-    marginTop: -8,
+    marginTop: 9,
+    marginBottom: 22,
   },
   forgotPasswordText: {
     color: BRAND.orange,
@@ -396,8 +419,10 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: BRAND.orange,
     borderRadius: 12,
-    paddingVertical: 16,
+    minHeight: 53,
+    paddingVertical: 15,
     alignItems: 'center',
+    justifyContent: 'center',
     shadowColor: '#000000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
@@ -419,16 +444,22 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
+    alignSelf: 'center',
     marginTop: 32,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: 'rgba(255, 255, 255, 0.88)',
   },
   footerText: {
-    color: BRAND.textMuted,
+    color: BRAND.navy,
     fontSize: 15,
     marginRight: 6,
+    fontWeight: '500',
   },
   linkText: {
     color: BRAND.orange,
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '700',
   },
 });
