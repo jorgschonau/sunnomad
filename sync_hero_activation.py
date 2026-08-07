@@ -77,10 +77,13 @@ KNOWN_CHARACTERS = {
 SHOT_PRIORITY_FRONT = [
     "surfing",           # 1
     "freestyle_swim",    # 2 swimming
-    "arrival",           # 3
-    "harbour_walk",      # 4
-    "hiking_back",       # 5 ★★★★☆
-    "newspaper_cafe",    # 6 ★★★★☆
+    "arrival",           # 3 road-identity first second
+    "car_exit",          # 4 town arrival — door open, first look
+    "stretch",           # 5 post-drive reset beside vehicle
+    "van_getting_dressed",  # 6 change-in-van first moment
+    "harbour_walk",      # 7
+    "hiking_back",       # 8 ★★★★☆
+    "newspaper_cafe",    # 9 ★★★★☆
 ]
 # Soft order inside "everything else" (still before farshot)
 SHOT_PRIORITY_MID = [
@@ -99,6 +102,21 @@ def load_goldie_only_showcase() -> frozenset[str]:
         return frozenset()
     data = json.loads(OVERRIDES_PATH.read_text())
     return frozenset(str(x) for x in (data.get("_goldie_only_showcase") or []))
+
+
+def load_goldie_showcase_prefer() -> dict[str, int]:
+    """Optional `_goldie_N` index per showcase place (default: lowest N)."""
+    if not OVERRIDES_PATH.exists():
+        return {}
+    data = json.loads(OVERRIDES_PATH.read_text())
+    raw = data.get("_goldie_showcase_prefer") or {}
+    out: dict[str, int] = {}
+    for k, v in raw.items():
+        try:
+            out[str(k)] = int(v)
+        except (TypeError, ValueError):
+            continue
+    return out
 
 
 def get_supabase():
@@ -168,8 +186,10 @@ def classify_row(row: dict) -> tuple[str, str | None]:
     return "other", None
 
 
-def pick_single_goldie_row(rows: list[dict]) -> dict | None:
-    """One goldie per showcase place — prefer goldie/ folder and _goldie_1."""
+def pick_single_goldie_row(
+    rows: list[dict], *, prefer_index: int | None = None
+) -> dict | None:
+    """One goldie per showcase place — prefer goldie/ folder; default _goldie_1."""
     goldies = [r for r in rows if classify_row(r)[0] == "goldie"]
     if not goldies:
         return None
@@ -179,6 +199,9 @@ def pick_single_goldie_row(rows: list[dict]) -> dict | None:
         in_goldie_folder = 0 if path.startswith("goldie/") else 1
         m = re.search(r"_goldie_(\d+)", path)
         n = int(m.group(1)) if m else 999
+        if prefer_index is not None:
+            match = 0 if n == prefer_index else 1
+            return (match, in_goldie_folder, n, path)
         return (in_goldie_folder, n, path)
 
     return sorted(goldies, key=rank)[0]
@@ -789,6 +812,7 @@ def sync_place(
     char_cli: str | None,
     dry_run: bool,
     goldie_only_showcase: frozenset[str] | None = None,
+    goldie_showcase_prefer: dict[str, int] | None = None,
 ) -> dict:
     sb = get_supabase()
     pid = place["id"]
@@ -808,7 +832,8 @@ def sync_place(
     deleted_dupes = delete_hero_rows(sb, dupe_drop, dry_run=dry_run)
 
     if name in (goldie_only_showcase or ()):
-        single = pick_single_goldie_row(rows)
+        prefer = (goldie_showcase_prefer or {}).get(name)
+        single = pick_single_goldie_row(rows, prefer_index=prefer)
         active = [single] if single else []
     else:
         override = char_cli or overrides.get(name)
@@ -925,6 +950,7 @@ def main():
     overrides = load_overrides()
     no_pexels = load_no_pexels()
     goldie_only_showcase = load_goldie_only_showcase()
+    goldie_showcase_prefer = load_goldie_showcase_prefer()
 
     touched_place_ids = None
     if args.mirror_storage:
@@ -965,6 +991,7 @@ def main():
                 result = sync_place(
                     place, overrides, no_pexels, args.char,
                     dry_run=args.dry_run, goldie_only_showcase=goldie_only_showcase,
+                    goldie_showcase_prefer=goldie_showcase_prefer,
                 )
                 break
             except Exception as e:

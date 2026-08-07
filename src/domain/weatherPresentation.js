@@ -16,14 +16,15 @@
  */
 export const mapWeatherCode = (code) => {
   if (code === null || code === undefined) return 'cloudy';
-  if (code <= 1) return 'sunny';   // 0 Clear sky, 1 Mainly clear
-  if (code <= 3) return 'cloudy';  // 2 Partly cloudy, 3 Overcast
-  if (code <= 48) return 'windy';  // 45-48 Fog
-  if (code <= 67) return 'rainy';  // 51-67 Drizzle & Rain
-  if (code <= 77) return 'snowy';  // 71-77 Snow
-  if (code <= 82) return 'rainy';  // 80-82 Rain showers
-  if (code <= 86) return 'snowy';  // 85-86 Snow showers
-  if (code <= 99) return 'rainy';  // 95-99 Thunderstorm
+  if (code <= 1) return 'sunny';          // 0 Clear sky, 1 Mainly clear
+  if (code === 2) return 'partly_cloudy';  // Partly cloudy
+  if (code === 3) return 'overcast';       // Overcast
+  if (code <= 48) return 'windy';         // 45-48 Fog
+  if (code <= 67) return 'rainy';         // 51-67 Drizzle & Rain
+  if (code <= 77) return 'snowy';         // 71-77 Snow
+  if (code <= 82) return 'rainy';         // 80-82 Rain showers
+  if (code <= 86) return 'snowy';         // 85-86 Snow showers
+  if (code <= 99) return 'rainy';         // 95-99 Thunderstorm
   return 'cloudy';
 };
 
@@ -39,12 +40,26 @@ export const mapWeatherMain = (weatherMain, weatherDescription = '') => {
 
   // Already an app condition → pass through (but check for misclassified "mainly clear")
   if (main === 'cloudy' && (desc.includes('mainly clear') || desc.includes('clear sky'))) return 'sunny';
-  if (main === 'sunny' || main === 'cloudy' || main === 'rainy' || main === 'snowy' || main === 'windy') return main;
+  if (
+    main === 'sunny' ||
+    main === 'cloudy' ||
+    main === 'partly_cloudy' ||
+    main === 'overcast' ||
+    main === 'rainy' ||
+    main === 'snowy' ||
+    main === 'windy'
+  ) {
+    return main;
+  }
 
   if (main === 'clear') return 'sunny';
   if (main === 'clouds') {
     // WMO code 1 "Mainly clear" was stored as 'Clouds' before the fix
     if (desc.includes('mainly clear') || desc.includes('clear sky')) return 'sunny';
+    if (desc.includes('partly') || desc.includes('few clouds') || desc.includes('scattered')) {
+      return 'partly_cloudy';
+    }
+    if (desc.includes('overcast')) return 'overcast';
     return 'cloudy';
   }
   if (main === 'rain' || main === 'drizzle' || main === 'thunderstorm') return 'rainy';
@@ -53,6 +68,10 @@ export const mapWeatherMain = (weatherMain, weatherDescription = '') => {
 
   // Description fallback (OpenWeatherMap data)
   if (desc.includes('sun') || desc.includes('clear')) return 'sunny';
+  if (desc.includes('partly') || desc.includes('few clouds') || desc.includes('scattered')) {
+    return 'partly_cloudy';
+  }
+  if (desc.includes('overcast')) return 'overcast';
   if (desc.includes('shower') || desc.includes('rain') || desc.includes('drizzle')) return 'rainy';
   if (desc.includes('snow')) return 'snowy';
   if (desc.includes('wind') || desc.includes('storm')) return 'windy';
@@ -64,7 +83,9 @@ export const mapWeatherMain = (weatherMain, weatherDescription = '') => {
 export const getWeatherIcon = (condition) => {
   const icons = {
     sunny: '☀️',
+    partly_cloudy: '⛅',
     cloudy: '☁️',
+    overcast: '🌥️',
     rainy: '🌧️',
     snowy: '❄️',
     windy: '💨',
@@ -76,7 +97,9 @@ export const getWeatherIcon = (condition) => {
 export const getWeatherColor = (condition, temperature = null) => {
   const colors = {
     sunny: '#E8A045',
+    partly_cloudy: '#B8C9A8', // soft sage — less gray sea on EU maps
     cloudy: '#8EA2AA',
+    overcast: '#6E828C',
     rainy: '#78AED4',
     snowy: '#E8F0F6',
     windy: '#B8C7CE',

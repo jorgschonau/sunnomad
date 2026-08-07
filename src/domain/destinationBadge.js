@@ -506,7 +506,7 @@ export function calculateBeachParadise(destination) {
   // Perfect beach criteria
   const MIN_TEMP = 20;
   const MAX_TEMP = 35;
-  const GOOD_CONDITIONS = ['sunny', 'cloudy'];
+  const GOOD_CONDITIONS = ['sunny', 'partly_cloudy', 'cloudy'];
   const MAX_WIND = 25;
   
   const shouldAward = (
@@ -913,7 +913,7 @@ export function calculateWeatherCurse(destination) {
   
   // Prerequisite: Today must be warm (> 10 °C) AND good weather
   const MIN_TODAY_TEMP = 10;
-  const GOOD_CONDITIONS = ['sunny', 'cloudy', 'overcast'];
+  const GOOD_CONDITIONS = ['sunny', 'partly_cloudy', 'cloudy', 'overcast'];
   const isWarmToday = todayTemp > MIN_TODAY_TEMP;
   const isGoodToday = GOOD_CONDITIONS.includes(todayCondition);
   

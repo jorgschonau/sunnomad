@@ -1,5 +1,6 @@
 -- 2026-06-02: Attractiveness score recalculation
--- 2026-08-05: natural_feature base, large villages (pop>=4k), wiki_score blend
+-- 2026-08-05: natural_feature base, large villages (pop>=4k), alpine resort boost
+-- 2026-08-05: wiki_score NOT in formula (Fame != van destination; use manual / app tiebreak)
 -- Run after bulk imports/enrichment. Only updates attractiveness_score (no raw column).
 -- manual_adjustment unchanged (US city downrank, beach boosts, icon tweaks).
 
@@ -69,7 +70,14 @@ SET attractiveness_score = LEAST(
         + (CASE WHEN p.terrain_type = 'flatland'
             AND p.place_type NOT IN ('national_park', 'natural_park', 'nature_reserve', 'natural_feature', 'scenic_drive')
             THEN -5 ELSE 0 END)
-        + COALESCE(p.wiki_score, 0)
+        + (CASE
+            WHEN p.country_code IN ('CH', 'AT', 'IT', 'FR')
+              AND p.place_type IN ('village', 'small_town')
+              AND p.terrain_type IN ('mountains', 'high_mountains', 'hills')
+              AND COALESCE(p.dem, 0) >= 800
+              AND COALESCE(p.population, 0) >= 1000
+            THEN 10
+            ELSE 0 END)
         + (CASE WHEN p.place_type = 'beach' AND p.terrain_type = 'lake' THEN -15 ELSE 0 END)
         + (CASE
             WHEN p.population > 50000

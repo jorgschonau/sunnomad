@@ -189,6 +189,7 @@ function MainNavigator() {
         options={{
           title: t('feedbackScreen.title'),
           headerBackTitle: t('app.back'),
+          contentStyle: { backgroundColor: '#000' },
         }}
       />
     </AppStack.Navigator>

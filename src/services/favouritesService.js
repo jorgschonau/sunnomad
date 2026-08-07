@@ -88,6 +88,7 @@ export const getFavourites = async (locale = 'en') => {
         const { sunshineHoursToday, sunshineTrend } = computeSunshineTrend(allForecasts);
         return {
           id: place.id,
+          name_en: place.name_en,
           favouriteId: fav.id,
           lat: place.latitude,
           lon: place.longitude,

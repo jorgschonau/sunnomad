@@ -53,6 +53,9 @@ import StopStayCard from '../components/StopStayCard';
 import { mixpanel } from '../../services/mixpanel';
 import {
   markCharacterDiscovered,
+  markGoldieEggSeen,
+  isGoldieHeroMeta,
+  normalizeEggPlaceName,
   trackDetailViewed,
   trackDriveThereTapped,
   trackWeatherBadgesSeen,
@@ -303,6 +306,34 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       character: h?.character ?? null,
     };
   };
+  const maybeMarkGoldieEggSeen = useCallback(
+    (meta = null, focused = uiFocused) => {
+      if (!focused) return;
+      const h = meta
+        ?? (heroList.length > 0 ? heroList[heroIndexRef.current] : null)
+        ?? heroMeta;
+      if (!isGoldieHeroMeta(h)) return;
+      const nameEn = normalizeEggPlaceName(destination.name_en, destination.name);
+      const countryCode = destination.country_code || destination.countryCode;
+      markGoldieEggSeen(effectivePlaceId, nameEn, countryCode).catch(() => {});
+    },
+    [
+      uiFocused,
+      heroList,
+      heroMeta,
+      destination.name_en,
+      destination.name,
+      destination.country_code,
+      destination.countryCode,
+      effectivePlaceId,
+    ]
+  );
+
+  useEffect(() => {
+    if (!uiFocused) return;
+    maybeMarkGoldieEggSeen(null, true);
+  }, [uiFocused, heroMeta, heroList, heroIndex, maybeMarkGoldieEggSeen]);
+
   const [heroHintVisible, setHeroHintVisible] = useState(false);
   const scrollViewRef = React.useRef(null);
   const stopStayCardY = React.useRef(0);
@@ -1232,6 +1263,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
         if (list[resolvedIdx]?.character) {
           markCharacterDiscovered(list[resolvedIdx].character).catch(() => {});
         }
+        maybeMarkGoldieEggSeen(list[resolvedIdx], newFocused);
       }).catch(() => {});
     }
     if (newFocused) {
@@ -1240,6 +1272,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       if (current?.character) {
         markCharacterDiscovered(current.character).catch(() => {});
       }
+      maybeMarkGoldieEggSeen(current, newFocused);
     }
     mixpanel.track('Hero Image Toggled', {
       place_id: effectivePlaceId,
@@ -1481,7 +1514,9 @@ const DestinationDetailScreen = ({ route, navigation }) => {
     
     // Simple condition names (from badge calculations)
     if (desc === 'sunny') return t('weather.sunny');
+    if (desc === 'partly_cloudy') return t('weather.partly_cloudy');
     if (desc === 'cloudy') return t('weather.cloudy');
+    if (desc === 'overcast') return t('weather.overcast');
     if (desc === 'rainy') return t('weather.rainy');
     if (desc === 'snowy') return t('weather.snowy');
     if (desc === 'windy') return t('weather.windy');
@@ -1661,6 +1696,7 @@ const DestinationDetailScreen = ({ route, navigation }) => {
       if (uiFocused && target?.character) {
         markCharacterDiscovered(target.character).catch(() => {});
       }
+      maybeMarkGoldieEggSeen(target, uiFocused);
       mixpanel.track('Hero Browsed', {
         place_id: effectivePlaceId,
         place_name: destination.name,

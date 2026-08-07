@@ -816,6 +816,22 @@ _LOCAL_EVENT_BY_PLACE: dict[str, str | list[str]] = {
         "MARDI GRAS NEW ORLEANS: arrived the day before, staying the week — beads, purple-green-gold, "
         "neighbourhood parade not Bourbon tourist trap. Stoop or sidewalk, absorbed in the passing krewe."
     ),
+    "Cortina d'Ampezzo": (
+        "CORTINA VENDEMMIA / ALPINE GRAPE HARVEST (MANDATORY): South Tyrol vineyard below Dolomite peaks — "
+        "white alpine village + church spire in valley, vine rows on wooden stakes, clear blue sky. "
+        "Green plastic harvest crate of dark purple grapes — she is WORKING, carrying or between rows. "
+        "White long-sleeve button-down (sleeves rolled), dark fitted pants, dark trail/work boots. "
+        "White Fiat Panda 4x4 nearby — BZ plates, road bike transverse on roof rack. "
+        "Focused harvest energy — absorbed in the work. NOT tourist wine tasting, NOT posing with glass."
+    ),
+    "Cortina": (
+        "CORTINA VENDEMMIA / ALPINE GRAPE HARVEST (MANDATORY): South Tyrol vineyard below Dolomite peaks — "
+        "white alpine village + church spire in valley, vine rows on wooden stakes, clear blue sky. "
+        "Green plastic harvest crate of dark purple grapes — she is WORKING, carrying or between rows. "
+        "White long-sleeve button-down (sleeves rolled), dark fitted pants, dark trail/work boots. "
+        "White Fiat Panda 4x4 nearby — BZ plates, road bike transverse on roof rack. "
+        "Focused harvest energy — absorbed in the work. NOT tourist wine tasting, NOT posing with glass."
+    ),
 }
 
 _CHARACTER_LOCAL_EVENT: dict[tuple[str, str], str] = {
@@ -826,6 +842,11 @@ _CHARACTER_LOCAL_EVENT: dict[tuple[str, str], str] = {
     ("stacy", "US"): (
         "FOURTH OF JULY SMALL TOWN: sparkler in hand, someone else's lawn, folding chairs, "
         "small-town parade flags — not a capital fireworks telecast."
+    ),
+    ("alessandra", "IT"): (
+        "SOUTH TYROL / ALPINE HARVEST (preferred): vineyard vendemmia — green plastic crate of dark grapes, "
+        "white button-down sleeves rolled, dark pants, dark boots. Fiat Panda 4x4 + bike transverse on roof ok peripheral. "
+        "Dolomite village + peaks behind. Working the harvest — focused, not wine-bar tourist."
     ),
 }
 
@@ -1481,6 +1502,7 @@ TRAIL RUNNING: fitted shorts, race vest, trail runners, poles optional, mud/dust
 Built for going uphill faster than people think possible.
 FINGERNAILS / TOENAILS: bare, short — trail dust possible.
 PROP: small fresh scrape or half-healed cut on knee or shin — never dramatic, never mentioned.
+~35% of place-sets: slim knee bandage / athletic tape on ONE knee (same leg whole set when visible) — functional, not hospital drama.
 Also: crumpled elevation profile, printed, handwritten notes — the next pass. Always the next one.
 
 OFF-BIKE OUTFIT (for exploit shots, arrival, non-cycling contexts):
@@ -1749,7 +1771,11 @@ WARDROBE:
 Default: open plaid flannel over worn ribbed tank or plain tee. Dark trousers, brown leather belt, worn work boots.
 Rare heat-shirtless — desert / remote trail heat only; bare chest, flannel at waist or on the Cruiser. NEVER shirtless in towns or cities.
 Desert/trail: faded bandana at neck or back pocket ok — practical, not costume.
-Thin cord necklace, cord/bead bracelets. Nikon FM2 on leather strap — analog, always.
+JEWELRY (subtle, most shots — writer's personal kit, not bling):
+Thin dark leather cord necklace with small silver or turquoise bead/pendant at throat — always when chest/neck visible.
+One thin silver band ring on right hand; optional second plain ring on left. Worn leather cord bracelet on one wrist ok.
+Never gold chains, never stacked influencer rings, never biker chrome.
+Nikon FM2 on leather strap — analog, always.
 When shirtless: lean capable / road-weathered — NOT gym model, NOT Luca surfer, NOT Tyler polish.
 No Patagonia flex, no Apple Watch, no drone gimbal theatre.
 
@@ -2229,10 +2255,10 @@ Dionysos did not save her. He found her already dancing.
 She is her direct descendant. The wine is sacrament. The night is practice.
 
 OUTFIT:
-Loose linen dress — white or deep red. Slides off one shoulder. Not an accident.
-Sandals that have walked many cobblestones at 3am. Or barefoot.
-No bag. She never needs anything she doesn't already have.
-Gold jewelry — simple, old, real. Ear cuffs, thin rings, something at the throat.
+Greece/Cyprus: loose linen dress — white or deep red, one shoulder may slip (Ariadne / deity ok); OR cream linen two-piece (tunic + wide trousers).
+Everywhere else: travel evening kit — dark top + skirt/pants, structured wine-red slip, or cream/off-white linen two-piece (tunic + wide trousers); NOT white sheet/toga/laken.
+Sandals or barefoot. Old gold jewelry — ear cuffs, thin rings, throat chain.
+No bag. Wine when the scene calls for it.
 
 BEACH / SWIM: One-shoulder bikini in deep wine-red / burgundy — Ariadne dusk. Old gold jewelry stays.
 Grape tattoo if frame allows. Flower in hair ok. Wine on shore only.
@@ -2286,7 +2312,8 @@ Cheap sneakers or worn ankle boots. No cowboy boots.
 Optional Americana: faded bandana; cheap snakeskin boot accent — weird, not glam.
 Pale skin — diner tan, not desert tan. She spends time indoors. Researching.
 Build: soft, lived-in. Not athletic. Survived things.
-Sunglasses indoors. Always. When she removes them — baby blue eyes. Unexpected.
+Dark aviator sunglasses — optional, not default. Bright sun, gas station, highway pull-off: on or pushed up on head ok.
+Indoors, diners, night, notebook research: usually OFF — baby-blue eyes visible. Unexpected when you see them.
 MOLES / MARKS: sharp tan lines from the same tank top every summer; left arm darker — window down on the highway.
 Sometimes shorts instead of jeans when it's hot. Both are fine.
 
@@ -2748,14 +2775,12 @@ OR: dark olive sporty one-piece.
 Functional, not micro, not glam triangle. Gold stays. Crossbody on towel. Still energetic — into the water, not posing.
 Same soft hourglass under either kit — full round glutes stay; never flatten.
 
-NIGHTLIFE / URBAN KINK (Serbia — edged, not soft day kit):
-No jeans, no sneakers for kink night:
-Black or dark leather mini (short — soft hourglass hips/ass readable, not micro-barely-there).
-Sheer black stockings with clear back-seam when legs readable. Black heels or sharp ankle boots.
-White or black rib tank (cropped or fitted — thin bra straps ok) or simple cropped dark top — waist/chest honest, not yacht glam.
-Crossbody + small gold hoops + chain. Dark voluminous waves.
-High voltage kafana/street 1am — almost laughing, hip weight or mid-stride. Balkan heat, not shy day denim.
-NOT white sneakers. NOT Valentina pencil. NOT Mila festival leather. NOT dungeon harness/collar.
+EVENING / NIGHT — AUSGEH×KINK (110% Balkan — schick AND edged, one register):
+Skadarlija / Baščaršija / kafana cobblestone — Ottoman stone, wrought iron, draft beer or rakija.
+Fitted wine/black satin mid-thigh OR black silk camisole + high-waist black leather mini.
+Sheer black stockings — seam on rear calf only; front of leg = plain sheer, no seam visible to camera.
+Block-heel boots or sharp heels. Gold hoops + chain; berry/wine lip; dark voluminous waves.
+High voltage — almost laughing, hip weight at 1am. NOT yacht champagne. NOT day jeans+sneakers.
 
 SIGNATURE ACTIONS:
 - Stairs two at a time — fortress, embankment, underpass — mid-sprint, hair flying, almost laughing.
@@ -2835,6 +2860,7 @@ CLOTHING: Quiet money — navy, cream, charcoal, soft wool or fine knit. Well-cu
 BOTTOMS (MANDATORY): skirt preferred — leather or fabric mini/midi (matte, not club PVC) — OR elegant trousers (wide-leg, tailored wool/crepe, dark jeans only if refined). NEVER shorts, NEVER cutoffs, NEVER athletic short shorts on land.
 OUTFIT PREFERENCE (often): black or dark brown leather mini or midi skirt with fine knit, silk blouse, or soft wool top; flat boots, loafers, or clean trainers. Quiet legs, not club. Still nothing that asks to be noticed.
 TOWN / SUNSET DRINKS (equal option): dusty-rose or mauve short-sleeve button-down blouse tucked into dark fabric pencil/midi skirt; black loafers — Lansing river energy; soft golden hour. Gold bracelet stays.
+OFFICE PINSTRIPE (equal option): dark charcoal pinstripe long-sleeve shirt tucked in, flared cuffs; black pencil skirt; sheer black hose; black open-toe heeled sandals; optional thin glasses; neat bun ok. Gold bracelet stays.
 JEWELRY (always): small thin gold bracelet, old, left wrist — family piece. Never removed. Water touches it. She does not take it off.
 No loud cocktails. Espresso or tea. Phone rarely visible — when it is, the call is short.
 
@@ -3520,8 +3546,6 @@ CLOTHING (off-duty): Sundress or denim shorts and a tiny top. White or tan. Sand
 WARDROBE VARIANT (~15%): neon 90s windbreaker — magenta, cyan, or lime over the sundress or tiny top.
 Venice Beach flea-market find; worn like a joke she refuses to retire. Still photographs everything.
 
-PROP — DISPOSABLE CAMERA: Always. Fujifilm Quicksnap. She photographs things that make her laugh — food, signs, friends mid-sentence. The photos come out slightly wrong. She loves them.
-
 PROP (occasional): oversized iced coffee — American size, she still finds this funny. Straw already half-chewed.
 
 CHARACTER:
@@ -3537,9 +3561,12 @@ Wakes early, photographs the light, texts it to her mother. The gate opens anywa
 
 EXPRESSION: open, warm, slightly surprised — she still finds things funny that others stopped noticing.
 
-BEACH: Simple bikini — usually plain (black, white, coral), sometimes stars and stripes (25%).
-She bought the flag bikini in Venice Beach as a joke. Still wears it. Sends the photos to her mother in Russian. Her mother does not understand. Tasha laughs anyway.
-Disposable camera around neck even at the water. Oversized iced coffee on shore ok — American size, still funny.
+BEACH: Simple WHITE bikini — usually plain white triangle or sport cut.
+ALT 2 (~30%): deep iridescent purple/navy athletic one-piece — metallic wet-look swim fabric, glossy in sun;
+white piping on scoop neckline, armholes, thin spaghetti straps, and high-cut leg openings;
+vertical white side stripes on torso; second-skin body-hug. Gold hoops ok.
+JOKE (~15%, keep): stars-and-stripes flag bikini (Venice Beach gag — sends photos to her mother in Russian).
+Oversized iced coffee on shore ok — American size, still funny. NO camera — ever.
 
 TERRITORY: LA, Miami, Las Vegas, Ibiza, Mykonos. Warm, bright, somewhere that stays open late.
 TERRAIN: coastal, city. PLACE TYPE: warm beach, resort town, urban.
@@ -3955,9 +3982,15 @@ HOOD_CHECK_GEOMETRY_LOCK = (
     "Full body OUTSIDE the vehicle at the FRONT — open hood/bonnet + engine bay. "
     "Both feet on ground beside the front bumper/fender; hands on bay edge, dipstick, cable, or radiator support. "
     "Clear air between her body and the cabin — she does NOT enter the cabin. "
+    "PREFERRED POSE (avoids AI limb bugs): stand beside the open hood — hands on hood lip/bay edge, "
+    "slight forward lean, head DOWN toward the bay. Back or three-quarter-back to camera — NOT twisted to the lens. "
+    "Engine bay readable but SIMPLE — block, hoses, battery ok; NOT hyper-detailed mechanical spaghetti. "
+    "Both arms fully visible and anatomically correct — NO limbs merging with metal/engine parts. "
     "FORBIDDEN: leaning through side window; torso/head through A-pillar or windshield; "
     "body clipped through door/glass/pillar; head inside dashboard while legs outside; "
-    "door-closed cabin lean; half-in cabin. Hood OPEN is the check point — NOT the side window."
+    "door-closed cabin lean; half-in cabin; over-shoulder smile at camera; pin-up hood_lean twist; "
+    "arms disappearing deep into engine; extra/missing/distorted limbs. "
+    "Hood OPEN is the check point — NOT the side window."
 )
 
 # Jonas & Lara: model keeps putting maps on the estate REAR — ban that hard.
@@ -4062,10 +4095,46 @@ Crop top/tee + cutoff shorts + Converse or white trainers ok. Place (stairs + la
 NOT standing still on steps. NOT grim race face. NOT elite pro kit.
 """
 
+# Tarragona stairs_sprint gold — grand stone stairs, cathedral backdrop, low angle sprint up
+ALESSANDRA_STAIRS_SPRINT_LOCK = """
+ALESSANDRA STAIRS SPRINT (preferred gold — soft bias, not exclusive):
+Mid-stride SPRINTING UP a wide grand public stone staircase — fortress steps, cathedral steps, or old-town monumental stairs.
+Camera from BELOW looking up — low angle, character climbing toward sky/architecture.
+Black fitted tank + black athletic shorts + running shoes; dark ponytail; endurance-athlete legs in motion.
+Historic place readable behind/above — rose window, spires, warm stone walls, blue sky. Location dominates 75%+.
+Character 18–26% frame height — documentary travel sprint, NOT fashion stair portrait, NOT standing still posing.
+Effort readable — dust on calves, fresh knee scrape or knee bandage ok. NOT glam jog, NOT influencer smile at camera.
+"""
+
+ALESSANDRA_LOCAL_EVENT_HARVEST_LOCK = """
+ALESSANDRA LOCAL EVENT (harvest gold — soft bias, not exclusive):
+Working participant — NOT tourist spectator. Green plastic grape crate in hands OR between vine rows ok.
+Outfit: white long-sleeve button-down (sleeves rolled), dark fitted pants, dark trail/work boots — practical vendemmia kit, NOT race vest.
+White Fiat Panda 4x4 may be visible (BZ plates, ONE road bike PARALLEL on roof rack — aligned with car length) — place still dominates 75%+.
+Alpine backdrop when terrain fits: jagged Dolomite peaks, white village + church spire in valley.
+Focused expression — endurance athlete between tasks, eyes on work, NOT smiling at camera.
+"""
+
+ALESSANDRA_KNEE_BANDAGE_LOCK = """
+ALESSANDRA KNEE BANDAGE (this place-set — when pinned ON):
+ONE knee only — beige/tan athletic tape wrap OR slim neoprene knee sleeve. Functional trail/cycling care, not hospital drama.
+Same bandaged knee whenever legs are visible in this set. NOT both knees. NOT giant gauze dressing.
+Scrape under tape ok. Skip on swim/water shots.
+"""
+
+ALESSANDRA_ROOF_BIKE_MOUNT_LOCK = """
+PANDA ROOF BIKE MOUNT (MANDATORY when bike on rack):
+ONE road bike on black roof rack — mounted PARALLEL along the roof (longitudinal): frame aligned with car length hood→tail,
+fork-mount or wheel-tray style — bars and wheels pointing fore/aft with the Panda, NOT across roof width.
+Bike STRAIGHT on rack — not diagonal, not crooked, NOT transverse/quer.
+Standard roof tray or fork mount; intact frame, both wheels, bars readable.
+When she is RIDING the bike this shot: roof rack EMPTY — never roof bike + ridden bike in same frame.
+"""
+
 _ZARA_SHORE_COVERUP_ACTIVITIES = frozenset({
     "beach_walk_distance", "muscheln_sammeln", "harbour_walk", "waiting",
     "towel_dry", "sunscreen_apply", "saltwater_wring", "ferry_rail",
-    "surprise_rain", "park_with_view",
+    "surprise_rain", "getting_soaked", "park_with_view",
 })
 _ZARA_DRINKS_POSE_ACTIVITIES = frozenset({"biergarten", "sunset_beer"})
 _ZARA_BEACH_SOFT_DROP = frozenset({
@@ -4205,8 +4274,9 @@ CHARACTER_VEHICLES = {
         "Fiat Panda 4x4 — white, South Tyrolean mountain dust. Italian plates (IT, BZ — Südtirol/Bolzano). "
         "Rear: weather-faded German decal \"Südtirol\" with small alpine crest (German text only — NOT \"Alto Adige\"), "
         "weathered bumper sticker \"Eat. Ride. Suffer. Repeat.\" "
-        "Black roof rack with ONE road bike mounted on top — fork or wheel mounts, bike parallel to the car, "
-        "intact frame/wheels/bars (real bicycle silhouette, not a melted blob). "
+        "Black roof rack with ONE road bike mounted PARALLEL on top — frame aligned with car length (hood→tail), "
+        "fork-mount or wheel-tray, bars/wheels fore-aft with the Panda — NOT transverse/quer, NOT crooked diagonal. "
+        "Intact frame/wheels/bars (real bicycle silhouette, not a melted blob). "
         "EXCEPTION when she is riding: roof rack EMPTY this shot — the bike under her is the only bike. "
         "Never two bikes (roof + ridden) in the same frame. "
         "NO elevation-profile print on windscreen or dash. Mud on wheel arches, stone chips on nose. "
@@ -4546,7 +4616,7 @@ VEHICLE_ACTIVITY_POSE = {
 CHARACTER_NO_DRIVING_EYEWEAR = frozenset({"elena"})  # needs eyes free — no sunglasses on arrival
 
 CHARACTER_DRIVING_EYEWEAR: dict[str, str] = {
-    "tammy": "dark sunglasses still on or pushed up on head — just out of the Crown Vic",
+    "tammy": "dark sunglasses optional — off, on, or pushed up on head — just out of the Crown Vic",
     "jack_mae": "practical sunglasses still on or pushed up — both of them, just out of the pickup",
     "jonas_lara": "practical dark sunglasses still on or pushed up — both of them, just out of the Volvo",
     "thea": "dark vintage sunglasses still on — habit, even cloudy",
@@ -4831,6 +4901,8 @@ def get_vehicle_activity_block(
             "Yoga lean posture, long back. If swim/shore: black low-back one-piece (PRIMARY) — "
             "NOT a romper, NOT a boyshort onesie, NOT baggy. Early almost-smile ok. Face readable when she glances back."
         )
+    if character_key == "alessandra" and activity_key not in {"cycling_road", "elevation_read"}:
+        block += "\n" + ALESSANDRA_ROOF_BIKE_MOUNT_LOCK.strip()
     return block
 
 def _apply_vehicle_to_spec(
@@ -5192,6 +5264,7 @@ CHAR_SPECIALS = {
     "diaz":      [
         ("activity", "eating_ice_cream"),  # donut/cone snack — uniform stays
         ("activity", "radio_check"),
+        ("activity", "speed_gun"),
         ("activity", "binoculars_scan"),
         ("activity", "draw_weapon"),
         ("activity", "fueling_car"),
@@ -5215,7 +5288,7 @@ CHAR_SPECIALS = {
         ("cinematic", "gas_station_night"),
     ],
     "luca":      [("activity", "surfing"), ("activity", "moka_van_step"), ("activity", "van_roof_nap"), ("activity", "making_bbq"), ("activity", "eating_ice_cream")],
-    "alessandra":[("activity", "elevation_read"), ("activity", "binoculars_scan"), ("activity", "bouldern"), ("activity", "trail_running"), ("activity", "water_jump"), ("activity", "freestyle_swim")],
+    "alessandra":[("activity", "elevation_read"), ("activity", "binoculars_scan"), ("activity", "bouldern"), ("activity", "trail_running"), ("activity", "stairs_sprint"), ("activity", "local_event"), ("activity", "water_jump"), ("activity", "freestyle_swim")],
     "tyler":     [("activity", "flip_screen_check"), ("activity", "telephoto_frame"), ("activity", "starlink_aim"), ("activity", "making_bbq"), ("activity", "lurking")],
     "miles":     [
         ("activity", "map_hood"), ("activity", "binoculars_scan"), ("activity", "van_morning_coffee"),
@@ -5290,7 +5363,7 @@ SAFE_ACTIVITIES = {
     "snowshoe_hike", "campfire_sit", "desert_walk", "sunset_wine", "cigarette_roll",
     "postcard_write", "newspaper_cafe", "kiosk_stop", "cash_pay", "eat_local", "eating_ice_cream", "local_event", "biergarten", "attraction_pass", "photo_lab",
     "park_with_view", "window_down", "cruise_through",
-    "closed_door", "ticket_machine", "surprise_rain", "parking_puzzle", "waiting",
+    "closed_door", "ticket_machine", "surprise_rain", "getting_soaked", "parking_puzzle", "waiting",
     "rope_coil", "map_hood", "tire_change", "kayak_entry", "sup_entry", "sup_mount", "metal_horns", "cinema_program",
     "laundromat", "bookstore_browse", "ferry_rail",
     "chess_queen_leave", "passants", "power_aura", "amulet_glow", "queen_card_exit", "yoga_mat_edge", "dice_idle", "detector_sweep",
@@ -5304,13 +5377,13 @@ SAFE_ACTIVITIES = {
     "making_bbq", "marshmallow_roast",
     "fueling_car", "hood_check", "bouldern", "towel_dry", "trail_running", "stairs_sprint",
     "car_exit", "stretch", "van_getting_dressed", "surfing", "surf_paddle",
-    "radio_check",  # Diaz on-duty shoulder mic — posture-safe
+    "radio_check", "speed_gun",  # Diaz on-duty patrol beats — posture-safe
 }
 
 # Activities = travel photos — char SMALL like main (never portrait crop). ALL cast.
 # Hard ceiling 24% (26% seated fail). Close = action readable still within that.
 _WIDE_ACTIVITY_FRAMING = frozenset({
-    "closed_door", "waiting", "surprise_rain",
+    "closed_door", "waiting", "surprise_rain", "getting_soaked",
     "sunset_wine", "sunset_beer", "park_with_view", "window_down", "cruise_through",
     "beach_walk_distance", "hiking_back", "desert_walk", "surf_paddle", "surfing",
     "van_morning_coffee", "campfire_sit", "roadside_dusk", "ferry_rail",
@@ -5319,6 +5392,7 @@ _WIDE_ACTIVITY_FRAMING = frozenset({
     "flip_screen_check", "fence_line_scan", "wind_farm_scan",
     "water_jump", "freestyle_swim", "fueling_car", "bouldern",
     "car_exit", "stretch", "van_getting_dressed",
+    "speed_gun",
     "power_aura",
     "passants",
     "lurking",
@@ -5336,7 +5410,7 @@ _CLOSE_ACTIVITY_FRAMING = frozenset({
     "van_roof_nap", "starlink_aim",
     "doc_pair_frame", "historical_map_compare", "field_notes",
     "amulet_glow", "hood_check", "eating_ice_cream",
-    "radio_check", "draw_weapon",
+    "radio_check", "draw_weapon", "speed_gun",
     "queen_card_exit", "chess_queen_leave", "dice_idle", "feeding_cats", "stray_dogs",
     "hausmeister_chat", "local_chat", "making_bbq",
     "marshmallow_roast", "towel_dry",
@@ -5346,7 +5420,7 @@ _INTERACTION_ACTIVITY_FRAMING = frozenset({
     "cash_pay", "ticket_machine", "kiosk_stop", "market_browse", "eat_local", "hausmeister_chat",
     "local_chat", "menu_study", "cafe_terrace",
 })
-DISABLED_ACTIVITIES = {"lingerie_window", "lingerie_store", "waiting"}
+DISABLED_ACTIVITIES = {"lingerie_window", "lingerie_store", "waiting", "getting_soaked"}
 
 ACTIVITY_FRAMING_LOCK = """
 ACTIVITY FRAMING LOCK (NON-NEGOTIABLE — EVERY character):
@@ -5368,11 +5442,11 @@ CHARACTER_BODY_ANCHORS = {
     "sofia":      "Athletic lean surfer build, olive freckled skin. Silver crescent moon necklace. Blue woven bracelet left wrist always.",
     "maya":       "Hourglass swimmer build — wide shoulders, narrow waist, full chest/hips. Three-wave-line emblem on top when in water gear. Water/SUP: bare face, no eyewear. Land/grey mode: sport sunglasses always.",
     "kay":        "Strong lean 44, decades of Pacific tan. Fine lines around eyes — evidence not damage. Small white orca silhouette on chest (wetsuit or black top). Shoulder scar ok.",
-    "tasha":      "Warm olive/tan skin, long highlighted BLONDE hair (beach waves or blow-dry — never dark curly). Camera or ferry ticket only when seated — not on active water shots. ~15%: neon 90s windbreaker over sundress.",
+    "tasha":      "Warm olive/tan skin, long highlighted BLONDE hair (beach waves or blow-dry — never dark curly). NO camera, NO phone. ~15%: neon 90s windbreaker over sundress.",
     "metka":      "Freediver build — lean, hipster-cut athletic frame. Buzz cut, wetsuit tan lines at shoulders and wrists, bare short salt-worn nails, silver helix piercing. Shearwater/Suunto dive computer left wrist.",
     "amber":      "Natural curves under casual layers. Coyote-echo coat tint only on wildlife — not on her body.",
     "jade":       "Red curly hair, deep desert tan, strong athletic build. Short unpolished nails, motor oil under nail ok. Old red shop rag in belt/back pocket when dressed.",
-    "alessandra": "Alpine athlete — very athletic endurance build, visible six-pack (natural not shredded). Cycling kit tan lines always. Bare short nails, trail dust, fresh knee scrape ok. Attractive via capability/indifference, never glamour.",
+    "alessandra": "Alpine athlete — very athletic endurance build, visible six-pack (natural not shredded). Cycling kit tan lines always. Bare short nails, trail dust; knee scrape or slim knee bandage (~38% sets) ok. Attractive via capability/indifference, never glamour.",
     "ingrid":     "Tall lean Scandinavian 175cm, platinum blonde wind-touched. Pale weather-tanned skin. Minimal silver jewelry only. "
                   "Road leathers: INGRID FALCON JACKET lock — back falcon + left-chest patch exactly as reference.",
     "elena":      "VERY pale skin always — never tanned/bronzed, even in sun (nightlife creature outdoors). Platinum blonde bob (NOT slicked). FACE: Slavic features, slight festival fatigue around eyes, real texture — never beauty-blur. Black nails chipping. Industrial bar right ear, chunky silver chain. Lean traveller. Large black duffel nearby on shore — never luxury styling.",
@@ -5417,7 +5491,7 @@ CHARACTER_BODY_ANCHORS = {
     "jack_mae":   "DUO always — Jack late-50s weathered broad-shouldered grey hair denim; Mae early-40s lean dark ponytail olive field kit. Quiet investigator road pair. Golden retriever Goldie optional nearby.",
     "jonas_lara": "DUO always — Jonas 36 lean dark messy hair stubble dark field kit; Lara 30 slim dark ponytail olive field kit. EU investigators. Hands usually empty. Golden retriever Flocke optional nearby.",
     "tyler":      "Instagram/manufactured hot — lean athletic Californian, trimmed beard, bright smile. Photogenic, gepflegt, slightly too perfect / commercial-polished.",
-    "miles":      "Quiet western writer/photographer — lean capable, messy dark wavy hair, short groomed beard, road-weathered. Contemplative, not Dale-oddball, not Tyler polish. Nikon FM2 on leather strap.",
+    "miles":      "Quiet western writer/photographer — lean capable, messy dark wavy hair, short groomed beard, road-weathered. Thin cord + silver/turquoise pendant, silver ring(s). Contemplative, not Dale-oddball, not Tyler polish. Nikon FM2 on leather strap.",
 }
 
 # Fingernails / toenails — injected on main, activity, exploit (via build_prompt). See CHARACTER_SPECS for lore.
@@ -5463,7 +5537,7 @@ If the camera sees the front of her legs: render smooth sheer nylon with zero se
 
 NYLON_BACK_SEAM_CHARACTERS = frozenset({
     "charlotte", "valentina", "elena", "naomi", "sigrid", "diana",
-    "quinn", "nina", "katja", "diaz", "regina", "celine",
+    "quinn", "nina", "katja", "diaz", "regina", "celine", "jelena",
 })
 
 _NYLON_PROMPT_RE = re.compile(
@@ -5602,6 +5676,37 @@ NEVER two hands both clamped on the same strap while another hand is also visibl
 One left sleeve + one right sleeve → one hand each. If limb count ≠ 2+2, the shot has failed.
 """
 
+GETTING_SOAKED_WET_TOP_LOCK = """
+WET TOP LOCK (MANDATORY — must read SOAKED):
+Shirt/blouse/top WET THROUGH — fabric darkened, clings to chest/shoulders/upper arms, water beads and runs down.
+Collar soaked, hem heavy, hair plastered flat. Torso clearly drenched — not light sprinkle, not dry patches on chest.
+Real mishap energy: the soak just happened and the top shows it.
+"""
+
+GETTING_SOAKED_NO_SHEER_LOCK = """
+SHEER BAN (on top of wet-top): cling on OPAQUE day fabric ok — cotton, linen, denim shirt, knit.
+FORBIDDEN: see-through wet shirt, glass-white tee, visible underwear/nipple outline through fabric,
+wet T-shirt contest glamour, lingerie reveal. Soaked travel clothes, not exploit pin-up.
+Keep pinned day outfit coverage — tank/tee + shorts/jeans/skirt still reads as proper clothes when wet.
+"""
+
+GETTING_SOAKED_REACTION_LOCK = """
+SOAK REACTION (MANDATORY — NOT surprise_rain):
+Caught MID-SURPRISE — water just hit, still standing in the open. Too late for protection.
+Hands EMPTY, at sides, or mid-flinch — NOT pulling jacket closed, NOT running for awning/doorway,
+NOT umbrella up, NOT bag over head, NOT hunching to shield laptop/gear.
+Reaction ONLY: (A) sharp annoyance — glare, jaw set, wet hair in face, "are you kidding" energy
+OR (B) surprised delight — burst laugh, open mouth, loose arms, "well THAT happened" joy.
+NOT resigned shrug. NOT practical damage-control. NOT seeking shelter.
+"""
+
+GETTING_SOAKED_FOOTWEAR_LOCK = """
+FOOTWEAR LOCK (MANDATORY): shoes, sneakers, boots, or sandals ON BOTH FEET — wet/splashed ok.
+Street, pavement, asphalt, curb, harbour promenade, village lane — NEVER barefoot.
+Splash/rain: normal day shoes — toes stay in footwear on wet ground.
+NOT beach-barefoot on asphalt. NOT shoes removed / carried. NOT standing on wet road with bare feet.
+"""
+
 SUP_PADDLE_PROP_LOCK = """
 SUP PADDLE PROP (MANDATORY — one physical object, correct geometry):
 Stand-up paddle only: single blade at one end, T-grip or paddle handle at top.
@@ -5678,6 +5783,13 @@ Full figure small in frame (~25–35% frame height); entire SUP length readable;
 Low angle at water height ok — candid observer from shore, dock, or wading distance.
 NOT medium close-up, NOT chest-up filling the frame with the climb.
 """
+
+MAYA_SETTLEMENT_DAY_OUTFIT = (
+    "MAYA TOWN HEAT (mandatory in settlements): fitted crop top or sports bralette + short shorts "
+    "(cutoff athletic or denim — mid-thigh, hourglass readable), trainers or flip-flops, "
+    "sport sunglasses or faded cap optional. Same hot Southern-coast energy as Tasha — body juice ok, not Instagram pose. "
+    "Three-wave-line emblem on top ok. NOT baggy grey cargo mouse, NOT linen trousers, NOT full bikini on café/street."
+)
 
 MAYA_LAND_CANONICAL_ACTIVITIES = frozenset({
     "hiking_back", "kayak_entry", "hood_check", "laundromat",
@@ -5963,19 +6075,19 @@ Wine, flower, gold jewelry, loose dress still ok as identity — NEW composition
 Over-shoulder glam glance at lens copied from the reference = FAIL.
 """
 
-# Canonical = Capri café table: seated lean on arm, drink raised, soft look-away, disposable cam on table
+# Canonical = Capri café table: seated lean on arm, drink raised, soft look-away
 TASHA_ANTI_CANONICAL_POSE_LOCK = """
 TASHA POSE LOCK (MANDATORY — reference = face / body / blonde identity ONLY, never pose):
 FORBIDDEN: cloning the canonical Capri-café tableau — seated at a table leaning on one arm,
 drink (cocktail / iced coffee) held up as a portrait prop, soft ¾ look-away to the side,
 same "pretty tourist candid" body angle and camera distance as the reference.
 Also FORBIDDEN as a standing clone of that energy: midriff-forward soft stand, gaze aside,
-drink + phone as pose props, same shoulder/hip line as the reference — Vegas sidewalk or beach.
+drink as pose prop, same shoulder/hip line as the reference — Vegas sidewalk or beach.
 She is IN the place — mid-walk toward the landmark/street, laughing at something off-frame,
-lifting the disposable camera to shoot a sign/friend/view, Jeep step or rail lean absorbed in the scene,
-or profile to the Strip/harbour with hands free or coffee only as real-walk prop (not a catalogue hold).
-White/tan tiny top + denim shorts + gold hoops + disposable camera still ok as identity —
-NEW composition every shot. Reference pose / Capri-table clone = FAIL.
+Jeep step or rail lean absorbed in the scene,
+or profile to the Strip/harbour with hands free or iced coffee only as real-walk prop (not a catalogue hold).
+White/tan tiny top + denim shorts + gold hoops — NEW composition every shot. NO camera in hands or on strap.
+Reference pose / Capri-table clone = FAIL.
 """
 
 # Joshua Tree gold — blonde juiciness on granite (positive ref)
@@ -6070,6 +6182,44 @@ Mid-walk on wet sand at the waterline — athletic quiet presence, gaze aside or
 OUTFIT: chocolate-brown ribbed bralette bikini (bracelet LEFT wrist) — body readable, no cover-up required on pure beach main.
 BAREFOOT on sand — never loafers, never closed shoes, never boots on the beach.
 NOT resort glam, NOT high-waist-only, NOT standing still fashion beach portrait.
+"""
+
+# Jelena Balkan ausgeh×kink — schick evening merged with edged nightlife (110% Balkan)
+JELENA_NIGHT_OUTFIT = (
+    "OUTFIT OVERRIDE — JELENA BALKAN AUSGEH×KINK (110% Serbian/Balkan night — schick AND edged): "
+    "SETTING ENERGY: Skadarlija / Baščaršija / kafana cobblestone — Ottoman stone, wrought iron, "
+    "draft beer or rakija on terrace — NOT generic Med yacht promenade, NOT Milan resort stroll. "
+    "PRIMARY (~50%): fitted deep wine/burgundy OR black satin dress — body-conscious hourglass, "
+    "hem mid-thigh (prefer shorter over knee-length). "
+    "ALT (~50%): black silk/satin camisole tucked into high-waist black leather mini skirt "
+    "(soft hourglass hips/ass readable — slight kink edge). "
+    "Sheer black stockings always — vertical seam runs center BACK of each leg only; "
+    "front-facing or three-quarter-front shots: plain sheer nylon on front of legs, ZERO seam on shin. "
+    "Seam visible ONLY when back of calf faces camera (walking away, profile from behind). "
+    "Black block-heel ankle boots or sharp heels. Small gold hoops, thin gold chain, crossbody or dark clutch. "
+    "Berry/wine lip, subtle smoky liner; dark voluminous waves loose or soft updo. "
+    "Almost laughing, hip weight — rakija, espresso, or draft beer; high voltage but dressed. "
+    "NOT day rib tank+jeans+sneakers. NOT white sneakers. NOT Valentina pencil. NOT Naomi lace bustier. "
+    "NOT Mila festival leather. NOT dungeon harness/collar/PVC/fishnets-as-costume."
+)
+
+JELENA_NIGHT_OUTFIT_KINK_HEAVY = (
+    f"{JELENA_NIGHT_OUTFIT} "
+    "INTENSITY (nightlife): prefer leather mini over satin; hem mid-thigh mandatory; "
+    "stockings always (rear seam when back of leg visible); sharper heel; louder 1am kafana voltage — "
+    "still schick Balkan, not dungeon."
+)
+
+# Back-compat alias
+JELENA_EVENING_OUTFIT = JELENA_NIGHT_OUTFIT
+
+JELENA_EVENING_LOCK = """
+JELENA EVENING / AUSGEH×KINK (preferred on dusk drinks / café / premium night main):
+Warm golden-hour or tungsten kafana light — Baščaršija / Skadarlija / old-town cobblestone readable.
+POSE: seated at kafana terrace table, leaning on stone rail, or mid-stride on cobblestone — profile or three-quarter;
+almost-smile, high voltage contained; gaze at view or companion off-frame — NOT catalogue frontal glam.
+OUTFIT: wine/black satin mid-thigh OR camisole + black leather mini; sheer stockings (rear seam only — never on front of leg);
+gold minimal; berry lip; block-heel boots. NOT day tank+jeans+sneakers.
 """
 
 # Lansing sunset_wine gold — seated profile, mauve blouse, fabric midi, golden hour
@@ -6198,10 +6348,11 @@ _DIAZ_OFF_DUTY_ACTIVITIES = frozenset({
 # Preferred when --diaz-on-duty / file-tag onduty — patrol / roadside / town beats in uniform
 # fueling_car omitted — img model keeps putting the nozzle on the Tahoe heck; force via --activity-key only
 _DIAZ_ON_DUTY_PREFERRED_ACTIVITIES = (
+    "eating_ice_cream",  # glazed donut / cone — one slot guaranteed per on-duty set
     "radio_check",       # shoulder mic / PTT — US cop "on the radio"
+    "speed_gun",         # roadside radar/LIDAR — traffic enforcement
     "binoculars_scan",   # sky / ridge / valley scan
     "draw_weapon",       # holster clear, muzzle DOWN — never aimed
-    "eating_ice_cream",  # cone or glazed donut — comic duty snack
     "diner_booth",
     "fence_line_scan",
     "window_down",
@@ -6313,11 +6464,18 @@ Active shots (run, hike, swim): no mouth prop at all.
 
 _tammy_energy_drink_set_ok = False
 _tammy_energy_drink_claimed = False
+_alessandra_knee_bandage_set_ok = False
+
+_ALESSANDRA_KNEE_BANDAGE_SKIP = frozenset({
+    "freestyle_swim", "water_jump", "surfing", "surf_paddle", "kajak_sup",
+    "sup_entry", "sup_mount", "kayak_entry", "board_carry",
+})
 
 def reset_tammy_set_state(character_key: str) -> None:
-    global _tammy_energy_drink_set_ok, _tammy_energy_drink_claimed, _DIAZ_SET_ON_DUTY
+    global _tammy_energy_drink_set_ok, _tammy_energy_drink_claimed, _DIAZ_SET_ON_DUTY, _alessandra_knee_bandage_set_ok
     _tammy_energy_drink_claimed = False
     _tammy_energy_drink_set_ok = character_key == "tammy" and random.random() < 0.40
+    _alessandra_knee_bandage_set_ok = character_key == "alessandra" and random.random() < 0.38
     _DAY_OUTFIT_STICKY.clear()  # new place-set → new sticky day look
     _DIAZ_SET_ON_DUTY = None  # new place-set → re-roll duty once (border only)
 
@@ -6363,6 +6521,14 @@ def get_tammy_energy_drink_line(allowed: bool) -> str:
             "in hand or beside her — bottom shelf, no recognizable brand."
         )
     return "NO energy drink can in hand, on table, or beside her this shot."
+
+
+def get_alessandra_knee_bandage_lock(character_key: str, activity_key: str = "") -> str:
+    if character_key != "alessandra" or not _alessandra_knee_bandage_set_ok:
+        return ""
+    if activity_key in _ALESSANDRA_KNEE_BANDAGE_SKIP:
+        return ""
+    return ALESSANDRA_KNEE_BANDAGE_LOCK.strip()
 
 
 def get_tammy_mouth_prop_lock(character_key: str, *, energy_drink: bool = False) -> str:
@@ -6424,6 +6590,12 @@ def get_phone_prop_lock(character_key: str) -> str:
             "NO PHONE (MAYA — MANDATORY): She does not use a smartphone. Hands empty or on cap/water bottle/Jeep. "
             "FORBIDDEN: phone in either hand, both hands on a screen, looking down at a device, texting, GPS, selfie. "
             "Eyes on water, horizon, Jeep, or middle distance — never a glass slab."
+        )
+    if character_key == "tasha":
+        return (
+            "NO PHONE, NO CAMERA (TASHA — MANDATORY): No smartphone, no disposable/film camera, "
+            "nothing around neck or in hands. Hands empty or natural — hair, water bottle, iced coffee ok. "
+            "FORBIDDEN: camera strap, Quicksnap, photographing signs, looking through viewfinder."
         )
     return (
         "NO PHONE (MANDATORY): No smartphone in hand, on table, in pocket as visible prop, or in frame. "
@@ -6729,6 +6901,13 @@ def get_cast_micro_detail_locks(
                 "about the machine, not the weather. Acai bowl abandoned or ruined nearby optional. "
                 "NO umbrella fashion pose — pure digital-nomad damage control."
             )
+        elif act == "getting_soaked":
+            parts.append(
+                "CHAD GETTING SOAKED (MANDATORY): mid-soak surprise — rain, splash, or pour just hit. "
+                "Top wet-through, hands up or loose at sides, NOT shielding MacBook, NOT jacket tent. "
+                "Laptop in hand or on strap, already wet ok. "
+                "Vacant Bro face: either blank outrage ('bro') OR stupid delighted laugh — no damage control."
+            )
         else:
             # MacBook often, not always — including beach. Never mid-paddle/run/trail.
             _chad_hard_no = (
@@ -6968,18 +7147,22 @@ CHARACTER_SWIM_OUTFIT = {
         "NOT fashion triangle, NOT neon, NOT black as default."
     ),
     "maya": (
-        "Sport competition-style bikini or black athletic two-piece — training suit acceptable. "
-        "No cargo shorts on the board. "
-        "Bare face — NO sunglasses, NO glasses, NO swim goggles on water/SUP."
+        "PRIMARY (~80%): black or navy sport competition bikini — two-piece, three-wave-line emblem on top when visible. "
+        "ALT (~20%): black athletic one-piece — open back ok, same competition energy. "
+        "Bare face on water — NO sunglasses, NO glasses, NO swim goggles. No cargo shorts in water."
     ),
     "kay": (
         "PRIMARY: black fitted tank + black bikini bottoms, orca logo on chest when visible. Barefoot on board. "
         "Rare (~15%): shorty wetsuit peeled to waist, orca on chest."
     ),
     "tasha": (
-        "PRIMARY: simple solid black bikini — tourist heat, not editorial glam. "
-        "Disposable camera on shore only, not on board. "
-        "Rare (~15%): plain white or coral solid; or stars-and-stripes kitsch bikini (Venice Beach joke)."
+        "PRIMARY (~55%): simple solid WHITE bikini — triangle or sport cut, clean white fabric, "
+        "tourist heat, not editorial glam. Gold hoops ok. "
+        "ALT 2 (~30%): deep iridescent purple/navy athletic one-piece — metallic wet-look swim fabric, "
+        "glossy highlights in golden-hour sun; white piping on scoop neckline, armholes, thin spaghetti "
+        "straps, and high-cut leg openings; vertical white side stripes on torso; second-skin body-hug. "
+        "JOKE (~15%, keep): stars-and-stripes kitsch bikini (Venice Beach gag — US flag print). "
+        "Barefoot on sand/water. NO black bikini default. NO camera in frame."
     ),
     "metka": (
         "PRIMARY (~70%): matte black or anthracite sport-bralette bikini — wider straps, slightly higher-cut top "
@@ -7300,7 +7483,8 @@ CHARACTER_DAY_OUTFIT: dict[str, str] = {
         "disposable camera on neck always. Same cheerful preppy kit — no wardrobe roulette."
     ),
     "tammy": (
-        "Western-practical: fitted tee or tank, jeans or cutoffs, boots, aviators or clear eyewear as usual. "
+        "Western-practical: fitted tee or tank, jeans or cutoffs, boots. "
+        "Dark aviators optional — off ok; on or pushed up in bright sun only. "
         "Optional Americana: faded bandana at neck/wrist, or cheap snakeskin boot accent — weird, not glam. "
         "Toothpick/lollipop energy. Not a new fashion concept each shot."
     ),
@@ -7311,8 +7495,8 @@ CHARACTER_DAY_OUTFIT: dict[str, str] = {
         "Hair dark waves. Same proud-Latina day kit."
     ),
     "maya": (
-        "Land day kit: sport sunglasses, faded cap optional, athletic tee or tank, shorts or light pants, trainers. "
-        "NOT grey-cargo mode unless grey lock is on. NOT bikini on non-water shots."
+        "Land day kit: sport sunglasses, faded cap optional, fitted crop or tank + short shorts, trainers. "
+        "NOT grey-cargo mouse unless grey lock is on. Bikini on water/beach shots only."
     ),
     "tyler": (
         "Polished California travel: clean tee or light flannel/overshirt, quality shorts or chinos, trail runners or clean sneakers, "
@@ -7326,7 +7510,8 @@ CHARACTER_DAY_OUTFIT: dict[str, str] = {
     "miles": (
         # Picked per place-set in ensure_day_outfit_sticky via _miles_day_outfit_for_place
         "Road-writer day kit: open plaid flannel over worn tank or plain tee, dark trousers or jeans, "
-        "brown belt, work boots. Desert/trail: faded bandana at neck or in back pocket ok. "
+        "brown belt, work boots. Thin cord necklace + silver/turquoise pendant; silver ring ok. "
+        "Desert/trail: faded bandana at neck or in back pocket ok. "
         "Nikon FM2 on strap. Paper map or enamel mug only sometimes — not every frame."
     ),
     "chad": (
@@ -7378,15 +7563,17 @@ CHARACTER_DAY_OUTFIT: dict[str, str] = {
         "Tailored shirt, dark trousers, watch — silent authority day look. Same kit (no henley roulette this set)."
     ),
     "tasha": (
-        "Warm casual: sundress or tiny top + shorts, sandals, camera when seated. Same Southern-coast day look — no neon-windbreaker roulette this set."
+        "Warm casual: sundress or tiny top + shorts, sandals, gold hoops. "
+        "Same Southern-coast day look — no neon-windbreaker roulette this set. NO camera."
     ),
     "isabella": (
-        "Atlantic quiet money day: black/dark-brown leather OR fabric mini/midi skirt (matte, not PVC) "
-        "with fine knit or soft blouse, flat boots or loafers, light coat optional. "
-        "Equal town option: dusty-rose/mauve short-sleeve button-down tucked into dark fabric pencil/midi + black loafers. "
-        "Alt bottoms: elegant wide-leg or tailored trousers / refined dark jeans — OR simple dress. "
-        "NEVER shorts, NEVER cutoffs. Gold bracelet always. No Miami glam, no heels theatre. "
-        "Same kit — no nightlife kink by day (no leather trousers + plunging bodysuit night look)."
+        "Day kit (ONE pinned per place-set): black/dark-brown leather mini/midi skirt OR fabric mini/midi "
+        "with fine knit or soft blouse, flat boots or loafers, light coat optional; "
+        "OR dusty-rose/mauve short-sleeve button-down tucked into dark fabric pencil/midi + black loafers; "
+        "OR charcoal pinstripe long-sleeve shirt (thin white/grey stripes, tucked in, flared cuffs), "
+        "black pencil skirt, sheer black hose, black open-toe heeled sandals, optional thin glasses; "
+        "OR elegant wide-leg trousers OR refined dark jeans OR simple dress. "
+        "NEVER shorts, NEVER cutoffs. Gold bracelet always. No Miami glam. No nightlife kink by day."
     ),
     "rosa": (
         "Warm practical Mexico/US Southwest day: dark jeans or shorts that show a round high-sitting hip line, "
@@ -7419,7 +7606,8 @@ CHARACTER_DAY_OUTFIT: dict[str, str] = {
         "Greek day: simple dark or white top, shorts or light pants, sandals, sunglasses. Same island-town kit — not swim unless water."
     ),
     "lyra": (
-        "Wine-dusk casual: simple dress or dark top + skirt/pants, sandals, old-gold jewelry. Same mythic-casual kit off-beach."
+        "Wine-dusk casual: pinned per place-set — Greece/Cyprus may use Ariadne linen; "
+        "elsewhere travel evening (top + skirt/pants), NOT white sheet/toga."
     ),
     "maria": (
         "Andalusian day: simple fitted top, jeans or skirt, sandals, composed fire under control. Same kit."
@@ -7437,7 +7625,7 @@ CHARACTER_DAY_OUTFIT: dict[str, str] = {
         "Balkan city day: white ribbed tank, jeans EXACTLY as in the canonical reference "
         "(same wash/cut/fit — do not reinvent denim), white sneakers, brown crossbody, small gold. "
         "High voltage mid-stride. Local café / family shop / old public building — never chain atrium. "
-        "No map, no Leica, no leather festival jacket. No nightlife kink by day."
+        "No map, no Leica, no leather festival jacket. No ausgeh×kink or day denim by day."
     ),
     "diana": (
         # Picked per place-set via _diana_day_outfit_for_place — tailored / jeans / coat
@@ -7528,12 +7716,12 @@ CHARACTER_KINKY_LIGHT_OUTFIT: dict[str, str] = {
         "NOT linen, NOT Sambas, NOT soft day kit, NOT full harness/latex catsuit."
     ),
     "jelena": (
-        "Serbian nightlife kink (edged, not extreme): black/dark leather mini (short — hourglass readable, not micro-bare); "
-        "sheer black stockings with clear back-seam when legs readable; black heels or sharp ankle boots. "
-        "White/black rib tank or cropped dark top — thin bra straps ok, waist/chest honest. "
-        "Crossbody + small gold. High voltage kafana/street 1am — almost laughing, hip weight. "
-        "FORBIDDEN this shot: jeans, white sneakers, day tank+denim, Valentina pencil, Mila festival leather, "
-        "dungeon harness/collar."
+        "Balkan ausgeh×kink: wine/black satin mid-thigh OR silk camisole + high-waist black leather mini; "
+        "sheer black stockings — rear seam on back of calf only, never on front of leg; "
+        "block-heel boots or sharp heels; gold hoops + chain; berry lip; "
+        "Skadarlija/Baščaršija/kafana cobblestone energy — NOT Med yacht promenade. "
+        "Nightlife: prefer leather mini, sharper heel, 1am kafana voltage. "
+        "FORBIDDEN: day tank+jeans+sneakers, Valentina pencil, dungeon harness/collar."
     ),
     "sofia": (
         "Med/Atlantic nightlife kink (edged, softer length): black/dark leather skirt above the knee — "
@@ -7607,16 +7795,31 @@ def get_kinky_light_outfit_lock(
     *,
     nightlife_mode: bool = False,
     noir_mode: bool = False,
+    prestige_mode: bool = False,
     eclipse_mode: bool = False,
     viper_mode: bool = False,
     maxpower_mode: bool = False,
 ) -> str:
-    """Fetish-light wardrobe — only true night register (nightlife or noir MAIN).
+    """Fetish-light wardrobe — only true night register (nightlife, noir, prestige, eclipse MAIN).
 
     eclipse/viper/maxpower may still color mood/lighting, but alone they must NOT
     swap day travel kit for leather-skirt kink (Stavanger golden-hour bug).
+    Jelena: ausgeh×kink hybrid — nightlife uses kink-heavy variant; prestige/noir/eclipse use base.
     Never activities.
     """
+    if character_key == "jelena":
+        if activity_key:
+            return ""
+        if not (nightlife_mode or noir_mode or prestige_mode or eclipse_mode):
+            return ""
+        note = (
+            JELENA_NIGHT_OUTFIT_KINK_HEAVY if nightlife_mode else JELENA_NIGHT_OUTFIT
+        )
+        return (
+            "OUTFIT OVERRIDE (MANDATORY — Balkan ausgeh×kink MAIN — NOT dungeon): "
+            f"{note} "
+            "Do NOT substitute day jeans, rib tank+denim, or white sneakers."
+        )
     note = CHARACTER_KINKY_LIGHT_OUTFIT.get(character_key)
     if not note:
         return ""
@@ -7633,6 +7836,36 @@ def get_kinky_light_outfit_lock(
         "sneakers-as-day-kit, cream pantsuit, or quiet travel casual. "
         "No harness, no collar, no open BDSM staging."
     )
+
+
+_JELENA_EVENING_ACTIVITIES = frozenset({
+    "sunset_wine", "sunset_beer", "cafe_terrace", "biergarten", "eat_local", "menu_study",
+})
+
+
+def get_evening_outfit_lock(
+    character_key: str,
+    activity_key: str | None = None,
+    *,
+    prestige_mode: bool = False,
+    noir_mode: bool = False,
+    eclipse_mode: bool = False,
+    nightlife_mode: bool = False,
+) -> str:
+    """Balkan ausgeh×kink — prestige/noir/eclipse; nightlife uses kinky path."""
+    if character_key != "jelena":
+        return ""
+    if nightlife_mode:
+        return ""
+    if activity_key:
+        if activity_key not in _JELENA_EVENING_ACTIVITIES:
+            return ""
+        if random.random() >= 0.48:
+            return ""
+        return JELENA_NIGHT_OUTFIT
+    if not (prestige_mode or noir_mode or eclipse_mode):
+        return ""
+    return JELENA_NIGHT_OUTFIT
 
 
 _OUTFIT_SLASH_GROUP_RE = re.compile(
@@ -7700,14 +7933,18 @@ def _day_outfit_sticky_key(character_key: str, place: dict) -> str:
 _MILES_DAY_SHIRTLESS = (
     "SHIRTLESS road-writer heat kit: bare chest (no tank, no tee on torso), dark trousers or jeans, "
     "brown belt, work boots. Plaid flannel OFF body — tied at waist OR draped on Land Cruiser hood/seat. "
-    "Faded bandana at neck or back pocket optional. Thin cord necklace ok. Nikon FM2 on strap. "
+    "Faded bandana at neck or back pocket optional. "
+    "JEWELRY: thin dark cord necklace + small silver/turquoise pendant at throat; thin silver ring on right hand; "
+    "worn leather cord bracelet on one wrist ok. Nikon FM2 on strap. "
     "Lean capable, road-weathered — NOT gym-pumped, NOT Luca surfer, NOT softboy fashion. "
     "Paper map or enamel mug only sometimes — not every frame."
 )
 _MILES_DAY_CLOTHED = (
     "Road-writer day kit: open plaid flannel over worn tank or plain tee, dark trousers or jeans, "
     "brown belt, work boots. Desert/trail: faded bandana at neck or in back pocket ok. "
-    "Nikon FM2 on strap. Paper map or enamel mug only sometimes — not every frame."
+    "JEWELRY: thin dark cord necklace + small silver/turquoise pendant visible at collar; "
+    "thin silver band ring on right hand ok. Nikon FM2 on strap. "
+    "Paper map or enamel mug only sometimes — not every frame."
 )
 
 
@@ -7877,6 +8114,64 @@ def _diana_day_outfit_for_place(place: dict) -> str:
     return _DIANA_DAY_COAT
 
 
+_LYRA_HOME_CC = frozenset({"GR", "CY"})
+
+_LYRA_ARIADNE_KIT = (
+    "LYRA Ariadne kit (Greece/Cyprus): loose white or deep wine-red linen dress — "
+    "one shoulder may slip, sheet/toga drape ok, barefoot or sandals, old gold jewelry. "
+    "Wine glass ok. Deity-on-the-island energy — natural, not costume-party."
+)
+
+_LYRA_LINEN_SET_KIT = (
+    "LYRA linen travel set (preferred compromise): cream or off-white two-piece — "
+    "loose long-sleeve linen tunic top (wide neckline, NOT one-shoulder sheet) + matching wide-leg linen trousers, "
+    "simple leather sandals, old gold jewelry. Optional dark flower tucked behind ear. "
+    "Structured co-ord — NOT flowing bedsheet dress, NOT toga drape. Golden-hour cobblestone promenade energy ok."
+)
+
+_LYRA_TRAVEL_KIT = (
+    "LYRA travel evening kit: dark fitted top or silk camisole + midi skirt or tailored trousers, "
+    "flat sandals or ankle boots, old gold jewelry. Wine-red or black — NOT flowing white sheet, "
+    "NOT toga/laken drape, NOT bedsheet dress, NOT canonical white one-shoulder linen portrait."
+)
+
+_LYRA_MED_DRESS_KIT = (
+    "LYRA Med evening: structured wine-red or burgundy slip/sundress (fitted bodice, knee/midi) — "
+    "old gold jewelry, sandals. NOT white flowing sheet, NOT toga, NOT canonical white strap slip."
+)
+
+LYRA_NON_GR_TOGA_LOCK = """
+LYRA WARDROBE LOCK (outside Greece/Cyprus — MANDATORY):
+NO white flowing sheet dress, NO toga/laken drape, NO bedsheet one-shoulder portrait dress,
+NO canonical white linen slip clone. Travel evening clothes — cream/off-white linen two-piece (tunic + wide trousers) ok,
+dark top + skirt/pants, or structured wine-red slip only.
+Ariadne white-linen myth dress = Greece/Cyprus only.
+"""
+
+
+def _lyra_day_outfit_for_place(place: dict) -> str:
+    cc = (place.get("country_code") or "").upper()
+    r = random.random()
+    if cc in _LYRA_HOME_CC:
+        if r < 0.45:
+            return _LYRA_ARIADNE_KIT
+        if r < 0.70:
+            return _LYRA_LINEN_SET_KIT
+        return _LYRA_MED_DRESS_KIT
+    if r < 0.38:
+        return _LYRA_LINEN_SET_KIT
+    if r < 0.50:
+        return _LYRA_MED_DRESS_KIT
+    return _LYRA_TRAVEL_KIT
+
+
+def get_lyra_toga_wardrobe_lock(place: dict | None) -> str:
+    cc = ((place or {}).get("country_code") or "").upper()
+    if cc in _LYRA_HOME_CC:
+        return ""
+    return LYRA_NON_GR_TOGA_LOCK.strip()
+
+
 def get_diana_noir_outfit() -> str:
     """Noir/main dark — ~45% tailored no-coat (Vlore), ~55% classic coat+gloves."""
     if random.random() < 0.45:
@@ -7892,16 +8187,18 @@ def get_diana_noir_outfit() -> str:
 
 
 def get_boulder_crash_pad_lock() -> str:
-    """Outdoor boulder / boulder_hang — often no pad (~65%); pad is not the default prop."""
-    if random.random() < 0.65:
-        return (
-            "\nCRASH PAD (THIS SHOT): NONE. Bare dirt / stone / scrub under the boulder only. "
-            "No foam pad, no gym mat, no folded crash-pad in frame. Solo send, undeveloped landing."
-        )
+    """Outdoor boulder / boulder_hang — never crash pad in frame."""
     return (
-        "\nCRASH PAD (THIS SHOT): one thin outdoor crash pad on the landing OK — "
-        "single pad, not a gym mat stack, not the subject of the frame."
+        "\nCRASH PAD (MANDATORY — NONE): Bare dirt / stone / scrub under the boulder only. "
+        "NO foam crash pad, NO folded pad, NO gym mat, NO pad stack, NO pad in foreground. "
+        "Undeveloped landing — solo send on real rock."
     )
+
+
+def _maya_day_outfit_for_place(place: dict) -> str:
+    if _is_settlement_place(place) or is_urban_place(place):
+        return MAYA_SETTLEMENT_DAY_OUTFIT
+    return CHARACTER_DAY_OUTFIT["maya"]
 
 
 def ensure_day_outfit_sticky(character_key: str, place: dict) -> str | None:
@@ -7914,6 +8211,10 @@ def ensure_day_outfit_sticky(character_key: str, place: dict) -> str | None:
         base = _alessandra_day_outfit_for_place(place)
     elif character_key == "diana":
         base = _diana_day_outfit_for_place(place)
+    elif character_key == "lyra":
+        base = _lyra_day_outfit_for_place(place)
+    elif character_key == "maya":
+        base = _maya_day_outfit_for_place(place)
     else:
         base = CHARACTER_DAY_OUTFIT.get(character_key)
     if not base:
@@ -8025,7 +8326,7 @@ CHARACTER_HIKE_OUTFIT = {
     "werra":      "Investigator trail — dark jeans or trail pants, charcoal shirt or dark tee, boots or trail shoes, coat OFF or carried. Silver wheel pendant stays. Notebook ok. No tactical vest.",
     "thea":       "Greek path day — shorts or linen trousers, light tee, sandals or trail shoes, dark vintage sunglasses. Working energy off-shift — no crates.",
     "sofia":      "Coastal trail — athletic shorts or light pants, fitted top, trainers (or sandals only on easy shore path). Silver crescent + blue bracelet stay.",
-    "lyra":       "Reluctant nature — loose linen trousers or long dress over flats/sandals, light layer. Old gold jewelry. Not sportswear — she barely agreed to leave the terrace.",
+    "lyra":       "Reluctant nature — cream linen two-piece (tunic + wide trousers) OR linen trousers + light layer (NOT white flowing sheet), flats/sandals, old gold jewelry. Not sportswear — she barely agreed to leave the terrace.",
     "kelek":      "Stoic trail day — linen trousers or shorts, earth-tone tee, trail shoes or sturdy sandals. Compass/map energy ok. Red lips, gold hoops.",
     "tammy":      "Lived-in trail — cutoff shorts or jeans, tank, cheap sneakers or light hiking shoes. Golden apple pendant. Not technical kit.",
     "stacy":      "Happy day-hike — cutoff shorts or jeans, tank or collegiate tee, Converse or light trail shoes. Scrunchie, gold hoops. Upbeat, not elite.",
@@ -8036,7 +8337,7 @@ CHARACTER_HIKE_OUTFIT = {
     "jack_mae":   "DUO trail — Jack faded denim shirt or tee, jeans or trail pants, leather boots; Mae olive field shirt, cargo trousers, hiking boots. Daypacks ok. Not Gore-Tex influencer kit.",
     "jonas_lara": "DUO trail — Jonas dark field jacket or sweater, cargos, hiking boots; Lara olive field jacket, cargos, hiking boots. Daypacks ok; maps rare. Not Gore-Tex influencer kit.",
     "tyler":      "Polished California trail — clean tee or light long-sleeve, trail shorts or pants, quality trail runners. Slightly too perfect — still outdoor-capable.",
-    "miles":      "Quiet trail day — worn tee or open flannel, dark trail pants or jeans, worn work/hiking boots. FM2 on strap optional. Paper map rare. Rare bare chest only on remote desert/plateau heat — never near town. Not gym model, not Patagonia flex.",
+    "miles":      "Quiet trail day — worn tee or open flannel, dark trail pants or jeans, worn work/hiking boots. Cord necklace + pendant, silver ring ok. FM2 on strap optional. Paper map rare. Rare bare chest only on remote desert/plateau heat — never near town. Not gym model, not Patagonia flex.",
     "quinn":      "Operational day-hike — black compression or trail pants, fitted technical top, trail runners. Zero logos, zero fashion fluff.",
     "metka":      "Athlete trail — black athletic shorts or trail pants, fitted top, trail runners, dive watch on left wrist. Easy pace.",
     "maya":       "Training trail — black athletic shorts or leggings, training tank, trainers. Sport sunglasses. Land mode — not swimwear.",
@@ -8103,9 +8404,9 @@ CHARACTER_RUN_OUTFIT = {
     "maya":       "Black athletic shorts, training tank or sports crop top, trainers. Sport sunglasses on — land mode.",
     "kay":        "Trail shorts, fitted top, trail runners. Orca logo on top ok.",
     "metka":      "Black athletic shorts, freediver crop top, trail runners, Suunto/Shearwater on left wrist. Easy tempo — 20km is nothing for her.",
-    "tasha":      "EXTRA SKIMPY run kit — tiny running shorts, minimal crop top or sports bra, trainers, gold hoops. Body must stay fit; treats run as maintenance. Disposable camera on strap ok.",
+    "tasha":      "EXTRA SKIMPY run kit — tiny running shorts, minimal crop top or sports bra, trainers, gold hoops. Body must stay fit; treats run as maintenance.",
     "kiona":      "Black high-waist shorts, fitted tank, trainers or Sambas.",
-    "lyra":       "NOT sportswear — loose white or wine-red linen dress (maybe yesterday's), sandals or barefoot on pavement, old gold jewelry. NO trainers, NO leggings, NO race look. Hair loose, salt and wine.",
+    "lyra":       "NOT sportswear — same pinned day kit as this place-set (see LYRA wardrobe lock). NO white sheet/toga outside Greece/Cyprus. Sandals or barefoot, old gold jewelry. NO trainers, NO leggings.",
     "kelek":      "1950s women's athletic jog (real sport kit, vintage — NOT interwar blouse/trousers, NOT modern Lycra, NOT pin-up costume): fitted knit running shorts or calf-length pedal pushers (grey, dusty rose, navy, or sand), short-sleeve cotton knit top or simple sleeveless athletic shirt (white or pale pastel), white canvas sneakers (Keds-style) with short white socks, optional thin cotton headband. Red lips, large gold hoops. Brass compass on belt ok; map in hand ok. NO buttoned blouse, NO leather lace-ups, NO blazer, NO neon trainers.",
     "mila":       "Dark athletic shorts, black tee or dark tank (band logo optional, not mandatory), trainers — festival wristbands on one wrist.",
     "jelena":     "Fitted athletic shorts or dark run shorts, white or cream rib tank (or sports crop), white sneakers, small gold hoops. Crossbody OFF for the run.",
@@ -8154,7 +8455,7 @@ CHARACTER_RUN_OUTFIT_MAGHREB = {
     "terry":      "Ankle leggings, fitted long-sleeve top, trainers — still moves too well.",
     "quinn":      "Black ankle leggings, long-sleeve technical top, trainers — discipline unchanged.",
     "elena":      "Baggy ankle joggers or loose trousers, oversized tee, wrong cheap trainers — still unprofessional, just covered.",
-    "lyra":       "Long loose linen dress, flat sandals — lustlos shuffle, no athletic kit. Gold jewelry ok.",
+    "lyra":       "Pinned day kit — cream linen two-piece OR travel top + skirt/pants preferred outside GR; NO white sheet/toga. Flat sandals — lustlos shuffle. Gold jewelry ok.",
     "sofia":      "Ankle leggings, long-sleeve athletic top, trainers — bracelet and necklace stay. Covered feet.",
     "rosa":       "Ankle leggings, long-sleeve dark top, trainers — gold chains ok, still no blazer.",
     "carmela":    "Ankle leggings, long-sleeve fitted top, trainers — chains and hoops, covered.",
@@ -9204,7 +9505,7 @@ CAMERA — pick ONE and commit (steep angle is the shot):
    rock and sky behind; the climb reads as vertical theatre — still wide, she stays small in the face.
 2. FROM ABOVE — camera over the lip / higher hold looking down as she reaches or hangs;
    shoulders, back, and the drop below all readable — wide enough that the boulder mass wins.
-GROUND under the problem: dirt, stone, or scrub — crash pad is NOT required (see CRASH PAD note).
+GROUND under the problem: bare dirt, stone, or scrub ONLY — NO crash pad, NO foam mat, NO folded pad in frame.
 
 CLOTHING (heat + move, not a wardrobe brief): thin athletic top cut short enough that midriff shows when she reaches;
 chalk-dusted shorts that end high on the thigh; sticky approach or climbing shoes. Fabric dark with sweat at the spine,
@@ -9762,7 +10063,7 @@ _EXPRESSIONS_ACTIVITY = {
     "hood_check":          [
         "expression: back to camera — gaze into the engine bay, face unread",
         "expression: head down into the bay — concentrated on the check, not the lens",
-        "expression: slight glance over shoulder mid-check — aware, still at the open hood",
+        "expression: profile three-quarter — eyes on hood lip or dipstick, zero eye contact with camera",
     ],
     "bouldern":            [
         "expression: eyes on the next hold — focused, breath held",
@@ -9803,6 +10104,11 @@ _EXPRESSIONS_ACTIVITY = {
         "expression: slightly resigned — not angry, this is also travel",
         "expression: practical mid-adjustment — jacket, bag, coffee moved",
         "expression: mild annoyance without performance — rain was not forecast",
+    ],
+    "getting_soaked":      [
+        "expression: sharp surprise-ANGER — glare, jaw set, wet hair in face, hands loose at sides",
+        "expression: burst surprise-JOY — open-mouth laugh, 'well THAT happened', not performing for camera",
+        "expression: frozen mid-flinch — eyes wide, mouth open, still deciding anger or laugh",
     ],
     "parking_puzzle":      [
         "expression: concentrated, mildly suspicious of the sign",
@@ -9848,6 +10154,11 @@ _EXPRESSIONS_ACTIVITY = {
         "expression: mid-transmit — eyes elsewhere, mouth at the shoulder mic",
         "expression: listening — slight head tilt toward the radio, waiting for the reply",
         "expression: short acknowledgment — bored-competent, already done talking",
+    ],
+    "speed_gun":           [
+        "expression: eyes on the road readout — mid-clock, not posing",
+        "expression: bored-competent — watching traffic pass, device steady",
+        "expression: slight squint down the lane — already picked a target speed",
     ],
     "draw_weapon":         [
         "expression: focused low — reading the space, not the camera",
@@ -11323,6 +11634,94 @@ FORBIDDEN: cone or cup held in mouth as a prop, floating treat at face height,
 hand-held ice cream, standing portrait with dessert. Treat = on the floor.
 """
 
+# Dogs never hold wine/beer — remap to golden-hour outdoor beats
+_DOG_DRINK_ACTIVITIES = frozenset({"sunset_wine", "sunset_beer", "biergarten", "beer_crate"})
+
+
+def pick_dog_drink_replacement(
+    place: dict | None,
+    terrain_type: str = "",
+    place_type: str = "",
+) -> str:
+    """Replace human drink beats with terrain-fit dog moments."""
+    tt = (terrain_type or (place or {}).get("terrain_type") or "").lower()
+    pt = (place_type or (place or {}).get("place_type") or "").lower()
+    if tt in {"coastal"} or "beach" in pt or (place and is_beach_place(place)):
+        return random.choice(["beach_walk_distance", "harbour_walk", "park_with_view"])
+    if tt in {"mountain", "mountains", "high_mountains", "hills"}:
+        return random.choice(["hiking_back", "park_with_view", "roadside_dusk"])
+    if tt == "desert":
+        return random.choice(["desert_walk", "park_with_view", "roadside_dusk"])
+    if tt == "lake":
+        return random.choice(["park_with_view", "harbour_walk"])
+    return random.choice(["park_with_view", "harbour_walk", "eat_local"])
+
+
+# Human jog/sprint beats → dog walk/trot (no sport dress, no athletic kit in frame)
+_DOG_RUN_ACTIVITIES = frozenset({"going_for_a_run", "trail_running", "morning_run_urban", "stairs_sprint"})
+
+DOG_RUN_NO_SPORT_LOCK = """
+DOG RUN LOCK (MANDATORY): Dog mid-trot or easy stride on path/promenade/trail — natural coat, collar only.
+FORBIDDEN: sports bra, leggings, race vest, earphones, sports watch, matching athletic set,
+human jogger in sport dress, or any performance-run styling. Dog sole subject — no athletic human beside her.
+"""
+
+
+def pick_dog_run_replacement(
+    place: dict | None,
+    terrain_type: str = "",
+    place_type: str = "",
+) -> str:
+    """Replace human sport-run beats with natural dog walk/trot moments."""
+    tt = (terrain_type or (place or {}).get("terrain_type") or "").lower()
+    pt = (place_type or (place or {}).get("place_type") or "").lower()
+    if tt in {"coastal"} or "beach" in pt or (place and is_beach_place(place)):
+        return random.choice(["beach_walk_distance", "harbour_walk", "park_with_view"])
+    if tt in {"mountain", "mountains", "high_mountains", "hills", "national_park", "nature_reserve", "natural_park"}:
+        return random.choice(["hiking_back", "park_with_view", "desert_walk"])
+    if tt == "desert":
+        return random.choice(["desert_walk", "park_with_view", "roadside_dusk"])
+    if tt == "lake":
+        return random.choice(["park_with_view", "harbour_walk", "hiking_back"])
+    return random.choice(["harbour_walk", "park_with_view", "beach_walk_distance", "eat_local"])
+
+
+def resolve_dog_activity(
+    activity_key: str,
+    place: dict | None,
+    terrain_type: str = "",
+    place_type: str = "",
+) -> str:
+    if activity_key in _DOG_DRINK_ACTIVITIES:
+        return pick_dog_drink_replacement(place, terrain_type, place_type)
+    if activity_key in _DOG_RUN_ACTIVITIES:
+        return pick_dog_run_replacement(place, terrain_type, place_type)
+    return activity_key
+
+
+def remap_dog_drink_candidates(
+    candidates: set[str],
+    place: dict | None,
+    terrain_type: str = "",
+    place_type: str = "",
+) -> None:
+    if not candidates & _DOG_DRINK_ACTIVITIES:
+        return
+    candidates -= _DOG_DRINK_ACTIVITIES
+    candidates.add(pick_dog_drink_replacement(place, terrain_type, place_type))
+
+
+def remap_dog_run_candidates(
+    candidates: set[str],
+    place: dict | None,
+    terrain_type: str = "",
+    place_type: str = "",
+) -> None:
+    if not candidates & _DOG_RUN_ACTIVITIES:
+        return
+    candidates -= _DOG_RUN_ACTIVITIES
+    candidates.add(pick_dog_run_replacement(place, terrain_type, place_type))
+
 # Activities where a dog would look wrong (water sport, tight interior, shop counter, formal queue).
 _DOG_EXCLUDE_ACTIVITIES = frozenset({
     "kajak_sup", "sup_entry", "sup_mount", "kayak_entry", "surf_paddle", "surfing",
@@ -11330,6 +11729,9 @@ _DOG_EXCLUDE_ACTIVITIES = frozenset({
     "photo_lab", "closed_door", "ticket_machine", "cinema_program", "cash_pay",
     "tarot_read", "waiting", "metal_horns", "menu_study",
     "postcard_write",  # dogs do not write tourist cards
+    "parking_puzzle",  # human parking-sign struggle — not a dog beat
+    "sunset_wine", "sunset_beer", "biergarten", "beer_crate",  # no wine/beer for dogs
+    "going_for_a_run", "trail_running", "morning_run_urban", "stairs_sprint",  # no sport-run kit
     "diner_booth",  # Goldie waits at the truck outside — not rolled as booth companion
     "feeding_cats",  # street cats — dog would scatter them
     "stray_dogs",  # street strays are the subject — no companion dog double
@@ -11341,7 +11743,7 @@ _DOG_EXCLUDE_ACTIVITIES = frozenset({
 })
 # Classic dog-walk / outdoor-companion moments — probability boost.
 _DOG_BOOST_ACTIVITIES = frozenset({
-    "hiking_back", "beach_walk_distance", "going_for_a_run", "trail_running", "stairs_sprint", "van_morning_coffee",
+    "hiking_back", "beach_walk_distance", "van_morning_coffee",
     "van_getting_dressed", "campfire_sit", "desert_walk", "harbour_walk", "cafe_terrace",
     "field_repair", "tire_change", "roadside_dusk", "park_with_view", "window_down", "morning_run_urban", "quay_fishing", "river_fishing", "market_browse",
     "fence_line_scan", "doc_pair_frame", "historical_map_compare", "wind_farm_scan",
@@ -11367,6 +11769,10 @@ def get_dog_companion_note(character_key: str, place: dict, activity_key: str = 
         return ""
     if premium_mode or activity_key in _DOG_EXCLUDE_ACTIVITIES:
         return ""
+    if activity_key == "stretch":
+        _cc = (place or {}).get("country_code", "") if place else ""
+        if not (get_character_vehicle(character_key, _cc) or CHARACTER_VEHICLES.get(character_key)):
+            return ""
     dog_name = cast["dog"]
     prob = cast.get("dog_prob", 0.4)
     if activity_key in _DOG_BOOST_ACTIVITIES or dayhike_mode:
@@ -12717,8 +13123,14 @@ def build_prompt(place: dict, character_key: str, noir_mode: bool = False, prest
             _nails_lock += "\n" + THEA_ANTI_CANONICAL_POSE_LOCK.strip()
         if character_key == "lyra" and not activity_key and not dayhike_mode:
             _nails_lock += "\n" + LYRA_ANTI_CANONICAL_POSE_LOCK.strip()
+        _lyra_toga = get_lyra_toga_wardrobe_lock(place) if character_key == "lyra" else ""
+        if _lyra_toga:
+            _nails_lock += "\n" + _lyra_toga
         if character_key == "tasha" and not activity_key and not dayhike_mode:
             _nails_lock += "\n" + TASHA_ANTI_CANONICAL_POSE_LOCK.strip()
+        _aless_knee = get_alessandra_knee_bandage_lock(character_key, activity_key)
+        if _aless_knee:
+            _nails_lock += "\n" + _aless_knee
         _no_pulli = get_no_nordic_pulli_lock(place, character_key)
         if _no_pulli:
             _nails_lock += "\n" + _no_pulli
@@ -12792,6 +13204,7 @@ def build_prompt(place: dict, character_key: str, noir_mode: bool = False, prest
             place,
             nightlife_mode=nightlife_mode,
             noir_mode=noir_mode,
+            prestige_mode=prestige_mode,
             eclipse_mode=eclipse_mode,
             viper_mode=viper_mode,
             maxpower_mode=maxpower_mode,
@@ -12824,6 +13237,11 @@ def build_prompt(place: dict, character_key: str, noir_mode: bool = False, prest
     # Skip on vehicle travel shots (at the car = arrive/leave, not swim)
     _location_outfit = None
     _veh_travel = activity_key in _VEHICLE_TRAVEL_OUTFIT_ACTIVITIES
+    _jelena_night_main = (
+        character_key == "jelena"
+        and not activity_key
+        and (prestige_mode or noir_mode or eclipse_mode or nightlife_mode)
+    )
     if (
         character_key == "metka"
         and not outfit_override
@@ -12835,15 +13253,35 @@ def build_prompt(place: dict, character_key: str, noir_mode: bool = False, prest
             f"SWIMWEAR OVERRIDE: {_mw} Overrides reference image swimwear."
         )
 
-    if not layers_only and not dayhike_mode and not outfit_override and not maya_grey_mode and not _veh_travel:
+    if (
+        not layers_only
+        and not dayhike_mode
+        and not outfit_override
+        and not maya_grey_mode
+        and not _veh_travel
+        and not _jelena_night_main
+    ):
         _location_outfit = get_location_outfit_override(character_key, place)
         if _location_outfit:
             outfit_override = _location_outfit
-    if not layers_only and not dayhike_mode and not outfit_override and not maya_grey_mode:
+    if (
+        not layers_only
+        and not dayhike_mode
+        and not outfit_override
+        and not maya_grey_mode
+        and not _jelena_night_main
+    ):
         _street_outfit = get_city_street_outfit_override(character_key, place, activity_key or None)
         if _street_outfit:
             outfit_override = _street_outfit
-    if not layers_only and not dayhike_mode and not outfit_override and not maya_grey_mode and not _veh_travel:
+    if (
+        not layers_only
+        and not dayhike_mode
+        and not outfit_override
+        and not maya_grey_mode
+        and not _veh_travel
+        and not _jelena_night_main
+    ):
         _day_outfit = get_day_outfit_override(character_key, place, activity_key or None)
         if _day_outfit:
             outfit_override = _day_outfit
@@ -12858,12 +13296,23 @@ def build_prompt(place: dict, character_key: str, noir_mode: bool = False, prest
         outfit_override = ZARA_SHORE_COVERUP
     # Nightlife/noir fetish-light wins over sticky day pantsuit (Valentina cream etc.)
     if not layers_only and not dayhike_mode and not maya_grey_mode:
+        _evening = get_evening_outfit_lock(
+            character_key,
+            activity_key or None,
+            prestige_mode=prestige_mode,
+            noir_mode=noir_mode,
+            eclipse_mode=eclipse_mode,
+            nightlife_mode=nightlife_mode,
+        )
+        if _evening and not outfit_override:
+            outfit_override = _evening
         _kinky_force = get_kinky_light_outfit_lock(
             character_key,
             activity_key,
             place,
             nightlife_mode=nightlife_mode,
             noir_mode=noir_mode,
+            prestige_mode=prestige_mode,
             eclipse_mode=eclipse_mode,
             viper_mode=viper_mode,
             maxpower_mode=maxpower_mode,
@@ -13405,7 +13854,6 @@ CHARACTER:
 - Not performing for the camera — private moment accidentally photographed
 - Emotionally contained, not overly attractive in presentation
 - Practical wardrobe — slightly wrinkled fabrics, worn objects
-{get_subtle_vpl_line(character_key)}
 
 AVOID:
 - Cinematic masterpiece energy
@@ -13502,7 +13950,7 @@ FINAL COMPOSITION CHECK (after all style layers — EVERY character): if the per
 
 # Maya grey-mouse canonical: ~30% of shots, max 2 per location — contrast vs swimsuit body.
 _MAYA_GREY_COUNT: dict[str, int] = {}
-MAYA_GREY_PROB = 0.30
+MAYA_GREY_PROB = 0.15
 MAYA_GREY_MAX_PER_PLACE = 2
 
 MAYA_GREY_OUTFIT_LOCK = """
@@ -13523,6 +13971,8 @@ def roll_maya_grey(place: dict) -> bool:
     Never on lake/coastal/beach — grey is land drab contrast only; water shots need the body."""
     terrain = (place.get("terrain_type") or "").lower()
     if terrain in {"lake", "coastal"} or is_beach_place(place) or is_shore_sand_context(place):
+        return False
+    if _is_settlement_place(place) or is_urban_place(place):
         return False
     key = _maya_place_key(place)
     n = _MAYA_GREY_COUNT.get(key, 0)
@@ -14130,6 +14580,8 @@ def upload_goldie_to_supabase(webp_bytes: bytes, place: dict) -> str:
 def build_goldie_activity_prompt(place: dict, activity_key: str) -> str:
     name = place.get("name_en", "")
     country = place.get("country_code", "")
+    _orig_activity = activity_key
+    activity_key = resolve_dog_activity(activity_key, place)
     activity_text = ACTIVITY_SPECS.get(activity_key, "")
     _food_lock = ""
     if activity_key == "eat_local":
@@ -14146,6 +14598,13 @@ NOT a scenic city walk. The food is the co-subject with Goldie.
         activity_text += f"\n\nFOOD FOR THIS LOCATION (MANDATORY): {_food}"
     if activity_key == "eating_ice_cream":
         activity_text += "\n\n" + DOG_ICE_CREAM_GROUND_LOCK.strip()
+    if activity_key == "stretch":
+        activity_text += """
+DOG STRETCH LOCK (MANDATORY): Beside a parked van/Jeep/car — wheel, door, or bumper readable.
+Dog mid-shake, play-bow, or front paws stretched on pavement next to the vehicle.
+FORBIDDEN: sidewalk stretch alone with no vehicle in frame."""
+    if _orig_activity in _DOG_RUN_ACTIVITIES:
+        activity_text += "\n\n" + DOG_RUN_NO_SPORT_LOCK.strip()
     locale_rule = (
         "\nLOCALE: Any visible text — signs, menus, stall labels — must be in the local language "
         "of the location. No English text in non-English speaking countries."
@@ -14189,7 +14648,7 @@ ROAD_IDENTITY_SPECS = {
     "katja":      "Dark grey BMW 3-series E90 at pull-off or town edge — engine off, she stands beside the car on pavement, map or ticket in hand. Or intercity train platform — door just opened behind her. Both feet on ground, looking at the location.",
     "alessandra": (
         "Fiat Panda 4x4 at trailhead / lake lot — white, South Tyrol dust, black roof rack with ONE road bike "
-        "mounted on top (intact bike silhouette). She stands beside the car in kit or trail gear, looking at "
+        "mounted parallel along the roof (aligned with car length). She stands beside the car in kit or trail gear, looking at "
         "the place. OR: she rides in — unclips one foot, helmet on; if Panda visible, roof rack EMPTY that shot."
     ),
     "ingrid":     "BMW rolls to a stop on the viewpoint. Engine off. She swings leg over. Helmet under arm, hair tumbling out.",
@@ -14366,7 +14825,7 @@ ACTIVITY SHOT — BOULDERING (no rope, no harness, no sport-climbing gym).
 Outdoor boulder problem on real rock — desert granite, sandstone, or mountain block matching the location
 (e.g. Joshua Tree / Southwest rock when US desert; European bloc/forest boulder when EU).
 Mid-move: hands and feet on holds, body tight to the rock, chalk on hands optional.
-GROUND under the problem: dirt, stone, or scrub — crash pad is NOT required (see CRASH PAD note).
+GROUND under the problem: bare dirt, stone, or scrub ONLY — NO crash pad, NO foam mat, NO folded pad in frame.
 Spotter rare / soft background only.
 OUTFIT: athletic trail / boulder day — shorts or light pants, fitted tank/tee, sticky approach shoes
 or climbing shoes. Chalk bag on harness-loop or waist ok. NOT evening glam, NOT bikini-only, NOT gym wall plastic holds.
@@ -14414,7 +14873,7 @@ CONTEXT: street, coastal path, promenade, forest trail, mountain road — whatev
 Location visible and dominant — she is running through it, not posing in front of it.
 Slight sweat or effort visible. Hair tied back or loose and moving.
 She is not performing a run. She is on one.
-FORBIDDEN: sitting on rocks, standing still on a cliff, lounging, beach-swim pose, one-piece/bikini as the run kit.
+IF DOG SUBJECT: NOT this beat — use beach_walk_distance / harbour_walk / hiking_back (no sport dress, no athletic kit).
 LOCALE: any signage in local language of the location.
 """,
     "trail_running": """
@@ -14427,16 +14886,17 @@ Effort readable — sweat, dust on calves, hair tied or moving. Not smiling at c
 Character 18–26% frame height. Documentary motion through the landscape.
 """,
     "stairs_sprint": """
-ACTIVITY SHOT: Character SPRINTS public stairs — fortress steps, river embankment, underpass, park grand staircase, hillside city stairs.
+ACTIVITY SHOT: Character SPRINTS public stairs — fortress steps, cathedral grand staircase, river embankment, underpass, park monumental stairs, hillside city stairs.
 Mid-stride UP — two at a time or full sprint. Hair/clothes moving. Effort readable.
+Camera from BELOW looking up ok — low angle, character climbing toward sky/architecture. Place dominates 75%+.
 OUTFIT: character-appropriate day or light athletic kit — sneakers/trainers mandatory. No heels, no evening gown, no bikini.
-Location dominates — concrete/stone stairs + place readable behind.
+Location dominates — warm stone/concrete stairs + historic architecture readable behind (rose window, spires, old-town walls).
 NOT standing still posing on stairs. NOT fashion stair portrait. Travel photo in motion.
 Character 18–28% frame height.
 IF JELENA: street voltage — white/cream rib tank, jeans EXACTLY as canonical (or short denim in heat), white sneakers, brown crossbody. High voltage, almost laughing. NOT Alessandra race vest.
 IF STACY: super energy — mid-stride UP stairs, look back over shoulder with wide exuberant smile, hair flying; crop/tee + cutoff shorts + Converse/white trainers. Camera from below looking up ok. Happy HS-athlete traveller — NOT grim race face, NOT standing still on stairs.
 IF CHARLOTTE: city power mid-sprint — fitted dark trousers or jeans, flat boots or trainers (NO stilettos on stairs), blazer OFF or carried. Ass/legs readable. Still British precision, not race kit.
-IF ALESSANDRA: athletic kit ok — endurance energy, scraped knee ok.
+IF ALESSANDRA: black tank + black run shorts + trainers — mid-stride sprint UP grand stone stairs; camera from below ok; cathedral/old-town architecture dominates (Tarragona energy). Endurance body, scraped knee ok. NOT standing still.
 IF MAYA / KAY / METKA: light athletic / sport kit — body identity locks stay.
 """,
     "car_exit": """
@@ -14465,6 +14925,8 @@ OUTFIT: character day kit. Sneakers/flats. Effortless.
 IF CHARLOTTE: stretch reads in fitted trousers/jeans — hip/ass line stays; NO stilettos mid-stretch (flats or barefoot on curb ok).
 IF JELENA: tank + canonical jeans + sneakers.
 IF MAYA: Sporty Spice stretch after Jeep — hourglass readable.
+IF DOG SUBJECT: stretch ONLY beside parked vehicle (van/Jeep/car wheel or door visible).
+Dog play-bow, mid-shake, or paws on pavement next to auto — NOT sidewalk stretch without a car.
 """,
     "van_morning_coffee": """
 ACTIVITY SHOT: Character with morning coffee at THEIR VAN only (campervan / Sprinter / California / Ducato / etc.).
@@ -14532,6 +14994,7 @@ Beer held loosely, not posed. One hand or both. Label visible if local brand.
 Golden hour light. They are watching the sunset, not the camera.
 Clothes: whatever they wore all day. Sand, dust, or salt possible.
 LOCALE: beer label or can in local language/brand of the location.
+IF DOG SUBJECT: NOT this beat — use park_with_view / roadside_dusk / desert_walk instead (no beer, no glass).
 """,
     "sunset_wine": """
 ACTIVITY SHOT: Character with wine glass at golden hour.
@@ -14541,6 +15004,7 @@ Wide environmental shot — character 15-25% frame height; view/sea/sky fill 75%
 She does not look at the camera. Head faces forward toward the horizon — NEVER turned back over her shoulder.
 Body and face both oriented toward the sunset. She is absorbed in the view, not posing.
 Slow, quiet, earned moment. The light and the place dominate — she is small in the scene.
+IF DOG SUBJECT: NOT this beat — use park_with_view / harbour_walk / beach_walk_distance instead (no glass, no alcohol).
 """,
     "surf_paddle": """
 ACTIVITY SHOT: Character carrying surfboard toward or away from water.
@@ -14561,7 +15025,7 @@ IF SOFIA: bikini or rashguard, olive freckled surfer, silver crescent necklace i
 IF LUCA: board shorts, bare chest or faded tee off — weirdly attractive van-bum, NOT model-handsome. Italian/Med coast.
 IF KAY: black bikini or black 3mm wetsuit (half-zip/peeled ok). CHEST MARK: small white ORCA silhouette ONLY — never three horizontal wave lines (that is Maya). California/Pacific longboard/reef. Age/wear readable (44 looking 36) — not a 24-year-old Sporty Spice body-double.
 IF MAYA: competition/swim athletic kit or sport bikini — three-wave-line emblem on chest OK (her mark). US Southeast/Gulf/Atlantic. NOT Kay's orca.
-IF TASHA / ANA: athletic bikini — no orca, no three-wave (those belong to Kay/Maya only).
+IF TASHA / ANA: white or flag-print athletic bikini (Tasha) — no orca, no three-wave (those belong to Kay/Maya only).
 Barefoot on the board. Character 18–28% of frame — wave and ocean dominate.
 Gaze: on the wave / line ahead, or brief glance toward camera mid-ride — never fashion-beach portrait.
 NOT carrying the board (that is surf_paddle). NOT standing in ankle-deep foam posing. NOT SUP.
@@ -14737,6 +15201,17 @@ NOT phone call. NOT walkie held like a toy at arm's length. NOT both hands free 
 NOT civilian clothes. NOT looking at hero camera mid-speech like a press conference.
 Shot: medium — mic + face readable, place still wins the frame.
 """,
+    "speed_gun": """
+ACTIVITY SHOT — DIAZ ONLY (ON DUTY).
+She stands on the road shoulder or pull-off with a handheld radar/LIDAR speed gun — traffic enforcement device, NOT a handgun.
+Pistol-grip body with front display or lens aperture; raised toward ONCOMING TRAFFIC down the road — eyes on the road or device readout.
+Fitted dark police/border uniform, badge half-visible, duty belt + holstered sidearm. Working posture — not action-movie, not pin-up.
+Setting: US highway shoulder, border-town main road, desert pull-off, or scenic two-lane — asphalt + place readable behind her.
+Optional: marked patrol Tahoe parked on shoulder behind her — roof bar, agency doors. Traffic may be implied distant — no staged chase.
+FORBIDDEN: aiming device at camera, treating it as a firearm, muzzle flash, firing, Weaver stance at lens, handgun confusion with draw_weapon beat.
+NOT civilian clothes. NOT mid-smile at hero camera like a tourist snap.
+Shot: medium-wide — shoulder + road + place dominate; she stays small in frame.
+""",
     "draw_weapon": """
 ACTIVITY SHOT — DIAZ ONLY (ON DUTY).
 Hand on holstered sidearm OR weapon partially clear of the holster — muzzle pointed at the GROUND / low ready.
@@ -14877,6 +15352,7 @@ Walks in profile or slightly away — parallel to the water.
 Boats, masts, or harbour buildings visible behind. Water catches the light.
 Day clothes for a promenade — coat, sweater, jeans/trousers, shoes. Coffee or small bag ok.
 NOT a swimsuit walk. NOT bikini. NOT one-piece. NOT barefoot beach energy on the pier.
+IF LYRA: pinned day kit — cream/off-white linen two-piece (tunic + wide trousers) preferred compromise; profile stroll, golden hour ok, eyes closed to sun ok. Old gold jewelry, optional flower behind ear. Outside GR/CY: NO white sheet/toga dress.
 IF JELENA: her kit (white rib tank + jeans EXACTLY as canonical + white sneakers + brown crossbody) — NOT coat/sweater baggy cover.
 """,
     "weinlese": """
@@ -14886,6 +15362,7 @@ Rows of vines stretch behind her. Late summer or early autumn light — golden, 
 Slight effort visible — reaching, bending, focused on the work.
 Hands possibly stained. Not performing. Actually working.
 Wide shot preferred — vineyard fills the frame, she is part of it.
+IF ALESSANDRA: white button-down sleeves rolled, dark pants, dark boots; green plastic harvest crate; Panda 4x4 peripheral ok; Dolomite village/peaks when alpine.
 """,
     "olivenernte": """
 ACTIVITY SHOT: Character harvesting olives — on a ladder or reaching up into branches.
@@ -15000,16 +15477,16 @@ Shot from medium distance — car, tire, and character all in frame. She is comp
 """,
     "hood_check": """
 ACTIVITY SHOT — HOOD OPEN, FROM BEHIND (any character with a car/van/jeep).
-THEIR vehicle from VEHICLE — hood/bonnet OPEN. She stands at the FRONT and leans into the ENGINE BAY
-(hands on the bay edge, a dipstick, a cable, or the radiator support). Real roadside habit — not a fashion lean.
-CAMERA: FROM BEHIND or slight three-quarter-back — face optional/unread. NOT front portrait.
+THEIR vehicle from VEHICLE — hood/bonnet OPEN. She stands at the FRONT beside the open bay —
+hands on hood lip/bay edge (dipstick or cable ok). Real roadside habit — not a fashion lean, NOT hood_lean exploit.
+CAMERA: FROM BEHIND or slight three-quarter-back — face optional/unread. NOT front portrait. NOT smiling at camera.
 Composition: figure mid-frame at the open hood (FRONT of car); hips and back readable under day clothes; both feet planted outside.
 Keep it travel-documentary — competent, unhurried. Not pin-up, not extreme arch, not crop-tight on the seat.
 WARDROBE: same day/canonical clothes as the place-set — NO outfit change for this shot.
 FOOTWEAR ONLY may change — obey FOOTWEAR LOCK (heels when type fits; else keep day shoes).
 Place: roadside pull-off, quiet lot, village street, desert shoulder — location still readable behind/around the car.
-NOT hood closed. NOT looking at camera. NOT motorcycle/bike. NOT chauffeur standing idle.
-NOT leaning into the cabin through a side window. NOT body through A-pillar/glass.
+NOT hood closed. NOT looking at camera. NOT over-shoulder twist to lens. NOT motorcycle/bike. NOT chauffeur standing idle.
+NOT leaning into the cabin through a side window. NOT body through A-pillar/glass. NOT arms merged with engine parts.
 """,
     "fueling_car": """
 ACTIVITY SHOT — CINEMATIC FUEL STOP (road movie pause).
@@ -15183,8 +15660,8 @@ tipped cup or dropped scoop on pavement, nose-down lick. No cone in mouth. No fl
 
 IF DALE: comic relief — serious metal-detector energy meeting a melting cone/cup. Detector on or beside him ok; he treats the ice cream with the same focus as a find. Not clowning for camera.
 
-IF DIAZ ON DUTY (uniform): coffee-shop cop snack — ice cream (cone/cup) OR glazed donut.
-MUST be holding it and/or mid-bite/lick/chew — treat readable in hand or at mouth. Never empty-handed.
+IF DIAZ ON DUTY (uniform): DEFAULT = glazed donut in hand / mid-bite — coffee-shop cop pause.
+Cone/cup ice cream only if prompt says CONE/CUP explicitly. MUST hold treat — never empty-handed.
 Uniform stays (badge/belt). Not off-duty jeans. Not posing dessert for the camera.
 """,
     "local_event": """
@@ -15200,6 +15677,7 @@ Event decorations match region. She belongs to the moment, not to Instagram.
 LOCALE: signage, food packaging, costumes, and ambient language must match the location — obey EVENT override below.
 
 NOT: photographing the event, posing for tourists, main-square postcard composition, tour-group energy, phone in hand.
+IF ALESSANDRA: harvest/vendemmia preferred — green grape crate, white shirt sleeves rolled, dark pants/boots; Panda 4x4 + bike rack ok; working not tasting.
 """,
     "biergarten": """
 ACTIVITY SHOT: Character at outdoor drinking culture equivalent for THIS country — local institution, not tourist bar.
@@ -15318,6 +15796,21 @@ Shot from distance. Rain visible in the air. Wet ground reflections — obey RAI
 No phone visible. No umbrella performance — practical movement only.
 Location clearly readable — match THIS place, not a generic capital city.
 """ + LAND_BODY_ANATOMY_LOCK + """
+""",
+    "getting_soaked": """
+ACTIVITY SHOT: Character GETTING SOAKED — sudden, caught off guard, not glamour.
+Any sudden water hit counts — pick ONE source for this shot:
+  • sudden rain squall (no umbrella, no dash for cover)
+  • roadside / courtyard puddle splash (passing vehicle optional — not required)
+  • bucket or hose dump from balcony, window, terrace, upper floor
+  • street-level pour — someone tipping a bucket, shop hose, market spill from beside/below
+MID-SURPRISE beat — water just landed. Still in the open. NOT fixing, NOT fleeing, NOT covering up.
+Pinned day outfit — top WET THROUGH with visible cling on chest/shoulders; hair flat/dripping.
+Expression ONLY: surprised ANGER (glare, jaw set) OR surprised JOY (burst laugh) — pick one, commit.
+NOT resigned. NOT practical rain management. NOT sexy pose.
+Wide shot — place dominates, character 18–28% frame. Location readable.
+NOT bikini/swimwear. IF DOG SUBJECT: NOT this beat.
+""" + GETTING_SOAKED_WET_TOP_LOCK + GETTING_SOAKED_NO_SHEER_LOCK + GETTING_SOAKED_REACTION_LOCK + GETTING_SOAKED_FOOTWEAR_LOCK + LAND_BODY_ANATOMY_LOCK + """
 """,
     "parking_puzzle": """
 ACTIVITY SHOT: Character studies a parking sign, zone map on a pole, or parking meter.
@@ -15443,7 +15936,7 @@ ACTIVITY SHOT — LUCA / TAMMY / DALE / TYLER ONLY.
 Making a BBQ — portable charcoal grill, camp grill, or roadside disposable grill. Real smoke, tongs or fork in hand,
 food on the grate (sausages, meat, vegetables — not a styled food-magazine layout). Mid-action: turning, checking, fanning coals.
 IF LUCA: VW Transporter nearby or open side door. Coastal camp / harbour pull-off / beach hardstand / lakeside. Board shorts or jeans + faded tee. Beer can or Moka nearby ok (not both cluttered). Italian/Med casual — not American backyard Weber ad. No phone.
-IF TAMMY: Crown Vic or campground/motel lot / BLM pull-off / state park picnic grate. Tank top + cutoff shorts or jeans. Golden apple pendant. Sunglasses often on. Boone optional at frame edge. Not suburban HOA patio. Not influencer Traeger flex.
+IF TAMMY: Crown Vic or campground/motel lot / BLM pull-off / state park picnic grate. Tank top + cutoff shorts or jeans. Golden apple pendant. Sunglasses optional — often off. Boone optional at frame edge. Not suburban HOA patio. Not influencer Traeger flex.
 IF DALE: Ford Excursion nearby (dusty, stock). Desert wash / BLM / ghost-town edge / quiet lakeside. Mesh trucker cap, teal/navy windbreaker or faded tee. Thermos nearby ok. Detector gear NOT in hands — cooler/maps energy only. Harry-Dean-Stanton patience. Not Traeger flex.
 IF TYLER: Sprinter AWD nearby or side door open. Clean pull-off / NP picnic / coastal overlook. Polished California casual. Juniper optional at frame edge. Portable grill that looks bought yesterday — still real charcoal/smoke, not a staged Reels cookout. Phone away or pocketed. Not backyard Weber ad.
 NOT restaurant kitchen. NOT indoor. NOT looking at hero camera. Smoke + grill + character readable. Location still dominates.
@@ -15515,7 +16008,7 @@ Crouch, kneel, or lean at a wall/step/doorway. Quiet. Not baby-talk cute. Not in
 Location readable: alley, whitewash courtyard, harbour backstreet, village steps, taverna side wall.
 IF DIANA: all-black goth-elegant — gloves OFF or one glove peeled for the feeding. Red lacquer lips stay. Pale. Detached calm — soft without becoming soft-core tourist. Night or blue hour preferred. Unlit cigarette optional in other hand or lip.
 IF MARIA: Andalusian warmth — black or deep colours, small gold earrings. Still, complete. Day or golden hour courtyard/alley. No flamenco costume.
-IF LYRA: linen dress, old gold jewelry, night preferred — harbour alley or island steps. Wine elsewhere or set down. Cats as ordinary as the cobbles. Mild amusement ok.
+IF LYRA: old gold jewelry, night preferred — harbour alley or island steps. Wine elsewhere or set down. Cats as ordinary as the cobbles. Mild amusement ok. Outside Greece/Cyprus: NO white sheet/toga dress — travel top + skirt/pants or wine-red slip.
 NOT beach sand. NOT dog in frame. NOT looking at hero camera. Food/gesture and at least one cat readable.
 Shot: medium — character + cats + place.
 """,
@@ -15735,28 +16228,28 @@ Character 18–28% frame height. Vehicle + street both visible. Travel photo, no
 
 TERRAIN_ACTIVITIES = {
     # waiting/ticket_machine: city/harbour transit — not sandy beach (use ferry_rail for pier)
-    "coastal":       ["beach_walk_distance", "muscheln_sammeln", "surf_paddle", "surfing", "harbour_walk", "biergarten", "sunset_wine", "sunset_beer", "beer_crate", "going_for_a_run", "helmet_off", "notebook_outside", "gear_haul", "tank_carry", "board_carry", "rope_coil", "cigarette_roll", "park_with_view", "window_down", "surprise_rain", "ferry_rail", "moka_van_step", "detector_sweep", "dice_idle", "queen_card_exit", "feeding_cats", "local_chat", "water_jump", "freestyle_swim", "map_annotate", "flip_screen_check", "sunscreen_apply", "leica_frame", "saltwater_wring", "towel_dry", "binoculars_scan", "telephoto_frame", "souvenir_buy", "van_roof_nap", "starlink_aim", "wind_farm_scan", "doc_pair_frame", "fueling_car", "hood_check", "van_getting_dressed"],
+    "coastal":       ["beach_walk_distance", "muscheln_sammeln", "surf_paddle", "surfing", "harbour_walk", "biergarten", "sunset_wine", "sunset_beer", "beer_crate", "going_for_a_run", "helmet_off", "notebook_outside", "gear_haul", "tank_carry", "board_carry", "rope_coil", "cigarette_roll", "park_with_view", "window_down", "surprise_rain", "getting_soaked", "ferry_rail", "moka_van_step", "detector_sweep", "dice_idle", "queen_card_exit", "feeding_cats", "local_chat", "water_jump", "freestyle_swim", "map_annotate", "flip_screen_check", "sunscreen_apply", "leica_frame", "saltwater_wring", "towel_dry", "binoculars_scan", "telephoto_frame", "souvenir_buy", "van_roof_nap", "starlink_aim", "wind_farm_scan", "doc_pair_frame", "fueling_car", "hood_check", "van_getting_dressed"],
     "mountain":      ["hiking_back", "van_morning_coffee", "sunset_wine", "sunset_beer", "cycling_road", "snowshoe_hike", "going_for_a_run", "trail_running", "campfire_sit", "helmet_off", "field_repair", "notebook_outside", "map_hood", "tire_change", "park_with_view", "window_down", "elevation_read", "map_annotate", "coyote_glance", "flip_screen_check", "binoculars_scan", "telephoto_frame", "van_roof_nap", "starlink_aim", "fence_line_scan", "doc_pair_frame", "historical_map_compare", "wind_farm_scan", "field_notes", "water_jump", "making_bbq", "marshmallow_roast", "fueling_car", "hood_check", "bouldern", "van_getting_dressed"],
     "high_mountains": ["hiking_back", "snowshoe_hike", "apres_ski_bar", "van_morning_coffee", "going_for_a_run", "trail_running", "campfire_sit", "helmet_off", "field_repair", "map_hood", "tire_change", "park_with_view", "window_down", "elevation_read", "coyote_glance", "flip_screen_check", "binoculars_scan", "telephoto_frame", "van_roof_nap", "starlink_aim", "fence_line_scan", "doc_pair_frame", "historical_map_compare", "field_notes", "water_jump", "marshmallow_roast", "fueling_car", "hood_check", "bouldern", "van_getting_dressed"],
     "lake":          ["kayak_entry", "sup_entry", "sup_mount", "kajak_sup", "hiking_back", "trail_running", "park_with_view", "ferry_rail", "moka_van_step", "coyote_glance", "flip_screen_check", "sunscreen_apply", "leica_frame", "binoculars_scan", "telephoto_frame", "van_roof_nap", "starlink_aim", "doc_pair_frame", "field_notes", "water_jump", "freestyle_swim", "making_bbq", "marshmallow_roast", "fueling_car", "hood_check", "towel_dry", "van_getting_dressed"],
-    "hills":         ["cycling_road", "hiking_back", "van_morning_coffee", "sunset_wine", "sunset_beer", "going_for_a_run", "trail_running", "stairs_sprint", "campfire_sit", "river_fishing", "helmet_off", "field_repair", "notebook_outside", "map_hood", "tire_change", "park_with_view", "window_down", "elevation_read", "coyote_glance", "flip_screen_check", "binoculars_scan", "telephoto_frame", "van_roof_nap", "starlink_aim", "fence_line_scan", "doc_pair_frame", "historical_map_compare", "wind_farm_scan", "field_notes", "making_bbq", "marshmallow_roast", "fueling_car", "hood_check", "bouldern", "van_getting_dressed"],
-    "desert":        ["hiking_back", "van_morning_coffee", "sunset_wine", "sunset_beer", "going_for_a_run", "trail_running", "desert_walk", "campfire_sit", "helmet_off", "notebook_outside", "roadside_dusk", "map_hood", "tire_change", "park_with_view", "window_down", "detector_sweep", "coyote_glance", "map_annotate", "flip_screen_check", "binoculars_scan", "telephoto_frame", "van_roof_nap", "starlink_aim", "fence_line_scan", "field_notes", "making_bbq", "marshmallow_roast", "fueling_car", "hood_check", "bouldern", "van_getting_dressed", "radio_check", "draw_weapon"],
-    "flatland":      ["cycling_road", "van_morning_coffee", "going_for_a_run", "helmet_off", "notebook_outside", "roadside_dusk", "field_repair", "map_hood", "tire_change", "cigarette_roll", "park_with_view", "window_down", "ticket_machine", "waiting", "parking_puzzle", "detector_sweep", "coyote_glance", "flip_screen_check", "binoculars_scan", "telephoto_frame", "van_roof_nap", "starlink_aim", "fence_line_scan", "doc_pair_frame", "historical_map_compare", "wind_farm_scan", "field_notes", "making_bbq", "marshmallow_roast", "fueling_car", "hood_check", "van_getting_dressed"],
+    "hills":         ["cycling_road", "hiking_back", "van_morning_coffee", "sunset_wine", "sunset_beer", "going_for_a_run", "trail_running", "stairs_sprint", "campfire_sit", "river_fishing", "helmet_off", "field_repair", "notebook_outside", "map_hood", "tire_change", "park_with_view", "window_down", "getting_soaked", "elevation_read", "coyote_glance", "flip_screen_check", "binoculars_scan", "telephoto_frame", "van_roof_nap", "starlink_aim", "fence_line_scan", "doc_pair_frame", "historical_map_compare", "wind_farm_scan", "field_notes", "making_bbq", "marshmallow_roast", "fueling_car", "hood_check", "bouldern", "van_getting_dressed"],
+    "desert":        ["hiking_back", "van_morning_coffee", "sunset_wine", "sunset_beer", "going_for_a_run", "trail_running", "desert_walk", "campfire_sit", "helmet_off", "notebook_outside", "roadside_dusk", "map_hood", "tire_change", "park_with_view", "window_down", "detector_sweep", "coyote_glance", "map_annotate", "flip_screen_check", "binoculars_scan", "telephoto_frame", "van_roof_nap", "starlink_aim", "fence_line_scan", "field_notes", "making_bbq", "marshmallow_roast", "fueling_car", "hood_check", "bouldern", "van_getting_dressed", "radio_check", "speed_gun", "draw_weapon"],
+    "flatland":      ["cycling_road", "van_morning_coffee", "going_for_a_run", "helmet_off", "notebook_outside", "roadside_dusk", "field_repair", "map_hood", "tire_change", "cigarette_roll", "park_with_view", "window_down", "ticket_machine", "waiting", "parking_puzzle", "getting_soaked", "detector_sweep", "coyote_glance", "flip_screen_check", "binoculars_scan", "telephoto_frame", "van_roof_nap", "starlink_aim", "fence_line_scan", "doc_pair_frame", "historical_map_compare", "wind_farm_scan", "field_notes", "making_bbq", "marshmallow_roast", "fueling_car", "hood_check", "van_getting_dressed", "radio_check", "speed_gun", "draw_weapon"],
     "national_park": ["hiking_back", "van_morning_coffee", "going_for_a_run", "trail_running", "campfire_sit", "desert_walk", "helmet_off", "notebook_outside", "roadside_dusk", "map_hood", "tire_change", "park_with_view", "window_down", "detector_sweep", "coyote_glance", "elevation_read", "flip_screen_check", "binoculars_scan", "telephoto_frame", "van_roof_nap", "starlink_aim", "fence_line_scan", "field_notes", "making_bbq", "water_jump", "freestyle_swim", "marshmallow_roast", "fueling_car", "hood_check", "bouldern", "van_getting_dressed"],
     "wilderness":    ["hiking_back", "trail_running", "campfire_sit", "desert_walk", "helmet_off", "notebook_outside", "field_repair", "map_hood", "tire_change", "park_with_view", "detector_sweep", "coyote_glance", "flip_screen_check", "binoculars_scan", "telephoto_frame", "van_roof_nap", "starlink_aim", "fence_line_scan", "field_notes", "making_bbq", "marshmallow_roast", "bouldern", "van_getting_dressed"],
 }
 
 PLACETYPE_ACTIVITIES = {
     # no market_browse in big cities — weekly markets live in medium/small towns
-    "city":          ["cafe_terrace", "biergarten", "harbour_walk", "going_for_a_run", "stairs_sprint", "car_exit", "stretch", "hood_check", "stray_dogs", "hausmeister_chat", "local_chat", "menu_study", "photo_lab", "helmet_off", "morning_run_urban", "notebook_outside", "kiosk_stop", "cash_pay", "eat_local", "eating_ice_cream", "attraction_pass", "newspaper_cafe", "postcard_write", "chin_up", "bike_push", "tarot_read", "rope_coil", "metal_horns", "cinema_program", "cigarette_roll", "cruise_through", "closed_door", "ticket_machine", "surprise_rain", "parking_puzzle", "waiting", "laundromat", "bookstore_browse", "chess_queen_leave", "passants", "power_aura", "amulet_glow", "queen_card_exit", "gloves_on", "dice_idle", "feeding_cats", "leica_frame", "souvenir_buy", "radio_check", "draw_weapon", "lurking"],
-    "medium_town":   ["cafe_terrace", "biergarten", "market_browse", "harbour_walk", "going_for_a_run", "stairs_sprint", "car_exit", "stretch", "stray_dogs", "hausmeister_chat", "local_chat", "menu_study", "photo_lab", "helmet_off", "notebook_outside", "kiosk_stop", "cash_pay", "eat_local", "eating_ice_cream", "attraction_pass", "newspaper_cafe", "postcard_write", "chin_up", "bike_push", "gear_haul", "tank_carry", "tarot_read", "rope_coil", "quay_fishing", "cigarette_roll", "cruise_through", "closed_door", "ticket_machine", "surprise_rain", "parking_puzzle", "waiting", "laundromat", "bookstore_browse", "ferry_rail", "dice_idle", "queen_card_exit", "yoga_mat_edge", "passants", "power_aura", "amulet_glow", "feeding_cats", "leica_frame", "souvenir_buy", "diner_booth", "doc_pair_frame", "historical_map_compare", "field_notes", "hood_check", "radio_check", "draw_weapon", "binoculars_scan", "lurking"],
-    "small_town":    ["cafe_terrace", "biergarten", "market_browse", "van_morning_coffee", "going_for_a_run", "stairs_sprint", "car_exit", "stretch", "stray_dogs", "hausmeister_chat", "local_chat", "menu_study", "helmet_off", "notebook_outside", "kiosk_stop", "cash_pay", "eat_local", "eating_ice_cream", "postcard_write", "bike_push", "gear_haul", "tarot_read", "map_hood", "tire_change", "quay_fishing", "cigarette_roll", "park_with_view", "window_down", "cruise_through", "closed_door", "ticket_machine", "surprise_rain", "parking_puzzle", "waiting", "laundromat", "bookstore_browse", "ferry_rail", "moka_van_step", "dice_idle", "queen_card_exit", "passants", "power_aura", "amulet_glow", "feeding_cats", "making_bbq", "coyote_glance", "leica_frame", "souvenir_buy", "van_roof_nap", "starlink_aim", "diner_booth", "fence_line_scan", "doc_pair_frame", "historical_map_compare", "wind_farm_scan", "field_notes", "fueling_car", "hood_check", "radio_check", "draw_weapon", "binoculars_scan", "lurking"],
+    "city":          ["cafe_terrace", "biergarten", "harbour_walk", "going_for_a_run", "stairs_sprint", "car_exit", "stretch", "hood_check", "stray_dogs", "hausmeister_chat", "local_chat", "menu_study", "photo_lab", "helmet_off", "morning_run_urban", "notebook_outside", "kiosk_stop", "cash_pay", "eat_local", "eating_ice_cream", "attraction_pass", "newspaper_cafe", "postcard_write", "chin_up", "bike_push", "tarot_read", "rope_coil", "metal_horns", "cinema_program", "cigarette_roll", "cruise_through", "closed_door", "ticket_machine", "surprise_rain", "getting_soaked", "parking_puzzle", "waiting", "laundromat", "bookstore_browse", "chess_queen_leave", "passants", "power_aura", "amulet_glow", "queen_card_exit", "gloves_on", "dice_idle", "feeding_cats", "leica_frame", "souvenir_buy", "radio_check", "speed_gun", "draw_weapon", "lurking"],
+    "medium_town":   ["cafe_terrace", "biergarten", "market_browse", "harbour_walk", "going_for_a_run", "stairs_sprint", "car_exit", "stretch", "stray_dogs", "hausmeister_chat", "local_chat", "menu_study", "photo_lab", "helmet_off", "notebook_outside", "kiosk_stop", "cash_pay", "eat_local", "eating_ice_cream", "attraction_pass", "newspaper_cafe", "postcard_write", "chin_up", "bike_push", "gear_haul", "tank_carry", "tarot_read", "rope_coil", "quay_fishing", "cigarette_roll", "cruise_through", "closed_door", "ticket_machine", "surprise_rain", "getting_soaked", "parking_puzzle", "waiting", "laundromat", "bookstore_browse", "ferry_rail", "dice_idle", "queen_card_exit", "yoga_mat_edge", "passants", "power_aura", "amulet_glow", "feeding_cats", "leica_frame", "souvenir_buy", "diner_booth", "doc_pair_frame", "historical_map_compare", "field_notes", "hood_check", "radio_check", "speed_gun", "draw_weapon", "binoculars_scan", "lurking"],
+    "small_town":    ["cafe_terrace", "biergarten", "market_browse", "van_morning_coffee", "going_for_a_run", "stairs_sprint", "car_exit", "stretch", "stray_dogs", "hausmeister_chat", "local_chat", "menu_study", "helmet_off", "notebook_outside", "kiosk_stop", "cash_pay", "eat_local", "eating_ice_cream", "postcard_write", "bike_push", "gear_haul", "tarot_read", "map_hood", "tire_change", "quay_fishing", "cigarette_roll", "park_with_view", "window_down", "cruise_through", "closed_door", "ticket_machine", "surprise_rain", "getting_soaked", "parking_puzzle", "waiting", "laundromat", "bookstore_browse", "ferry_rail", "moka_van_step", "dice_idle", "queen_card_exit", "passants", "power_aura", "amulet_glow", "feeding_cats", "making_bbq", "coyote_glance", "leica_frame", "souvenir_buy", "van_roof_nap", "starlink_aim", "diner_booth", "fence_line_scan", "doc_pair_frame", "historical_map_compare", "wind_farm_scan", "field_notes", "fueling_car", "hood_check", "radio_check", "speed_gun", "draw_weapon", "binoculars_scan", "lurking"],
     "village":       ["van_morning_coffee", "biergarten", "market_browse", "sunset_wine", "going_for_a_run", "stairs_sprint", "car_exit", "stretch", "stray_dogs", "hausmeister_chat", "local_chat", "helmet_off", "notebook_outside", "kiosk_stop", "cash_pay", "eat_local", "eating_ice_cream", "postcard_write", "bike_push", "tarot_read", "map_hood", "tire_change", "quay_fishing", "cigarette_roll", "park_with_view", "window_down", "cruise_through", "closed_door", "waiting", "parking_puzzle", "moka_van_step", "dice_idle", "queen_card_exit", "passants", "power_aura", "amulet_glow", "feeding_cats", "making_bbq", "marshmallow_roast", "coyote_glance", "leica_frame", "souvenir_buy", "van_roof_nap", "starlink_aim", "diner_booth", "fence_line_scan", "doc_pair_frame", "historical_map_compare", "wind_farm_scan", "field_notes", "fueling_car", "hood_check", "lurking"],
     "beach":         ["beach_walk_distance", "muscheln_sammeln", "surf_paddle", "surfing", "sunset_wine", "going_for_a_run", "notebook_outside", "gear_haul", "board_carry", "park_with_view", "ferry_rail", "moka_van_step", "detector_sweep", "flip_screen_check", "sunscreen_apply", "saltwater_wring", "towel_dry", "binoculars_scan", "telephoto_frame", "van_roof_nap", "starlink_aim", "water_jump", "freestyle_swim", "van_getting_dressed"],
     "national_park": ["hiking_back", "van_morning_coffee", "snowshoe_hike", "going_for_a_run", "trail_running", "helmet_off", "notebook_outside", "roadside_dusk", "map_hood", "tire_change", "park_with_view", "window_down", "waiting", "detector_sweep", "coyote_glance", "elevation_read", "flip_screen_check", "binoculars_scan", "telephoto_frame", "van_roof_nap", "starlink_aim", "water_jump", "freestyle_swim", "making_bbq", "marshmallow_roast", "fueling_car", "hood_check", "bouldern", "van_getting_dressed"],
     "nature_reserve": ["hiking_back", "kayak_entry", "kajak_sup", "van_morning_coffee", "going_for_a_run", "trail_running", "helmet_off", "field_repair", "rope_coil", "park_with_view", "detector_sweep", "coyote_glance", "flip_screen_check", "binoculars_scan", "telephoto_frame", "van_roof_nap", "starlink_aim", "water_jump", "freestyle_swim", "making_bbq", "marshmallow_roast", "bouldern", "van_getting_dressed"],
     "natural_park":  ["hiking_back", "kayak_entry", "kajak_sup", "van_morning_coffee", "going_for_a_run", "trail_running", "helmet_off", "field_repair", "map_hood", "park_with_view", "window_down", "elevation_read", "flip_screen_check", "binoculars_scan", "telephoto_frame", "van_roof_nap", "starlink_aim", "water_jump", "freestyle_swim", "making_bbq", "marshmallow_roast", "fueling_car", "hood_check", "bouldern", "van_getting_dressed"],
-    "scenic_drive":  ["park_with_view", "window_down", "cruise_through", "map_hood", "tire_change", "fueling_car", "van_morning_coffee", "binoculars_scan", "field_notes", "van_getting_dressed"],
+    "scenic_drive":  ["park_with_view", "window_down", "cruise_through", "map_hood", "tire_change", "fueling_car", "van_morning_coffee", "binoculars_scan", "field_notes", "van_getting_dressed", "radio_check", "speed_gun", "draw_weapon"],
 }
 
 # Scenic drives = driving — never beach/swim/bathing filler
@@ -16059,7 +16552,7 @@ def is_character_home_territory(character_key: str, place: dict | None) -> bool:
     home_w = float(geo.get(region, 0) or 0)
     other = float(geo.get("eu" if region == "us" else "us", 0) or 0)
     return home_w >= 0.5 and home_w >= other
-_NO_PHOTO_LAB = ["photo_lab"]  # only yosra and tasha have analogue camera energy
+_NO_PHOTO_LAB = ["photo_lab"]  # only yosra — analogue camera / Leica energy
 _NO_HELMET = ["helmet_off"]  # only ingrid — motorcycle character
 _NO_NOTEBOOK = ["notebook_outside"]  # only tammy — her Kassandra notebook
 _NO_FIELD_REPAIR = ["field_repair"]  # only werra — she repairs her G300 in the field
@@ -16130,12 +16623,13 @@ _CHAR_ACTIVITY_OWNERS: dict[str, frozenset[str]] = {
     "bike_push": frozenset({"ingrid"}),
     "board_carry": frozenset({"maya"}),
     "surfing": frozenset({"sofia", "luca", "kay", "maya", "tasha", "ana"}),
-    "photo_lab": frozenset({"yosra", "tasha"}),
+    "photo_lab": frozenset({"yosra"}),
     "sunscreen_apply": frozenset({"tasha"}),
     "leica_frame": frozenset({"yosra"}),
     "saltwater_wring": frozenset({"sofia", "thea", "lyra", "tasha", "maria", "maya", "kay"}),
     "binoculars_scan": frozenset({"werra", "kelek", "tammy", "dale", "miles", "alessandra", "jack_mae", "jonas_lara", "diaz"}),
     "radio_check": frozenset({"diaz"}),
+    "speed_gun": frozenset({"diaz"}),
     "draw_weapon": frozenset({"diaz"}),
     "telephoto_frame": frozenset({"tyler", "werra"}),
     "souvenir_buy": frozenset({"stacy"}),
@@ -16196,7 +16690,7 @@ CHARACTER_ACTIVITY_EXCLUDE = {
          "hiking_back", "snowshoe_hike", "desert_walk", "elevation_read", "cycling_road",
          "water_jump", "freestyle_swim", "surfing", "surf_paddle", "kajak_sup", "sup_mount",
          "sup_entry", "muscheln_sammeln", "chin_up", "car_exit", "stretch", "cafe_terrace",
-         "closed_door", "parking_puzzle", "surprise_rain", "harbour_walk", "bookstore_browse",
+         "closed_door", "parking_puzzle", "surprise_rain", "getting_soaked", "harbour_walk", "bookstore_browse",
          "laundromat", "eat_local", "local_event", "newspaper_cafe", "attraction_pass",
          "menu_study", "biergarten", "souvenir_buy", "leica_frame", "feeding_cats",
          "gloves_on", "dice_idle", "queen_card_exit", "chess_queen_leave", "cruise_through",
@@ -16343,12 +16837,17 @@ def pick_activity(
             if key in pt or pt in key:
                 candidates.update(PLACETYPE_ACTIVITIES[key])
     if not candidates:
-        candidates = {"van_morning_coffee", "cafe_terrace", "sunset_wine"}
+        if character_key in DOG_CHARACTERS:
+            candidates = {pick_dog_drink_replacement(place, terrain_type, place_type)}
+        else:
+            candidates = {"van_morning_coffee", "cafe_terrace", "sunset_wine"}
     candidates -= excluded
     candidates -= DISABLED_ACTIVITIES
-    # Dogs never write postcards (Goldie + all DOG_CHARACTERS)
+    # Dogs: no human-only town chores; wine/beer + sport-run → outdoor walk beats
     if character_key in DOG_CHARACTERS:
-        candidates.discard("postcard_write")
+        candidates -= {"postcard_write", "parking_puzzle"}
+        remap_dog_drink_candidates(candidates, place, terrain_type, place_type)
+        remap_dog_run_candidates(candidates, place, terrain_type, place_type)
     # On-duty set: no hike/run/swim/drinks — keep patrol/town beats in uniform
     if character_key == "diaz" and diaz_set_is_on_duty(place):
         candidates -= _DIAZ_OFF_DUTY_ACTIVITIES
@@ -16389,6 +16888,9 @@ def pick_activity(
     _CHANGE_IN_CAR_BLOCKED = frozenset({"bicycle", "escooter", "road_bike"})
     if "car_exit" in candidates and not _has_veh:
         candidates.discard("car_exit")
+    # Dogs: stretch only beside a parked vehicle — no sidewalk stretch without auto
+    if character_key in DOG_CHARACTERS and "stretch" in candidates and not _has_veh:
+        candidates.discard("stretch")
     # van_morning_coffee = van step only — no sedan/jeep/truck/bike fake-van
     if "van_morning_coffee" in candidates:
         _pose_vmc = get_character_vehicle_pose_class(character_key, "van_morning_coffee", _cc)
@@ -16443,7 +16945,7 @@ def pick_activity(
         if character_key == "diaz" and diaz_set_is_on_duty(place):
             candidates.add("eating_ice_cream")  # always — donut/cone in uniform
             candidates.update({
-                "diner_booth", "radio_check", "draw_weapon",
+                "diner_booth", "radio_check", "speed_gun", "draw_weapon",
                 "binoculars_scan", "fence_line_scan",  # XOR later — never both in one set
             })
     if place and is_heritage_site(place):
@@ -16487,8 +16989,8 @@ def pick_activity(
     for _rm in list((_SCENIC_ROAD_MOMENTS) & candidates):
         if not _road_moment_allowed(character_key, _rm):
             candidates.discard(_rm)
-    # photo_lab only for yosra and tasha — analogue camera chars
-    if character_key not in {"yosra", "tasha"}:
+    # photo_lab only for yosra — analogue camera char
+    if character_key != "yosra":
         candidates.discard("photo_lab")
     if character_key not in _CIGARETTE_ROLL_CHARS:
         candidates.discard("cigarette_roll")
@@ -16522,6 +17024,8 @@ def pick_activity(
     for _act, _owners in _CHAR_ACTIVITY_OWNERS.items():
         if character_key not in _owners:
             candidates.discard(_act)
+    if "speed_gun" in candidates and not (character_key == "diaz" and diaz_set_is_on_duty(place)):
+        candidates.discard("speed_gun")
     if "menu_study" in candidates and "cafe_terrace" in candidates:
         candidates.discard(random.choice(("menu_study", "cafe_terrace")))
     # Diaz ON DUTY set: ice cream / donut snack always eligible (any frontera place)
@@ -16541,6 +17045,7 @@ def pick_activity(
             for _bias, _p in (
                 ("eating_ice_cream", 0.30),  # eis/donut halten+mampfen
                 ("radio_check", 0.26),
+                ("speed_gun", 0.22),
                 ("binoculars_scan", 0.20),
             ):
                 if _bias in preferred and random.random() < _p:
@@ -16548,7 +17053,11 @@ def pick_activity(
                     break
             rest = [a for a in candidates if a not in preferred]
             random.shuffle(rest)
-            return _done(preferred + rest)[:n]
+            out = _done(preferred + rest)
+            # On-duty: always one uniform snack shot (donut/cone) when eligible
+            if "eating_ice_cream" in candidates and "eating_ice_cream" not in out[:n]:
+                out = ["eating_ice_cream"] + [a for a in out if a != "eating_ice_cream"]
+            return out[:n]
     # Soft boost: mapped local_event is rare by design — ~28% put it first when eligible
     if "local_event" in candidates and random.random() < 0.28:
         rest = [a for a in candidates if a != "local_event"]
@@ -16665,6 +17174,20 @@ def pick_activity(
         rest = [a for a in candidates if a != "stairs_sprint"]
         random.shuffle(rest)
         return _done(["stairs_sprint"] + rest)[:n]
+    if character_key == "alessandra" and "stairs_sprint" in candidates and random.random() < 0.36:
+        rest = [a for a in candidates if a != "stairs_sprint"]
+        random.shuffle(rest)
+        return _done(["stairs_sprint"] + rest)[:n]
+    if (
+        character_key == "alessandra"
+        and "local_event" in candidates
+        and place
+        and local_event_ok(place, character_key)
+        and random.random() < 0.34
+    ):
+        rest = [a for a in candidates if a != "local_event"]
+        random.shuffle(rest)
+        return _done(["local_event"] + rest)[:n]
     # eating_ice_cream — town gelato / comic-relief / Diaz uniform-snack soft pin
     # (skipped when --diaz-on-duty already returned preferred pool above)
     if "eating_ice_cream" in candidates and character_key in {
@@ -16800,7 +17323,12 @@ def get_character_activity_profile(
             "SURFING OUTFIT (MANDATORY): worn board shorts, bare chest — barefoot ON the board mid-ride. "
             "NOT jeans, NOT model-handsome. Weirdly attractive van-bum energy only."
         )
-    elif activity_key == "surfing" and character_key in {"tasha", "ana"}:
+    elif activity_key == "surfing" and character_key == "tasha":
+        parts.append(
+            "SURFING OUTFIT (MANDATORY): white athletic bikini or flag-print joke bikini — "
+            "barefoot ON the board mid-ride. No orca, no three-wave. NO camera."
+        )
+    elif activity_key == "surfing" and character_key == "ana":
         parts.append(
             "SURFING OUTFIT (MANDATORY): athletic bikini — barefoot ON the board mid-ride. "
             "No orca silhouette, no three-wave emblem (Kay/Maya marks only)."
@@ -17074,6 +17602,9 @@ def build_activity_prompt(place: dict, character_key: str, activity_key: str, ou
         if character_key == "luca" else None
     )
     activity_text = ACTIVITY_SPECS.get(activity_key, "")
+    _aless_knee = get_alessandra_knee_bandage_lock(character_key, activity_key)
+    if _aless_knee:
+        activity_text += "\n\n" + _aless_knee
     if activity_key == "bouldern":
         activity_text += get_boulder_crash_pad_lock()
         if character_key == "tasha":
@@ -17146,6 +17677,15 @@ def build_activity_prompt(place: dict, character_key: str, activity_key: str, ou
                 "while nozzle pumps — golden-hour Americana; calm over-shoulder look OR gaze to road/desert. "
                 "Natural mid-wait, not pin-up."
             )
+    if activity_key == "speed_gun":
+        activity_text += (
+            "\n\nSPEED GUN DEVICE LOCK (NOT A FIREARM): handheld radar/LIDAR speed gun — "
+            "rectangular traffic device with front display or lens aperture, NOT a handgun, NOT draw_weapon.\n"
+            "POSE LOCK: standing on road shoulder or pull-off — device raised toward oncoming traffic down the road; "
+            "eyes on road or readout, NOT at hero camera.\n"
+            "Optional: marked patrol Tahoe on shoulder behind her."
+        )
+        activity_text += "\n" + DIAZ_ANTI_CANONICAL_POSE_LOCK.strip()
     if activity_key == "hood_check":
         _hc_cc = (place.get("country_code") or "").upper()
         _hc_veh = get_character_vehicle(
@@ -17154,11 +17694,17 @@ def build_activity_prompt(place: dict, character_key: str, activity_key: str, ou
         activity_text += (
             f"\n\nVEHICLE LOCK (MANDATORY): {_hc_veh} — hood OPEN on THIS vehicle, plates match location.\n"
             "ANGLE LOCK (MANDATORY): camera FROM BEHIND or three-quarter-back — "
-            "she leans into the open ENGINE BAY at the FRONT; hips/back readable, not a tight seat crop. "
-            "NOT a front-facing portrait. NOT a side-window cabin lean.\n"
+            "she stands beside the open ENGINE BAY at the FRONT; hands on hood lip; hips/back readable, not a tight seat crop. "
+            "Head DOWN toward bay — NOT over-shoulder smile at camera. NOT hood_lean pin-up twist.\n"
             f"{HOOD_CHECK_GEOMETRY_LOCK}"
             f"\n{get_hood_check_footwear_lock(character_key, place)}"
         )
+        if random.random() < 0.55:
+            activity_text += (
+                "\nHOOD CHECK POSE PIN (this shot): stand beside open hood — both feet on pavement, "
+                "both hands on hood lip, slight forward lean, gaze into bay. Back to camera. "
+                "Simple engine block readable — no deep reach into machinery."
+            )
         if character_key == "maya":
             activity_text += "\n" + MAYA_BODY_JUICE_LOCK.strip()
     if activity_key == "laundromat" and character_key == "maya":
@@ -17183,8 +17729,8 @@ def build_activity_prompt(place: dict, character_key: str, activity_key: str, ou
                 character_key == "diaz" and diaz_should_be_on_duty(place, activity_key)
             )
             if _diaz_duty_snack:
-                # Eis ODER Donut — halten und/oder mampfen (never empty hands)
-                _form = random.choice(("cone", "donut", "donut", "cup", "donut"))
+                # Cop cliché = donut; ice cream is rare alternate
+                _form = random.choice(("donut", "donut", "donut", "donut", "donut", "cone", "cup"))
                 _hold = random.choice(("mid-eat", "mid-eat", "in hand"))  # mostly mampfen
             else:
                 _form = random.choice(("cone", "cup"))
@@ -17210,8 +17756,14 @@ def build_activity_prompt(place: dict, character_key: str, activity_key: str, ou
             if _diaz_duty_snack:
                 activity_text += (
                     "\nDIAZ ON DUTY SNACK: full police/border uniform — badge, duty belt. "
-                    "Coffee-shop cop pause: ice cream OR donut in hand / mid-eat. Not off-duty casual."
+                    "Coffee-shop cop pause: treat in hand / mid-eat. Not off-duty casual."
                 )
+                if _form == "donut":
+                    activity_text += (
+                        "\nDIAZ DUTY DONUT LOCK (MANDATORY): glazed ring donut clearly readable in one hand — "
+                        "mid-bite or held up. Optional paper coffee cup in other hand. "
+                        "NO ice cream, NO cone, NO gelato cup this shot."
+                    )
     if activity_key == "cinema_program":
         activity_text += f"\n\n{get_cinema_local_film_note(place)}"
     if activity_key == "local_event":
@@ -17227,6 +17779,19 @@ def build_activity_prompt(place: dict, character_key: str, activity_key: str, ou
                 "Raised Maßkrüge, singing locals, oompah band visible or strongly implied. "
                 "She holds a stein, belongs to the table. NOT empty bench. NOT tourist-with-map. NOT calm periphery."
             )
+        if character_key == "alessandra":
+            activity_text += "\n" + ALESSANDRA_LOCAL_EVENT_HARVEST_LOCK.strip()
+            _pn = _place_name_en(place)
+            if _pn in {"Cortina d'Ampezzo", "Cortina"}:
+                activity_text += (
+                    "\nCORTINA GOLD PIN (this shot): green harvest crate of dark grapes, white shirt + dark pants, "
+                    "Panda 4x4 rear with bike transverse on roof, Dolomite village + church spire — Cortina vendemmia energy."
+                )
+            elif random.random() < 0.42:
+                activity_text += (
+                    "\nALESSANDRA HARVEST POSE PIN (this shot): both hands on green grape crate, gaze off-task — "
+                    "alpine vendemmia, village and peaks readable behind."
+                )
     if activity_key == "biergarten":
         activity_text += f"\n\nDRINKING SPOT FOR THIS LOCATION (MANDATORY): {get_biergarten_note(place, character_key)}"
         activity_text += get_biergarten_settled_lock(place, character_key)
@@ -17259,6 +17824,13 @@ def build_activity_prompt(place: dict, character_key: str, activity_key: str, ou
                 "\nSTACY POSE PIN (this shot): mid-stride UP stairs looking back with wide smile — "
                 "San Diego energy. Hair flying, joyful, not posed."
             )
+    if activity_key == "stairs_sprint" and character_key == "alessandra":
+        activity_text += "\n" + ALESSANDRA_STAIRS_SPRINT_LOCK.strip()
+        if random.random() < 0.45:
+            activity_text += (
+                "\nALESSANDRA POSE PIN (this shot): low-angle sprint UP monumental stone stairs — "
+                "cathedral/spires behind, black run kit, place dominates. Tarragona energy."
+            )
     if activity_key == "surprise_rain":
         activity_text += f"\n\nRAIN SETTING FOR THIS LOCATION (MANDATORY): {get_surprise_rain_note(place)}"
         activity_text += "\n" + LAND_BODY_ANATOMY_LOCK
@@ -17267,6 +17839,51 @@ def build_activity_prompt(place: dict, character_key: str, activity_key: str, ou
                 "\nTYLER RAIN BAG (MANDATORY): small camera backpack or messenger — "
                 "ONE hand on strap or bag body, other hand yanking jacket closed or in pocket. "
                 "NO second hand on the same strap. NO third arm."
+            )
+    if activity_key == "getting_soaked":
+        activity_text += "\n" + GETTING_SOAKED_WET_TOP_LOCK.strip()
+        activity_text += "\n" + GETTING_SOAKED_REACTION_LOCK.strip()
+        activity_text += "\n" + GETTING_SOAKED_FOOTWEAR_LOCK.strip()
+        activity_text += "\n" + LAND_BODY_ANATOMY_LOCK
+        _soak_variant = random.choice((
+            (
+                "SUDDEN RAIN",
+                f"\n\nSOAK VARIANT (this shot): SUDDEN RAIN — {get_surprise_rain_note(place)} "
+                "Heavy instant soak — top clinging wet-dark, hair plastered. Still standing in open rain, "
+                "NOT under awning, NOT jacket tug.",
+            ),
+            (
+                "PUDDLE SPLASH",
+                "\n\nSOAK VARIANT (this shot): PUDDLE SPLASH — curb/courtyard/street puddle throws a water sheet "
+                "up legs/hem/torso; frozen mid-flinch. Passing car/van optional — splash works without vehicle. "
+                "Shoes ON FEET on wet pavement — NEVER barefoot. NOT staged pin-up.",
+            ),
+            (
+                "FROM ABOVE",
+                "\n\nSOAK VARIANT (this shot): FROM ABOVE — bucket/hose dump from balcony, window, terrace, "
+                "or upper floor just hit head/shoulders/chest. Water still running down soaked top — "
+                "mid-surprise, not looking up to pose. Old-town/medina facades ok.",
+            ),
+            (
+                "STREET POUR",
+                "\n\nSOAK VARIANT (this shot): STREET-LEVEL POUR — someone beside her tips a bucket, "
+                "shopkeeper hoses pavement, market stall spill — horizontal or low arc hits torso. "
+                "Soaked top readable; NOT a staged water fight, NOT seeking cover.",
+            ),
+        ))
+        activity_text += _soak_variant[1]
+        if random.random() < 0.50:
+            activity_text += (
+                "\nSOAK MOOD PIN (this shot): surprise-JOY — burst laugh, loose arms, delighted disbelief."
+            )
+        else:
+            activity_text += (
+                "\nSOAK MOOD PIN (this shot): surprise-ANGER — glare, jaw set, wet hair in eyes, no shelter move."
+            )
+        if character_key == "tyler":
+            activity_text += (
+                "\nTYLER SOAKED (MANDATORY): camera bag on shoulder dripping ok — hands EMPTY or mid-flinch, "
+                "NOT covering bag, NOT running for cover. Face: outrage OR laughing disbelief at the sky/splash."
             )
     if activity_key in {"surf_paddle", "surfing"}:
         activity_text += (
@@ -17387,6 +18004,13 @@ def build_activity_prompt(place: dict, character_key: str, activity_key: str, ou
     # Isabella sunset_wine — Lansing gold outfit often wins over day sticky / shore path
     if character_key == "isabella" and activity_key == "sunset_wine" and random.random() < 0.55:
         outfit_override = ISABELLA_SUNSET_WINE_OUTFIT
+    elif (
+        character_key == "jelena"
+        and activity_key in _JELENA_EVENING_ACTIVITIES
+        and not outfit_override
+        and random.random() < 0.48
+    ):
+        outfit_override = JELENA_EVENING_OUTFIT
     elif not outfit_override and is_shore_sand_context(place):
         _shore_o = get_beach_outfit_override(character_key, place)
         if _shore_o:
@@ -17450,12 +18074,21 @@ def build_activity_prompt(place: dict, character_key: str, activity_key: str, ou
         outfit_override = f"SWIMWEAR OVERRIDE: {_metka_swim} This overrides the reference image swimwear."
     if (
         character_key in BIKINI_CHARS
+        and character_key != "maya"
         and activity_key in _beach_activities
         and not outfit_override
         and not _no_swim_ctx
         and not _maya_grey
     ):
         outfit_override = "thin white or light linen shirt open over bikini — she just came from or is heading to the water. Cover-up natural, not posed."
+    elif (
+        character_key == "maya"
+        and activity_key in _beach_activities
+        and not outfit_override
+        and not _no_swim_ctx
+        and not _maya_grey
+    ):
+        outfit_override = get_character_water_outfit_override(character_key, place)
     _sm_var = activity_variant if activity_key == "sup_mount" else None
     _char_profile = get_character_activity_profile(
         character_key, activity_key, activity_variant=_sm_var, tammy_energy_drink=_tammy_drink,
@@ -17794,11 +18427,17 @@ General: black wool coat, simple dark knit, dark trousers. Boots. Tote bag or sm
     _activity_location_lock = ""
     if not _shore_location_prepended:
         _activity_location_lock = f"\n\n{get_activity_location_lock(place, character_key)}"
+    _lyra_toga_line = ""
+    if character_key == "lyra":
+        _lt = get_lyra_toga_wardrobe_lock(place)
+        if _lt:
+            _lyra_toga_line = "\n\n" + _lt
     return (
         base + "\n\n" + activity_text.strip() + _sup_pose_line + _char_profile_line + _act_expr_line
         + _luca_harbour_line + _noir_activity_note + style_line + locale_rule + _activity_framing + _swim_repeat
         + _place_activity_line
         + _activity_location_lock
+        + _lyra_toga_line
     )
 
 def upload_activity_to_supabase(webp_bytes: bytes, place: dict, character_key: str, activity_key: str) -> str:
@@ -18102,6 +18741,9 @@ def get_nature_outfit_override(character_key: str, place: dict) -> str | None:
                 "NATURE OUTFIT (MAGHREB/TR): modest trail/day clothes — long-sleeve shirt or blouse, "
                 "trousers or long skirt, trainers. No bikini, no swimwear. Ignore reference swimsuit."
             )
+        if character_key == "maya" and terrain in {"coastal", "lake"}:
+            if allows_swimwear_at_place(place, None) or is_beach_place(place) or is_shore_sand_context(place):
+                return get_character_water_outfit_override(character_key, place)
         if terrain == "coastal":
             return (
                 "NATURE OUTFIT: linen shirt or light cover-up over top, shorts or skirt, sandals — "
@@ -18198,7 +18840,7 @@ _SHORE_EXCLUDED_ACTIVITIES = frozenset({
 })
 
 _SHORE_ACTIVITY_FALLBACK = (
-    "beach_walk_distance", "waiting", "harbour_walk", "surprise_rain",
+    "beach_walk_distance", "waiting", "harbour_walk", "surprise_rain", "getting_soaked",
     "muscheln_sammeln", "ferry_rail",
 )
 
@@ -18289,6 +18931,36 @@ _SURF_BLOCKLIST_PLACES = frozenset({
     "Boston", "Seattle", "Portland", "Dublin", "Copenhagen", "Stockholm",
 })
 
+# Coastal Ortschaften that ARE beach destinations (urban gate bypass for sand/swim).
+# Georgetown-type river/harbour towns stay blocked.
+_OCEAN_BEACH_TOWN_OK = frozenset({
+    "Key West", "Key Largo", "Islamorada", "Florida Keys",
+    "Miami", "Miami Beach", "South Beach",
+    "Honolulu", "Maui", "Waikiki", "Kauai", "Oahu",
+    "Venice Beach", "Santa Monica", "Malibu", "Huntington Beach", "Laguna Beach",
+    "Manhattan Beach", "Hermosa Beach", "Newport Beach", "Pacific Beach", "La Jolla",
+    "Palm Beach", "Fort Lauderdale", "Clearwater", "Sarasota", "Naples",
+    "Myrtle Beach", "Outer Banks", "Cancún", "Cancun", "Tulum", "Playa del Carmen",
+    "Gold Coast", "Bondi", "Byron Bay",
+})
+
+# Flat reef / bay — swim & beach ok, but no credible surf break (Keys, etc.)
+_NO_SURF_PLACES = frozenset({
+    "Key West", "Key Largo", "Islamorada", "Florida Keys",
+    "Georgetown",  # Cayman harbour town
+})
+_SURF_ONLY_ACTIVITIES = frozenset({"surfing", "surf_paddle", "board_carry"})
+
+
+def _ocean_beach_town_ok(place: dict) -> bool:
+    return _place_name_hit(_place_name_en(place), _OCEAN_BEACH_TOWN_OK)
+
+
+def _surf_activity_ok(place: dict, activity_key: str) -> bool:
+    if activity_key not in _SURF_ONLY_ACTIVITIES:
+        return True
+    return not _place_name_hit(_place_name_en(place), _NO_SURF_PLACES)
+
 
 def binoculars_scan_ok(character_key: str, place: dict, place_type: str = "") -> bool:
     """Beach/shore binoculars only for werra — kelek/tammy/dale/alessandra stay inland/ridge."""
@@ -18306,7 +18978,12 @@ def ocean_beach_activity_ok(place: dict, activity_key: str) -> bool:
     name = _place_name_en(place)
     if name in _SURF_BLOCKLIST_PLACES:
         return False
+    if not _surf_activity_ok(place, activity_key):
+        return False
     if is_shore_sand_context(place) or is_beach_place(place):
+        return True
+    # Known beach towns (Key West, Miami Beach, …) — swim/sand ok despite medium_town/city
+    if _ocean_beach_town_ok(place):
         return True
     # Georgetown-type: coastal Ortschaft ≠ beach — no bikini/SUP/jump in town
     if is_urban_place(place):
@@ -18680,6 +19357,10 @@ def build_far_shot_prompt(place: dict, character_key: str, location_brief: str, 
                 f"Her silhouette in {_sil} must read — especially hips/glutes — even at small scale."
             )
 
+    _alessandra_bike_fs = ""
+    if character_key == "alessandra" and _use_vehicle and _vehicle:
+        _alessandra_bike_fs = "\n" + ALESSANDRA_ROOF_BIKE_MOUNT_LOCK.strip()
+
     return f"""VAST LANDSCAPE SHOT — {name.upper()}, {country}
 
 FRAMING: Environmental portrait. Character occupies 10-15% of frame height maximum.
@@ -18694,7 +19375,7 @@ She is not posing. She is simply present — standing, looking at the view, or s
 Her back may be to us. We are looking at what she is looking at.
 {_wildcard_discomfort}{_nature_outfit_line}{_amber_fs}{_diaz_fs}
 
-{vehicle_line}
+{vehicle_line}{_alessandra_bike_fs}
 COMPOSITION: {composition_line}
 No forced perspective tricks — just real scale.
 
@@ -19277,15 +19958,18 @@ def generate_one(place, character_key, dry_run, exploit, suffix="", no_review=Fa
             "Profile to the view, mid-walk, rail lean, table without turning for lens, "
             "or facing the water/lights. Reference pose = FAIL."
         )
+        _lyra_toga = get_lyra_toga_wardrobe_lock(place)
+        if _lyra_toga:
+            prompt += "\n" + _lyra_toga
     # Tasha mains clone Capri-café look-away + drink prop (standing Vegas clone too) — hammer anti-clone
     if character_key == "tasha" and suffix == "" and not _dayhike_mode:
         prompt += "\n" + TASHA_ANTI_CANONICAL_POSE_LOCK.strip()
         prompt += (
             "\nMAIN POSE (TASHA): IN the place — NEW angle every shot. "
             "NOT the Capri-table lean + drink look-away, and NOT the standing soft-candid clone "
-            "(gaze aside, drink+phone as pose props, same hip/shoulder line as reference). "
-            "Mid-walk toward landmark, shooting with the disposable, Jeep/rail lean, "
-            "or profile to the street with hands free. Reference pose = FAIL."
+            "(gaze aside, drink as pose prop, same hip/shoulder line as reference). "
+            "Mid-walk toward landmark, Jeep/rail lean, "
+            "or profile to the street with hands free. NO camera. Reference pose = FAIL."
         )
     # Ingrid Med/south — never Mariusgenser (spec sweater line still in brief)
     if character_key == "ingrid" and suffix == "" and not _dayhike_mode:
@@ -20023,7 +20707,7 @@ def process_place(place: dict, dry_run: bool = False, exploit: bool = False,
                 "attraction_pass", "menu_study",
                 "going_for_a_run", "trail_running", "market_browse", "sunset_wine", "quay_fishing", "cigarette_roll",
                 "park_with_view", "window_down", "cruise_through",
-                "closed_door", "ticket_machine", "surprise_rain", "parking_puzzle", "waiting",
+                "closed_door", "ticket_machine", "surprise_rain", "getting_soaked", "parking_puzzle", "waiting",
                 "feeding_cats", "stray_dogs", "hausmeister_chat", "local_chat", "stairs_sprint",
                 "car_exit", "stretch", "van_getting_dressed",
                 "queen_card_exit", "making_bbq", "marshmallow_roast",
@@ -20118,6 +20802,11 @@ def process_place(place: dict, dry_run: bool = False, exploit: bool = False,
             # On-duty set: drop hike/run/swim even if nature-pack pinned hiking_back first
             if character_key == "diaz" and diaz_set_is_on_duty(place):
                 acts = [a for a in acts if a not in _DIAZ_OFF_DUTY_ACTIVITIES]
+                if (
+                    "eating_ice_cream" not in acts
+                    and "eating_ice_cream" not in set(CHARACTER_ACTIVITY_EXCLUDE.get(character_key, []))
+                ):
+                    acts = ["eating_ice_cream"] + list(acts or [])
                 if character_override and len(acts) < 3:
                     _duty_extra = pick_activity(
                         character_key, terrain_a, pt_a, n=5, place_name=name, place=place,
@@ -20996,6 +21685,11 @@ def pick_premium_outfit_light(place: dict, character_key: str, premium_layer: st
     if premium_layer == "eclipse":
         if is_coastal:
             return "dark satin slip or tailored blazer, harbour evening"
+        if character_key == "jelena":
+            return (
+                "wine satin mid-thigh OR camisole+leather mini, rear-seam stockings when back of leg visible — "
+                "Skadarlija/Baščaršija ausgeh×kink"
+            )
         return "tailored dark wool coat or blazer, pencil skirt, back-seam stockings if interior setting"
 
     if premium_layer == "viper":
@@ -21004,9 +21698,19 @@ def pick_premium_outfit_light(place: dict, character_key: str, premium_layer: st
         return "structured black blazer, fitted turtleneck, leather trousers, controlled"
 
     if premium_layer == "nightlife":
+        if character_key == "jelena":
+            return (
+                "wine/black satin mid-thigh OR camisole+leather mini, rear-seam stockings, sharp heels — "
+                "Balkan ausgeh×kink 1am kafana (NOT day denim, NOT dungeon)"
+            )
         return "dark silk blouse or satin dress, slightly open, nightlife-appropriate"
 
     if premium_layer == "prestige":
+        if character_key == "jelena":
+            return (
+                "wine/black satin mid-thigh OR camisole+leather mini, rear-seam stockings when back visible, "
+                "block-heel boots — Baščaršija/Skadarlija ausgeh×kink dusk"
+            )
         if character_key == "lyra":
             return "deep burgundy or emerald silk slip dress, bare shoulders, gold jewelry — not white, not boho"
         if is_coastal:
@@ -21014,6 +21718,11 @@ def pick_premium_outfit_light(place: dict, character_key: str, premium_layer: st
         return "ivory silk blouse, tailored trousers, quiet Mediterranean luxury"
 
     if premium_layer == "noir":
+        if character_key == "jelena":
+            return (
+                "black satin mid-thigh OR camisole + leather mini, rear-seam stockings when back visible, "
+                "heeled boots — Belgrade ausgeh×kink"
+            )
         return "structured black coat, minimal underneath, patent stilettos"
 
     return None

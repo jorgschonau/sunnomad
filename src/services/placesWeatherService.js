@@ -533,6 +533,7 @@ function adaptPlaceToDestination(place, locale = 'en') {
   return {
     // Core place data
     id: place.id,
+    name_en: place.name_en,
     lat: place.latitude,
     lon: place.longitude,
     name: getPlaceName(place, locale),

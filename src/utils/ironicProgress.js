@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { DestinationBadge } from '../domain/destinationBadge';
+import { getContinentForCountry } from './countryContinent';
 
 // Fake level system + ironic badges (see ROADMAP "Gamification Paket").
 // Pure client-side joke features: based on app_open_count / favourites /
@@ -20,6 +21,92 @@ export const DISCOVERABLE_CHARACTERS = [
 export const DISCOVERABLE_CHARACTER_COUNT = DISCOVERABLE_CHARACTERS.length;
 const DISCOVERABLE_SET = new Set(DISCOVERABLE_CHARACTERS);
 const DISCOVERED_KEY = 'discoveredCharacters';
+
+/** Goldie fullscreen easter eggs — extend when new stops ship. */
+export const GOLDIE_EASTER_EGG_PLACES = [
+  'Athens',
+  'Berlin',
+  'Budapest',
+  'Castle Rock',
+  'Chicago',
+  'Copenhagen',
+  'Dogtown',
+  'Dublin',
+  'Dresden',
+  'Florence',
+  'London',
+  'New York',
+  'Oslo',
+  'Paris',
+  'Potsdam',
+  'Rome',
+  'Wacken',
+  'Yosemite National Park',
+];
+/** Disambiguate duplicate `name_en` rows (Florence US vs IT). */
+export const GOLDIE_EASTER_EGG_COUNTRY = { Florence: 'IT' };
+export const GOLDIE_EASTER_EGG_COUNT = GOLDIE_EASTER_EGG_PLACES.length;
+const GOLDIE_EGG_NAME_SET = new Set(GOLDIE_EASTER_EGG_PLACES);
+const GOLDIE_EGGS_SEEN_KEY = 'goldieEggsSeen';
+
+export function normalizeEggPlaceName(nameEn, fallbackName) {
+  return String(nameEn || fallbackName || '')
+    .replace(/^[📍⊕★]\s?/g, '')
+    .trim();
+}
+
+export function isGoldieHeroMeta(meta) {
+  if (!meta) return false;
+  if (meta.hero_variant === 'goldie') return true;
+  if (meta.character === 'goldie') return true;
+  const n = String(meta.hero_image_name || '').toLowerCase();
+  return n.includes('_goldie_') || n.includes('goldie');
+}
+
+export function isGoldieEggPlace(nameEn, countryCode) {
+  const name = normalizeEggPlaceName(nameEn);
+  if (!name || !GOLDIE_EGG_NAME_SET.has(name)) return false;
+  const needCc = GOLDIE_EASTER_EGG_COUNTRY[name];
+  if (needCc) {
+    return String(countryCode || '').toUpperCase() === needCc;
+  }
+  return true;
+}
+
+/** Persist Goldie sighting at a canonical easter-egg stop; returns true when newly added. */
+export async function markGoldieEggSeen(placeId, nameEn, countryCode) {
+  if (!isGoldieEggPlace(nameEn, countryCode)) return false;
+  const name = normalizeEggPlaceName(nameEn);
+  const storageKey =
+    placeId || `${name}|${String(countryCode || '').toUpperCase()}`;
+  let stored = [];
+  try {
+    const raw = await AsyncStorage.getItem(GOLDIE_EGGS_SEEN_KEY);
+    if (raw) stored = JSON.parse(raw);
+    if (!Array.isArray(stored)) stored = [];
+  } catch {
+    stored = [];
+  }
+  if (stored.includes(storageKey)) return false;
+  stored.push(storageKey);
+  try {
+    await AsyncStorage.setItem(GOLDIE_EGGS_SEEN_KEY, JSON.stringify(stored));
+  } catch {
+    /* ignore */
+  }
+  return true;
+}
+
+async function getGoldieEggsSeen() {
+  try {
+    const raw = await AsyncStorage.getItem(GOLDIE_EGGS_SEEN_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 
 /** Persist character if discoverable; returns true when newly added. */
 export async function markCharacterDiscovered(character) {
@@ -59,6 +146,8 @@ const RADIUS_FIDGET_TARGET = 20;
 const COUNTRY_TARGET = 15;
 const DRIVE_TARGET = 10;
 const FERNWEH_KM = 1000;
+/** Dramatic tier above Fernweh — matches max search radius. */
+export const FAR_FROM_HOME_KM = 5000;
 const RADIUS_MAX_KM = 5000;
 /** Metric floor is 50; imperial floor ~40km (25mi). */
 const RADIUS_MIN_KM = 51;
@@ -73,6 +162,9 @@ const EMPTY_USAGE = {
   countries: [],
   driveTaps: 0,
   fernwehHit: false,
+  farFromHomeHit: false,
+  transcontinentalHit: false,
+  transcontinentalRecent: [],
   weatherBadges: [],
   centerViaSearch: false,
   centerViaLongPress: false,
@@ -106,6 +198,11 @@ async function getUsageStats() {
       countries: [...new Set(countries)],
       driveTaps: Number(parsed.driveTaps) || 0,
       fernwehHit: !!parsed.fernwehHit,
+      farFromHomeHit: !!parsed.farFromHomeHit,
+      transcontinentalHit: !!parsed.transcontinentalHit,
+      transcontinentalRecent: Array.isArray(parsed.transcontinentalRecent)
+        ? parsed.transcontinentalRecent.filter((c) => typeof c === 'string' && c).slice(-3)
+        : [],
       weatherBadges: [...new Set(weatherBadges)],
       centerViaSearch: !!parsed.centerViaSearch,
       centerViaLongPress: !!parsed.centerViaLongPress,
@@ -125,6 +222,15 @@ async function saveUsageStats(stats) {
   }
 }
 
+/** EU→NA→EU or NA→EU→NA on three consecutive detail opens. */
+function isVanRocketRoundTrip(recent) {
+  if (!Array.isArray(recent) || recent.length < 3) return false;
+  const [a, b, c] = recent.slice(-3);
+  if (a !== c || a === b) return false;
+  const pair = new Set([a, b]);
+  return pair.size === 2 && pair.has('EU') && pair.has('NA');
+}
+
 /**
  * Count a destination detail open; also track unique countries and fernweh distance.
  * @param {{ countryCode?: string|null, distanceKm?: number|null }} [meta]
@@ -139,6 +245,17 @@ export async function trackDetailViewed(meta = {}) {
   const dist = Number(meta.distanceKm);
   if (Number.isFinite(dist) && dist >= FERNWEH_KM) {
     stats.fernwehHit = true;
+  }
+  if (Number.isFinite(dist) && dist >= FAR_FROM_HOME_KM) {
+    stats.farFromHomeHit = true;
+  }
+  const continent = getContinentForCountry(cc);
+  if (continent) {
+    const recent = [...(stats.transcontinentalRecent || []), continent].slice(-3);
+    stats.transcontinentalRecent = recent;
+    if (!stats.transcontinentalHit && isVanRocketRoundTrip(recent)) {
+      stats.transcontinentalHit = true;
+    }
   }
   await saveUsageStats(stats);
 }
@@ -265,6 +382,15 @@ const BADGES = [
     isMet: ({ refMethods }) => (refMethods || 0) >= REF_METHODS_TARGET,
   },
   {
+    id: 'detail_junkie',
+    group: 'early',
+    icon: 'eye-outline',
+    nameKey: 'profile.badgeDetailName',
+    descKey: 'profile.badgeDetailDesc1',
+    showProgress: true,
+    isMet: ({ detailViews }) => (detailViews || 0) >= DETAIL_TARGET,
+  },
+  {
     id: 'radius_min',
     group: 'early',
     icon: 'locate-outline',
@@ -272,6 +398,32 @@ const BADGES = [
     descKey: 'profile.badgeRadiusMinDescOff',
     showProgress: true,
     isMet: ({ radiusMinHit }) => !!radiusMinHit,
+  },
+  {
+    id: 'radius_fidget',
+    group: 'early',
+    icon: 'resize-outline',
+    nameKey: 'profile.badgeRadiusFidgetName',
+    descKey: 'profile.badgeRadiusFidgetDesc1',
+    showProgress: true,
+    isMet: ({ radiusChanges }) => (radiusChanges || 0) >= RADIUS_FIDGET_TARGET,
+  },
+  {
+    id: 'collector',
+    group: 'early',
+    icon: 'star-outline',
+    nameKey: 'profile.badgeCollectorName',
+    descKey: 'profile.badgeCollectorDesc1',
+    showProgress: true,
+    isMet: ({ favouriteCount }) => (favouriteCount || 0) >= COLLECTOR_TARGET,
+  },
+  {
+    id: 'commitment_issues',
+    group: 'early',
+    icon: 'help-circle-outline',
+    nameKey: 'profile.badgeCommitmentName',
+    descKey: 'profile.badgeCommitmentDesc',
+    isMet: ({ appOpens, favouriteCount }) => (appOpens || 0) >= 20 && (favouriteCount || 0) === 0,
   },
   {
     id: 'beta_veteran',
@@ -305,41 +457,6 @@ const BADGES = [
     descKey: 'profile.badgeNightDesc',
     isMet: ({ now }) => now.getHours() < 5,
   },
-  {
-    id: 'radius_fidget',
-    group: 'early',
-    icon: 'resize-outline',
-    nameKey: 'profile.badgeRadiusFidgetName',
-    descKey: 'profile.badgeRadiusFidgetDesc1',
-    showProgress: true,
-    isMet: ({ radiusChanges }) => (radiusChanges || 0) >= RADIUS_FIDGET_TARGET,
-  },
-  {
-    id: 'detail_junkie',
-    group: 'early',
-    icon: 'eye-outline',
-    nameKey: 'profile.badgeDetailName',
-    descKey: 'profile.badgeDetailDesc1',
-    showProgress: true,
-    isMet: ({ detailViews }) => (detailViews || 0) >= DETAIL_TARGET,
-  },
-  {
-    id: 'collector',
-    group: 'early',
-    icon: 'star-outline',
-    nameKey: 'profile.badgeCollectorName',
-    descKey: 'profile.badgeCollectorDesc1',
-    showProgress: true,
-    isMet: ({ favouriteCount }) => (favouriteCount || 0) >= COLLECTOR_TARGET,
-  },
-  {
-    id: 'commitment_issues',
-    group: 'early',
-    icon: 'help-circle-outline',
-    nameKey: 'profile.badgeCommitmentName',
-    descKey: 'profile.badgeCommitmentDesc',
-    isMet: ({ appOpens, favouriteCount }) => (appOpens || 0) >= 20 && (favouriteCount || 0) === 0,
-  },
   // ── Endgame (Sofa) ──
   {
     id: 'drive_junkie',
@@ -358,6 +475,24 @@ const BADGES = [
     descKey: 'profile.badgeFernwehDescOff',
     showProgress: true,
     isMet: ({ fernwehHit }) => !!fernwehHit,
+  },
+  {
+    id: 'far_from_home',
+    group: 'later',
+    icon: 'planet-outline',
+    nameKey: 'profile.badgeFarFromHomeName',
+    descKey: 'profile.badgeFarFromHomeDescOff',
+    showProgress: true,
+    isMet: ({ farFromHomeHit }) => !!farFromHomeHit,
+  },
+  {
+    id: 'transcontinental_rocket',
+    group: 'later',
+    icon: 'rocket-outline',
+    nameKey: 'profile.badgeTranscontinentalName',
+    descKey: 'profile.badgeTranscontinentalDescOff',
+    showProgress: true,
+    isMet: ({ transcontinentalHit }) => !!transcontinentalHit,
   },
   {
     id: 'radius_max',
@@ -387,14 +522,6 @@ const BADGES = [
     isMet: ({ weatherBadgeCount }) => (weatherBadgeCount || 0) >= WEATHER_BADGE_TARGET,
   },
   {
-    id: 'friday_13',
-    group: 'later',
-    icon: 'skull-outline',
-    nameKey: 'profile.badgeFriday13Name',
-    descKey: 'profile.badgeFriday13Desc',
-    isMet: ({ now }) => now.getDay() === 5 && now.getDate() === 13,
-  },
-  {
     id: 'snow_king_spotter',
     group: 'later',
     icon: 'snow-outline',
@@ -404,15 +531,31 @@ const BADGES = [
     isMet: ({ snowKingHit }) => !!snowKingHit,
   },
   {
+    id: 'good_girl_spotter',
+    group: 'later',
+    icon: 'paw-outline',
+    nameKey: 'profile.badgeGoodGirlSpotterName',
+    descKey: 'profile.badgeGoodGirlSpotterDescOff',
+    showProgress: true,
+    isMet: ({ goldieEggCount }) => (goldieEggCount || 0) >= GOLDIE_EASTER_EGG_COUNT,
+  },
+  {
     id: 'cast_spotter',
     group: 'later',
     icon: 'people-outline',
     nameKey: 'profile.badgeCastName',
     descKey: 'profile.badgeCastDesc1',
-    // Progress always visible; unlocks when the full cast has been seen in fullscreen.
     showProgress: true,
     isMet: ({ discoveredCount }) =>
       (discoveredCount || 0) >= DISCOVERABLE_CHARACTER_COUNT,
+  },
+  {
+    id: 'friday_13',
+    group: 'later',
+    icon: 'skull-outline',
+    nameKey: 'profile.badgeFriday13Name',
+    descKey: 'profile.badgeFriday13Desc',
+    isMet: ({ now }) => now.getDay() === 5 && now.getDate() === 13,
   },
 ];
 
@@ -428,6 +571,19 @@ function progressDescKey(count, total, prefix) {
 function badgeDescKey(badge, ctx) {
   if (badge.id === 'cast_spotter') {
     return progressDescKey(ctx.discoveredCount, DISCOVERABLE_CHARACTER_COUNT, 'profile.badgeCastDesc');
+  }
+  if (badge.id === 'good_girl_spotter') {
+    if ((ctx.goldieEggCount || 0) >= GOLDIE_EASTER_EGG_COUNT) {
+      return 'profile.badgeGoodGirlSpotterDescOn';
+    }
+    if ((ctx.goldieEggCount || 0) <= 0) {
+      return 'profile.badgeGoodGirlSpotterDescOff';
+    }
+    return progressDescKey(
+      ctx.goldieEggCount,
+      GOLDIE_EASTER_EGG_COUNT,
+      'profile.badgeGoodGirlSpotterDesc'
+    );
   }
   if (badge.id === 'collector') {
     return progressDescKey(ctx.favouriteCount, COLLECTOR_TARGET, 'profile.badgeCollectorDesc');
@@ -468,6 +624,14 @@ function badgeDescKey(badge, ctx) {
   if (badge.id === 'fernweh') {
     return ctx.fernwehHit ? 'profile.badgeFernwehDescOn' : 'profile.badgeFernwehDescOff';
   }
+  if (badge.id === 'far_from_home') {
+    return ctx.farFromHomeHit ? 'profile.badgeFarFromHomeDescOn' : 'profile.badgeFarFromHomeDescOff';
+  }
+  if (badge.id === 'transcontinental_rocket') {
+    return ctx.transcontinentalHit
+      ? 'profile.badgeTranscontinentalDescOn'
+      : 'profile.badgeTranscontinentalDescOff';
+  }
   if (badge.id === 'snow_king_spotter') {
     return ctx.snowKingHit ? 'profile.badgeSnowKingDescOn' : 'profile.badgeSnowKingDescOff';
   }
@@ -477,6 +641,12 @@ function badgeDescKey(badge, ctx) {
 function badgeDescParams(badge, ctx) {
   if (badge.id === 'cast_spotter') {
     return { count: ctx.discoveredCount, total: DISCOVERABLE_CHARACTER_COUNT };
+  }
+  if (badge.id === 'good_girl_spotter') {
+    return {
+      count: Math.min(ctx.goldieEggCount || 0, GOLDIE_EASTER_EGG_COUNT),
+      total: GOLDIE_EASTER_EGG_COUNT,
+    };
   }
   if (badge.id === 'collector') {
     return {
@@ -553,6 +723,8 @@ export async function resolveIronicBadges(
 
   const discovered = await getDiscoveredCharacters();
   const discoveredCount = discovered.length;
+  const goldieEggsSeen = await getGoldieEggsSeen();
+  const goldieEggCount = goldieEggsSeen.length;
   const usage = await getUsageStats();
   const countryCount = usage.countries.length;
   const weatherBadgeCount = usage.weatherBadges.length;
@@ -565,6 +737,7 @@ export async function resolveIronicBadges(
     favouriteCount,
     memberSince,
     discoveredCount,
+    goldieEggCount,
     detailViews: usage.detailViews,
     radiusChanges: usage.radiusChanges,
     radiusMinHit: usage.radiusMinHit,
@@ -572,6 +745,8 @@ export async function resolveIronicBadges(
     countryCount,
     driveTaps: usage.driveTaps,
     fernwehHit: usage.fernwehHit,
+    farFromHomeHit: usage.farFromHomeHit,
+    transcontinentalHit: usage.transcontinentalHit,
     weatherBadgeCount,
     snowKingHit,
     homespotMethods,
@@ -594,6 +769,7 @@ export async function resolveIronicBadges(
 
   const progressCtx = {
     discoveredCount,
+    goldieEggCount,
     favouriteCount: favouriteCount || 0,
     detailViews: usage.detailViews,
     radiusChanges: usage.radiusChanges,
@@ -602,6 +778,8 @@ export async function resolveIronicBadges(
     countryCount,
     driveTaps: usage.driveTaps,
     fernwehHit: usage.fernwehHit,
+    farFromHomeHit: usage.farFromHomeHit,
+    transcontinentalHit: usage.transcontinentalHit,
     weatherBadgeCount,
     snowKingHit,
     homespotMethods,

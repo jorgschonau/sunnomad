@@ -39,13 +39,14 @@ function isGeographicPlace(types) {
  * @returns {Promise<{ dbPlaces: Array, googlePlaces: Array }>}
  */
 export const hybridSearch = async (query, center, language = 'de') => {
-  if (!query || query.length < 2) return { dbPlaces: [], googlePlaces: [] };
+  const q = (query || '').trimStart();
+  if (!q || q.length < 2) return { dbPlaces: [], googlePlaces: [] };
 
   // Run DB and Google in parallel (Google only when API key is available)
   const bounds = (center && center.longitude < -25) ? BOUNDS_AMERICAS : BOUNDS_EUROPE;
   const [dbPlaces, rawGooglePlaces] = await Promise.all([
-    searchDB(query, center, language),
-    GOOGLE_API_KEY ? searchGoogle(query, language, bounds) : Promise.resolve([]),
+    searchDB(q, center, language),
+    GOOGLE_API_KEY ? searchGoogle(q, language, bounds) : Promise.resolve([]),
   ]);
 
   // Deduplicate Google results against DB; promote DB matches the name search missed
@@ -60,7 +61,7 @@ export const hybridSearch = async (query, center, language = 'de') => {
     }
   }
 
-  __DEV__ && console.log(`🔍 hybridSearch "${query}": ${dbPlaces.length} DB, ${rawGooglePlaces.length} Google raw, ${googlePlaces.length} Google after dedup`);
+  __DEV__ && console.log(`🔍 hybridSearch "${q}": ${dbPlaces.length} DB, ${rawGooglePlaces.length} Google raw, ${googlePlaces.length} Google after dedup`);
   return { dbPlaces, googlePlaces };
 };
 

@@ -197,8 +197,16 @@ def process_and_save(img_bytes, out_path):
         return os.path.getsize(out_path) / 1024
 
 
+# Monats-Kontingent leer → keine weiteren API-Calls, Script bricht sauber ab.
+_QUOTA_EXHAUSTED = False
+
+
 def pexels_search(query, per_page=15, orientation="portrait"):
-    """Gibt nie auf (außer 403 = Key kaputt). Wartet Rate-Limits einfach ab."""
+    """Suche. Bei Monats-Kontingent leer: None (Hard-Stop für den ganzen Lauf)."""
+    global _QUOTA_EXHAUSTED
+    if _QUOTA_EXHAUSTED:
+        return None
+
     attempt = 0
     while True:
         attempt += 1
@@ -211,13 +219,19 @@ def pexels_search(query, per_page=15, orientation="portrait"):
             )
 
             if r.status_code == 429:
-                wait = _retry_after(r) or min(60 * attempt, 900)
-                print(f"  Rate limit (429) -> warte {wait}s (Versuch {attempt})...")
+                # Kontingent leer — nicht 8× à 120s loop. Ein kurzer Retry, dann Stop.
+                if attempt >= 2:
+                    _QUOTA_EXHAUSTED = True
+                    print("  Rate limit (429) — Kontingent leer. Stoppe den Lauf.")
+                    return None
+                wait = min(_retry_after(r) or 30, 60)
+                print(f"  Rate limit (429) -> kurzer Retry {wait}s, dann Abbruch wenn wieder 429...")
                 time.sleep(wait)
                 continue
 
             if r.status_code == 403:
                 print("  403 Forbidden - API Key Problem, stoppe.")
+                _QUOTA_EXHAUSTED = True
                 return None
 
             if r.status_code != 200 or not r.text.strip():
@@ -226,8 +240,11 @@ def pexels_search(query, per_page=15, orientation="portrait"):
                 time.sleep(wait)
                 continue
 
-            _throttle_if_needed(r)
-            return r.json().get("photos", [])
+            photos = r.json().get("photos", [])
+            # Diese Antwort noch nutzen; weitere Calls stoppen wenn Reset in Tagen liegt.
+            if _throttle_if_needed(r) == "exhausted":
+                _QUOTA_EXHAUSTED = True
+            return photos
 
         except Exception as e:
             wait = min(15 * attempt, 300)
@@ -243,17 +260,26 @@ def _retry_after(r):
 
 
 def _throttle_if_needed(r):
-    """Pexels liefert X-Ratelimit-Remaining/-Reset — proaktiv warten statt 429 kassieren."""
+    """Kurz warten wenn fast leer. Monats-Reset (Tage) → exhausted-Flag."""
     try:
         remaining = int(r.headers.get("X-Ratelimit-Remaining", 999))
         reset_ts = int(r.headers.get("X-Ratelimit-Reset", 0))
     except (TypeError, ValueError):
-        return
-    if remaining <= 2 and reset_ts:
-        wait = max(0, reset_ts - int(time.time())) + 5
-        if wait > 0:
-            print(f"  Ratelimit fast erreicht (remaining={remaining}) -> warte {wait}s bis Reset...")
-            time.sleep(wait)
+        return None
+    if remaining > 2 or not reset_ts:
+        return None
+    wait = max(0, reset_ts - int(time.time())) + 5
+    if wait <= 0:
+        return None
+    # Pexels-Reset ist oft Monatsende — nie Tage schlafen.
+    if wait > 180:
+        hrs = wait / 3600
+        print(f"  Pexels-Kontingent fast leer (remaining={remaining}, "
+              f"Reset in {hrs:.0f}h). Keine weiteren API-Calls.")
+        return "exhausted"
+    print(f"  Ratelimit fast erreicht (remaining={remaining}) -> warte {wait}s...")
+    time.sleep(wait)
+    return None
 
 
 def download_bytes(url, tries=5):
@@ -295,7 +321,7 @@ def find_candidates(name_en, country_code, place_type):
     query = f"{name_en} {country}"
     photos = pexels_search(query, per_page=SEARCH_PER_PAGE)
     if photos is None:
-        return None, query
+        return None  # Hard-Stop (Kontingent/403) — nicht mit NOT FOUND verwechseln
 
     collect(photos, query, is_rel)
 
@@ -304,7 +330,12 @@ def find_candidates(name_en, country_code, place_type):
     if not any(p.get("_relevant") for _, p in ranked):
         wide = pexels_search(query, per_page=SEARCH_PER_PAGE, orientation="landscape")
         if wide is None:
-            return None, query
+            # Kontingent leer: bisherige Treffer noch zurückgeben falls vorhanden
+            if ranked:
+                ranked.sort(key=lambda x: -x[0])
+                pool = [p for _, p in ranked[:MAX_CANDIDATES]]
+                return pool, pool[0]["_query"]
+            return None
         collect(wide, query, is_rel)
 
     if len(ranked) < 2:
@@ -312,7 +343,11 @@ def find_candidates(name_en, country_code, place_type):
         fb_query = f"{name_en} {modifier}".strip()
         fb_photos = pexels_search(fb_query, per_page=SEARCH_PER_PAGE)
         if fb_photos is None:
-            return None, fb_query
+            if ranked:
+                ranked.sort(key=lambda x: -x[0])
+                pool = [p for _, p in ranked[:MAX_CANDIDATES]]
+                return pool, pool[0]["_query"]
+            return None
         collect(fb_photos, fb_query, lambda _p: False)
 
     ranked.sort(key=lambda x: -x[0])
@@ -440,7 +475,8 @@ try:
                                relevant_only=args.relevant_only)
 
         if result is None:
-            print("Hard stop.")
+            print("Hard stop — Pexels-Kontingent leer oder API-Key tot. "
+                  "meta.json ist gespeichert, später denselben Command nochmal.")
             break
         elif result == "skip":      skip += 1
         elif result == "not_found":

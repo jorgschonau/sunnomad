@@ -6,12 +6,13 @@ import {
   TouchableOpacity,
   StyleSheet,
   ScrollView,
-  KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
   Alert,
+  Image,
   ImageBackground,
   Animated,
+  Dimensions,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { useFocusEffect } from '@react-navigation/native';
@@ -20,10 +21,115 @@ import { useTheme } from '../../theme/ThemeProvider';
 import { useAuth } from '../../contexts/AuthContext';
 import { submitFeedback } from '../../services/feedbackService';
 import { LinearGradient } from 'expo-linear-gradient';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { mixpanel } from '../../services/mixpanel';
 
-const FEEDBACK_UNDERLAY = require('../../../assets/feedback_underlay.jpg');
+// Dev only: left/right arrows + filename on banner
+const HEADER_PREVIEW_SWITCH = __DEV__;
+
+// Top-aligned full-width banners (no contain letterbox / black bar under nav).
+// nudgeTop: px — positive = nach unten, negative = nach oben.
+const UNDERLAY_NUDGE_TOP_BY_NAME = {
+  'feedback_underlay_1.jpg': 0, // Conrad
+  'feedback_underlay_2.jpg': 5, // Tammy 5px down
+  // Tasha (_3) deactivated — file kept
+  'feedback_underlay_7.jpg': -20, // Maya
+  'feedback_underlay_8.jpg': 20, // Ingrid
+  'feedback_underlay_10.jpg': -20, // Goldie
+};
+
+function underlayNudgeTop(index) {
+  const name = FEEDBACK_UNDERLAY_NAMES[index];
+  const perFile = UNDERLAY_NUDGE_TOP_BY_NAME[name] ?? 0;
+  // Global up; Conrad stays at previous level (−30)
+  const global = name === 'feedback_underlay_1.jpg' ? -30 : -50;
+  return perFile + global;
+}
+
+function underlayPhotoLayout(index) {
+  const resolved = Image.resolveAssetSource(FEEDBACK_UNDERLAY_IMAGES[index]);
+  const width = Dimensions.get('window').width;
+  const height =
+    resolved?.width && resolved?.height
+      ? width * (resolved.height / resolved.width)
+      : width * (1024 / 576);
+  return {
+    position: 'absolute',
+    left: 0,
+    width,
+    height,
+    top: underlayNudgeTop(index),
+  };
+}
+
+const FEEDBACK_UNDERLAY_IMAGES = [
+  require('../../../assets/feedback_underlay_1.jpg'),
+  require('../../../assets/feedback_underlay_2.jpg'),
+  require('../../../assets/feedback_underlay_4.jpg'),
+  require('../../../assets/feedback_underlay_5.jpg'),
+  require('../../../assets/feedback_underlay_6.jpg'),
+  require('../../../assets/feedback_underlay_7.jpg'),
+  require('../../../assets/feedback_underlay_8.jpg'),
+  require('../../../assets/feedback_underlay_9.jpg'),
+  require('../../../assets/feedback_underlay_10.jpg'),
+];
+const FEEDBACK_UNDERLAY_NAMES = [
+  'feedback_underlay_1.jpg',
+  'feedback_underlay_2.jpg',
+  'feedback_underlay_4.jpg',
+  'feedback_underlay_5.jpg',
+  'feedback_underlay_6.jpg',
+  'feedback_underlay_7.jpg',
+  'feedback_underlay_8.jpg',
+  'feedback_underlay_9.jpg',
+  'feedback_underlay_10.jpg',
+];
 const THANKS_UNDERLAY = require('../../../assets/feedback_thanks_underlay.jpg');
+
+// Prod: first Feedback open per JS session → Conrad; later → weighted shuffle.
+// Never the same underlay twice in a row.
+let feedbackUnderlaySessionUsedConradFirst = false;
+let feedbackUnderlayLastIndex = null;
+
+const UNDERLAY_WEIGHT_BY_NAME = {
+  'feedback_underlay_2.jpg': 2.5, // Tammy
+  'feedback_underlay_4.jpg': 2.5, // Jade
+};
+const UNDERLAY_WEIGHT_DEFAULT = 1;
+
+function pickProdUnderlayIndex() {
+  if (!feedbackUnderlaySessionUsedConradFirst) {
+    feedbackUnderlaySessionUsedConradFirst = true;
+    feedbackUnderlayLastIndex = 0;
+    return 0; // Conrad first once per session
+  }
+
+  const candidates = [];
+  const weights = [];
+  for (let i = 0; i < FEEDBACK_UNDERLAY_NAMES.length; i += 1) {
+    if (i === feedbackUnderlayLastIndex) continue;
+    candidates.push(i);
+    weights.push(
+      UNDERLAY_WEIGHT_BY_NAME[FEEDBACK_UNDERLAY_NAMES[i]] ?? UNDERLAY_WEIGHT_DEFAULT
+    );
+  }
+
+  if (candidates.length === 0) {
+    return feedbackUnderlayLastIndex ?? 0;
+  }
+
+  const total = weights.reduce((a, b) => a + b, 0);
+  let r = Math.random() * total;
+  for (let i = 0; i < candidates.length; i += 1) {
+    r -= weights[i];
+    if (r <= 0) {
+      feedbackUnderlayLastIndex = candidates[i];
+      return candidates[i];
+    }
+  }
+  feedbackUnderlayLastIndex = candidates[candidates.length - 1];
+  return feedbackUnderlayLastIndex;
+}
 
 function FeedbackSuccessView({ theme, t, onBack }) {
   const insets = useSafeAreaInsets();
@@ -115,11 +221,20 @@ export default function FeedbackScreen({ navigation, route }) {
   const [senderEmail, setSenderEmail] = useState('');
   const [sent, setSent] = useState(false);
   const [sending, setSending] = useState(false);
+  const [headerIndex, setHeaderIndex] = useState(0);
+  const [underlayReady, setUnderlayReady] = useState(false);
 
   const canSend = message.trim().length > 0 && !sending;
 
+  useEffect(() => {
+    setUnderlayReady(false);
+  }, [headerIndex]);
+
   useFocusEffect(
     React.useCallback(() => {
+      if (!HEADER_PREVIEW_SWITCH) {
+        setHeaderIndex(pickProdUnderlayIndex());
+      }
       mixpanel.track('Feedback Opened', {
         source: route.params?.source ?? 'direct',
       });
@@ -152,17 +267,21 @@ export default function FeedbackScreen({ navigation, route }) {
     );
   }
 
+  const photoLayout = underlayPhotoLayout(headerIndex);
+
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-    >
-      <ImageBackground
-        source={FEEDBACK_UNDERLAY}
-        style={styles.flex}
-        imageStyle={styles.underlayImage}
-        resizeMode="cover"
-      >
+    <View style={styles.flex}>
+      <View style={[styles.flex, styles.underlayClip, styles.underlayLetterboxBg]}>
+        <Image
+          key={headerIndex}
+          source={FEEDBACK_UNDERLAY_IMAGES[headerIndex]}
+          style={[
+            photoLayout,
+            { opacity: underlayReady ? 1 : 0 },
+          ]}
+          resizeMode="cover"
+          onLoadEnd={() => setUnderlayReady(true)}
+        />
         {/* Soft top for nav + bottom for copy — photo stays vivid in the middle */}
         <LinearGradient
           colors={['rgba(0,0,0,0.35)', 'transparent', 'transparent', 'rgba(0,0,0,0.55)']}
@@ -178,79 +297,112 @@ export default function FeedbackScreen({ navigation, route }) {
           showsVerticalScrollIndicator={false}
           bounces={false}
         >
-          <View style={styles.spacer} />
+            <View style={styles.spacer} />
 
-          <View style={styles.heroCopy}>
-            <Text style={styles.heroTitle}>{t('feedbackScreen.heading')}</Text>
-            <Text style={styles.heroSubtitle}>{t('feedbackScreen.subtitle')}</Text>
-          </View>
+            <View style={styles.heroCopy}>
+              <Text style={styles.heroTitle}>{t('feedbackScreen.heading')}</Text>
+              <Text style={styles.heroSubtitle}>{t('feedbackScreen.subtitle')}</Text>
+            </View>
 
-          <View
-            style={[
-              styles.formCard,
-              {
-                backgroundColor: theme.surface,
-                borderColor: theme.border || 'rgba(0,0,0,0.08)',
-                paddingBottom: Math.max(insets.bottom, 12) + 12,
-              },
-            ]}
-          >
-            <TextInput
+            <View
               style={[
-                styles.messageInput,
+                styles.formCard,
                 {
-                  backgroundColor: theme.background,
-                  borderColor: theme.border,
-                  color: theme.text,
+                  backgroundColor: theme.surface,
+                  borderColor: theme.border || 'rgba(0,0,0,0.08)',
+                  paddingBottom: Math.max(insets.bottom, 10),
                 },
               ]}
-              value={message}
-              onChangeText={setMessage}
-              placeholder={t('feedbackScreen.messagePlaceholder')}
-              placeholderTextColor={theme.textTertiary}
-              multiline
-              textAlignVertical="top"
-              editable={!sending}
-            />
-
-            <Text style={[styles.label, { color: theme.text }]}>
-              {t('feedbackScreen.emailLabel')}
-            </Text>
-            <TextInput
-              style={[
-                styles.emailInput,
-                {
-                  backgroundColor: theme.background,
-                  borderColor: theme.border,
-                  color: theme.text,
-                },
-              ]}
-              value={senderEmail}
-              onChangeText={setSenderEmail}
-              placeholder={t('feedbackScreen.emailPlaceholder')}
-              placeholderTextColor={theme.textTertiary}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!sending}
-            />
-
-            <TouchableOpacity
-              style={[styles.sendButton, !canSend && styles.sendButtonDisabled]}
-              onPress={handleSend}
-              disabled={!canSend}
-              activeOpacity={0.85}
             >
-              {sending ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <Text style={styles.sendButtonText}>{t('feedbackScreen.send')}</Text>
-              )}
+              <TextInput
+                style={[
+                  styles.messageInput,
+                  {
+                    backgroundColor: theme.background,
+                    borderColor: theme.border,
+                    color: theme.text,
+                  },
+                ]}
+                value={message}
+                onChangeText={setMessage}
+                placeholder={t('feedbackScreen.messagePlaceholder')}
+                placeholderTextColor={theme.textTertiary}
+                multiline
+                textAlignVertical="top"
+                editable={!sending}
+              />
+
+              <Text style={[styles.label, { color: theme.text }]}>
+                {t('feedbackScreen.emailLabel')}
+              </Text>
+              <TextInput
+                style={[
+                  styles.emailInput,
+                  {
+                    backgroundColor: theme.background,
+                    borderColor: theme.border,
+                    color: theme.text,
+                  },
+                ]}
+                value={senderEmail}
+                onChangeText={setSenderEmail}
+                placeholder={t('feedbackScreen.emailPlaceholder')}
+                placeholderTextColor={theme.textTertiary}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!sending}
+              />
+
+              <TouchableOpacity
+                style={[styles.sendButton, !canSend && styles.sendButtonDisabled]}
+                onPress={handleSend}
+                disabled={!canSend}
+                activeOpacity={0.85}
+              >
+                {sending ? (
+                  <ActivityIndicator color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.sendButtonText}>{t('feedbackScreen.send')}</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </ScrollView>
+      </View>
+
+        {HEADER_PREVIEW_SWITCH && (
+          <>
+            <TouchableOpacity
+              style={[styles.headerNavBtn, styles.headerNavLeft]}
+              onPress={() =>
+                setHeaderIndex(
+                  (i) =>
+                    (i - 1 + FEEDBACK_UNDERLAY_IMAGES.length) %
+                    FEEDBACK_UNDERLAY_IMAGES.length
+                )
+              }
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
             </TouchableOpacity>
-          </View>
-        </ScrollView>
-      </ImageBackground>
-    </KeyboardAvoidingView>
+            <TouchableOpacity
+              style={[styles.headerNavBtn, styles.headerNavRight]}
+              onPress={() =>
+                setHeaderIndex((i) => (i + 1) % FEEDBACK_UNDERLAY_IMAGES.length)
+              }
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            >
+              <Ionicons name="chevron-forward" size={22} color="#FFFFFF" />
+            </TouchableOpacity>
+            <View style={styles.headerFilePill} pointerEvents="none">
+              <Text style={styles.headerFileText}>
+                {headerIndex + 1}/{FEEDBACK_UNDERLAY_IMAGES.length}{' '}
+                {FEEDBACK_UNDERLAY_NAMES[headerIndex]}
+              </Text>
+            </View>
+          </>
+        )}
+    </View>
   );
 }
 
@@ -258,9 +410,11 @@ const styles = StyleSheet.create({
   flex: {
     flex: 1,
   },
-  underlayImage: {
-    top: -80,
-    height: '101%',
+  underlayClip: {
+    overflow: 'hidden',
+  },
+  underlayLetterboxBg: {
+    backgroundColor: '#1a1510',
   },
   thanksUnderlayImage: {
     top: -44,
@@ -363,5 +517,41 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '600',
     letterSpacing: Platform.OS === 'ios' ? -0.41 : 0,
+  },
+  headerNavBtn: {
+    position: 'absolute',
+    top: '28%',
+    marginTop: -18,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 2,
+  },
+  headerNavLeft: {
+    left: 8,
+  },
+  headerNavRight: {
+    right: 8,
+  },
+  headerFilePill: {
+    position: 'absolute',
+    left: 10,
+    right: 10,
+    top: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    zIndex: 2,
+  },
+  headerFileText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#FFFFFF',
+    textAlign: 'center',
+    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
   },
 });

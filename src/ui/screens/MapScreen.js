@@ -3,6 +3,7 @@ import {
   View,
   StyleSheet,
   TouchableOpacity,
+  Pressable,
   Text,
   TextInput,
   ActivityIndicator,
@@ -44,15 +45,9 @@ import { hasDedicatedHeroImage } from '../../utils/heroImages';
 import { supabase } from '../../config/supabase';
 import { getPreloadResult, getCachedLocation, setCachedLocation } from '../../utils/locationPreload';
 
-// Custom map style to hide POI Business and Transit
-const customMapStyle = [
-  { featureType: 'poi', stylers: [{ visibility: 'off' }] },
-  { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-  { featureType: 'road', stylers: [{ visibility: 'off' }] },
-  { featureType: 'administrative', elementType: 'labels', stylers: [{ visibility: 'off' }] },
-  { featureType: 'landscape.man_made', stylers: [{ visibility: 'off' }] },
-  { featureType: 'water', elementType: 'labels', stylers: [{ visibility: 'off' }] },
-];
+// Apple MapKit on iOS (default) — better colors than Google. customMapStyle is Google-only.
+// Hide platform default pin while custom marker views snapshot (react-native-maps).
+const HIDE_DEFAULT_PIN = require('../../../assets/marker-transparent.png');
 
 // Minimum movement (in km) between the currently shown position and a fresh GPS
 // fix before it's worth re-centering + re-fetching markers a second time.
@@ -104,6 +99,7 @@ const OriginLocationMarker = React.memo(({
   getWeatherIcon,
 }) => (
   <Marker
+    image={HIDE_DEFAULT_PIN}
     coordinate={coordinate}
     anchor={{ x: 0.5, y: 64 / 118 }}
     zIndex={ORIGIN_MARKER_Z_INDEX}
@@ -140,6 +136,7 @@ const OriginLocationMarker = React.memo(({
 
 const DestinationMarker = React.memo(({
   dest,
+  coordinate = null,
   onPress,
   getWeatherColor,
   getWeatherIcon,
@@ -222,10 +219,13 @@ const DestinationMarker = React.memo(({
   }, [isOriginMarker, pulseKey, pulseAnim]);
 
   const MarkerContainer = isOriginMarker ? Animated.View : View;
+  const pinLat = coordinate?.latitude ?? dest.lat;
+  const pinLon = coordinate?.longitude ?? dest.lon;
 
   return (
     <Marker
-      coordinate={{ latitude: dest.lat, longitude: dest.lon }}
+      image={HIDE_DEFAULT_PIN}
+      coordinate={{ latitude: pinLat, longitude: pinLon }}
       anchor={isOriginMarker ? { x: 0.5, y: 64 / 118 } : { x: 0.5, y: 0.5 }}
       style={{ overflow: 'visible', zIndex: isOriginMarker ? ORIGIN_MARKER_Z_INDEX : 999 }}
       zIndex={isOriginMarker ? ORIGIN_MARKER_Z_INDEX : undefined}
@@ -583,7 +583,13 @@ const MapScreen = ({ navigation }) => {
     if (savedCenter) {
       try {
         const parsed = JSON.parse(savedCenter);
-        setCenterPoint(parsed);
+        setCenterPoint({
+          latitude: parsed.latitude,
+          longitude: parsed.longitude,
+          latitudeDelta: parsed.latitudeDelta ?? 2,
+          longitudeDelta: parsed.longitudeDelta ?? 2,
+          placeId: parsed.placeId || null,
+        });
         setViewports(prev => ({
           ...prev,
           bounds: initialViewportBounds(parsed.latitude, parsed.longitude, radius),
@@ -807,6 +813,29 @@ const MapScreen = ({ navigation }) => {
       if (__DEV__) console.warn('Failed to save date offset:', err);
     });
   }, [selectedDateOffset]);
+
+  const persistCenterPoint = useCallback((center, placeId = null) => {
+    if (center?.latitude == null || center?.longitude == null) return;
+    AsyncStorage.setItem('mapCenterPoint', JSON.stringify({
+      latitude: center.latitude,
+      longitude: center.longitude,
+      latitudeDelta: center.latitudeDelta ?? 2,
+      longitudeDelta: center.longitudeDelta ?? 2,
+      ...(placeId ? { placeId } : {}),
+    })).catch((error) => {
+      if (__DEV__) console.warn('Failed to save center point:', error);
+    });
+  }, []);
+
+  const stableManualCenterId = (lat, lon) =>
+    `manual-${Math.round(lat * 10000)}-${Math.round(lon * 10000)}`;
+
+  // Persist center coords always; attach placeId when weather/id is known
+  useEffect(() => {
+    if (!centerPoint?.latitude || !centerPoint?.longitude) return;
+    const placeId = centerPointWeather?.id || centerPoint.placeId || null;
+    persistCenterPoint(centerPoint, placeId);
+  }, [centerPoint, centerPointWeather?.id, centerPoint?.placeId, persistCenterPoint]);
 
   // Remember the last manual reference so the context menu can switch back to it
   useEffect(() => {
@@ -1099,14 +1128,26 @@ const MapScreen = ({ navigation }) => {
       }
       let allDestinations = [];
       if (currentLocationWeather) allDestinations.push(currentLocationWeather);
-      const centerId = centerPointWeather?.id;
-      const radiusPlaces = centerId
-        ? weatherData.map(p => (p.id === centerId || p.placeId === centerId)
-          ? { ...centerPointWeather, isCenterPoint: true }
-          : p)
-        : weatherData;
-      if (centerPointWeather && centerId && !radiusPlaces.some(p => p.id === centerId || p.placeId === centerId)) {
-        allDestinations.push({ ...centerPointWeather, isCenterPoint: true });
+      let radiusPlaces = weatherData.filter((p) => {
+        const lat = Number(p.lat ?? p.latitude);
+        const lon = Number(p.lon ?? p.longitude);
+        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return false;
+        return getDistanceKm(
+          effectiveCenter.latitude, effectiveCenter.longitude, lat, lon,
+        ) <= radius;
+      });
+      if (centerPointWeather && centerPoint) {
+        const centerId = centerPointWeather.id;
+        if (centerId) {
+          radiusPlaces = radiusPlaces.map(p => (p.id === centerId || p.placeId === centerId)
+            ? { ...centerPointWeather, isCenterPoint: true }
+            : p);
+          if (!radiusPlaces.some(p => p.id === centerId || p.placeId === centerId)) {
+            allDestinations.push({ ...centerPointWeather, isCenterPoint: true });
+          }
+        } else {
+          allDestinations.push({ ...centerPointWeather, isCenterPoint: true });
+        }
       }
       allDestinations = [...allDestinations, ...radiusPlaces];
       if (__DEV__) {
@@ -1435,8 +1476,8 @@ const MapScreen = ({ navigation }) => {
       minZoom = 1; // Very large radius (was 2, now 1 - almost world view)
     }
 
-    // maxZoom: Prevent zooming in too close (cap at 10)
-    const maxZoom = 10;
+    // maxZoom: Prevent zooming in too close (cap at 8)
+    const maxZoom = 8;
 
     return { minZoom, maxZoom };
   };
@@ -1757,13 +1798,16 @@ const MapScreen = ({ navigation }) => {
     if (!displayDestinations.length || !location || !radius) return [];
     const { zoom: currentZoom, bounds: currentBounds } = markerViewport;
     const effectiveCenter = centerPoint || location;
+    const centerLat = Number(effectiveCenter.latitude);
+    const centerLon = Number(effectiveCenter.longitude);
+    const radiusKm = Number(radius);
     let candidates = displayDestinations.filter(d => {
-      const lat = d.lat ?? d.latitude;
-      const lon = d.lon ?? d.longitude;
-      if (lat == null || lon == null) return false;
-      // GPS / center pins always stay in the candidate set (not radius-clipped)
+      // Only the origin/center pin may sit off the DB place — still always shown
       if (d.isCurrentLocation || d.isCenterPoint) return true;
-      return getDistanceKm(effectiveCenter.latitude, effectiveCenter.longitude, lat, lon) <= radius;
+      const lat = Number(d.lat ?? d.latitude);
+      const lon = Number(d.lon ?? d.longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return false;
+      return getDistanceKm(centerLat, centerLon, lat, lon) <= radiusKm;
     });
     // Client-side weather condition filter (instant, no re-fetch needed)
     if (selectedConditions.length > 0) {
@@ -1772,7 +1816,15 @@ const MapScreen = ({ navigation }) => {
         d.isCurrentLocation || d.isCenterPoint || normalized.includes(d.condition?.toLowerCase())
       );
     }
-    return getVisibleMarkers(candidates, currentZoom, currentBounds);
+    const visible = getVisibleMarkers(candidates, currentZoom, currentBounds);
+    // Final hard clip — grid/pin paths must never leak markers past the circle
+    return visible.filter(d => {
+      if (d.isCurrentLocation || d.isCenterPoint) return true;
+      const lat = Number(d.lat ?? d.latitude);
+      const lon = Number(d.lon ?? d.longitude);
+      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return false;
+      return getDistanceKm(centerLat, centerLon, lat, lon) <= radiusKm;
+    });
     // favouriteDestinations intentionally omitted: favourites render separately (renderedFavourites)
   }, [markerViewport, displayDestinations, location, radius, centerPoint, selectedConditions, reverseMode]);
 
@@ -1826,16 +1878,20 @@ const MapScreen = ({ navigation }) => {
 
   // Before loadDestinations finishes the center place may not be in visibleMarkers yet
   const centerMarkerFallback = useMemo(() => {
-    if (!centerPoint || !centerPointWeather?.id) return null;
+    if (!centerPoint || !centerPointWeather) return null;
     const weather = displayCenterPointWeather || centerPointWeather;
-    const already = renderedMarkers.some(
-      m => m.dest.id === centerPointWeather.id || m.dest.placeId === centerPointWeather.id,
-    );
+    const centerId = centerPointWeather.id;
+    const already = centerId
+      ? renderedMarkers.some(
+        m => m.dest.id === centerId || m.dest.placeId === centerId,
+      )
+      : renderedMarkers.some(m => m.dest.isCenterPoint);
     if (already) return null;
     return {
       ...weather,
-      lat: weather.lat ?? centerPoint.latitude,
-      lon: weather.lon ?? centerPoint.longitude,
+      // Pin sits on the circle center; DB lat/lon stay on weather for detail linking
+      lat: centerPoint.latitude,
+      lon: centerPoint.longitude,
       isCenterPoint: true,
     };
   }, [centerPoint, centerPointWeather, displayCenterPointWeather, renderedMarkers]);
@@ -1936,10 +1992,6 @@ const MapScreen = ({ navigation }) => {
     setCenterPoint(newCenter);
     commitViewportsNow(viewportForCenter(latitude, longitude, radius));
 
-    AsyncStorage.setItem('mapCenterPoint', JSON.stringify(newCenter)).catch(error => {
-      if (__DEV__) console.warn('Failed to save center point:', error);
-    });
-    
     showToast(t('map.centerPointSet'), 'info');
   };
 
@@ -1961,38 +2013,35 @@ const MapScreen = ({ navigation }) => {
                         mapViewport.zoom >= 6 ? 50 :
                         100;
 
-    try {
-      const { data, error } = await supabase.rpc('nearest_place', {
-        user_lat: latitude,
-        user_lon: longitude,
-        max_distance_km: maxDistance,
-      });
-
-      if (error || !data || data.length === 0) {
-        showToast(t('map.noDestinationNearby'), 'info');
-        return;
+    // Prefer destinations already on the map (what the user sees). The old
+    // nearest_place → must-be-in-displayDestinations path toasted often when
+    // the DB hit a place that wasn't in the loaded/filtered set.
+    let best = null;
+    let bestDist = Infinity;
+    for (const d of displayDestinations) {
+      if (d.isCurrentLocation) continue;
+      const lat = d.lat ?? d.latitude;
+      const lon = d.lon ?? d.longitude;
+      if (lat == null || lon == null) continue;
+      const dist = getDistanceKm(latitude, longitude, lat, lon);
+      if (dist < bestDist) {
+        bestDist = dist;
+        best = d;
       }
-
-      const place = data[0];
-      const match = displayDestinations.find(d =>
-        Math.abs((d.lat ?? d.latitude) - place.latitude) < 0.05 &&
-        Math.abs((d.lon ?? d.longitude) - place.longitude) < 0.05
-      );
-
-      if (match) {
-        mixpanel.track('Map Tap', {
-          place_id: match.id || match.placeId,
-          place_name: match.name,
-          zoom: mapViewport.zoom,
-        });
-        handleMarkerPress(match, 'map_tap');
-      } else {
-        showToast(t('map.noDestinationNearby'), 'info');
-      }
-    } catch (err) {
-      if (__DEV__) console.warn('nearest_place RPC failed:', err);
-      showToast(t('map.noDestinationNearby'), 'info');
     }
+
+    if (best && bestDist <= maxDistance) {
+      mixpanel.track('Map Tap', {
+        place_id: best.id || best.placeId,
+        place_name: best.name,
+        zoom: mapViewport.zoom,
+        distance_km: Math.round(bestDist),
+      });
+      handleMarkerPress(best, 'map_tap');
+      return;
+    }
+
+    // Nothing loaded nearby — quiet miss (toast felt like a bug when markers surround the tap)
   };
 
   /**
@@ -2014,7 +2063,7 @@ const MapScreen = ({ navigation }) => {
         defaultName: 'Neuer Mittelpunkt',
         extraProps: {
           isCenterPoint: true,
-          ...(knownPlaceId ? { id: knownPlaceId } : {}),
+          id: knownPlaceId || stableManualCenterId(lat, lon),
         },
       });
       setCenterPointWeather(weatherData);
@@ -2028,7 +2077,11 @@ const MapScreen = ({ navigation }) => {
   // Saved center point restored without weather — fetch it (standalone pin needs this)
   useEffect(() => {
     if (!centerPoint || centerPointWeather) return;
-    fetchCenterPointWeather(centerPoint.latitude, centerPoint.longitude);
+    fetchCenterPointWeather(
+      centerPoint.latitude,
+      centerPoint.longitude,
+      centerPoint.placeId || null,
+    );
   }, [centerPoint, centerPointWeather]);
 
   // centerPointWeather is omitted from the location/radius effect deps; reload when it arrives
@@ -2043,10 +2096,11 @@ const MapScreen = ({ navigation }) => {
    * (GPS or manual center point), long press opens the mode context menu.
    */
   const dismissRefTip = () => {
-    if (__DEV__) return; // Dev: tooltip stays visible for styling/testing
     if (!showRefTip) return;
     setShowRefTip(false);
-    AsyncStorage.setItem('refLocTipShown', '1').catch(() => {});
+    if (!__DEV__) {
+      AsyncStorage.setItem('refLocTipShown', '1').catch(() => {});
+    }
   };
 
   const animateToReference = (point) => {
@@ -2102,9 +2156,7 @@ const MapScreen = ({ navigation }) => {
     trackRefMode('manual').catch(() => {});
     setCenterPoint(saved.center);
     setCenterPointWeather(saved.weather || null);
-    AsyncStorage.setItem('mapCenterPoint', JSON.stringify(saved.center)).catch(error => {
-      if (__DEV__) console.warn('Failed to save center point:', error);
-    });
+    persistCenterPoint(saved.center, saved.weather?.id || saved.center.placeId || null);
     skipNextLocationAnimRef.current = true;
     animateToReference(saved.center);
   };
@@ -2133,7 +2185,8 @@ const MapScreen = ({ navigation }) => {
   };
 
   const searchPlaces = useCallback(async (text) => {
-    if (!text || text.length < 3) {
+    const q = (text || '').trimStart();
+    if (!q || q.length < 3) {
       setSearchResults([]);
       setGoogleResults([]);
       return;
@@ -2141,7 +2194,7 @@ const MapScreen = ({ navigation }) => {
     try {
       setSearchLoading(true);
       const center = currentRegion || location;
-      const { dbPlaces, googlePlaces } = await hybridSearch(text, center, i18n.language || 'de');
+      const { dbPlaces, googlePlaces } = await hybridSearch(q, center, i18n.language || 'de');
       setSearchResults(dbPlaces.slice(0, 5));
       setGoogleResults(googlePlaces.slice(0, 5));
     } catch (e) {
@@ -2193,10 +2246,6 @@ const MapScreen = ({ navigation }) => {
       setCenterPoint(newCenter);
       commitViewportsNow(viewportForCenter(lat, lng, radius));
       await fetchCenterPointWeather(lat, lng, searchedPlaceId);
-      AsyncStorage.setItem('mapCenterPoint', JSON.stringify(newCenter)).catch(err => {
-        if (__DEV__) console.warn('Failed to save center point:', err);
-      });
-
       skipNextLocationAnimRef.current = true;
       InteractionManager.runAfterInteractions(() => {
         const curLat = currentRegion?.latitude ?? lat;
@@ -2480,7 +2529,6 @@ const MapScreen = ({ navigation }) => {
         ref={mapRef}
         style={styles.map}
         mapType="standard"
-        customMapStyle={customMapStyle}
         initialRegion={{
           latitude: location.latitude,
           longitude: location.longitude,
@@ -2489,11 +2537,15 @@ const MapScreen = ({ navigation }) => {
           longitudeDelta: (radius * 2 * 1.5) / (111 * Math.cos(location.latitude * Math.PI / 180)),
         }}
         minZoomLevel={getZoomLimits().minZoom}  // Dynamic based on radius!
-        maxZoomLevel={getZoomLimits().maxZoom}  // Cap at 10
+        maxZoomLevel={getZoomLimits().maxZoom}  // Cap at 8
         pitchEnabled={false}  // Disable tilt/3D view
         rotateEnabled={false}  // Disable rotation
         showsUserLocation={false}
         showsMyLocationButton={false}
+        showsBuildings={false}
+        showsIndoors={false}
+        showsTraffic={false}
+        showsPointsOfInterest={false}
         onPress={handleMapTap}
         onLongPress={handleMapLongPress}
         onRegionChange={(region) => {
@@ -2544,6 +2596,9 @@ const MapScreen = ({ navigation }) => {
           <DestinationMarker
             key={key}
             dest={dest}
+            coordinate={dest.isCenterPoint && centerPoint
+              ? { latitude: centerPoint.latitude, longitude: centerPoint.longitude }
+              : null}
             onPress={stableMarkerPress}
             getWeatherColor={getWeatherColor}
             getWeatherIcon={getWeatherIcon}
@@ -2557,6 +2612,9 @@ const MapScreen = ({ navigation }) => {
           <DestinationMarker
             key={`center-fallback-${centerMarkerFallback.id}`}
             dest={centerMarkerFallback}
+            coordinate={centerPoint
+              ? { latitude: centerPoint.latitude, longitude: centerPoint.longitude }
+              : null}
             onPress={stableMarkerPress}
             getWeatherColor={getWeatherColor}
             getWeatherIcon={getWeatherIcon}
@@ -2568,6 +2626,7 @@ const MapScreen = ({ navigation }) => {
 
         {renderedFavourites.map(({ stableKey, fav, withWeather, temp, cond, favBadges, hasFavBadges }) => (
           <Marker
+            image={HIDE_DEFAULT_PIN}
             key={`fav-${stableKey}-${selectedDateOffset}-${temp}-${cond}`}
             coordinate={{ latitude: Number(fav.lat), longitude: Number(fav.lon) }}
             anchor={{ x: 0.5, y: 0.5 }}
@@ -2848,11 +2907,10 @@ const MapScreen = ({ navigation }) => {
         </View>
       </View>
 
-      {/* Reference location + dev zoom (grouped bottom-left) */}
+      {/* Reference location — flat absolute layers (no full-screen wrapper: avoids layout jump) */}
       {showRefMenu && (
-        <TouchableOpacity
+        <Pressable
           style={styles.refMenuBackdrop}
-          activeOpacity={1}
           onPress={() => setShowRefMenu(false)}
         />
       )}
@@ -2863,21 +2921,18 @@ const MapScreen = ({ navigation }) => {
           shadowColor: '#000',
         }]}>
           <Text style={[styles.refMenuTitle, { color: theme.textSecondary }]}>{t('map.refTitle')}</Text>
-          {/* In GPS mode the current location is already active — only offer the switch to manual */}
-          {centerPoint && (
-            <TouchableOpacity
-              style={styles.refMenuRow}
-              onPress={selectGpsReference}
-              accessibilityRole="menuitem"
-            >
-              <Text style={[styles.refMenuCheck, { color: theme.text }]}>○</Text>
-              <Text style={[styles.refMenuText, { color: theme.text }]}>{t('map.refCurrentLocation')}</Text>
-            </TouchableOpacity>
-          )}
           <TouchableOpacity
-            style={[styles.refMenuRow, !manualRefAvailable && styles.refMenuRowDisabled]}
+            style={styles.refMenuRow}
+            onPress={selectGpsReference}
+            accessibilityRole="menuitem"
+          >
+            <Text style={[styles.refMenuCheck, { color: theme.text }]}>{centerPoint ? '○' : '✓'}</Text>
+            <Text style={[styles.refMenuText, { color: theme.text }]}>{t('map.refCurrentLocation')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.refMenuRow, !manualRefAvailable && !centerPoint && styles.refMenuRowDisabled]}
             onPress={selectManualReference}
-            disabled={!manualRefAvailable}
+            disabled={!manualRefAvailable && !centerPoint}
             accessibilityRole="menuitem"
           >
             <Text style={[styles.refMenuCheck, { color: theme.text }]}>{centerPoint ? '✓' : '○'}</Text>
@@ -2898,12 +2953,16 @@ const MapScreen = ({ navigation }) => {
         </View>
       )}
       <View style={styles.bottomRefRow}>
-        <TouchableOpacity
-          style={[styles.refLocButton, {
-            backgroundColor: theme.surface,
-            borderColor: 'rgba(0,0,0,0.07)',
-            shadowColor: '#000',
-          }]}
+        <Pressable
+          style={({ pressed }) => [
+            styles.refLocButton,
+            {
+              backgroundColor: theme.surface,
+              borderColor: 'rgba(0,0,0,0.07)',
+              shadowColor: '#000',
+            },
+            pressed && styles.refLocButtonPressed,
+          ]}
           onPress={handleRefButtonPress}
           onLongPress={handleRefButtonLongPress}
           delayLongPress={400}
@@ -2912,7 +2971,7 @@ const MapScreen = ({ navigation }) => {
           accessibilityHint="Return the map to the active reference location. Long press for options."
         >
           <Text style={styles.refLocIcon}>{centerPoint ? '📍' : '⌖'}</Text>
-        </TouchableOpacity>
+        </Pressable>
         {__DEV__ && (
           <View style={[styles.zoomIndicator, { backgroundColor: theme.surface, borderColor: theme.border }]}>
             <Text style={[styles.zoomIndicatorText, { color: theme.text }]}>Z{devZoom}</Text>
@@ -3428,7 +3487,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
-    zIndex: 50,
+    zIndex: 1002,
+    elevation: 1002,
   },
   bottomLeftButtons: {
     position: 'absolute',
@@ -3580,6 +3640,9 @@ const styles = StyleSheet.create({
     shadowRadius: 5,
     elevation: 4,
   },
+  refLocButtonPressed: {
+    opacity: 0.75,
+  },
   refLocIcon: {
     fontSize: 28,
     textAlign: 'center',
@@ -3592,6 +3655,8 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    zIndex: 1000,
+    elevation: 1000,
   },
   refMenu: {
     position: 'absolute',
@@ -3604,7 +3669,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.14,
     shadowRadius: 5,
-    elevation: 5,
+    elevation: 1001,
+    zIndex: 1001,
   },
   refMenuTitle: {
     fontSize: 12,
