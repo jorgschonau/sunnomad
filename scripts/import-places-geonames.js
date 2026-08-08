@@ -46,29 +46,20 @@ const FILES = [
  */
 
 /**
- * Map GeoNames feature to valid place_type
- * Constraint allows: 'city', 'town', 'campground', 'beach', 'mountain', 'poi'
+ * Map GeoNames feature → place_type used by calculate_attractiveness.sql.
+ * Never emit town/poi/campground/large_city (those hit ELSE 35).
  */
 function mapPlaceType(featureClass, featureCode, population) {
-  // Cities/Towns based on population
   if (featureClass === 'P') {
     if (population > 100000) return 'city';
-    if (population > 10000) return 'town';
-    return 'town'; // Small settlements
+    if (population > 30000) return 'medium_town';
+    if (population > 1000) return 'small_town';
+    return 'village';
   }
-  
-  // Water features
-  if (featureClass === 'H') {
-    return 'beach'; // Bays, beaches, lakes
-  }
-  
-  // Mountains
-  if (featureClass === 'T') {
-    return 'mountain';
-  }
-  
-  // Everything else
-  return 'poi';
+  if (featureClass === 'H') return 'beach';
+  if (featureClass === 'T') return 'mountain';
+  if (featureClass === 'L') return 'natural_park';
+  return 'natural_feature';
 }
 
 /**

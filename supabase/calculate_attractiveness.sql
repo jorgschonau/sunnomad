@@ -1,6 +1,11 @@
 -- 2026-06-02: Attractiveness score recalculation
 -- 2026-08-05: natural_feature base, large villages (pop>=4k), alpine resort boost
 -- 2026-08-05: wiki_score NOT in formula (Fame != van destination; use manual / app tiebreak)
+-- 2026-08-08: feature_code PPLC/PPLA* no longer sets base (admin fame ≠ van destination;
+--             base = place_type only; icons via manual_adjustment)
+-- 2026-08-08: US/CA mountains — terrain bonus mountains/high_mountains, DEM on high_mountains,
+--             full DEM weight for US/CA village|small_town|mountain (not medium_town)
+-- 2026-08-08: US/CA alpine-resort boost reverted (stacked with DEM+terrain → Front-Range 90+)
 -- Run after bulk imports/enrichment. Only updates attractiveness_score (no raw column).
 -- manual_adjustment unchanged (US city downrank, beach boosts, icon tweaks).
 
@@ -23,11 +28,6 @@ SET attractiveness_score = LEAST(
     GREATEST(
       LEAST(
         CASE
-          WHEN p.feature_code = 'PPLC'  THEN 95
-          WHEN p.feature_code = 'PPLA'  THEN 80
-          WHEN p.feature_code = 'PPLA2' THEN 75
-          WHEN p.feature_code = 'PPLA3' THEN 65
-          WHEN p.feature_code = 'PPLA4' THEN 58
           WHEN p.place_type = 'city'           THEN 80
           WHEN p.place_type = 'medium_town'    THEN 70
           WHEN p.place_type = 'small_town'     THEN 55
@@ -46,14 +46,18 @@ SET attractiveness_score = LEAST(
         + (CASE
             WHEN p.place_type IN ('small_town', 'medium_town', 'village', 'mountain')
               AND (p.feature_code IS NULL OR p.feature_code NOT IN ('PPLC', 'PPLA'))
-              AND p.terrain_type NOT IN ('desert', 'high_mountains')
+              AND p.terrain_type IS DISTINCT FROM 'desert'
               AND p.dem > 0
             THEN (CASE
               WHEN p.dem BETWEEN 800  AND 1800 THEN 15
               WHEN p.dem BETWEEN 500  AND 800  THEN 10
               WHEN p.dem BETWEEN 1800 AND 2500 THEN 5
               ELSE 0 END)
-            * (CASE WHEN p.country_code NOT IN ('DE', 'CH', 'AT', 'IT', 'ES', 'FR') THEN 0.4 ELSE 1.0 END)
+            * (CASE
+                WHEN p.country_code IN ('DE', 'CH', 'AT', 'IT', 'ES', 'FR') THEN 1.0
+                WHEN p.country_code IN ('US', 'CA')
+                  AND p.place_type IN ('village', 'small_town', 'mountain') THEN 1.0
+                ELSE 0.4 END)
             ELSE 0 END)
         + (CASE WHEN p.is_island = true AND p.place_type != 'beach' THEN 8 ELSE 0 END)
         + (CASE WHEN p.terrain_type = 'coastal'
@@ -61,6 +65,8 @@ SET attractiveness_score = LEAST(
             THEN 8 ELSE 0 END)
         + (CASE WHEN p.terrain_type = 'lake'    THEN 5 ELSE 0 END)
         + (CASE WHEN p.terrain_type = 'desert'  THEN 6 ELSE 0 END)
+        + (CASE WHEN p.terrain_type = 'mountains' THEN 6 ELSE 0 END)
+        + (CASE WHEN p.terrain_type = 'high_mountains' THEN 8 ELSE 0 END)
         + (CASE WHEN p.terrain_type = 'hills'
             THEN 3 * (CASE
               WHEN p.country_code IN ('GT', 'BZ')                    THEN 0.0

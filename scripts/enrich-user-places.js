@@ -37,20 +37,19 @@ if (!GEONAMES_USER) {
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+/** Must match calculate_attractiveness.sql CASE arms — never town/poi/large_city/… (ELSE 35). */
 function mapPlaceType(featureClass, featureCode, population) {
   if (featureClass === 'P') {
-    if (population > 500000) return 'large_city';
     if (population > 100000) return 'city';
-    if (population > 30000) return 'medium_city';
-    if (population > 5000) return 'town';
+    if (population > 30000) return 'medium_town';
     if (population > 1000) return 'small_town';
     return 'village';
   }
   if (featureClass === 'T') return 'mountain';
   if (featureClass === 'H') return 'beach';
   if (featureClass === 'L') return 'natural_park';
-  if (featureClass === 'S' && featureCode === 'CMPG') return 'campground';
-  return 'poi';
+  // campground / historic / misc GeoNames → natural_feature (in SQL @ 72)
+  return 'natural_feature';
 }
 
 async function fetchGeoNames(name, lat, lng, countryCode) {
