@@ -219,15 +219,26 @@ export function checkWeatherDeterioration(destination, threshold = 4) {
  * @param {number} distanceKm - Distance in km
  * @returns {Object} - { value, delta, eta, weatherDest, weatherOrigin, shouldAward }
  */
-const UK_IE_CODES = new Set(['GB', 'IE', 'CU', 'JM', 'DO', 'HT', 'TN']);
+// Countries/territories not usefully reachable by road from "normal" mainland.
+// Bidirectional: WTD/Budget only when both sides are in the set or both outside
+// (same cluster, e.g. GB↔IE). Island→mainland (BS→MX) and reverse are blocked.
+const ROAD_ISOLATED_CODES = new Set([
+  'GB', 'IE',
+  'CU', 'JM', 'DO', 'HT', 'BS', 'PR', 'TT', 'BB', 'GD', 'LC', 'VC', 'AG', 'KN', 'DM',
+  'GP', 'MQ', 'AW', 'CW', 'SX', 'KY', 'TC', 'VG', 'VI', 'BQ', 'MF', 'BL', 'MS', 'AI',
+  'MT', 'CY', 'IS',
+  'TN',
+]);
 const cc = (place) => (place?.country_code || place?.countryCode || '').toUpperCase();
+const isRoadIsolatedMismatch = (originCc, destCc) =>
+  ROAD_ISOLATED_CODES.has(originCc) !== ROAD_ISOLATED_CODES.has(destCc);
 
 export function calculateWorthTheDrive(destination, origin, distanceKm, reverseMode = 'warm') {
   const isColdMode = reverseMode === 'cold';
   const roadDistanceKm = distanceKm * ROAD_FACTOR;
   const destCc = cc(destination);
   const originCc = cc(origin);
-  if (UK_IE_CODES.has(destCc) && !UK_IE_CODES.has(originCc)) {
+  if (isRoadIsolatedMismatch(originCc, destCc)) {
     return { value: 0, delta: 0, eta: 0, weatherDest: 0, weatherOrigin: 0, tempDest: 0, tempOrigin: 0, tempDelta: 0, shouldAward: false, rankScore: 0, roadDistanceKm: Math.round(roadDistanceKm) };
   }
   const eta = calculateETA(roadDistanceKm);
@@ -335,7 +346,7 @@ export function calculateWorthTheDriveBudget(destination, origin, distanceKm, re
   const roadDistanceKm = distanceKm * ROAD_FACTOR;
   const destCc = cc(destination);
   const originCc = cc(origin);
-  if (UK_IE_CODES.has(destCc) && !UK_IE_CODES.has(originCc)) {
+  if (isRoadIsolatedMismatch(originCc, destCc)) {
     const eta = calculateETA(roadDistanceKm);
     return { efficiency: 0, tempDelta: 0, tempDest: 0, tempOrigin: 0, distance: Math.round(distanceKm), roadDistanceKm: Math.round(roadDistanceKm), eta: Math.round(eta * 10) / 10, delta: 0, value: 0, isEligible: false };
   }

@@ -24,15 +24,18 @@ import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { mixpanel } from '../../services/mixpanel';
 
-// Dev only: left/right arrows + filename on banner
-const HEADER_PREVIEW_SWITCH = __DEV__;
+// Banner order (fixed). Arrows in prod + dev; filename pill = __DEV__ only.
+const SHOW_UNDERLAY_ARROWS = true;
+const SHOW_UNDERLAY_FILE_PILL = __DEV__;
 
 // Top-aligned full-width banners (no contain letterbox / black bar under nav).
 // nudgeTop: px — positive = nach unten, negative = nach oben.
 const UNDERLAY_NUDGE_TOP_BY_NAME = {
   'feedback_underlay_1.jpg': 0, // Conrad
   'feedback_underlay_2.jpg': 5, // Tammy 5px down
-  // Tasha (_3) deactivated — file kept
+  'feedback_underlay_3.jpg': 0, // Tasha (was −5, +5px down)
+
+  // Sofia (_6) deactivated — file kept
   'feedback_underlay_7.jpg': -20, // Maya
   'feedback_underlay_8.jpg': 20, // Ingrid
   'feedback_underlay_10.jpg': -20, // Goldie
@@ -62,74 +65,32 @@ function underlayPhotoLayout(index) {
   };
 }
 
+// Fixed story order — no shuffle
 const FEEDBACK_UNDERLAY_IMAGES = [
-  require('../../../assets/feedback_underlay_1.jpg'),
-  require('../../../assets/feedback_underlay_2.jpg'),
-  require('../../../assets/feedback_underlay_4.jpg'),
-  require('../../../assets/feedback_underlay_5.jpg'),
-  require('../../../assets/feedback_underlay_6.jpg'),
-  require('../../../assets/feedback_underlay_7.jpg'),
-  require('../../../assets/feedback_underlay_8.jpg'),
-  require('../../../assets/feedback_underlay_9.jpg'),
-  require('../../../assets/feedback_underlay_10.jpg'),
+  require('../../../assets/feedback_underlay_1.jpg'), // Conrad — Vertrauen
+  require('../../../assets/feedback_underlay_11.jpg'), // Alessandra — Power User
+  require('../../../assets/feedback_underlay_9.jpg'), // Diaz — Feature-Wunsch
+  require('../../../assets/feedback_underlay_2.jpg'), // Tammy — Chaos
+  require('../../../assets/feedback_underlay_3.jpg'), // Tasha
+  require('../../../assets/feedback_underlay_7.jpg'), // Maya — Humor
+  require('../../../assets/feedback_underlay_8.jpg'), // Ingrid — positiv
+  require('../../../assets/feedback_underlay_5.jpg'), // Luca — Easter Egg
+  require('../../../assets/feedback_underlay_4.jpg'), // Jade — provokant
+  require('../../../assets/feedback_underlay_10.jpg'), // Goldie — Finale
 ];
 const FEEDBACK_UNDERLAY_NAMES = [
-  'feedback_underlay_1.jpg',
-  'feedback_underlay_2.jpg',
-  'feedback_underlay_4.jpg',
-  'feedback_underlay_5.jpg',
-  'feedback_underlay_6.jpg',
-  'feedback_underlay_7.jpg',
-  'feedback_underlay_8.jpg',
-  'feedback_underlay_9.jpg',
-  'feedback_underlay_10.jpg',
+  'feedback_underlay_1.jpg', // Conrad
+  'feedback_underlay_11.jpg', // Alessandra
+  'feedback_underlay_9.jpg', // Diaz
+  'feedback_underlay_2.jpg', // Tammy
+  'feedback_underlay_3.jpg', // Tasha
+  'feedback_underlay_7.jpg', // Maya
+  'feedback_underlay_8.jpg', // Ingrid
+  'feedback_underlay_5.jpg', // Luca
+  'feedback_underlay_4.jpg', // Jade
+  'feedback_underlay_10.jpg', // Goldie
 ];
 const THANKS_UNDERLAY = require('../../../assets/feedback_thanks_underlay.jpg');
-
-// Prod: first Feedback open per JS session → Conrad; later → weighted shuffle.
-// Never the same underlay twice in a row.
-let feedbackUnderlaySessionUsedConradFirst = false;
-let feedbackUnderlayLastIndex = null;
-
-const UNDERLAY_WEIGHT_BY_NAME = {
-  'feedback_underlay_2.jpg': 2.5, // Tammy
-  'feedback_underlay_4.jpg': 2.5, // Jade
-};
-const UNDERLAY_WEIGHT_DEFAULT = 1;
-
-function pickProdUnderlayIndex() {
-  if (!feedbackUnderlaySessionUsedConradFirst) {
-    feedbackUnderlaySessionUsedConradFirst = true;
-    feedbackUnderlayLastIndex = 0;
-    return 0; // Conrad first once per session
-  }
-
-  const candidates = [];
-  const weights = [];
-  for (let i = 0; i < FEEDBACK_UNDERLAY_NAMES.length; i += 1) {
-    if (i === feedbackUnderlayLastIndex) continue;
-    candidates.push(i);
-    weights.push(
-      UNDERLAY_WEIGHT_BY_NAME[FEEDBACK_UNDERLAY_NAMES[i]] ?? UNDERLAY_WEIGHT_DEFAULT
-    );
-  }
-
-  if (candidates.length === 0) {
-    return feedbackUnderlayLastIndex ?? 0;
-  }
-
-  const total = weights.reduce((a, b) => a + b, 0);
-  let r = Math.random() * total;
-  for (let i = 0; i < candidates.length; i += 1) {
-    r -= weights[i];
-    if (r <= 0) {
-      feedbackUnderlayLastIndex = candidates[i];
-      return candidates[i];
-    }
-  }
-  feedbackUnderlayLastIndex = candidates[candidates.length - 1];
-  return feedbackUnderlayLastIndex;
-}
 
 function FeedbackSuccessView({ theme, t, onBack }) {
   const insets = useSafeAreaInsets();
@@ -232,9 +193,7 @@ export default function FeedbackScreen({ navigation, route }) {
 
   useFocusEffect(
     React.useCallback(() => {
-      if (!HEADER_PREVIEW_SWITCH) {
-        setHeaderIndex(pickProdUnderlayIndex());
-      }
+      setHeaderIndex(0); // always start at Conrad
       mixpanel.track('Feedback Opened', {
         source: route.params?.source ?? 'direct',
       });
@@ -370,36 +329,34 @@ export default function FeedbackScreen({ navigation, route }) {
           </ScrollView>
       </View>
 
-        {HEADER_PREVIEW_SWITCH && (
+        {SHOW_UNDERLAY_ARROWS && (
           <>
-            <TouchableOpacity
-              style={[styles.headerNavBtn, styles.headerNavLeft]}
-              onPress={() =>
-                setHeaderIndex(
-                  (i) =>
-                    (i - 1 + FEEDBACK_UNDERLAY_IMAGES.length) %
-                    FEEDBACK_UNDERLAY_IMAGES.length
-                )
-              }
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            >
-              <Ionicons name="chevron-back" size={22} color="#FFFFFF" />
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.headerNavBtn, styles.headerNavRight]}
-              onPress={() =>
-                setHeaderIndex((i) => (i + 1) % FEEDBACK_UNDERLAY_IMAGES.length)
-              }
-              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
-            >
-              <Ionicons name="chevron-forward" size={22} color="#FFFFFF" />
-            </TouchableOpacity>
-            <View style={styles.headerFilePill} pointerEvents="none">
-              <Text style={styles.headerFileText}>
-                {headerIndex + 1}/{FEEDBACK_UNDERLAY_IMAGES.length}{' '}
-                {FEEDBACK_UNDERLAY_NAMES[headerIndex]}
-              </Text>
-            </View>
+            {headerIndex > 0 && (
+              <TouchableOpacity
+                style={[styles.headerNavBtn, styles.headerNavLeft]}
+                onPress={() => setHeaderIndex((i) => i - 1)}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <Ionicons name="chevron-back" size={22} color="#B8B8B8" />
+              </TouchableOpacity>
+            )}
+            {headerIndex < FEEDBACK_UNDERLAY_IMAGES.length - 1 && (
+              <TouchableOpacity
+                style={[styles.headerNavBtn, styles.headerNavRight]}
+                onPress={() => setHeaderIndex((i) => i + 1)}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              >
+                <Ionicons name="chevron-forward" size={22} color="#B8B8B8" />
+              </TouchableOpacity>
+            )}
+            {SHOW_UNDERLAY_FILE_PILL && (
+              <View style={styles.headerFilePill} pointerEvents="none">
+                <Text style={styles.headerFileText}>
+                  {headerIndex + 1}/{FEEDBACK_UNDERLAY_IMAGES.length}{' '}
+                  {FEEDBACK_UNDERLAY_NAMES[headerIndex]}
+                </Text>
+              </View>
+            )}
           </>
         )}
     </View>
@@ -525,7 +482,8 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: 'rgba(40,40,40,0.28)',
+    opacity: 0.72,
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 2,

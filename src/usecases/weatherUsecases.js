@@ -55,6 +55,15 @@ const getPositiveWeatherBias = (dest) => {
   return bonus;
 };
 
+/** Light attr tilt: score 50 = 1.0, 80 ≈ +6%, 20 ≈ −6%. Weather/temp stays primary. */
+const getAttractivenessBias = (dest) => {
+  const attr = dest.attractivenessScore ?? dest.attractiveness_score ?? 50;
+  return 1 + (attr - 50) / 500;
+};
+
+const getAttrScore = (dest) =>
+  dest.attractivenessScore ?? dest.attractiveness_score ?? 50;
+
 /**
  * Apply badge calculations to all destinations
  * Mutates destination objects by adding 'badges' array
@@ -115,14 +124,16 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
   const budgetCandidates = destinations
     .filter(d => !d.isCurrentLocation && d._worthTheDriveBudgetData?.isEligible)
     .sort((a, b) => {
-      // Primary: efficiency, boosted by sunny / positive-badge bias
-      const aEff = (a._worthTheDriveBudgetData?.efficiency || 0) * getPositiveWeatherBias(a);
-      const bEff = (b._worthTheDriveBudgetData?.efficiency || 0) * getPositiveWeatherBias(b);
+      // Primary: efficiency × weather bias × light attr bias
+      const aEff = (a._worthTheDriveBudgetData?.efficiency || 0)
+        * getPositiveWeatherBias(a) * getAttractivenessBias(a);
+      const bEff = (b._worthTheDriveBudgetData?.efficiency || 0)
+        * getPositiveWeatherBias(b) * getAttractivenessBias(b);
       const effDiff = bEff - aEff;
       if (Math.abs(effDiff) > 0.0005) return effDiff;
       // Tiebreaker 1: attractiveness score
-      const aScore = a.attractivenessScore || a.attractiveness_score || 50;
-      const bScore = b.attractivenessScore || b.attractiveness_score || 50;
+      const aScore = getAttrScore(a);
+      const bScore = getAttrScore(b);
       if (aScore !== bScore) return bScore - aScore;
       // Tiebreaker 2: closer distance wins
       return (a._worthTheDriveBudgetData?.distance || 9999) - (b._worthTheDriveBudgetData?.distance || 9999);
@@ -197,17 +208,17 @@ export const applyBadgesToDestinations = (destinations, originLocation, originLa
     }
   }
   
-  // Limit "Worth the Drive" to top 5 by temperature, with MIN 20km distance between badges
+  // Limit "Worth the Drive" to top 5 by temperature, with MIN_BADGE_DISTANCE_KM between badges
   // EXCLUDE destinations that already have Budget badge!
   const worthTheDriveCandidates = destinations
     .filter(d => !d.isCurrentLocation && d.badges.includes('WORTH_THE_DRIVE') && !d.badges.includes('WORTH_THE_DRIVE_BUDGET'))
     .sort((a, b) => {
-      // Sort by temp, with sunny / positive-badge bias as effective bonus
-      const aBias = getPositiveWeatherBias(a);
-      const bBias = getPositiveWeatherBias(b);
-      const aTemp = (a._worthTheDriveData?.tempDest || 0) * aBias;
-      const bTemp = (b._worthTheDriveData?.tempDest || 0) * bBias;
-      return reverseMode === 'cold' ? aTemp - bTemp : bTemp - aTemp;  // 'all' treated as 'warm' for badge ranking
+      // Sort by temp × weather bias × light attr bias
+      const aRank = (a._worthTheDriveData?.tempDest || 0)
+        * getPositiveWeatherBias(a) * getAttractivenessBias(a);
+      const bRank = (b._worthTheDriveData?.tempDest || 0)
+        * getPositiveWeatherBias(b) * getAttractivenessBias(b);
+      return reverseMode === 'cold' ? aRank - bRank : bRank - aRank;
     });
   
   // DEBUG: Show ALL Worth the Drive candidates (not just top 10)
@@ -533,21 +544,23 @@ export const getWeatherForRadius = async (userLat, userLon, radiusKm, desiredCon
     MAX_PLACES_ON_MAP = 8000;
   }
   
-  // Sort by relevance (mode-aware: warm = hottest first, cold = coldest first)
+  // Sort by relevance:
+  // warm — attr → hotter → nearer
+  // cold — cooler → attr → nearer (heat-escape)
   filteredPlaces.sort((a, b) => {
-    // 1. Attractiveness Score (höher = besser)
     const aScore = a.attractivenessScore || a.attractiveness_score || 50;
     const bScore = b.attractivenessScore || b.attractiveness_score || 50;
-    if (aScore !== bScore) return bScore - aScore;
-    
-    // 2. Temperatur (warm = hottest first, cold = coldest first, all = skip)
-    if (reverseMode !== 'all') {
-      const aTemp = a.temperature || 0;
-      const bTemp = b.temperature || 0;
-      if (Math.abs(aTemp - bTemp) > 3) return reverseMode === 'cold' ? aTemp - bTemp : bTemp - aTemp;
+    const aTemp = a.temperature || 0;
+    const bTemp = b.temperature || 0;
+
+    if (reverseMode === 'cold') {
+      if (Math.abs(aTemp - bTemp) > 3) return aTemp - bTemp;
+      if (aScore !== bScore) return bScore - aScore;
+    } else {
+      if (aScore !== bScore) return bScore - aScore;
+      if (Math.abs(aTemp - bTemp) > 3) return bTemp - aTemp;
     }
-    
-    // 3. Distanz (näher = besser)
+
     const aDist = a.distance || Infinity;
     const bDist = b.distance || Infinity;
     return aDist - bDist;

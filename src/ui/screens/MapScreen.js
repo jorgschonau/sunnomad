@@ -11,11 +11,10 @@ import {
   Linking,
   InteractionManager,
   Keyboard,
-  Animated,
 } from 'react-native';
 import Toast from 'react-native-toast-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import MapView, { Marker, Circle } from 'react-native-maps';
+import MapView, { Marker, Circle, Polyline } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeProvider';
@@ -46,21 +45,67 @@ import { supabase } from '../../config/supabase';
 import { getPreloadResult, getCachedLocation, setCachedLocation } from '../../utils/locationPreload';
 
 // Apple MapKit on iOS (default) — better colors than Google. customMapStyle is Google-only.
-// Hide platform default pin while custom marker views snapshot (react-native-maps).
-const HIDE_DEFAULT_PIN = require('../../../assets/marker-transparent.png');
+// Never set Marker `image` to a 1×1 transparent PNG on Apple Maps: AIRMapMarker
+// sizes the annotation from self.image, so hit-testing collapses to 1px while
+// children still paint (untappable "ghost" badges/circles).
 
 // Minimum movement (in km) between the currently shown position and a fresh GPS
 // fix before it's worth re-centering + re-fetching markers a second time.
 const SIGNIFICANT_MOVE_KM = 10;
+const EARTH_RADIUS_KM = 6371;
 
 function getDistanceKm(lat1, lon1, lat2, lon2) {
-  const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return EARTH_RADIUS_KM * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+function isWithinRadiusKm(centerLat, centerLon, lat, lon, radiusKm) {
+  if (!Number.isFinite(centerLat) || !Number.isFinite(centerLon)) return false;
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return false;
+  if (!Number.isFinite(radiusKm) || radiusKm <= 0) return false;
+  return getDistanceKm(centerLat, centerLon, lat, lon) <= radiusKm;
+}
+
+/** MapKit MKCircle jetsams / hard-crashes around 1500–2000km overlays. */
+const MAX_RADIUS_CIRCLE_KM = 1200;
+/** Cap region deltas so animateToRegion can't ask for near-world spans. */
+const MAX_MAP_DELTA = 55;
+
+function regionDeltasForRadiusKm(latitude, radiusKm, pad = 1) {
+  const r = Math.max(0, Number(radiusKm) || 0);
+  const cosLat = Math.max(0.2, Math.cos((Number(latitude) || 0) * Math.PI / 180));
+  return {
+    latitudeDelta: Math.min((r * 2 * pad) / 111, MAX_MAP_DELTA),
+    longitudeDelta: Math.min((r * 2 * pad) / (111 * cosLat), MAX_MAP_DELTA),
+  };
+}
+
+/** Geodesic ring for large radii — Polyline avoids MKCircle's crashy bounding rect. */
+function circleRingCoordinates(lat, lon, radiusKm, steps = 72) {
+  const coords = [];
+  const angular = radiusKm / EARTH_RADIUS_KM;
+  const latRad = lat * Math.PI / 180;
+  const lonRad = lon * Math.PI / 180;
+  for (let i = 0; i <= steps; i++) {
+    const bearing = (2 * Math.PI * i) / steps;
+    const lat2 = Math.asin(
+      Math.sin(latRad) * Math.cos(angular) +
+      Math.cos(latRad) * Math.sin(angular) * Math.cos(bearing),
+    );
+    const lon2 = lonRad + Math.atan2(
+      Math.sin(bearing) * Math.sin(angular) * Math.cos(latRad),
+      Math.cos(angular) - Math.sin(latRad) * Math.sin(lat2),
+    );
+    coords.push({
+      latitude: lat2 * 180 / Math.PI,
+      longitude: ((lon2 * 180 / Math.PI + 540) % 360) - 180,
+    });
+  }
+  return coords;
 }
 
 const TROPHY_BADGES = new Set([DestinationBadge.WORTH_THE_DRIVE, DestinationBadge.WORTH_THE_DRIVE_BUDGET]);
@@ -85,54 +130,56 @@ const favStableKey = (fav) =>
 // Above favourites (10k) and regular markers — origin pin always on top
 const ORIGIN_MARKER_Z_INDEX = 20000;
 
-/** GPS or chosen center — same layout, label, and stacking behaviour */
-const OriginLocationMarker = React.memo(({
+/**
+ * Dedicated GPS / chosen-location pin.
+ * Must NOT go through DestinationMarker or the density list: radius animateToRegion
+ * + Circle updates blank custom MapKit annotations when React doesn't remount them
+ * (memoized origin with stable props stays invisible). Plain Views only — Animated
+ * children also blank after camera moves on iOS.
+ */
+const OriginPinMarker = ({
   coordinate,
   weather,
-  label,
-  markerAccentStyle,
-  labelAccentStyle,
+  isCenterPoint,
   onPress,
   styles: s,
   temperatureUnit,
   getWeatherColor,
   getWeatherIcon,
-}) => (
-  <Marker
-    image={HIDE_DEFAULT_PIN}
-    coordinate={coordinate}
-    anchor={{ x: 0.5, y: 64 / 118 }}
-    zIndex={ORIGIN_MARKER_Z_INDEX}
-    // Only 1 origin pin — must stay true or iOS drops the custom view after pan/zoom.
-    // Destination markers keep windowed tracking (many of those jetsam).
-    tracksViewChanges
-    onPress={onPress}
-  >
-    {weather ? (
-      <View style={[s.markerFrameAndroid, s.currentLocationFrame]}>
-        <View style={[
-          s.markerContainer,
-          { backgroundColor: getWeatherColor(weather.condition, weather.temperature) },
-          markerAccentStyle,
-        ]}>
-          <Text style={s.markerWeatherIcon}>{getWeatherIcon(weather.condition)}</Text>
+}) => {
+  const { t } = useTranslation();
+  const temp = weather?.temperature;
+  const condition = weather?.condition || 'cloudy';
+  return (
+    <Marker
+      coordinate={coordinate}
+      anchor={{ x: 0.5, y: 64 / 118 }}
+      zIndex={ORIGIN_MARKER_Z_INDEX}
+      style={{ overflow: 'visible', zIndex: ORIGIN_MARKER_Z_INDEX }}
+      tracksViewChanges
+      onPress={onPress}
+    >
+      <View style={[s.markerFrameAndroid, s.currentLocationFrame]} collapsable={false}>
+        <View
+          style={[
+            s.markerContainer,
+            { backgroundColor: getWeatherColor(condition, temp) },
+            isCenterPoint ? s.centerPointMarker : s.currentLocationMarker,
+          ]}
+          collapsable={false}
+        >
+          <Text style={s.markerWeatherIcon}>{getWeatherIcon(condition)}</Text>
           <Text style={s.markerTemp}>
-            {weather.temperature != null
-              ? formatTemperature(weather.temperature, temperatureUnit, false)
-              : '?°'}
+            {temp != null ? formatTemperature(temp, temperatureUnit, false) : '?°'}
           </Text>
         </View>
-        <Text style={[s.currentLocationLabel, labelAccentStyle]}>{label}</Text>
+        <Text style={[s.currentLocationLabel, isCenterPoint && s.centerPointLabel]}>
+          {t(isCenterPoint ? 'map.chosenLocation' : 'map.youAreHere')}
+        </Text>
       </View>
-    ) : (
-      <View style={s.centerPointCircleMarker}>
-        <View style={s.centerPointCircleInner}>
-          <Text style={s.centerPointIcon}>⊕</Text>
-        </View>
-      </View>
-    )}
-  </Marker>
-));
+    </Marker>
+  );
+};
 
 const DestinationMarker = React.memo(({
   dest,
@@ -142,120 +189,59 @@ const DestinationMarker = React.memo(({
   getWeatherIcon,
   styles: markerStyles,
   temperatureUnit,
-  pulseKey = 0,
 }) => {
-  const { t } = useTranslation();
-  const isOriginMarker = dest.isCurrentLocation || dest.isCenterPoint;
   const hasImageBadge = getMapBadges(dest.badges, dest._heatwaveData?.shouldAward).some(
     b => b === DestinationBadge.WARM_AND_DRY || b === DestinationBadge.HEATWAVE
   );
-  const [imageLoaded, setImageLoaded] = useState(!hasImageBadge);
-  const [isPulsing, setIsPulsing] = useState(false);
-  const pulseAnim = useRef(new Animated.Value(0)).current;
+  // Apple MapKit ignores tracksViewChanges — skip the repaint state machine (re-render churn).
+  const tracksViewChangesSupported = Platform.OS === 'android';
+  const [imageLoaded, setImageLoaded] = useState(!hasImageBadge || !tracksViewChangesSupported);
   const imageLoadTimerRef = useRef(null);
   const handleImageLoad = useCallback(() => {
+    if (!tracksViewChangesSupported) return;
     imageLoadTimerRef.current = setTimeout(() => setImageLoaded(true), 120);
-  }, []);
+  }, [tracksViewChangesSupported]);
   useEffect(() => {
     return () => clearTimeout(imageLoadTimerRef.current);
   }, []);
 
-  // Marker views are snapshot-cached (tracksViewChanges=false). The key is stable
-  // per place, so when displayed content changes we briefly re-enable
-  // tracksViewChanges to let the native view repaint, then freeze it again.
-  // Starts true: on iOS a marker mounted with tracksViewChanges=false can stay
-  // blank until the map is forced to redraw (markers used to remount on every
-  // content change, which masked this).
   const contentSig = `${dest.temperature}|${dest.condition}|${(dest.badges || []).join(',')}`;
   const prevSigRef = useRef(contentSig);
-  // Never start with tracksViewChanges=true — N new markers at zoom 6 all snapshotting jetsams.
-  // Only re-enable briefly when weather/badges change, or while an image badge loads.
   const [repaintWindow, setRepaintWindow] = useState(false);
   useEffect(() => {
+    if (!tracksViewChangesSupported) return undefined;
     if (prevSigRef.current === contentSig) return undefined;
     prevSigRef.current = contentSig;
     if (hasImageBadge) setImageLoaded(false);
     setRepaintWindow(true);
     const timer = setTimeout(() => setRepaintWindow(false), 60);
     return () => clearTimeout(timer);
-  }, [contentSig, hasImageBadge]);
+  }, [contentSig, hasImageBadge, tracksViewChangesSupported]);
 
-  // Safety: force tracksViewChanges off after 3s even if image never fires onLoad
   useEffect(() => {
-    if (imageLoaded || !hasImageBadge) return;
+    if (!tracksViewChangesSupported || imageLoaded || !hasImageBadge) return undefined;
     const safety = setTimeout(() => setImageLoaded(true), 2000);
     return () => clearTimeout(safety);
-  }, [hasImageBadge, imageLoaded]);
+  }, [hasImageBadge, imageLoaded, tracksViewChangesSupported]);
 
-  useEffect(() => {
-    if (!isOriginMarker || pulseKey === 0) return undefined;
-
-    pulseAnim.setValue(0);
-    setIsPulsing(true);
-
-    const halfPulse = (toValue) => Animated.timing(pulseAnim, {
-      toValue,
-      duration: 170,
-      useNativeDriver: false,
-    });
-
-    const animation = Animated.sequence([
-      halfPulse(1), halfPulse(0),
-      halfPulse(1), halfPulse(0),
-      halfPulse(1), halfPulse(0),
-    ]);
-
-    animation.start(({ finished }) => {
-      if (finished) {
-        pulseAnim.setValue(0);
-        setIsPulsing(false);
-      }
-    });
-
-    return () => {
-      animation.stop();
-      setIsPulsing(false);
-    };
-  }, [isOriginMarker, pulseKey, pulseAnim]);
-
-  const MarkerContainer = isOriginMarker ? Animated.View : View;
   const pinLat = coordinate?.latitude ?? dest.lat;
   const pinLon = coordinate?.longitude ?? dest.lon;
+  const tracksViewChanges = tracksViewChangesSupported
+    && (repaintWindow || (hasImageBadge ? !imageLoaded : false));
 
   return (
     <Marker
-      image={HIDE_DEFAULT_PIN}
       coordinate={{ latitude: pinLat, longitude: pinLon }}
-      anchor={isOriginMarker ? { x: 0.5, y: 64 / 118 } : { x: 0.5, y: 0.5 }}
-      style={{ overflow: 'visible', zIndex: isOriginMarker ? ORIGIN_MARKER_Z_INDEX : 999 }}
-      zIndex={isOriginMarker ? ORIGIN_MARKER_Z_INDEX : undefined}
-      tracksViewChanges={repaintWindow || isPulsing || (hasImageBadge ? !imageLoaded : false)}
+      anchor={{ x: 0.5, y: 0.5 }}
+      style={{ overflow: 'visible', zIndex: 999 }}
+      tracksViewChanges={tracksViewChanges}
       onPress={() => onPress(dest)}
     >
-      <View style={[
-        markerStyles.markerFrameAndroid,
-        isOriginMarker && markerStyles.currentLocationFrame,
-      ]}>
-        <MarkerContainer style={[
+      <View style={markerStyles.markerFrameAndroid} collapsable={false}>
+        <View style={[
           markerStyles.markerContainer,
           { backgroundColor: getWeatherColor(dest.condition, dest.temperature) },
-          dest.isCurrentLocation && markerStyles.currentLocationMarker,
-          dest.isCenterPoint && markerStyles.centerPointMarker,
           hasDedicatedHeroImage(dest.id || dest.placeId) && markerStyles.dedicatedHeroMarker,
-          isOriginMarker && isPulsing && {
-            transform: [{
-              scale: pulseAnim.interpolate({
-                inputRange: [0, 1],
-                outputRange: [1, 1.12],
-              }),
-            }],
-            borderColor: pulseAnim.interpolate({
-              inputRange: [0, 1],
-              outputRange: dest.isCenterPoint
-                ? ['rgba(192, 80, 48, 0.7)', 'rgba(192, 80, 48, 1)']
-                : ['rgba(92, 163, 217, 0.7)', 'rgba(92, 163, 217, 1)'],
-            }),
-          },
         ]}>
           <Text style={markerStyles.markerWeatherIcon}>{getWeatherIcon(dest.condition)}</Text>
           <Text style={markerStyles.markerTemp}>
@@ -277,7 +263,8 @@ const DestinationMarker = React.memo(({
                       key={i}
                       icon={BadgeMetadata[badge].icon}
                       color={BadgeMetadata[badge].color}
-                      delay={i * 100}
+                      delay={i * 40}
+                      animate="light"
                       onImageLoad={hasImageBadge && typeof BadgeMetadata[badge].icon !== 'string' ? handleImageLoad : undefined}
                     />
                   ))}
@@ -289,7 +276,8 @@ const DestinationMarker = React.memo(({
                         key={i}
                         icon={BadgeMetadata[badge].icon}
                         color={BadgeMetadata[badge].color}
-                        delay={(i + 3) * 100}
+                        delay={(i + 3) * 40}
+                        animate="light"
                         onImageLoad={hasImageBadge && typeof BadgeMetadata[badge].icon !== 'string' ? handleImageLoad : undefined}
                       />
                     ))}
@@ -298,15 +286,7 @@ const DestinationMarker = React.memo(({
               </>
             );
           })()}
-        </MarkerContainer>
-        {isOriginMarker && (
-          <Text style={[
-            markerStyles.currentLocationLabel,
-            dest.isCenterPoint && markerStyles.centerPointLabel,
-          ]}>
-            {t(dest.isCenterPoint ? 'map.chosenLocation' : 'map.youAreHere')}
-          </Text>
-        )}
+        </View>
       </View>
     </Marker>
   );
@@ -365,6 +345,7 @@ const MapScreen = ({ navigation }) => {
   const [devZoom, setDevZoom] = useState(5);
   const currentZoomRef = useRef(5);
   const radiusDebounceTimer = useRef(null);
+  const originPinRemountTimer = useRef(null);
 
   const regionChangeDebounceTimer = useRef(null);
   const markerViewportDebounceTimer = useRef(null);
@@ -387,9 +368,18 @@ const MapScreen = ({ navigation }) => {
   const [locationError, setLocationError] = useState(null); // Error state for location fetch
   const [locationPermissionGranted, setLocationPermissionGranted] = useState(false); // Track if GPS permission was granted
   const lastAppliedCoordsRef = useRef(null); // Most recently applied real coords, for movement-threshold checks
-  const [currentLocationPulseKey, setCurrentLocationPulseKey] = useState(0);
-  const lastLocationPulseAtRef = useRef(0);
-  const [centerPointPulseKey, setCenterPointPulseKey] = useState(0);
+  // Bump to remount OriginPinMarker after MapKit blanks it (radius anim / pan settle).
+  const [originPinGen, setOriginPinGen] = useState(0);
+  const bumpOriginPin = useCallback(() => {
+    setOriginPinGen((g) => g + 1);
+  }, []);
+  const lastOriginBumpAtRef = useRef(0);
+  const bumpOriginPinThrottled = useCallback(() => {
+    const now = Date.now();
+    if (now - lastOriginBumpAtRef.current < 400) return;
+    lastOriginBumpAtRef.current = now;
+    bumpOriginPin();
+  }, [bumpOriginPin]);
   const mapViewTrackedIds = useRef(new Set()); // Deduplicate map_view_count per session
   const mapViewTrackTimer = useRef(null);
   const [loadingStateIndex, setLoadingStateIndex] = useState(0);
@@ -475,17 +465,14 @@ const MapScreen = ({ navigation }) => {
   }, [setViewports]);
 
   const triggerCurrentLocationPulse = useCallback(() => {
-    const now = Date.now();
-    if (now - lastLocationPulseAtRef.current < 2500) return;
-    lastLocationPulseAtRef.current = now;
-    setCurrentLocationPulseKey(k => k + 1);
-  }, []);
+    bumpOriginPinThrottled();
+  }, [bumpOriginPinThrottled]);
 
-  // Pulse the center-point marker whenever a location is freely chosen (long-press / search)
+  // Remount origin pin when a location is freely chosen (long-press / search)
   useEffect(() => {
     if (!centerPoint) return;
-    setCenterPointPulseKey(k => k + 1);
-  }, [centerPoint?.latitude, centerPoint?.longitude]);
+    bumpOriginPin();
+  }, [centerPoint?.latitude, centerPoint?.longitude, bumpOriginPin]);
 
   const applyLocationFromPosition = useCallback((position, { notifyFallback = false } = {}) => {
     if (!position?.coords) return;
@@ -875,16 +862,23 @@ const MapScreen = ({ navigation }) => {
       mapRef.current.animateToRegion({
         latitude: effectiveCenter.latitude,
         longitude: effectiveCenter.longitude,
-        latitudeDelta: (radius * 2) / 111,
-        longitudeDelta: (radius * 2) / (111 * Math.cos(effectiveCenter.latitude * Math.PI / 180)),
+        ...regionDeltasForRadiusKm(effectiveCenter.latitude, radius),
       }, 600);
+      // MapKit blanks the custom origin annotation during animateToRegion + Circle
+      // resize; remount after the camera settles so the pin is visible again.
+      if (originPinRemountTimer.current) clearTimeout(originPinRemountTimer.current);
+      originPinRemountTimer.current = setTimeout(() => {
+        originPinRemountTimer.current = null;
+        bumpOriginPin();
+      }, 700);
     }
     return () => {
       if (radiusDebounceTimer.current) clearTimeout(radiusDebounceTimer.current);
+      if (originPinRemountTimer.current) clearTimeout(originPinRemountTimer.current);
     };
     // Intentionally omit centerPointWeather: reload only when center *position* changes to avoid double load after long-press
     // selectedConditions is intentionally omitted: weather filter is applied client-side in visibleMarkers
-  }, [location, radius, centerPoint, reverseMode]);
+  }, [location, radius, centerPoint, reverseMode, bumpOriginPin]);
 
   useEffect(() => {
     return () => {
@@ -1049,7 +1043,10 @@ const MapScreen = ({ navigation }) => {
     });
 
     return () => { cancelled = true; };
-  }, [destinations, selectedDateOffset, reverseMode, radius, shiftDestination]);
+    // radius intentionally omitted: +/- only reloads destinations (debounced);
+    // re-badging the old list on every tick freezes the UI. Badges recompute
+    // when setDestinations runs after load, which already closes over new radius.
+  }, [destinations, selectedDateOffset, reverseMode, shiftDestination]);
 
   // Center-point weather for the dedicated map pin (date-offset aware)
   const displayCenterPointWeather = useMemo(() => {
@@ -1064,28 +1061,6 @@ const MapScreen = ({ navigation }) => {
     () => displayDestinations.find(d => d.isCurrentLocation) || null,
     [displayDestinations],
   );
-
-  const toRadians = (degrees) => {
-    return degrees * (Math.PI / 180);
-  };
-
-  /**
-   * Calculate distance between two points (Haversine formula)
-   */
-  const getDistanceKm = (lat1, lon1, lat2, lon2) => {
-    const R = 6371; // Earth radius in km
-    const dLat = toRadians(lat2 - lat1);
-    const dLon = toRadians(lon2 - lon1);
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(toRadians(lat1)) *
-        Math.cos(toRadians(lat2)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    return R * c;
-  };
-
 
   const loadDestinations = async () => {
     if (!location) return;
@@ -1131,10 +1106,13 @@ const MapScreen = ({ navigation }) => {
       let radiusPlaces = weatherData.filter((p) => {
         const lat = Number(p.lat ?? p.latitude);
         const lon = Number(p.lon ?? p.longitude);
-        if (!Number.isFinite(lat) || !Number.isFinite(lon)) return false;
-        return getDistanceKm(
-          effectiveCenter.latitude, effectiveCenter.longitude, lat, lon,
-        ) <= radius;
+        return isWithinRadiusKm(
+          Number(effectiveCenter.latitude),
+          Number(effectiveCenter.longitude),
+          lat,
+          lon,
+          Number(radius),
+        );
       });
       if (centerPointWeather && centerPoint) {
         const centerId = centerPointWeather.id;
@@ -1158,11 +1136,24 @@ const MapScreen = ({ navigation }) => {
         if (sample && __DEV__) console.log('[DEBUG MapScreen] sample dest:', sample.name, '| place_type:', sample.place_type, '| image_region:', sample.image_region);
       }
       setDestinations(allDestinations);
-      AsyncStorage.setItem('mapDestinationsCache', JSON.stringify({
-        timestamp: Date.now(),
-        version: 2,
-        data: allDestinations,
-      })).catch((cacheError) => { if (__DEV__) console.warn('Failed to cache destinations:', cacheError); });
+      // Density markers remount after reload; remount origin too — otherwise MapKit
+      // can leave the chosen-location annotation blank after the Circle/camera update.
+      bumpOriginPinThrottled();
+      // Defer + slim cache: JSON.stringify of ~900 places × 16-day forecasts
+      // freezes the JS thread (and can blow AsyncStorage's ~6MB cap) right when
+      // markers/circle are updating after a radius change.
+      const cacheData = allDestinations.map(({ forecastArray, ...rest }) => rest);
+      setTimeout(() => {
+        try {
+          AsyncStorage.setItem('mapDestinationsCache', JSON.stringify({
+            timestamp: Date.now(),
+            version: 2,
+            data: cacheData,
+          })).catch((cacheError) => { if (__DEV__) console.warn('Failed to cache destinations:', cacheError); });
+        } catch (cacheError) {
+          if (__DEV__) console.warn('Failed to serialize destinations cache:', cacheError);
+        }
+      }, 0);
     } catch (error) {
       if (requestId !== loadRequestIdRef.current) return;
       showToast(t('map.failedToLoadWeather') || 'Failed to load weather data', 'error');
@@ -1453,7 +1444,7 @@ const MapScreen = ({ navigation }) => {
   // No more dynamic marker scaling - library handles density!
 
   const toggleReverseMode = async () => {
-    const next = reverseMode === 'warm' ? 'cold' : reverseMode === 'cold' ? 'all' : 'warm';
+    const next = reverseMode === 'warm' ? 'cold' : 'warm';
     setReverseMode(next);
     await playTickSound();
     mixpanel.track('Mode Changed', { mode: next });
@@ -1470,10 +1461,9 @@ const MapScreen = ({ navigation }) => {
       minZoom = 4; // Normal radius (was 5, now 4 - more zoom out)
     } else if (radius <= 800) {
       minZoom = 3; // Medium radius (was 4, now 3)
-    } else if (radius <= 1500) {
-      minZoom = 2; // Large radius (was 3, now 2)
     } else {
-      minZoom = 1; // Very large radius (was 2, now 1 - almost world view)
+      // Keep ≥2 — world-view (minZoom 1) + custom markers jetsams on iOS
+      minZoom = 2;
     }
 
     // maxZoom: Prevent zooming in too close (cap at 8)
@@ -1545,11 +1535,11 @@ const MapScreen = ({ navigation }) => {
     else if (zoom <= 9) zoomFactor = 1.55;
     else zoomFactor = 1.7;
 
-    const maxCap = Platform.OS === 'android' ? 40 : 45;
-    const minFloor = zoom >= 8 ? (Platform.OS === 'android' ? 22 : 28) :
-                     zoom >= 6 ? (Platform.OS === 'android' ? 18 : 26) :
-                     zoom >= 4 ? (Platform.OS === 'android' ? 14 : 22) :
-                     (Platform.OS === 'android' ? 12 : 18);
+    const maxCap = 36;
+    const minFloor = zoom >= 8 ? (Platform.OS === 'android' ? 20 : 24) :
+                     zoom >= 6 ? (Platform.OS === 'android' ? 16 : 22) :
+                     zoom >= 4 ? (Platform.OS === 'android' ? 12 : 18) :
+                     (Platform.OS === 'android' ? 10 : 14);
     const total = Math.min(Math.max(base * zoomFactor, minFloor), maxCap);
     return Math.round(total);
   };
@@ -1557,27 +1547,29 @@ const MapScreen = ({ navigation }) => {
   
   
   /**
-   * Sort places by: attractiveness score → temperature → distance from user
+   * Sort places by mode:
+   * warm — attractiveness → warmer temp → distance
+   * cold — cooler temp → attractiveness → distance (heat-escape)
    */
   const sortByQuality = (places, userLat, userLon) => {
     return [...places].sort((a, b) => {
       // Special markers always first
       if (a.isCurrentLocation || a.isCenterPoint) return -1;
       if (b.isCurrentLocation || b.isCenterPoint) return 1;
-      
-      // Primary: Attractiveness score (higher is better)
+
       const aScore = a.attractivenessScore || a.attractiveness_score || 50;
       const bScore = b.attractivenessScore || b.attractiveness_score || 50;
-      if (Math.abs(aScore - bScore) > 2) return bScore - aScore;
-      
-      // Secondary: Temperature (mode-aware: warm = warmer better, cold = colder better, all = skip)
-      if (reverseMode !== 'all') {
-        const aTemp = a.temperature || 0;
-        const bTemp = b.temperature || 0;
-        if (Math.abs(aTemp - bTemp) > 2) return reverseMode === 'cold' ? aTemp - bTemp : bTemp - aTemp;
+      const aTemp = a.temperature || 0;
+      const bTemp = b.temperature || 0;
+
+      if (reverseMode === 'cold') {
+        if (Math.abs(aTemp - bTemp) > 2) return aTemp - bTemp;
+        if (Math.abs(aScore - bScore) > 2) return bScore - aScore;
+      } else {
+        if (Math.abs(aScore - bScore) > 2) return bScore - aScore;
+        if (Math.abs(aTemp - bTemp) > 2) return bTemp - aTemp;
       }
-      
-      // Tertiary: Distance from user (closer is better)
+
       if (userLat && userLon) {
         const aLat = a.lat ?? a.latitude;
         const aLon = a.lon ?? a.longitude;
@@ -1587,7 +1579,7 @@ const MapScreen = ({ navigation }) => {
         const bDist = getDistanceKm(userLat, userLon, bLat, bLon);
         return aDist - bDist;
       }
-      
+
       return 0;
     });
   };
@@ -1595,10 +1587,16 @@ const MapScreen = ({ navigation }) => {
   const URBAN_PLACE_TYPES = new Set(['city', 'medium_town', 'small_town', 'town', 'village']);
 
   const getVisibleMarkers = (allPlaces, zoom, bounds) => {
-    const candidates = allPlaces.filter(p => 
-      p.temperature !== null && p.temperature !== undefined
+    // Origin/center may briefly have null temp while weather loads — keep them
+    // out of the temperature gate (they render via dedicated originPin anyway).
+    const specialMarkers = allPlaces.filter(p => p.isCurrentLocation || p.isCenterPoint);
+    const candidates = allPlaces.filter(p =>
+      !p.isCurrentLocation &&
+      !p.isCenterPoint &&
+      p.temperature !== null &&
+      p.temperature !== undefined
     );
-    if (candidates.length === 0) return [];
+    if (candidates.length === 0 && specialMarkers.length === 0) return [];
     
     const userLat = location?.latitude;
     const userLon = location?.longitude;
@@ -1611,9 +1609,6 @@ const MapScreen = ({ navigation }) => {
     // Urban places (cities/towns) get a much coarser grid → wider spacing, fewer markers
     const URBAN_GRID_COLS = Math.max(3, Math.floor(GRID_COLS * 0.6));
     const URBAN_GRID_ROWS = Math.max(3, Math.floor(GRID_ROWS * 0.6));
-
-    // Separate special markers (always shown)
-    const specialMarkers = candidates.filter(p => p.isCurrentLocation || p.isCenterPoint);
 
     // Grid over the area where candidates can actually exist (viewport ∩ radius box).
     // On start the map is zoomed out well beyond the radius circle; a viewport-wide
@@ -1663,8 +1658,20 @@ const MapScreen = ({ navigation }) => {
       return 'p_' + makeGridKey(lat, lon, GRID_COLS, GRID_ROWS);
     };
     
-    // Pinned badges: always visible, but soft grid limit (max 2 per grid) to avoid clustering
+    // Screen-space spacing ≈ constant → geo floor grows as you zoom out.
+    // Pinned WTD are bulkier (badge) → slightly larger floor than normal pins.
+    const minSpacingKm = (z, role) => {
+      const table = role === 'pinned'
+        ? [120, 90, 70, 50, 35]
+        : [80, 55, 40, 28, 18];
+      if (z <= 5) return table[0];
+      if (z <= 6) return table[1];
+      if (z <= 7) return table[2];
+      if (z <= 8) return table[3];
+      return table[4];
+    };
     const PINNED_GRID_LIMIT = 2;
+    const MIN_PINNED_DISTANCE_KM = minSpacingKm(zoom, 'pinned');
     const pinnedBadges = [DestinationBadge.WORTH_THE_DRIVE, DestinationBadge.WORTH_THE_DRIVE_BUDGET];
     const allPinned = candidates.filter(p => 
       !p.isCurrentLocation && !p.isCenterPoint &&
@@ -1672,30 +1679,35 @@ const MapScreen = ({ navigation }) => {
     );
     const pinnedGridCounts = new Map();
     const pinned = [];
-    const pinnedOverflow = [];
+    let pinnedHidden = 0;
     const sortedPinned = sortByQuality(allPinned, userLat, userLon);
     for (const p of sortedPinned) {
       const pLat = p.lat ?? p.latitude;
       const pLon = p.lon ?? p.longitude;
       const key = getGridKey(pLat, pLon);
       const count = pinnedGridCounts.get(key) || 0;
-      if (count < PINNED_GRID_LIMIT) {
+      const tooClose = pinned.some((s) => {
+        const sLat = s.lat ?? s.latitude;
+        const sLon = s.lon ?? s.longitude;
+        return getDistanceKm(pLat, pLon, sLat, sLon) < MIN_PINNED_DISTANCE_KM;
+      });
+      if (!tooClose && count < PINNED_GRID_LIMIT) {
         pinned.push(p);
         pinnedGridCounts.set(key, count + 1);
       } else {
-        pinnedOverflow.push(p);
+        pinnedHidden++;
       }
     }
-    __DEV__ && console.log(`📌 Pinned: ${pinned.length} shown, ${pinnedOverflow.length} redistributed`);
+    __DEV__ && console.log(
+      `📌 Pinned: ${pinned.length} shown, ${pinnedHidden} hidden (min ${MIN_PINNED_DISTANCE_KM}km @ z${zoom})`
+    );
     
-    // Normal places + overflow pinned: subject to grid/distance/maxMarkers filtering
-    const normal = [
-      ...pinnedOverflow,
-      ...candidates.filter(p => 
-        !p.isCurrentLocation && !p.isCenterPoint &&
-        !(Array.isArray(p.badges) && p.badges.some(b => pinnedBadges.includes(b)))
-      ),
-    ];
+    // Non-pinned WTD stay off the map at this zoom (reappear when spacing allows).
+    // Do not redistribute into the normal grid — that re-clusters them next to the pin.
+    const normal = candidates.filter(p => 
+      !p.isCurrentLocation && !p.isCenterPoint &&
+      !(Array.isArray(p.badges) && p.badges.some(b => pinnedBadges.includes(b)))
+    );
 
     const viewportPlaces = (gridBounds)
       ? normal.filter(p => {
@@ -1708,17 +1720,26 @@ const MapScreen = ({ navigation }) => {
 
     // Build grid: best place per cell. Urban and non-urban use separate grids
     // (different prefixes + resolutions) so they don't compete with each other.
-    const POSITIVE_BADGES = new Set([
+    const WTD_BADGES = new Set([
+      DestinationBadge.WORTH_THE_DRIVE, DestinationBadge.WORTH_THE_DRIVE_BUDGET,
+    ]);
+    const WARM_POSITIVE_BADGES = new Set([
       DestinationBadge.WORTH_THE_DRIVE, DestinationBadge.WORTH_THE_DRIVE_BUDGET,
       DestinationBadge.SUNNY_STREAK, DestinationBadge.BEACH_PARADISE,
       DestinationBadge.WARM_AND_DRY, DestinationBadge.SPRING_AWAKENING,
     ]);
+    // Cold: dampen warm-flavor badges (still on pin, no grid boost). WTD still boosts.
+    const boostSet = reverseMode === 'cold' ? WTD_BADGES : WARM_POSITIVE_BADGES;
     const gridRank = (p) => {
       const attr = p.attractivenessScore || p.attractiveness_score || 50;
-      const hasBadge = Array.isArray(p.badges) && p.badges.some(b => POSITIVE_BADGES.has(b)) ? 1 : 0;
-      // Mode-aware temperature tiebreak: cold mode prefers colder places, 'all' ignores temp
-      const temp = reverseMode === 'cold' ? -(p.temperature ?? 0) : reverseMode === 'all' ? 0 : (p.temperature ?? 0);
-      return attr * 1000 + hasBadge * 100 + temp;
+      const badges = Array.isArray(p.badges) ? p.badges : [];
+      const hasBadge = badges.some(b => boostSet.has(b)) ? 1 : 0;
+      if (reverseMode === 'cold') {
+        // Heat-escape: cooler temp wins the cell, attr is secondary
+        const coolScore = -(p.temperature ?? 0);
+        return coolScore * 1000 + hasBadge * 100 + attr;
+      }
+      return attr * 1000 + hasBadge * 100 + (p.temperature ?? 0);
     };
     const gridMap = new Map();
     for (const place of viewportPlaces) {
@@ -1731,8 +1752,8 @@ const MapScreen = ({ navigation }) => {
       }
     }
 
-    // Take best-per-grid, sort by score, then enforce min distance for urban places
-    const MIN_URBAN_DISTANCE_KM = 30;
+    // Take best-per-grid, sort by score, then enforce zoom-aware min distance for all markers
+    const MIN_MARKER_DISTANCE_KM = minSpacingKm(zoom, 'marker');
     const sorted = Array.from(gridMap.values())
       .sort((a, b) => {
         const aScore = a.attractivenessScore || a.attractiveness_score || 50;
@@ -1754,18 +1775,17 @@ const MapScreen = ({ navigation }) => {
     
     const budget = Math.max(0, maxMarkers - pinned.length);
     const gridWinners = [];
-    const selectedUrbanCoords = [];
+    // Seed with pinned so normal pins don't sit on top of WTD
+    const selectedCoords = pinned.map((p) => [p.lat ?? p.latitude, p.lon ?? p.longitude]);
     const takeEligible = (list) => {
       while (list.length > 0) {
         const place = list.shift();
-        if (URBAN_PLACE_TYPES.has(place.place_type) && selectedUrbanCoords.length > 0) {
-          const pLat = place.lat ?? place.latitude;
-          const pLon = place.lon ?? place.longitude;
-          const tooClose = selectedUrbanCoords.some(([sLat, sLon]) =>
-            getDistanceKm(pLat, pLon, sLat, sLon) < MIN_URBAN_DISTANCE_KM
-          );
-          if (tooClose) continue;
-        }
+        const pLat = place.lat ?? place.latitude;
+        const pLon = place.lon ?? place.longitude;
+        const tooClose = selectedCoords.some(([sLat, sLon]) =>
+          getDistanceKm(pLat, pLon, sLat, sLon) < MIN_MARKER_DISTANCE_KM
+        );
+        if (tooClose) continue;
         return place;
       }
       return null;
@@ -1778,9 +1798,7 @@ const MapScreen = ({ navigation }) => {
         const place = takeEligible(list);
         if (!place) continue;
         gridWinners.push(place);
-        if (URBAN_PLACE_TYPES.has(place.place_type)) {
-          selectedUrbanCoords.push([place.lat ?? place.latitude, place.lon ?? place.longitude]);
-        }
+        selectedCoords.push([place.lat ?? place.latitude, place.lon ?? place.longitude]);
         madeProgress = true;
       }
     }
@@ -1802,12 +1820,11 @@ const MapScreen = ({ navigation }) => {
     const centerLon = Number(effectiveCenter.longitude);
     const radiusKm = Number(radius);
     let candidates = displayDestinations.filter(d => {
-      // Only the origin/center pin may sit off the DB place — still always shown
+      // Origin/center pin always shown (rendered on circle center, not DB coords)
       if (d.isCurrentLocation || d.isCenterPoint) return true;
       const lat = Number(d.lat ?? d.latitude);
       const lon = Number(d.lon ?? d.longitude);
-      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return false;
-      return getDistanceKm(centerLat, centerLon, lat, lon) <= radiusKm;
+      return isWithinRadiusKm(centerLat, centerLon, lat, lon, radiusKm);
     });
     // Client-side weather condition filter (instant, no re-fetch needed)
     if (selectedConditions.length > 0) {
@@ -1817,13 +1834,16 @@ const MapScreen = ({ navigation }) => {
       );
     }
     const visible = getVisibleMarkers(candidates, currentZoom, currentBounds);
-    // Final hard clip — grid/pin paths must never leak markers past the circle
+    // Final hard clip — same formula as the drawn radius ring
     return visible.filter(d => {
       if (d.isCurrentLocation || d.isCenterPoint) return true;
       const lat = Number(d.lat ?? d.latitude);
       const lon = Number(d.lon ?? d.longitude);
-      if (!Number.isFinite(lat) || !Number.isFinite(lon)) return false;
-      return getDistanceKm(centerLat, centerLon, lat, lon) <= radiusKm;
+      const ok = isWithinRadiusKm(centerLat, centerLon, lat, lon, radiusKm);
+      if (__DEV__ && !ok) {
+        console.log(`🚫 Clip outside radius: ${d.name} (${Math.round(getDistanceKm(centerLat, centerLon, lat, lon))}km > ${radiusKm}km)`);
+      }
+      return ok;
     });
     // favouriteDestinations intentionally omitted: favourites render separately (renderedFavourites)
   }, [markerViewport, displayDestinations, location, radius, centerPoint, selectedConditions, reverseMode]);
@@ -1854,47 +1874,97 @@ const MapScreen = ({ navigation }) => {
   // a stable sibling order means React only inserts/removes marker views and
   // never reorders them — reordering native map subviews crashes iOS
   // (NSRangeException in insertReactSubview:atIndex:).
+  // Do NOT remount the whole marker layer on radius/center change — that
+  // jetsams custom views (tracksViewChanges=false on mount) and resurrects
+  // default red pins.
   const renderedMarkers = useMemo(() => {
     const seen = new Set();
     const result = [];
+    const c = centerPoint || location;
+    const centerLat = c ? Number(c.latitude) : NaN;
+    const centerLon = c ? Number(c.longitude) : NaN;
+    const radiusKm = Number(radius);
+
     for (const dest of visibleMarkers) {
-      // GPS origin has its own marker when no manual center is set
-      if (dest.isCurrentLocation) continue;
+      // Origin/center pin is mounted once outside this list (stable MapView child
+      // index). Keeping it here reshuffles its sibling index on every zoom/radius
+      // settle and blanks the custom view on iOS.
+      if (dest.isCurrentLocation || dest.isCenterPoint) continue;
       // Favourites are rendered separately below
       if (isFavouritePlace(dest)) continue;
       if (showOnlyBadges && !isTrophyWorthy(getMapBadges(dest.badges))) continue;
+
+      // Last-chance radius gate (never trust upstream lists alone)
+      const lat = Number(dest.lat ?? dest.latitude);
+      const lon = Number(dest.lon ?? dest.longitude);
+      if (!isWithinRadiusKm(centerLat, centerLon, lat, lon, radiusKm)) {
+        if (__DEV__) {
+          console.log(
+            `🚫 Drop render outside radius: ${dest.name} ` +
+            `${Math.round(getDistanceKm(centerLat, centerLon, lat, lon))}km > ${radiusKm}km`,
+          );
+        }
+        continue;
+      }
+
       const key = markerKeyFor(dest);
       if (seen.has(key)) continue;
       seen.add(key);
       result.push({ key, dest });
     }
-    // Center marker last — stays on top when siblings remount after zoom
-    result.sort((a, b) => {
-      if (a.dest.isCenterPoint !== b.dest.isCenterPoint) return a.dest.isCenterPoint ? 1 : -1;
-      return a.key < b.key ? -1 : a.key > b.key ? 1 : 0;
-    });
+    result.sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0));
     return result;
-  }, [visibleMarkers, isFavouritePlace, showOnlyBadges]);
+  }, [visibleMarkers, isFavouritePlace, showOnlyBadges, centerPoint, location, radius]);
 
-  // Before loadDestinations finishes the center place may not be in visibleMarkers yet
-  const centerMarkerFallback = useMemo(() => {
-    if (!centerPoint || !centerPointWeather) return null;
-    const weather = displayCenterPointWeather || centerPointWeather;
-    const centerId = centerPointWeather.id;
-    const already = centerId
-      ? renderedMarkers.some(
-        m => m.dest.id === centerId || m.dest.placeId === centerId,
-      )
-      : renderedMarkers.some(m => m.dest.isCenterPoint);
-    if (already) return null;
+  const radiusRingCoords = useMemo(() => {
+    if (!radius || radius <= MAX_RADIUS_CIRCLE_KM) return null;
+    const c = centerPoint || location;
+    if (!c) return null;
+    return circleRingCoordinates(c.latitude, c.longitude, Number(radius));
+  }, [radius, centerPoint, location]);
+
+  // Dedicated origin pin data — rendered via OriginPinMarker (not density list).
+  const originPin = useMemo(() => {
+    if (centerPoint) {
+      const weather = displayCenterPointWeather || centerPointWeather;
+      return {
+        weather: weather || { temperature: null, condition: 'cloudy', name: '' },
+        dest: {
+          ...(weather || { temperature: null, condition: 'cloudy', name: '' }),
+          lat: centerPoint.latitude,
+          lon: centerPoint.longitude,
+          isCenterPoint: true,
+        },
+        coordinate: {
+          latitude: centerPoint.latitude,
+          longitude: centerPoint.longitude,
+        },
+        isCenterPoint: true,
+      };
+    }
+    if (!location) return null;
+    const weather = displayCurrentLocationWeather;
     return {
-      ...weather,
-      // Pin sits on the circle center; DB lat/lon stay on weather for detail linking
-      lat: centerPoint.latitude,
-      lon: centerPoint.longitude,
-      isCenterPoint: true,
+      weather: weather || { temperature: null, condition: 'cloudy', name: '' },
+      dest: {
+        ...(weather || { temperature: null, condition: 'cloudy', name: '' }),
+        lat: location.latitude,
+        lon: location.longitude,
+        isCurrentLocation: true,
+      },
+      coordinate: {
+        latitude: location.latitude,
+        longitude: location.longitude,
+      },
+      isCenterPoint: false,
     };
-  }, [centerPoint, centerPointWeather, displayCenterPointWeather, renderedMarkers]);
+  }, [
+    centerPoint,
+    centerPointWeather,
+    displayCenterPointWeather,
+    displayCurrentLocationWeather,
+    location,
+  ]);
 
   const renderedFavourites = useMemo(() => {
     const effectiveCenter = centerPoint || location;
@@ -1903,10 +1973,13 @@ const MapScreen = ({ navigation }) => {
     return favouriteDestinations
       .filter(fav => {
         if (!fav || fav.lat == null || fav.lon == null) return false;
-        return getDistanceKm(
-          effectiveCenter.latitude, effectiveCenter.longitude,
-          Number(fav.lat), Number(fav.lon),
-        ) <= radius;
+        return isWithinRadiusKm(
+          Number(effectiveCenter.latitude),
+          Number(effectiveCenter.longitude),
+          Number(fav.lat),
+          Number(fav.lon),
+          Number(radius),
+        );
       })
       .map((fav) => {
         const withWeather = displayDestinations.find(d =>
@@ -2108,8 +2181,7 @@ const MapScreen = ({ navigation }) => {
     mapRef.current.animateToRegion({
       latitude: point.latitude,
       longitude: point.longitude,
-      latitudeDelta: (radius * 2) / 111,
-      longitudeDelta: (radius * 2) / (111 * Math.cos(point.latitude * Math.PI / 180)),
+      ...regionDeltasForRadiusKm(point.latitude, radius),
     }, 300);
   };
 
@@ -2239,8 +2311,7 @@ const MapScreen = ({ navigation }) => {
       const newCenter = {
         latitude: lat,
         longitude: lng,
-        latitudeDelta: (radius * 2) / 111,
-        longitudeDelta: (radius * 2) / (111 * Math.cos(lat * Math.PI / 180)),
+        ...regionDeltasForRadiusKm(lat, radius),
       };
 
       setCenterPoint(newCenter);
@@ -2324,6 +2395,7 @@ const MapScreen = ({ navigation }) => {
     markerViewportDebounceTimer.current = setTimeout(() => {
       markerViewportDebounceTimer.current = null;
       if (flyOverActiveRef.current) return;
+      let viewportChanged = false;
       setMarkerViewport((prev) => {
         const latSlop = Math.max(latitudeDelta * 0.15, 0.05);
         const lonSlop = Math.max(longitudeDelta * 0.15, 0.05);
@@ -2334,10 +2406,13 @@ const MapScreen = ({ navigation }) => {
           Math.abs(prev.bounds.east - newBounds.east) < lonSlop &&
           Math.abs(prev.bounds.west - newBounds.west) < lonSlop;
         if (sameZoom && sameBounds) return prev;
+        viewportChanged = true;
         return { zoom, bounds: newBounds };
       });
-    }, 550);
-  }, []);
+      // Pan/zoom also blanks the origin annotation — remount after settle.
+      if (viewportChanged) bumpOriginPinThrottled();
+    }, 700);
+  }, [bumpOriginPinThrottled]);
 
   if (loading && !location) {
     return (
@@ -2529,12 +2604,12 @@ const MapScreen = ({ navigation }) => {
         ref={mapRef}
         style={styles.map}
         mapType="standard"
+        userInterfaceStyle="light"
         initialRegion={{
           latitude: location.latitude,
           longitude: location.longitude,
           // Start more zoomed out for cleaner view (multiply by 1.5)
-          latitudeDelta: (radius * 2 * 1.5) / 111,
-          longitudeDelta: (radius * 2 * 1.5) / (111 * Math.cos(location.latitude * Math.PI / 180)),
+          ...regionDeltasForRadiusKm(location.latitude, radius, 1.5),
         }}
         minZoomLevel={getZoomLimits().minZoom}  // Dynamic based on radius!
         maxZoomLevel={getZoomLimits().maxZoom}  // Cap at 8
@@ -2546,6 +2621,10 @@ const MapScreen = ({ navigation }) => {
         showsIndoors={false}
         showsTraffic={false}
         showsPointsOfInterest={false}
+        showsCompass={false}
+        showsScale={false}
+        mapPadding={{ top: 0, right: 0, bottom: 56, left: 0 }}
+        legalLabelInsets={{ bottom: 52, left: 8, right: 0, top: 0 }}
         onPress={handleMapTap}
         onLongPress={handleMapLongPress}
         onRegionChange={(region) => {
@@ -2560,78 +2639,65 @@ const MapScreen = ({ navigation }) => {
         {/* Guard: no markers until location + radius are ready */}
         {(!location || !radius) ? null : <>
 
-        {/* Radius Circle - centered on centerPoint or location */}
-        {(centerPoint || location) && (
+        {/* Origin FIRST — before Circle/Polyline so overlay remounts never shift its child index.
+            key includes originPinGen so radius/pan settle remounts a fresh MapKit annotation. */}
+        {originPin && (
+          <OriginPinMarker
+            key={`origin-pin-${originPinGen}`}
+            coordinate={originPin.coordinate}
+            weather={originPin.weather}
+            isCenterPoint={originPin.isCenterPoint}
+            onPress={() => stableMarkerPress(originPin.dest)}
+            styles={styles}
+            temperatureUnit={temperatureUnit}
+            getWeatherColor={getWeatherColor}
+            getWeatherIcon={getWeatherIcon}
+          />
+        )}
+
+        {/* Radius: Circle for ≤1200km; geodesic Polyline ring above (MKCircle crashes) */}
+        {(centerPoint || location) && radius > 0 && radius <= MAX_RADIUS_CIRCLE_KM && (
           <Circle
-            key={`radius-circle-${radius}-${(centerPoint || location).latitude}-${(centerPoint || location).longitude}`}
             center={{
               latitude: (centerPoint || location).latitude,
               longitude: (centerPoint || location).longitude,
             }}
-            radius={radius * 1000}
+            radius={Number(radius) * 1000}
             strokeWidth={1.5}
-            strokeColor={centerPoint ? "rgba(175, 70, 40, 0.45)" : "rgba(90, 90, 90, 0.3)"}
-            fillColor={centerPoint ? "rgba(175, 70, 40, 0.06)" : "rgba(90, 90, 90, 0.05)"}
+            strokeColor={centerPoint ? 'rgba(175, 70, 40, 0.55)' : 'rgba(90, 90, 90, 0.4)'}
+            fillColor={centerPoint ? 'rgba(175, 70, 40, 0.06)' : 'rgba(90, 90, 90, 0.05)'}
+          />
+        )}
+        {radiusRingCoords && (
+          <Polyline
+            coordinates={radiusRingCoords}
+            strokeWidth={1.5}
+            strokeColor={centerPoint ? 'rgba(175, 70, 40, 0.55)' : 'rgba(90, 90, 90, 0.45)'}
+            geodesic
+            lineCap="round"
+            lineJoin="round"
           />
         )}
 
-        {/* Center pin: DestinationMarker survives zoom; OriginLocationMarker jetsams on iOS */}
-        {!centerPoint && location ? (
-          <OriginLocationMarker
-            key="origin-gps"
-            coordinate={{ latitude: location.latitude, longitude: location.longitude }}
-            weather={displayCurrentLocationWeather}
-            label={t('map.youAreHere')}
-            markerAccentStyle={styles.currentLocationMarker}
-            onPress={() => displayCurrentLocationWeather && handleMarkerPress(displayCurrentLocationWeather)}
-            styles={styles}
-            temperatureUnit={temperatureUnit}
-            getWeatherColor={getWeatherColor}
-            getWeatherIcon={getWeatherIcon}
-          />
-        ) : null}
-
-        {/* Stable per-place keys — no list-sig remount (that jetsammed around zoom 6). */}
         {renderedMarkers.map(({ key, dest }) => (
           <DestinationMarker
             key={key}
             dest={dest}
-            coordinate={dest.isCenterPoint && centerPoint
-              ? { latitude: centerPoint.latitude, longitude: centerPoint.longitude }
-              : null}
             onPress={stableMarkerPress}
             getWeatherColor={getWeatherColor}
             getWeatherIcon={getWeatherIcon}
             styles={styles}
             temperatureUnit={temperatureUnit}
-            pulseKey={dest.isCenterPoint ? centerPointPulseKey : 0}
           />
         ))}
 
-        {centerMarkerFallback && (
-          <DestinationMarker
-            key={`center-fallback-${centerMarkerFallback.id}`}
-            dest={centerMarkerFallback}
-            coordinate={centerPoint
-              ? { latitude: centerPoint.latitude, longitude: centerPoint.longitude }
-              : null}
-            onPress={stableMarkerPress}
-            getWeatherColor={getWeatherColor}
-            getWeatherIcon={getWeatherIcon}
-            styles={styles}
-            temperatureUnit={temperatureUnit}
-            pulseKey={centerPointPulseKey}
-          />
-        )}
-
         {renderedFavourites.map(({ stableKey, fav, withWeather, temp, cond, favBadges, hasFavBadges }) => (
           <Marker
-            image={HIDE_DEFAULT_PIN}
-            key={`fav-${stableKey}-${selectedDateOffset}-${temp}-${cond}`}
+            key={`fav-${stableKey}`}
             coordinate={{ latitude: Number(fav.lat), longitude: Number(fav.lon) }}
             anchor={{ x: 0.5, y: 0.5 }}
             zIndex={hasFavBadges ? 10000 : 500}
-            tracksViewChanges={false}
+            tracksViewChanges={Platform.OS === 'android'}
             onPress={() => handleMarkerPress(withWeather || fav)}
           >
             <View style={styles.markerFrameAndroid}>
@@ -2656,13 +2722,13 @@ const MapScreen = ({ navigation }) => {
                     <>
                       <View style={styles.badgeOverlayContainer}>
                         {right.map((badge, i) => (
-                          <AnimatedBadge key={i} icon={BadgeMetadata[badge].icon} color={BadgeMetadata[badge].color} delay={i * 100} />
+                          <AnimatedBadge key={i} icon={BadgeMetadata[badge].icon} color={BadgeMetadata[badge].color} delay={i * 40} animate="light" />
                         ))}
                       </View>
                       {left.length > 0 && (
                         <View style={styles.badgeOverlayContainerLeft}>
                           {left.map((badge, i) => (
-                            <AnimatedBadge key={i} icon={BadgeMetadata[badge].icon} color={BadgeMetadata[badge].color} delay={(i + 3) * 100} />
+                            <AnimatedBadge key={i} icon={BadgeMetadata[badge].icon} color={BadgeMetadata[badge].color} delay={(i + 3) * 40} animate="light" />
                           ))}
                         </View>
                       )}
@@ -2679,7 +2745,7 @@ const MapScreen = ({ navigation }) => {
 
       <LoadingModal
         visible={loadingDestinations}
-        mode={reverseMode === 'cold' ? 'cooler' : reverseMode === 'all' ? 'all' : 'warmer'}
+        mode={reverseMode === 'cold' ? 'cooler' : 'warmer'}
         phaseKey={loadingPhaseKey}
       />
 
@@ -2926,8 +2992,10 @@ const MapScreen = ({ navigation }) => {
             onPress={selectGpsReference}
             accessibilityRole="menuitem"
           >
-            <Text style={[styles.refMenuCheck, { color: theme.text }]}>{centerPoint ? '○' : '✓'}</Text>
-            <Text style={[styles.refMenuText, { color: theme.text }]}>{t('map.refCurrentLocation')}</Text>
+            <Text style={[styles.refMenuIcon, { color: theme.text }, centerPoint && styles.refMenuIconInactive]}>⌖</Text>
+            <Text style={[styles.refMenuText, { color: theme.text }, centerPoint && styles.refMenuTextInactive]}>
+              {t('map.refCurrentLocation')}
+            </Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.refMenuRow, !manualRefAvailable && !centerPoint && styles.refMenuRowDisabled]}
@@ -2935,8 +3003,8 @@ const MapScreen = ({ navigation }) => {
             disabled={!manualRefAvailable && !centerPoint}
             accessibilityRole="menuitem"
           >
-            <Text style={[styles.refMenuCheck, { color: theme.text }]}>{centerPoint ? '✓' : '○'}</Text>
-            <Text style={[styles.refMenuText, { color: theme.text }]}>
+            <Text style={[styles.refMenuIcon, { color: theme.text }, !centerPoint && styles.refMenuIconInactive]}>✓</Text>
+            <Text style={[styles.refMenuText, { color: theme.text }, !centerPoint && styles.refMenuTextInactive]}>
               {manualRefName
                 ? t('map.refSelectedLocationNamed', { name: manualRefName })
                 : t('map.refSelectedLocation')}
@@ -2984,14 +3052,14 @@ const MapScreen = ({ navigation }) => {
         {/* Reverse Mode Button (Warm/Cold) */}
         <TouchableOpacity
           style={[styles.reverseButton, {
-            backgroundColor: reverseMode === 'warm' ? '#C87840' : reverseMode === 'cold' ? '#4A82C0' : '#888',
+            backgroundColor: reverseMode === 'cold' ? '#4A82C0' : '#C87840',
             shadowColor: theme.shadow
           }]}
           onPress={toggleReverseMode}
           accessibilityRole="button"
         >
-          <Text style={styles.reverseIcon}>{reverseMode === 'warm' ? '☀️' : reverseMode === 'cold' ? '❄️' : <Text>☀️<Text style={{ color: 'rgba(255,255,255,0.5)' }}>/</Text>❄️</Text>}</Text>
-          <Text style={styles.reverseLabel}>{reverseMode === 'warm' ? t('map.modeWarmer') : reverseMode === 'cold' ? t('map.modeCooler') : t('map.modeAll')}</Text>
+          <Text style={styles.reverseIcon}>{reverseMode === 'cold' ? '❄️' : '☀️'}</Text>
+          <Text style={styles.reverseLabel}>{reverseMode === 'cold' ? t('map.modeCooler') : t('map.modeWarmer')}</Text>
         </TouchableOpacity>
 
       </View>
@@ -3690,15 +3758,23 @@ const styles = StyleSheet.create({
   refMenuRowDisabled: {
     opacity: 0.4,
   },
-  refMenuCheck: {
-    fontSize: 15,
-    width: 18,
+  refMenuIcon: {
+    fontSize: 17,
+    width: 22,
     textAlign: 'center',
+    fontWeight: '600',
+  },
+  refMenuIconInactive: {
+    opacity: 0.35,
   },
   refMenuText: {
     fontSize: 15,
-    fontWeight: '500',
+    fontWeight: '600',
     flexShrink: 1,
+  },
+  refMenuTextInactive: {
+    fontWeight: '500',
+    opacity: 0.45,
   },
   refTipWrap: {
     position: 'absolute',

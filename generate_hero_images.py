@@ -821,7 +821,7 @@ _LOCAL_EVENT_BY_PLACE: dict[str, str | list[str]] = {
         "white alpine village + church spire in valley, vine rows on wooden stakes, clear blue sky. "
         "Green plastic harvest crate of dark purple grapes — she is WORKING, carrying or between rows. "
         "White long-sleeve button-down (sleeves rolled), dark fitted pants, dark trail/work boots. "
-        "White Fiat Panda 4x4 nearby — BZ plates, road bike transverse on roof rack. "
+        "White Fiat Panda 4x4 nearby — BZ plates, side/front-¾ view, road bike on roof facing FORWARD (front wheel toward hood). "
         "Focused harvest energy — absorbed in the work. NOT tourist wine tasting, NOT posing with glass."
     ),
     "Cortina": (
@@ -829,7 +829,7 @@ _LOCAL_EVENT_BY_PLACE: dict[str, str | list[str]] = {
         "white alpine village + church spire in valley, vine rows on wooden stakes, clear blue sky. "
         "Green plastic harvest crate of dark purple grapes — she is WORKING, carrying or between rows. "
         "White long-sleeve button-down (sleeves rolled), dark fitted pants, dark trail/work boots. "
-        "White Fiat Panda 4x4 nearby — BZ plates, road bike transverse on roof rack. "
+        "White Fiat Panda 4x4 nearby — BZ plates, side/front-¾ view, road bike on roof facing FORWARD (front wheel toward hood). "
         "Focused harvest energy — absorbed in the work. NOT tourist wine tasting, NOT posing with glass."
     ),
 }
@@ -845,7 +845,8 @@ _CHARACTER_LOCAL_EVENT: dict[tuple[str, str], str] = {
     ),
     ("alessandra", "IT"): (
         "SOUTH TYROL / ALPINE HARVEST (preferred): vineyard vendemmia — green plastic crate of dark grapes, "
-        "white button-down sleeves rolled, dark pants, dark boots. Fiat Panda 4x4 + bike transverse on roof ok peripheral. "
+        "white button-down sleeves rolled, dark pants, dark boots. Fiat Panda 4x4 side/¾ + road bike on roof "
+        "facing FORWARD (front wheel toward hood) ok peripheral. "
         "Dolomite village + peaks behind. Working the harvest — focused, not wine-bar tourist."
     ),
 }
@@ -1560,12 +1561,11 @@ NOT on beaches, hiking trails, boat decks, or indoor settings.
 When no motorcycle: she stands alone, hands in jacket pockets. Same energy.
 LEATHER JACKET: sometimes fully zipped, sometimes half-open — fitted top underneath.
 
-OFF-BIKE / NATURE (cold Nordics / fjord / mountain / cool day ONLY — NEVER Mediterranean south / Italy / Greece / Spain / warm coast):
-Classic Norwegian sweater (Norweger-Pulli / Mariusgenser or Lusekofte style) — thick oatmeal or light-grey knit
-with dark navy/black geometric pattern across chest and shoulders. Trail pants or dark outdoor trousers.
-No Falcon leather required on this kit. Helmet/bike optional distant or absent. Same Ingrid — wind in hair, calm.
-Not tourist souvenir knit; real worn Scandinavian wool.
-SOUTH / MED / WARM COAST: NO Pulli — Falcon leather or light tank/tee + pants/shorts, or beach one-piece. Thick wool knit = wrong.
+DEFAULT OFF-BIKE: Falcon leather (on or carried) + fitted tank/tee + dark pants/shorts/trainers — most shots.
+OCCASIONAL Pulli (~1 in 4 cool northern shots only — NEVER every image, NEVER Med south / Italy / Greece / Spain / warm coast):
+Classic Norwegian sweater (Norweger-Pulli / Mariusgenser or Lusekofte) — thick oatmeal or light-grey knit
+with dark navy/black geometric chest pattern, trail pants. Real worn Scandinavian wool, not tourist souvenir.
+If the shot does not explicitly say THIS SHOT Pulli: no sweater — Falcon/tank kit.
 HELMET: black, full-face or open-face. Occasionally:
 - Held under one arm, hair tumbling out after removal
 - Just taken off — hair still compressed, shaking it loose
@@ -4110,7 +4110,7 @@ ALESSANDRA_LOCAL_EVENT_HARVEST_LOCK = """
 ALESSANDRA LOCAL EVENT (harvest gold — soft bias, not exclusive):
 Working participant — NOT tourist spectator. Green plastic grape crate in hands OR between vine rows ok.
 Outfit: white long-sleeve button-down (sleeves rolled), dark fitted pants, dark trail/work boots — practical vendemmia kit, NOT race vest.
-White Fiat Panda 4x4 may be visible (BZ plates, ONE road bike PARALLEL on roof rack — aligned with car length) — place still dominates 75%+.
+White Fiat Panda 4x4 may be visible (BZ plates, road bike on roof facing FORWARD — front wheel toward hood; side/front-¾ view of car) — place still dominates 75%+.
 Alpine backdrop when terrain fits: jagged Dolomite peaks, white village + church spire in valley.
 Focused expression — endurance athlete between tasks, eyes on work, NOT smiling at camera.
 """
@@ -4122,14 +4122,49 @@ Same bandaged knee whenever legs are visible in this set. NOT both knees. NOT gi
 Scrape under tape ok. Skip on swim/water shots.
 """
 
+# ONE geometry only. Rear-bumper hero shots make the model draw the bike sideways.
 ALESSANDRA_ROOF_BIKE_MOUNT_LOCK = """
-PANDA ROOF BIKE MOUNT (MANDATORY when bike on rack):
-ONE road bike on black roof rack — mounted PARALLEL along the roof (longitudinal): frame aligned with car length hood→tail,
-fork-mount or wheel-tray style — bars and wheels pointing fore/aft with the Panda, NOT across roof width.
-Bike STRAIGHT on rack — not diagonal, not crooked, NOT transverse/quer.
-Standard roof tray or fork mount; intact frame, both wheels, bars readable.
-When she is RIDING the bike this shot: roof rack EMPTY — never roof bike + ridden bike in same frame.
+PANDA ROOF BIKE (MANDATORY when Panda shows and she is not riding):
+ONE road bike on the black roof rack, facing FORWARD with the car.
+FRONT wheel toward the HOOD / nose of the Panda. REAR wheel toward the HATCH / tailgate.
+Bike points the same way the car drives. Both wheels ON. Intact frame + drop bars.
+CAMERA: side or front three-quarter of the Panda so the bike reads along the roof length.
+Do NOT shoot pure rear bumper / license-plate hero of the Panda when the bike is on the roof.
 """
+
+# She is ON the bike → Panda roof must be empty (never two bikes)
+_ALESSANDRA_ON_BIKE_ACTIVITIES = frozenset({
+    "cycling_road", "elevation_read", "park_with_view",
+})
+
+ALESSANDRA_ROOF_EMPTY_WHEN_RIDING_LOCK = """
+ALESSANDRA ONE BIKE ONLY (MANDATORY — HARD FAIL if wrong):
+She is ON / beside / holding her road bike this shot — that bike is the ONLY bicycle in the entire frame.
+If the Fiat Panda is visible at all: black roof rack EMPTY — bare crossbars only. No bike, no fork, no wheel, no rack tray with a bike.
+FORBIDDEN: bike on the Panda roof AND a bike she rides / stands with / holds. Two bikes anywhere = FAIL.
+FORBIDDEN: any dog — Alessandra has no dog companion.
+"""
+
+ALESSANDRA_VEHICLE_EMPTY_RACK = (
+    "Fiat Panda 4x4 — white, South Tyrolean mountain dust. Italian plates (IT, BZ — Südtirol/Bolzano). "
+    "Rear: weather-faded German decal \"Südtirol\" with small alpine crest (German text only — NOT \"Alto Adige\"), "
+    "weathered bumper sticker \"Eat. Ride. Suffer. Repeat.\" "
+    "Black roof rack EMPTY this shot — she is on/with her road bike; NEVER put a second bike on the roof. "
+    "NO elevation-profile print on windscreen or dash. Mud on wheel arches, stone chips on nose. NO dog."
+)
+
+ALESSANDRA_NO_DOG_LOCK = (
+    "ALESSANDRA NO DOG (MANDATORY): She has no dog. No leash, no wolf-dog, no shepherd, no companion animal in frame."
+)
+
+
+def get_alessandra_roof_bike_lock(activity_key: str | None) -> str:
+    """Parallel roof bike when parked; empty rack when she is on/with the bike."""
+    act = activity_key or ""
+    if act in _ALESSANDRA_ON_BIKE_ACTIVITIES:
+        return ALESSANDRA_ROOF_EMPTY_WHEN_RIDING_LOCK.strip()
+    return ALESSANDRA_ROOF_BIKE_MOUNT_LOCK.strip()
+
 
 _ZARA_SHORE_COVERUP_ACTIVITIES = frozenset({
     "beach_walk_distance", "muscheln_sammeln", "harbour_walk", "waiting",
@@ -4272,11 +4307,10 @@ CHARACTER_VEHICLES = {
     "werra":       "Mercedes 240GD W460 — boxy 1980s G-Klasse, dark forest green, diesel, muddy. German plates (DE). Anonymous field vehicle — scratched paint, mud on sills, no badges of belonging. Optional: faded press parking card or blank notebook on dash. NO rune stickers, NO pagan symbols, NO forestry mystique decals. Splattered mud, never showroom.",
     "alessandra":  (
         "Fiat Panda 4x4 — white, South Tyrolean mountain dust. Italian plates (IT, BZ — Südtirol/Bolzano). "
-        "Rear: weather-faded German decal \"Südtirol\" with small alpine crest (German text only — NOT \"Alto Adige\"), "
-        "weathered bumper sticker \"Eat. Ride. Suffer. Repeat.\" "
-        "Black roof rack with ONE road bike mounted PARALLEL on top — frame aligned with car length (hood→tail), "
-        "fork-mount or wheel-tray, bars/wheels fore-aft with the Panda — NOT transverse/quer, NOT crooked diagonal. "
-        "Intact frame/wheels/bars (real bicycle silhouette, not a melted blob). "
+        "Weather-faded German \"Südtirol\" crest decal and bumper sticker \"Eat. Ride. Suffer. Repeat.\" "
+        "(stickers ok if visible — do NOT force a pure rear bumper camera). "
+        "Black roof rack with ONE road bike facing FORWARD: front wheel toward the hood, rear wheel toward the hatch, "
+        "both wheels ON, intact frame/bars. Show the Panda from the SIDE or front three-quarter so the bike reads along the roof. "
         "EXCEPTION when she is riding: roof rack EMPTY this shot — the bike under her is the only bike. "
         "Never two bikes (roof + ridden) in the same frame. "
         "NO elevation-profile print on windscreen or dash. Mud on wheel arches, stone chips on nose. "
@@ -4452,6 +4486,9 @@ def get_character_vehicle(
             duty = diaz_should_be_on_duty(place, activity_key)
         if duty:
             return DIAZ_ON_DUTY_VEHICLE
+    # Alessandra ON the bike — never describe roof bike (model otherwise doubles it)
+    if character_key == "alessandra" and (activity_key or "") in _ALESSANDRA_ON_BIKE_ACTIVITIES:
+        return ALESSANDRA_VEHICLE_EMPTY_RACK
     regional = CHARACTER_VEHICLES_REGIONAL.get(character_key)
     if regional:
         # Americas (US/CA/MX/…) use US-side regional variant
@@ -4471,6 +4508,14 @@ def get_character_vehicle(
 _ROAD_MOMENT_ACTIVITIES = frozenset({"park_with_view", "window_down", "cruise_through"})
 # Scenic pull-off / open-road — blocked in cities (cruise_through is the opposite: through the place)
 _SCENIC_ROAD_MOMENTS = frozenset({"park_with_view", "window_down"})
+_DRIVING_MOTION_ACTIVITIES = frozenset({"window_down", "cruise_through"})
+
+DRIVING_MOTION_BLUR_LOCK = """
+DRIVING MOTION (MANDATORY — light dynamic, not parked still):
+Slight motion blur on wheel spokes and soft streak on roadside / background along the travel direction.
+Vehicle body + driver (and dog if present) stay mostly sharp and readable.
+FORBIDDEN: frozen still-life wheels with crisp spokes; full-frame smear; cartoon speed lines; long-exposure ghost car.
+"""
 _ROAD_MOMENT_CITY_TYPES = frozenset({"city", "medium_town", "capital", "large_town", "pplc", "ppla"})
 _CRUISE_THROUGH_PLACE_TYPES = frozenset({
     "city", "medium_town", "small_town", "village", "capital", "large_town",
@@ -4504,7 +4549,8 @@ VEHICLE_ACTIVITY_POSE = {
         ),
         "road_bike": (
             "Unclipped from pedals, one foot down, hands on bars — looking at what is ahead. "
-            "Panda may be parked behind — roof rack EMPTY this shot (she is on the bike; do not also put a bike on the roof)."
+            "Panda optional behind — roof rack EMPTY (ONE bike only: the one she is on). "
+            "FORBIDDEN: second bike on the Panda roof."
         ),
         "jeep": "Parked dusty — door open, she stands on the step or leans on the door frame.",
         "car": "Window down or door just opened — arm on door, engine just off. Not fully out yet.",
@@ -4901,8 +4947,10 @@ def get_vehicle_activity_block(
             "Yoga lean posture, long back. If swim/shore: black low-back one-piece (PRIMARY) — "
             "NOT a romper, NOT a boyshort onesie, NOT baggy. Early almost-smile ok. Face readable when she glances back."
         )
-    if character_key == "alessandra" and activity_key not in {"cycling_road", "elevation_read"}:
-        block += "\n" + ALESSANDRA_ROOF_BIKE_MOUNT_LOCK.strip()
+    if character_key == "alessandra":
+        block += "\n" + get_alessandra_roof_bike_lock(activity_key)
+    if activity_key in _DRIVING_MOTION_ACTIVITIES:
+        block += "\n" + DRIVING_MOTION_BLUR_LOCK.strip()
     return block
 
 def _apply_vehicle_to_spec(
@@ -5038,10 +5086,16 @@ def get_northern_pulli_lock(place: dict | None, character_key: str | None = None
             "NOT tank-top tourist, NOT linen resort, NOT loud souvenir logo fleece."
         )
     if char in _PULLI_WOOL_NORDIC:
+        # Rare — sticky day-outfit used to pin Pulli for a whole set; keep it per-shot + uncommon
+        if random.random() >= 0.22:
+            return (
+                f"COOL-SEASON WARDROBE (soft — {_band}): DEFAULT this shot — jacket / shirt / tank, "
+                "NOT Norwegian Pulli / Mariusgenser / thick geometric wool. Pulli is rare, not every frame."
+            )
         return (
-            f"COOL-SEASON LAYER (soft — {_band}): Norwegian wool knit / Mariusgenser-style often fits "
-            "(oatmeal, grey, navy) — OR shirt + open jacket. Do NOT force a Pulli every shot. "
-            "NOT fleece tourist, NOT tank-top."
+            f"COOL-SEASON LAYER (THIS SHOT ONLY — {_band}): Norwegian wool knit / Mariusgenser-style "
+            "(oatmeal, grey, navy) + dark pants. Rare exception — most shots in the set stay Falcon/tank, not sweater. "
+            "NOT fleece tourist."
         )
     return (
         f"COOL-SEASON LAYER (soft — {_band}): fine wool/merino knit often fits "
@@ -6671,6 +6725,7 @@ def get_ingrid_falcon_jacket_lock(
 
 # ── Cast micro-detail locks (signature props / locale / continuity) ──────────
 
+
 _VALENTINA_CHESS_ACTIVITIES = frozenset({
     "park_with_view", "cafe_terrace", "menu_study", "newspaper_cafe",
     "waiting", "sunset_wine", "biergarten",
@@ -7147,22 +7202,18 @@ CHARACTER_SWIM_OUTFIT = {
         "NOT fashion triangle, NOT neon, NOT black as default."
     ),
     "maya": (
-        "PRIMARY (~80%): black or navy sport competition bikini — two-piece, three-wave-line emblem on top when visible. "
-        "ALT (~20%): black athletic one-piece — open back ok, same competition energy. "
-        "Bare face on water — NO sunglasses, NO glasses, NO swim goggles. No cargo shorts in water."
+        "Sport competition-style bikini or black athletic two-piece — training suit acceptable. "
+        "No cargo shorts on the board. "
+        "Bare face — NO sunglasses, NO glasses, NO swim goggles on water/SUP."
     ),
     "kay": (
         "PRIMARY: black fitted tank + black bikini bottoms, orca logo on chest when visible. Barefoot on board. "
         "Rare (~15%): shorty wetsuit peeled to waist, orca on chest."
     ),
     "tasha": (
-        "PRIMARY (~55%): simple solid WHITE bikini — triangle or sport cut, clean white fabric, "
-        "tourist heat, not editorial glam. Gold hoops ok. "
-        "ALT 2 (~30%): deep iridescent purple/navy athletic one-piece — metallic wet-look swim fabric, "
-        "glossy highlights in golden-hour sun; white piping on scoop neckline, armholes, thin spaghetti "
-        "straps, and high-cut leg openings; vertical white side stripes on torso; second-skin body-hug. "
-        "JOKE (~15%, keep): stars-and-stripes kitsch bikini (Venice Beach gag — US flag print). "
-        "Barefoot on sand/water. NO black bikini default. NO camera in frame."
+        "PRIMARY: simple solid black bikini — tourist heat, not editorial glam. "
+        "Disposable camera on shore only, not on board. "
+        "Rare (~15%): plain white or coral solid; or stars-and-stripes kitsch bikini (Venice Beach joke)."
     ),
     "metka": (
         "PRIMARY (~70%): matte black or anthracite sport-bralette bikini — wider straps, slightly higher-cut top "
@@ -7495,8 +7546,8 @@ CHARACTER_DAY_OUTFIT: dict[str, str] = {
         "Hair dark waves. Same proud-Latina day kit."
     ),
     "maya": (
-        "Land day kit: sport sunglasses, faded cap optional, fitted crop or tank + short shorts, trainers. "
-        "NOT grey-cargo mouse unless grey lock is on. Bikini on water/beach shots only."
+        "Land day kit: sport sunglasses, faded cap optional, athletic tee or tank, shorts or light pants, trainers. "
+        "NOT grey-cargo mode unless grey lock is on. NOT bikini on non-water shots."
     ),
     "tyler": (
         "Polished California travel: clean tee or light flannel/overshirt, quality shorts or chinos, trail runners or clean sneakers, "
@@ -7563,17 +7614,15 @@ CHARACTER_DAY_OUTFIT: dict[str, str] = {
         "Tailored shirt, dark trousers, watch — silent authority day look. Same kit (no henley roulette this set)."
     ),
     "tasha": (
-        "Warm casual: sundress or tiny top + shorts, sandals, gold hoops. "
-        "Same Southern-coast day look — no neon-windbreaker roulette this set. NO camera."
+        "Warm casual: sundress or tiny top + shorts, sandals, camera when seated. Same Southern-coast day look — no neon-windbreaker roulette this set."
     ),
     "isabella": (
-        "Day kit (ONE pinned per place-set): black/dark-brown leather mini/midi skirt OR fabric mini/midi "
-        "with fine knit or soft blouse, flat boots or loafers, light coat optional; "
-        "OR dusty-rose/mauve short-sleeve button-down tucked into dark fabric pencil/midi + black loafers; "
-        "OR charcoal pinstripe long-sleeve shirt (thin white/grey stripes, tucked in, flared cuffs), "
-        "black pencil skirt, sheer black hose, black open-toe heeled sandals, optional thin glasses; "
-        "OR elegant wide-leg trousers OR refined dark jeans OR simple dress. "
-        "NEVER shorts, NEVER cutoffs. Gold bracelet always. No Miami glam. No nightlife kink by day."
+        "Atlantic quiet money day: black/dark-brown leather OR fabric mini/midi skirt (matte, not PVC) "
+        "with fine knit or soft blouse, flat boots or loafers, light coat optional. "
+        "Equal town option: dusty-rose/mauve short-sleeve button-down tucked into dark fabric pencil/midi + black loafers. "
+        "Alt bottoms: elegant wide-leg or tailored trousers / refined dark jeans — OR simple dress. "
+        "NEVER shorts, NEVER cutoffs. Gold bracelet always. No Miami glam, no heels theatre. "
+        "Same kit — no nightlife kink by day (no leather trousers + plunging bodysuit night look)."
     ),
     "rosa": (
         "Warm practical Mexico/US Southwest day: dark jeans or shorts that show a round high-sitting hip line, "
@@ -7591,10 +7640,10 @@ CHARACTER_DAY_OUTFIT: dict[str, str] = {
         "Or linen shirt over kit. Town/travel: white button-down + dark jeans + hiking boots. Never dress/heels by day."
     ),
     "ingrid": (
-        "Scandi day: athletic shorts or light pants, fitted top, trainers; Falcon leather jacket on body or carried if cool. "
-        "OR (cold Nordics / cool mountain ONLY — NEVER Med south / Italy / Greece / warm coast): "
-        "classic Norwegian sweater (oatmeal/grey Mariusgenser-style geometric knit) + dark trail pants — no leather required. "
-        "Same kit always — no PVC, no nightlife kink, no Pulli in the south."
+        "Scandi day: athletic shorts or light pants, fitted tank or tee, trainers; "
+        "Falcon leather jacket on body or carried if cool. "
+        "No Norwegian Pulli / Mariusgenser in the day-outfit lock — Pulli is rare per-shot only when a cool-season THIS SHOT line fires. "
+        "Same kit always — no PVC, no nightlife kink."
     ),
     "yosra": (
         "Olive/grey linen shirt closed over trousers, Leica on strap. Same Marseille/travel kit — NOT open shirt over bikini."
@@ -8195,12 +8244,6 @@ def get_boulder_crash_pad_lock() -> str:
     )
 
 
-def _maya_day_outfit_for_place(place: dict) -> str:
-    if _is_settlement_place(place) or is_urban_place(place):
-        return MAYA_SETTLEMENT_DAY_OUTFIT
-    return CHARACTER_DAY_OUTFIT["maya"]
-
-
 def ensure_day_outfit_sticky(character_key: str, place: dict) -> str | None:
     """Create/return pinned day look for this place-set (even if this shot skips applying it)."""
     if character_key == "miles":
@@ -8213,8 +8256,6 @@ def ensure_day_outfit_sticky(character_key: str, place: dict) -> str | None:
         base = _diana_day_outfit_for_place(place)
     elif character_key == "lyra":
         base = _lyra_day_outfit_for_place(place)
-    elif character_key == "maya":
-        base = _maya_day_outfit_for_place(place)
     else:
         base = CHARACTER_DAY_OUTFIT.get(character_key)
     if not base:
@@ -8224,19 +8265,14 @@ def ensure_day_outfit_sticky(character_key: str, place: dict) -> str | None:
     if cached:
         return cached
     pinned = _pin_outfit_choices(base)
-    # katja: COOL/Norweger already in CHARACTER_SPECS cool block — skip soft pulli (was 2× Mariusgenser)
-    _pulli = (
-        ""
-        if character_key == "katja"
-        else get_northern_pulli_lock(place, character_key)
-    )
+    # Soft Pulli must NOT enter sticky day-outfit (pinned once → every shot a sweater).
+    # Wool-Nordic Pulli is injected per-shot via get_northern_pulli_lock elsewhere.
     _no_pulli = get_no_nordic_pulli_lock(place, character_key)
     if _no_pulli and character_key == "ingrid":
         pinned = (
             "Scandi day heat/south: athletic shorts or light pants, fitted tank or tee, trainers; "
             "Falcon leather open or carried — NO Norwegian Pulli / Mariusgenser / thick geometric wool."
         )
-    _pulli_bit = f" {_pulli}" if _pulli else ""
     _no_pulli_bit = f" {_no_pulli}" if _no_pulli else ""
     text = (
         f"DAY OUTFIT LOCK (same clothes for this place-set — PINNED, do not re-roll): {pinned} "
@@ -8245,8 +8281,9 @@ def ensure_day_outfit_sticky(character_key: str, place: dict) -> str | None:
         "Ignore '~15% WARDROBE VARIANT' / rotating options in the character brief for this set. "
         "Hike, swim, run, SUP may still replace this when those activities fire. "
         "At the vehicle: keep THIS kit (jacket layer ok if road lock requires). "
-        "DAYTIME — normal travel clothes only. No fetish-light / nightlife kink."
-        f"{_pulli_bit}{_no_pulli_bit}"
+        "DAYTIME — normal travel clothes only. No fetish-light / nightlife kink. "
+        "Norwegian Pulli is NOT part of this pinned kit — only if a separate THIS SHOT cool-season line fires."
+        f"{_no_pulli_bit}"
     )
     _DAY_OUTFIT_STICKY[key] = text
     return text
@@ -8322,7 +8359,7 @@ CHARACTER_HIKE_OUTFIT = {
     "bianca":     "Managed trail day — dark jeans or trail pants, white/neutral tank or tee, trainers, light layer. Reads the room outdoors.",
     "katja":      "BMW-traveller trail — athletic shorts or trail pants, fitted top, trail shoes. Practical road-trip hike, not glam. No second Norweger-Pulli.",
     "alessandra": "Athlete day-hike — trail shorts or running shorts, fitted tank or race vest, trail runners. Optional poles. Endurance energy, not dress.",
-    "ingrid":     "Trail-practical — athletic shorts or trail pants, fitted tank or tee, trail runners; OR classic Norwegian sweater (oatmeal/grey geometric knit) + dark trail pants ONLY when cool Nordics (never Med south). Leather jacket OFF body (on rock/pack if visible) unless sweater kit. No motorcycle on trail. No Pulli in Italy/Greece/Spain/warm coast.",
+    "ingrid":     "Trail-practical — athletic shorts or trail pants, fitted tank or tee, trail runners. Falcon leather OFF body (on rock/pack if visible). No motorcycle on trail. No Norwegian Pulli unless a cool-season THIS SHOT line fires (rare).",
     "werra":      "Investigator trail — dark jeans or trail pants, charcoal shirt or dark tee, boots or trail shoes, coat OFF or carried. Silver wheel pendant stays. Notebook ok. No tactical vest.",
     "thea":       "Greek path day — shorts or linen trousers, light tee, sandals or trail shoes, dark vintage sunglasses. Working energy off-shift — no crates.",
     "sofia":      "Coastal trail — athletic shorts or light pants, fitted top, trainers (or sandals only on easy shore path). Silver crescent + blue bracelet stay.",
@@ -8404,7 +8441,7 @@ CHARACTER_RUN_OUTFIT = {
     "maya":       "Black athletic shorts, training tank or sports crop top, trainers. Sport sunglasses on — land mode.",
     "kay":        "Trail shorts, fitted top, trail runners. Orca logo on top ok.",
     "metka":      "Black athletic shorts, freediver crop top, trail runners, Suunto/Shearwater on left wrist. Easy tempo — 20km is nothing for her.",
-    "tasha":      "EXTRA SKIMPY run kit — tiny running shorts, minimal crop top or sports bra, trainers, gold hoops. Body must stay fit; treats run as maintenance.",
+    "tasha":      "EXTRA SKIMPY run kit — tiny running shorts, minimal crop top or sports bra, trainers, gold hoops. Body must stay fit; treats run as maintenance. Disposable camera on strap ok.",
     "kiona":      "Black high-waist shorts, fitted tank, trainers or Sambas.",
     "lyra":       "NOT sportswear — same pinned day kit as this place-set (see LYRA wardrobe lock). NO white sheet/toga outside Greece/Cyprus. Sandals or barefoot, old gold jewelry. NO trainers, NO leggings.",
     "kelek":      "1950s women's athletic jog (real sport kit, vintage — NOT interwar blouse/trousers, NOT modern Lycra, NOT pin-up costume): fitted knit running shorts or calf-length pedal pushers (grey, dusty rose, navy, or sand), short-sleeve cotton knit top or simple sleeveless athletic shirt (white or pale pastel), white canvas sneakers (Keds-style) with short white socks, optional thin cotton headband. Red lips, large gold hoops. Brass compass on belt ok; map in hand ok. NO buttoned blouse, NO leather lace-ups, NO blazer, NO neon trainers.",
@@ -11847,7 +11884,7 @@ CAST: dict = {
     "charlotte":  {"geo": {"eu": .90, "us": .10}, "terrain": None, "dog": None},  # exception: crosses more than other EU; still ≤ old .10 feel via core cuts
     "zara":       {"geo": {"eu": .03, "us": .97}, "terrain": None, "dog": None},  # US-home
     "naomi":      {"geo": {"eu": .97, "us": .03}, "terrain": None, "dog": "elvis", "dog_prob": .5},
-    "alessandra": {"geo": {"eu": .98, "us": .02}, "terrain": None, "dog": "lupo",   "dog_prob": .5},
+    "alessandra": {"geo": {"eu": .98, "us": .02}, "terrain": None, "dog": None},  # no companion dog — locks + model fight lupo badly
     "maria":      {"geo": {"eu": .98, "us": .02}, "terrain": None, "dog": "zorro",  "dog_prob": .5},
     "sigrid":     {"geo": {"eu": .98, "us": .02}, "terrain": None, "dog": None},
     "ingrid":     {"geo": {"eu": .98, "us": .02}, "terrain": None, "dog": None},
@@ -13131,9 +13168,27 @@ def build_prompt(place: dict, character_key: str, noir_mode: bool = False, prest
         _aless_knee = get_alessandra_knee_bandage_lock(character_key, activity_key)
         if _aless_knee:
             _nails_lock += "\n" + _aless_knee
+        if character_key == "alessandra":
+            _nails_lock += "\n" + get_alessandra_roof_bike_lock(activity_key)
+            _nails_lock += "\n" + ALESSANDRA_NO_DOG_LOCK
         _no_pulli = get_no_nordic_pulli_lock(place, character_key)
         if _no_pulli:
             _nails_lock += "\n" + _no_pulli
+        elif character_key in _PULLI_WOOL_NORDIC:
+            # Per-shot only — never sticky. Cool-north gate OR rare mountain exception.
+            _pulli = get_northern_pulli_lock(place, character_key)
+            if _pulli:
+                _nails_lock += "\n" + _pulli
+            elif random.random() < 0.12:
+                _nails_lock += (
+                    "\nCOOL-SEASON LAYER (THIS SHOT ONLY — rare): Norwegian wool knit / Mariusgenser "
+                    "(oatmeal/grey geometric) + dark pants. Most shots stay Falcon/tank — not every frame a Pulli."
+                )
+            else:
+                _nails_lock += (
+                    "\nINGRID/SIGRID/CONRAD KIT (this shot): Falcon leather or shirt/tank — "
+                    "NO Norwegian Pulli / Mariusgenser this frame."
+                )
         if character_key == "maya":
             _msm = False if maya_grey_mode else (maya_swim_mode if maya_swim_mode is not None else _maya_swim_mode(place))
             _maya_eye = get_maya_eyewear_lock("maya", swim_mode=_msm)
@@ -13946,11 +14001,12 @@ No text, no watermarks. No studio lighting. Portrait orientation 800x1200.
 {_dynamic_framing}
 {MAIN_FRAMING_LOCK.strip()}
 FINAL COMPOSITION CHECK (after all style layers — EVERY character): if the person fills more than ~22% of the frame height, the camera is too close — pull back until the place wins. Giant figure = FAILED shot.
+{"FINAL ALESSANDRA BIKE CHECK: bike on roof facing FORWARD — front wheel toward hood. Panda side/front-¾, not pure rear. Empty roof only if she rides. No dog." if character_key == "alessandra" else ""}
 """.strip()
 
 # Maya grey-mouse canonical: ~30% of shots, max 2 per location — contrast vs swimsuit body.
 _MAYA_GREY_COUNT: dict[str, int] = {}
-MAYA_GREY_PROB = 0.15
+MAYA_GREY_PROB = 0.30
 MAYA_GREY_MAX_PER_PLACE = 2
 
 MAYA_GREY_OUTFIT_LOCK = """
@@ -13971,8 +14027,6 @@ def roll_maya_grey(place: dict) -> bool:
     Never on lake/coastal/beach — grey is land drab contrast only; water shots need the body."""
     terrain = (place.get("terrain_type") or "").lower()
     if terrain in {"lake", "coastal"} or is_beach_place(place) or is_shore_sand_context(place):
-        return False
-    if _is_settlement_place(place) or is_urban_place(place):
         return False
     key = _maya_place_key(place)
     n = _MAYA_GREY_COUNT.get(key, 0)
@@ -14647,9 +14701,10 @@ ROAD_IDENTITY_SPECS = {
     "elena":      "Night train. Window seat. Rain outside. Steps onto platform with black duffel over one shoulder — never a trolley, never wheels. Or: arrives in black hatchback, parks without ceremony, engine off, sits a moment before getting out. The duffel comes with her everywhere.",
     "katja":      "Dark grey BMW 3-series E90 at pull-off or town edge — engine off, she stands beside the car on pavement, map or ticket in hand. Or intercity train platform — door just opened behind her. Both feet on ground, looking at the location.",
     "alessandra": (
-        "Fiat Panda 4x4 at trailhead / lake lot — white, South Tyrol dust, black roof rack with ONE road bike "
-        "mounted parallel along the roof (aligned with car length). She stands beside the car in kit or trail gear, looking at "
-        "the place. OR: she rides in — unclips one foot, helmet on; if Panda visible, roof rack EMPTY that shot."
+        "Fiat Panda 4x4 at trailhead / lake lot — white, South Tyrol dust, shown SIDE or front three-quarter. "
+        "Black roof rack with ONE road bike facing FORWARD (front wheel toward hood, rear toward hatch, both wheels ON). "
+        "She stands beside the car in kit or trail gear, looking at the place. "
+        "OR: she rides in — unclips one foot, helmet on; if Panda visible, roof rack EMPTY that shot."
     ),
     "ingrid":     "BMW rolls to a stop on the viewpoint. Engine off. She swings leg over. Helmet under arm, hair tumbling out.",
     "jade":       "Camaro pulls off the highway, dust cloud behind it. Door swings open. She gets out slowly. She has been here before.",
@@ -15025,7 +15080,7 @@ IF SOFIA: bikini or rashguard, olive freckled surfer, silver crescent necklace i
 IF LUCA: board shorts, bare chest or faded tee off — weirdly attractive van-bum, NOT model-handsome. Italian/Med coast.
 IF KAY: black bikini or black 3mm wetsuit (half-zip/peeled ok). CHEST MARK: small white ORCA silhouette ONLY — never three horizontal wave lines (that is Maya). California/Pacific longboard/reef. Age/wear readable (44 looking 36) — not a 24-year-old Sporty Spice body-double.
 IF MAYA: competition/swim athletic kit or sport bikini — three-wave-line emblem on chest OK (her mark). US Southeast/Gulf/Atlantic. NOT Kay's orca.
-IF TASHA / ANA: white or flag-print athletic bikini (Tasha) — no orca, no three-wave (those belong to Kay/Maya only).
+IF TASHA / ANA: athletic bikini — no orca, no three-wave (those belong to Kay/Maya only).
 Barefoot on the board. Character 18–28% of frame — wave and ocean dominate.
 Gaze: on the wave / line ahead, or brief glance toward camera mid-ride — never fashion-beach portrait.
 NOT carrying the board (that is surf_paddle). NOT standing in ankle-deep foam posing. NOT SUP.
@@ -16552,7 +16607,7 @@ def is_character_home_territory(character_key: str, place: dict | None) -> bool:
     home_w = float(geo.get(region, 0) or 0)
     other = float(geo.get("eu" if region == "us" else "us", 0) or 0)
     return home_w >= 0.5 and home_w >= other
-_NO_PHOTO_LAB = ["photo_lab"]  # only yosra — analogue camera / Leica energy
+_NO_PHOTO_LAB = ["photo_lab"]  # only yosra and tasha have analogue camera energy
 _NO_HELMET = ["helmet_off"]  # only ingrid — motorcycle character
 _NO_NOTEBOOK = ["notebook_outside"]  # only tammy — her Kassandra notebook
 _NO_FIELD_REPAIR = ["field_repair"]  # only werra — she repairs her G300 in the field
@@ -16623,7 +16678,7 @@ _CHAR_ACTIVITY_OWNERS: dict[str, frozenset[str]] = {
     "bike_push": frozenset({"ingrid"}),
     "board_carry": frozenset({"maya"}),
     "surfing": frozenset({"sofia", "luca", "kay", "maya", "tasha", "ana"}),
-    "photo_lab": frozenset({"yosra"}),
+    "photo_lab": frozenset({"yosra", "tasha"}),
     "sunscreen_apply": frozenset({"tasha"}),
     "leica_frame": frozenset({"yosra"}),
     "saltwater_wring": frozenset({"sofia", "thea", "lyra", "tasha", "maria", "maya", "kay"}),
@@ -16714,7 +16769,10 @@ CHARACTER_ACTIVITY_EXCLUDE = {
     "tasha":      _NO_VAN + _NO_FISHING + _ALL_CHAR_EXCLUSIVE + _NO_ROPE_COIL + _NO_KAYAK_ENTRY,  # map_hood + tire_change; no kayak (bikini canonical)
     "bianca":     _NO_VAN + _NO_FISHING + _ALL_CHAR_EXCLUSIVE + _NO_ROPE_COIL + _NO_MAP_HOOD + _NO_TIRE_CHANGE + _NO_KAYAK_ENTRY,
     "kelek":      _NO_VAN + _ALL_CHAR_EXCLUSIVE + _NO_ROPE_COIL + _NO_MAP_HOOD + _NO_TIRE_CHANGE,  # fishing ok; kayak_entry allowed
-    "lyra":       _NO_VAN + _NO_FISHING + _ALL_CHAR_EXCLUSIVE + _NO_MAP_HOOD + _NO_TIRE_CHANGE,  # rope_coil + kayak_entry allowed (near water)
+    "lyra":       (
+        ["going_for_a_run", "trail_running", "stairs_sprint"]  # goddess does not run
+        + _NO_VAN + _NO_FISHING + _ALL_CHAR_EXCLUSIVE + _NO_MAP_HOOD + _NO_TIRE_CHANGE
+    ),  # rope_coil + kayak_entry allowed (near water); morning_run already in _ALL_CHAR_EXCLUSIVE
     "vera":       _NO_VAN + _NO_FISHING + _ALL_CHAR_EXCLUSIVE + _NO_ROPE_COIL + _NO_MAP_HOOD + _NO_TIRE_CHANGE,  # kayak_entry allowed
     "camille":    _NO_VAN + _NO_FISHING + _NO_NOTEBOOK + _NO_FIELD_REPAIR + _NO_MORNING_RUN + _NO_ROADSIDE_DUSK + _NO_HELMET + _NO_CHIN_UP + _NO_GEAR_HAUL + _NO_TANK_CARRY + _NO_BIKE_PUSH + _NO_BOARD_CARRY + _NO_ROPE_COIL,  # tarot_read + map_hood + tire_change + kayak_entry allowed (2CV)
     "carmela":    _NO_VAN + _NO_FISHING + _ALL_CHAR_EXCLUSIVE + _NO_ROPE_COIL + _NO_MAP_HOOD + _NO_TIRE_CHANGE + _NO_KAYAK_ENTRY,
@@ -16989,8 +17047,8 @@ def pick_activity(
     for _rm in list((_SCENIC_ROAD_MOMENTS) & candidates):
         if not _road_moment_allowed(character_key, _rm):
             candidates.discard(_rm)
-    # photo_lab only for yosra — analogue camera char
-    if character_key != "yosra":
+    # photo_lab only for yosra and tasha — analogue camera chars
+    if character_key not in {"yosra", "tasha"}:
         candidates.discard("photo_lab")
     if character_key not in _CIGARETTE_ROLL_CHARS:
         candidates.discard("cigarette_roll")
@@ -17323,12 +17381,7 @@ def get_character_activity_profile(
             "SURFING OUTFIT (MANDATORY): worn board shorts, bare chest — barefoot ON the board mid-ride. "
             "NOT jeans, NOT model-handsome. Weirdly attractive van-bum energy only."
         )
-    elif activity_key == "surfing" and character_key == "tasha":
-        parts.append(
-            "SURFING OUTFIT (MANDATORY): white athletic bikini or flag-print joke bikini — "
-            "barefoot ON the board mid-ride. No orca, no three-wave. NO camera."
-        )
-    elif activity_key == "surfing" and character_key == "ana":
+    elif activity_key == "surfing" and character_key in {"tasha", "ana"}:
         parts.append(
             "SURFING OUTFIT (MANDATORY): athletic bikini — barefoot ON the board mid-ride. "
             "No orca silhouette, no three-wave emblem (Kay/Maya marks only)."
@@ -17785,7 +17838,8 @@ def build_activity_prompt(place: dict, character_key: str, activity_key: str, ou
             if _pn in {"Cortina d'Ampezzo", "Cortina"}:
                 activity_text += (
                     "\nCORTINA GOLD PIN (this shot): green harvest crate of dark grapes, white shirt + dark pants, "
-                    "Panda 4x4 rear with bike transverse on roof, Dolomite village + church spire — Cortina vendemmia energy."
+                    "Panda 4x4 SIDE/front-¾ with road bike on roof facing FORWARD (front wheel toward hood), "
+                    "Dolomite village + church spire — Cortina vendemmia energy."
                 )
             elif random.random() < 0.42:
                 activity_text += (
@@ -18074,21 +18128,12 @@ def build_activity_prompt(place: dict, character_key: str, activity_key: str, ou
         outfit_override = f"SWIMWEAR OVERRIDE: {_metka_swim} This overrides the reference image swimwear."
     if (
         character_key in BIKINI_CHARS
-        and character_key != "maya"
         and activity_key in _beach_activities
         and not outfit_override
         and not _no_swim_ctx
         and not _maya_grey
     ):
         outfit_override = "thin white or light linen shirt open over bikini — she just came from or is heading to the water. Cover-up natural, not posed."
-    elif (
-        character_key == "maya"
-        and activity_key in _beach_activities
-        and not outfit_override
-        and not _no_swim_ctx
-        and not _maya_grey
-    ):
-        outfit_override = get_character_water_outfit_override(character_key, place)
     _sm_var = activity_variant if activity_key == "sup_mount" else None
     _char_profile = get_character_activity_profile(
         character_key, activity_key, activity_variant=_sm_var, tammy_energy_drink=_tammy_drink,
@@ -18741,9 +18786,6 @@ def get_nature_outfit_override(character_key: str, place: dict) -> str | None:
                 "NATURE OUTFIT (MAGHREB/TR): modest trail/day clothes — long-sleeve shirt or blouse, "
                 "trousers or long skirt, trainers. No bikini, no swimwear. Ignore reference swimsuit."
             )
-        if character_key == "maya" and terrain in {"coastal", "lake"}:
-            if allows_swimwear_at_place(place, None) or is_beach_place(place) or is_shore_sand_context(place):
-                return get_character_water_outfit_override(character_key, place)
         if terrain == "coastal":
             return (
                 "NATURE OUTFIT: linen shirt or light cover-up over top, shorts or skirt, sandals — "
@@ -18931,36 +18973,6 @@ _SURF_BLOCKLIST_PLACES = frozenset({
     "Boston", "Seattle", "Portland", "Dublin", "Copenhagen", "Stockholm",
 })
 
-# Coastal Ortschaften that ARE beach destinations (urban gate bypass for sand/swim).
-# Georgetown-type river/harbour towns stay blocked.
-_OCEAN_BEACH_TOWN_OK = frozenset({
-    "Key West", "Key Largo", "Islamorada", "Florida Keys",
-    "Miami", "Miami Beach", "South Beach",
-    "Honolulu", "Maui", "Waikiki", "Kauai", "Oahu",
-    "Venice Beach", "Santa Monica", "Malibu", "Huntington Beach", "Laguna Beach",
-    "Manhattan Beach", "Hermosa Beach", "Newport Beach", "Pacific Beach", "La Jolla",
-    "Palm Beach", "Fort Lauderdale", "Clearwater", "Sarasota", "Naples",
-    "Myrtle Beach", "Outer Banks", "Cancún", "Cancun", "Tulum", "Playa del Carmen",
-    "Gold Coast", "Bondi", "Byron Bay",
-})
-
-# Flat reef / bay — swim & beach ok, but no credible surf break (Keys, etc.)
-_NO_SURF_PLACES = frozenset({
-    "Key West", "Key Largo", "Islamorada", "Florida Keys",
-    "Georgetown",  # Cayman harbour town
-})
-_SURF_ONLY_ACTIVITIES = frozenset({"surfing", "surf_paddle", "board_carry"})
-
-
-def _ocean_beach_town_ok(place: dict) -> bool:
-    return _place_name_hit(_place_name_en(place), _OCEAN_BEACH_TOWN_OK)
-
-
-def _surf_activity_ok(place: dict, activity_key: str) -> bool:
-    if activity_key not in _SURF_ONLY_ACTIVITIES:
-        return True
-    return not _place_name_hit(_place_name_en(place), _NO_SURF_PLACES)
-
 
 def binoculars_scan_ok(character_key: str, place: dict, place_type: str = "") -> bool:
     """Beach/shore binoculars only for werra — kelek/tammy/dale/alessandra stay inland/ridge."""
@@ -18978,12 +18990,7 @@ def ocean_beach_activity_ok(place: dict, activity_key: str) -> bool:
     name = _place_name_en(place)
     if name in _SURF_BLOCKLIST_PLACES:
         return False
-    if not _surf_activity_ok(place, activity_key):
-        return False
     if is_shore_sand_context(place) or is_beach_place(place):
-        return True
-    # Known beach towns (Key West, Miami Beach, …) — swim/sand ok despite medium_town/city
-    if _ocean_beach_town_ok(place):
         return True
     # Georgetown-type: coastal Ortschaft ≠ beach — no bikini/SUP/jump in town
     if is_urban_place(place):
@@ -19967,9 +19974,9 @@ def generate_one(place, character_key, dry_run, exploit, suffix="", no_review=Fa
         prompt += (
             "\nMAIN POSE (TASHA): IN the place — NEW angle every shot. "
             "NOT the Capri-table lean + drink look-away, and NOT the standing soft-candid clone "
-            "(gaze aside, drink as pose prop, same hip/shoulder line as reference). "
-            "Mid-walk toward landmark, Jeep/rail lean, "
-            "or profile to the street with hands free. NO camera. Reference pose = FAIL."
+            "(gaze aside, drink+phone as pose props, same hip/shoulder line as reference). "
+            "Mid-walk toward landmark, shooting with the disposable, Jeep/rail lean, "
+            "or profile to the street with hands free. Reference pose = FAIL."
         )
     # Ingrid Med/south — never Mariusgenser (spec sweater line still in brief)
     if character_key == "ingrid" and suffix == "" and not _dayhike_mode:
